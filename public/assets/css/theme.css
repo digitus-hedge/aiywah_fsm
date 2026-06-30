@@ -1,0 +1,653 @@
+/* ═══════════════════════════════════════════════════════════
+   DIGIT-US PORTAL  ·  GLOBAL THEME SYSTEM
+   Drop this file into: public/assets/css/theme.css
+   Load it in layout.blade.php BEFORE app.css
+
+   How it works:
+   · All CSS variables live on html[data-theme="light|dark"]
+   · A single JS (theme.js) toggles the attribute + saves to
+     localStorage — every page picks it up instantly on load.
+   · Bootstrap 5 variables are overridden so its own components
+     (alerts, badges, modals, form controls …) also theme-switch.
+═══════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────
+   1. LIGHT THEME  (default)
+───────────────────────────────────────── */
+html,
+html[data-theme="light"] {
+
+  /* ── Surfaces ── */
+  --app-bg:         #f4f6fb;
+  --surface:        #ffffff;
+  --surface-2:      #f0f3f9;
+  --surface-3:      #e8edf7;
+
+  /* ── Component backgrounds ── */
+  --sidebar-bg:     #ffffff;
+  --topbar-bg:      #ffffff;
+  --card-bg:        #ffffff;
+  --modal-bg:       #ffffff;
+  --input-bg:       #ffffff;
+  --file-bg:        #f4f6f9;
+  --dropdown-bg:    #ffffff;
+  --tooltip-bg:     #1a2236;
+
+  /* ── Borders ── */
+  --border-color:   #e4e8f0;
+  --card-border:    #f0f2f8;
+  --file-border:    #e4e8f0;
+  --input-border:   #e4e8f0;
+  --input-focus:    rgba(101,113,255,.5);
+
+  /* ── Text ── */
+  --text-primary:   #1a2236;
+  --text-heading:   #0d1626;
+  --text-muted:     #7987a1;
+  --text-light:     #b0bac9;
+  --nav-link:       #4a5568;
+  --tooltip-text:   #ffffff;
+
+  /* ── Shadows ── */
+  --card-shadow:    0 2px 12px rgba(100,120,160,.10);
+  --sidebar-shadow: 2px 0 20px rgba(100,120,160,.10);
+  --topbar-shadow:  0 2px 10px rgba(100,120,160,.08);
+  --modal-shadow:   0 24px 64px rgba(0,0,0,.14);
+  --dropdown-shadow:0 8px 24px rgba(100,120,160,.16);
+
+  /* ── Overlays & dropzone ── */
+  --overlay-bg:     rgba(9,15,35,.55);
+  --dz-border:      #b8bfff;
+  --dz-bg:          rgba(101,113,255,.03);
+  --dz-hover:       rgba(101,113,255,.08);
+
+  /* ── Theme toggle track ── */
+  --toggle-track:   #dde1ec;
+  --toggle-thumb:   #ffffff;
+  --toggle-border:  #c8cedf;
+
+  /* ── Scrollbar ── */
+  --scrollbar-track:#f0f2f8;
+  --scrollbar-thumb:#d0d6e8;
+
+  /* ── Bootstrap 5 color bridge ──
+     These override Bootstrap's own CSS variables so native
+     BS components (form-control, modal, card …) match our theme. */
+  --bs-body-bg:           #f4f6fb;
+  --bs-body-color:        #1a2236;
+  --bs-border-color:      #e4e8f0;
+  --bs-card-bg:           #ffffff;
+  --bs-card-border-color: #f0f2f8;
+  --bs-modal-bg:          #ffffff;
+  --bs-input-bg:          #ffffff;
+  --bs-input-border-color:#e4e8f0;
+  --bs-secondary-bg:      #f0f3f9;
+  --bs-tertiary-bg:       #e8edf7;
+  --bs-emphasis-color:    #0d1626;
+  --bs-secondary-color:   #7987a1;
+}
+
+/* ─────────────────────────────────────────
+   2. DARK THEME
+───────────────────────────────────────── */
+html[data-theme="dark"] {
+
+  /* ── Surfaces ── */
+  --app-bg:         #060d1c;
+  --surface:        #0c1427;
+  --surface-2:      #101e33;
+  --surface-3:      #141f34;
+
+  /* ── Component backgrounds ── */
+  --sidebar-bg:     #0a1122;
+  --topbar-bg:      #0c1427;
+  --card-bg:        #0d1829;
+  --modal-bg:       #0d1829;
+  --input-bg:       #101e33;
+  --file-bg:        #101e33;
+  --dropdown-bg:    #0d1829;
+  --tooltip-bg:     #e4ecf8;
+
+  /* ── Borders ── */
+  --border-color:   #16243d;
+  --card-border:    #16243d;
+  --file-border:    #16243d;
+  --input-border:   #16243d;
+  --input-focus:    rgba(101,113,255,.6);
+
+  /* ── Text ── */
+  --text-primary:   #c8d4e8;
+  --text-heading:   #e4ecf8;
+  --text-muted:     #6b7fa0;
+  --text-light:     #3a4d66;
+  --nav-link:       #8aa0be;
+  --tooltip-text:   #0d1626;
+
+  /* ── Shadows ── */
+  --card-shadow:    0 2px 16px rgba(0,0,0,.40);
+  --sidebar-shadow: 2px 0 24px rgba(0,0,0,.50);
+  --topbar-shadow:  0 2px 12px rgba(0,0,0,.40);
+  --modal-shadow:   0 24px 64px rgba(0,0,0,.55);
+  --dropdown-shadow:0 8px 24px rgba(0,0,0,.55);
+
+  /* ── Overlays & dropzone ── */
+  --overlay-bg:     rgba(0,0,0,.72);
+  --dz-border:      #2d3d6e;
+  --dz-bg:          rgba(101,113,255,.05);
+  --dz-hover:       rgba(101,113,255,.12);
+
+  /* ── Theme toggle track ── */
+  --toggle-track:   #6571ff;
+  --toggle-thumb:   #ffffff;
+  --toggle-border:  #6571ff;
+
+  /* ── Scrollbar ── */
+  --scrollbar-track:#0d1829;
+  --scrollbar-thumb:#16243d;
+
+  /* ── Bootstrap 5 bridge ── */
+  --bs-body-bg:           #060d1c;
+  --bs-body-color:        #c8d4e8;
+  --bs-border-color:      #16243d;
+  --bs-card-bg:           #0d1829;
+  --bs-card-border-color: #16243d;
+  --bs-modal-bg:          #0d1829;
+  --bs-input-bg:          #101e33;
+  --bs-input-border-color:#16243d;
+  --bs-secondary-bg:      #101e33;
+  --bs-tertiary-bg:       #141f34;
+  --bs-emphasis-color:    #e4ecf8;
+  --bs-secondary-color:   #6b7fa0;
+}
+
+/* ─────────────────────────────────────────
+   3. BASE RESETS  — apply to every page
+───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+
+body {
+  font-family: 'Roboto', Helvetica, Arial, sans-serif;
+  font-size: .875rem;
+  background: var(--app-bg);
+  color: var(--text-primary);
+  margin: 0; padding: 0;
+  overflow-x: hidden;
+  transition: background .28s, color .28s;
+}
+a { text-decoration: none; color: inherit; }
+
+/* ─────────────────────────────────────────
+   4. SCROLLBAR  (webkit)
+───────────────────────────────────────── */
+::-webkit-scrollbar              { width: 5px; height: 5px; }
+::-webkit-scrollbar-track        { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb        { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover  { background: var(--text-light); }
+
+/* ─────────────────────────────────────────
+   5. SIDEBAR
+───────────────────────────────────────── */
+.sidebar,
+#sidebar {
+  background: var(--sidebar-bg) !important;
+  border-right-color: var(--border-color) !important;
+  box-shadow: var(--sidebar-shadow) !important;
+  transition: background .28s, border-color .28s, transform .28s cubic-bezier(.4,0,.2,1);
+}
+.sidebar-brand,
+.sidebar .sidebar-brand {
+  border-bottom-color: var(--border-color) !important;
+}
+.sidebar-nav a,
+.sidebar .sidebar-nav a {
+  color: var(--nav-link) !important;
+}
+.sidebar-nav a:hover {
+  background: var(--surface-2) !important;
+  color: #6571ff !important;
+}
+.sidebar-nav a.active {
+  background: rgba(101,113,255,.10) !important;
+  color: #6571ff !important;
+}
+.sidebar-footer,
+.sidebar .sidebar-footer {
+  border-top-color: var(--border-color) !important;
+}
+.nav-section,
+.sidebar-heading {
+  color: var(--text-light) !important;
+}
+
+/* ─────────────────────────────────────────
+   6. TOPBAR / NAVBAR
+───────────────────────────────────────── */
+.topbar,
+.navbar,
+header.topbar {
+  background: var(--topbar-bg) !important;
+  border-bottom-color: var(--border-color) !important;
+  box-shadow: var(--topbar-shadow) !important;
+  transition: background .28s, border-color .28s;
+}
+.topbar-page-title,
+.topbar .pt-main,
+.topbar-page-title strong {
+  color: var(--text-heading) !important;
+}
+.topbar-breadcrumb,
+.topbar .breadcrumb-item.active,
+.topbar-clock,
+.clock-display {
+  color: var(--text-muted) !important;
+}
+.topbar .breadcrumb-item+.breadcrumb-item::before,
+.bc-sep { color: var(--text-light) !important; }
+.t-divider,
+.topbar-divider { background: var(--border-color) !important; }
+
+/* ─────────────────────────────────────────
+   7. CARDS
+───────────────────────────────────────── */
+.card,
+.fc,
+.sr-card,
+.rp-card,
+.da-col > .card,
+.split-card {
+  background: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+  box-shadow: var(--card-shadow) !important;
+  transition: background .28s, border-color .28s;
+}
+.card-hdr,
+.card-header,
+.chdr,
+.fc-head,
+.sr-card-header,
+.rp-head {
+  border-bottom-color: var(--card-border) !important;
+  background: transparent !important;
+}
+.card-body,
+.cbody,
+.fc-body,
+.card-hdr h6,
+.chdr h6,
+.fc-head h6 {
+  color: var(--text-heading) !important;
+}
+.card-hdr .sub,
+.chdr .csub,
+.fc-head .fc-sub {
+  color: var(--text-muted) !important;
+}
+.rp-hr, hr.cd, hr.pv-hr, .sr-divider {
+  border-color: var(--card-border) !important;
+}
+
+/* ─────────────────────────────────────────
+   8. FORM CONTROLS
+───────────────────────────────────────── */
+.form-control,
+.form-select,
+.finput,
+.fselect,
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+input[type="search"],
+textarea,
+select {
+  background: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--text-primary) !important;
+  transition: background .28s, border-color .15s, color .28s, box-shadow .15s;
+}
+.form-control:focus,
+.form-select:focus,
+.finput:focus,
+.fselect:focus {
+  border-color: var(--input-focus) !important;
+  box-shadow: 0 0 0 3px rgba(101,113,255,.14) !important;
+  outline: none !important;
+}
+.form-control::placeholder,
+.finput::placeholder { color: var(--text-light) !important; }
+.form-control:disabled,
+.form-select:disabled {
+  background: var(--surface-2) !important;
+  color: var(--text-muted) !important;
+  opacity: .6;
+}
+.form-label  { color: var(--nav-link) !important; }
+.form-hint,
+.form-text   { color: var(--text-muted) !important; }
+
+/* Select options in dark mode */
+html[data-theme="dark"] .form-select option,
+html[data-theme="dark"] .fselect option,
+html[data-theme="dark"] select option {
+  background: #101e33;
+  color: #c8d4e8;
+}
+
+/* ─────────────────────────────────────────
+   9. TABLE
+───────────────────────────────────────── */
+.dtbl thead tr,
+table thead tr,
+.table thead tr {
+  background: var(--surface-2) !important;
+}
+.dtbl thead th,
+table thead th,
+.table thead th {
+  color: var(--text-muted) !important;
+  border-bottom-color: var(--card-border) !important;
+}
+.dtbl tbody tr,
+table tbody tr,
+.table tbody tr {
+  border-bottom-color: var(--card-border) !important;
+  color: var(--text-primary) !important;
+  transition: background .15s;
+}
+.dtbl tbody tr:hover,
+table tbody tr:hover  { background: rgba(101,113,255,.04) !important; }
+html[data-theme="dark"] .dtbl tbody tr:hover,
+html[data-theme="dark"] table tbody tr:hover { background: rgba(101,113,255,.08) !important; }
+.dtbl tbody tr.sel    { background: rgba(101,113,255,.08) !important; border-left-color: #6571ff !important; }
+.dtbl tbody td,
+table tbody td        { color: var(--text-primary) !important; }
+.tbl-foot             { border-top-color: var(--card-border) !important; color: var(--text-muted) !important; }
+.tbl-wrap             { background: transparent; }
+
+/* ─────────────────────────────────────────
+   10. MODALS
+───────────────────────────────────────── */
+.modal-content,
+.success-modal,
+.success-box,
+.sr-success-modal,
+.m-box {
+  background: var(--modal-bg) !important;
+  border-color: var(--card-border) !important;
+  box-shadow: var(--modal-shadow) !important;
+  color: var(--text-primary) !important;
+}
+.modal-header,
+.m-hdr {
+  border-bottom-color: var(--card-border) !important;
+}
+.modal-footer,
+.m-ftr {
+  border-top-color: var(--card-border) !important;
+  background: transparent !important;
+}
+.modal-title,
+.m-hdr h6,
+.success-modal h5,
+.success-box h5 { color: var(--text-heading) !important; }
+.modal-backdrop,
+.m-overlay,
+.success-overlay,
+.sr-overlay,
+.sr-success-overlay {
+  background: var(--overlay-bg) !important;
+}
+
+/* ─────────────────────────────────────────
+   11. DROPDOWNS
+───────────────────────────────────────── */
+.dropdown-menu {
+  background: var(--dropdown-bg) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: var(--dropdown-shadow) !important;
+}
+.dropdown-item {
+  color: var(--text-primary) !important;
+}
+.dropdown-item:hover,
+.dropdown-item:focus {
+  background: var(--surface-2) !important;
+  color: #6571ff !important;
+}
+.dropdown-divider { border-color: var(--border-color) !important; }
+
+/* ─────────────────────────────────────────
+   12. BADGES / CHIPS
+───────────────────────────────────────── */
+/* Status-specific chip colours are intentionally kept vivid
+   in both modes — only neutral chips need a dark override. */
+html[data-theme="dark"] .chip-gray {
+  background: rgba(90,106,126,.18) !important;
+  color: #8aa0be !important;
+}
+
+/* ─────────────────────────────────────────
+   13. STAT / SUMMARY CARDS (right panel rows)
+───────────────────────────────────────── */
+.info-row span:first-child,
+.pv-k,
+.as-k,
+.tk-row .tk-l { color: var(--text-muted) !important; }
+.info-row span:last-child,
+.pv-v,
+.as-v,
+.tk-row .tk-v { color: var(--text-heading) !important; }
+
+/* ─────────────────────────────────────────
+   14. TECHNICIAN CARDS
+───────────────────────────────────────── */
+.tech-card {
+  background: var(--surface-2) !important;
+  border-color: var(--card-border) !important;
+  transition: background .15s, border-color .15s;
+}
+.tech-card:hover  { background: rgba(101,113,255,.04) !important; border-color: rgba(101,113,255,.3) !important; }
+html[data-theme="dark"] .tech-card:hover { background: rgba(101,113,255,.08) !important; }
+.tech-card.selected { background: rgba(101,113,255,.08) !important; border-color: #6571ff !important; }
+.tech-name  { color: var(--text-heading) !important; }
+.tech-skill,
+.tech-id    { color: var(--text-muted)   !important; }
+
+/* ─────────────────────────────────────────
+   15. PRIORITY PILLS
+───────────────────────────────────────── */
+.p-pill:not(.on) {
+  background: var(--input-bg) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-muted) !important;
+}
+
+/* ─────────────────────────────────────────
+   16. FILE LIST / DROPZONE
+───────────────────────────────────────── */
+.file-item,
+.fitem {
+  background: var(--file-bg) !important;
+  border-color: var(--file-border) !important;
+  color: var(--text-primary) !important;
+}
+.fi-name  { color: var(--text-heading) !important; }
+.fi-size,
+.fi-sz    { color: var(--text-muted) !important; }
+.dropzone,
+.dz {
+  border-color: var(--dz-border) !important;
+  background: var(--dz-bg) !important;
+}
+.dropzone:hover,
+.dropzone.drag-over,
+.dz.over {
+  border-color: #6571ff !important;
+  background: var(--dz-hover) !important;
+}
+.dz-text,
+.dz-txt   { color: var(--nav-link) !important; }
+.dz-hint  { color: var(--text-muted) !important; }
+
+/* ─────────────────────────────────────────
+   17. CLIENT INFO / CODE CHIPS
+───────────────────────────────────────── */
+.client-box,
+.client-reveal {
+  background: rgba(5,163,74,.07) !important;
+  border-color: rgba(5,163,74,.2) !important;
+}
+html[data-theme="dark"] .client-box,
+html[data-theme="dark"] .client-reveal {
+  background: rgba(5,163,74,.05) !important;
+}
+.ci-item span,
+.ci-val { color: var(--text-heading) !important; }
+.ci-item label,
+.ci-lbl { color: var(--text-muted) !important; }
+
+/* ─────────────────────────────────────────
+   18. TIPS / STEP LISTS
+───────────────────────────────────────── */
+.tip-item,
+.att-step {
+  border-bottom-color: var(--card-border) !important;
+}
+.tip-text,
+.att-step-sub { color: var(--text-primary) !important; }
+.tip-text strong,
+.att-step-title { color: var(--text-heading) !important; }
+
+/* ─────────────────────────────────────────
+   19. FILTER ROW (pager buttons)
+───────────────────────────────────────── */
+.pg-btn {
+  background: var(--surface-2) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-muted) !important;
+}
+.pg-btn:hover,
+.pg-btn.act {
+  background: rgba(101,113,255,.1) !important;
+  border-color: #6571ff !important;
+  color: #6571ff !important;
+}
+
+/* ─────────────────────────────────────────
+   20. TOAST
+───────────────────────────────────────── */
+.toast-item,
+.toast-el {
+  background: var(--card-bg) !important;
+  box-shadow: var(--dropdown-shadow) !important;
+}
+.t-title,
+.ti-t { color: var(--text-heading) !important; }
+.t-body,
+.ti-b { color: var(--text-muted) !important; }
+
+/* ─────────────────────────────────────────
+   21. PAGE HEADER GRADIENT
+   (intentionally stays vivid — no override)
+───────────────────────────────────────── */
+
+/* ─────────────────────────────────────────
+   22. MAIN CONTENT WRAPPER
+───────────────────────────────────────── */
+.main,
+.main-content,
+.page-content {
+  background: var(--app-bg) !important;
+  transition: background .28s;
+}
+
+/* ─────────────────────────────────────────
+   23. THEME TOGGLE WIDGET  (topbar)
+───────────────────────────────────────── */
+.th-track,
+.toggle-track {
+  background: var(--toggle-track) !important;
+  border-color: var(--toggle-border) !important;
+  transition: background .28s, border-color .28s;
+}
+.th-thumb,
+.toggle-thumb {
+  background: var(--toggle-thumb) !important;
+  transition: transform .28s, background .28s;
+}
+html[data-theme="dark"] .th-thumb,
+html[data-theme="dark"] .toggle-thumb {
+  transform: translateX(16px) !important;
+}
+/* larger 42px track variant */
+html[data-theme="dark"] .toggle-track .toggle-thumb {
+  transform: translateX(20px) !important;
+}
+.th-sun,
+.t-icon-sun  { color: #fbbc06; transition: color .28s; }
+.th-moon,
+.t-icon-moon { color: #8b9bff; transition: color .28s; }
+html[data-theme="dark"] .th-sun  { color: rgba(251,188,6,.35); }
+html[data-theme="dark"] .th-moon { color: #6571ff; }
+
+/* ─────────────────────────────────────────
+   24. FOOTER
+───────────────────────────────────────── */
+footer,
+.footer {
+  background: var(--topbar-bg) !important;
+  border-top-color: var(--border-color) !important;
+  color: var(--text-muted) !important;
+  transition: background .28s, border-color .28s;
+}
+
+/* ─────────────────────────────────────────
+   25. MISC UTILITIES
+───────────────────────────────────────── */
+/* Dividers */
+.t-divider,
+.topbar-divider { background: var(--border-color) !important; }
+
+/* Surface boxes (assign summary, notify notes …) */
+.assign-summary,
+.notify-note,
+.push-note,
+.m-summary {
+  background: var(--surface-2) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Skeleton / empty states */
+.no-sel-note i,
+.snap-empty i,
+.no-tech i { opacity: .28; }
+.no-sel-note,
+.snap-empty,
+.no-tech { color: var(--text-muted) !important; }
+
+/* Bootstrap alert override for dark */
+html[data-theme="dark"] .alert {
+  border-color: var(--border-color) !important;
+}
+
+/* ─────────────────────────────────────────
+   26. SMOOTH TRANSITION on theme switch
+   Applied globally so nothing "flashes"
+───────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, box-shadow, fill, stroke;
+  transition-duration: .28s;
+  transition-timing-function: ease;
+}
+/* But don't slow down interactions */
+button, a, input, select, textarea,
+.btn, .form-control, .form-select,
+.tech-card, .p-pill, .skill-chip,
+.code-chip, .demo-chip, .pg-btn {
+  transition-duration: .15s;
+}
