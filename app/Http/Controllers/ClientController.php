@@ -11,8 +11,10 @@ class ClientController extends Controller
     public function create()
     {
         $recentClients  = Client::latest()->take(5)->get();
-        $existingTokens = Client::pluck('unique_code');
+        $existingTokens = Client::pluck('unique_code')->toArray();
         $suggestedCode  = $this->nextCode();
+
+      
 
         return view('client_accounts', [
             'recentClients'  => $recentClients,

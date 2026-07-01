@@ -300,6 +300,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
                        style="font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-family:monospace;font-size:.82rem;padding-right:40px;"
                        {{ $isEdit ? 'readonly' : '' }}/>
                 <span class="input-right-icon">
+                <div class="check-spinner" id="tokenSpinner"><div class="spinner-border" style="width:14px;height:14px;border-width:2px;color:#fbbc06;" role="status"></div></div>
                   <i class="bi bi-check-circle-fill check-ok" id="tokenOk"></i>
                   <i class="bi bi-x-circle-fill check-err" id="tokenErr"></i>
                 </span>
@@ -522,7 +523,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 
 const IS_EDIT = @json($isEdit);
 const CLIENT_DATA = @json($clientData);
-
+const EXISTING_TOKENS = @json($existingTokens ?? []);
 let matchedClientId = null;
 let companyLookupTimer = null;
 
@@ -617,10 +618,107 @@ function removeMethodField() {
 /* ── Token (display only; real generation is server-side) ── */
 let tokenVerified = true;
 
+let tokenTimer=null;
+
+function genToken(firm=''){
+  const yr=new Date().getFullYear();
+  const suffix=firm.replace(/[^A-Z0-9]/gi,'').toUpperCase().substring(0,4)||Math.random().toString(36).substring(2,6).toUpperCase();
+  const num=String(Math.floor(Math.random()*9000)+1000);
+  return `CUST-${yr}${suffix.padEnd(4,'X').substring(0,4)}`;
+}
+
 function regenToken() {
+  // Double safety check: Stop if the app is globally in edit mode
   if (IS_EDIT) return;
+
+  // 1. Calculate the next number based on existing database tokens
+  // If EXISTING_TOKENS has 0 items, next is 1. If it has 5 items, next is 6.
+  const nextCount = (typeof EXISTING_TOKENS !== 'undefined') ? (EXISTING_TOKENS.length + 1) : 1;
+  
+  // 2. Format the components
+  const yr = new Date().getFullYear(); // 2026
+  const paddedNum = String(nextCount).padStart(3, '0'); // Pads 1 to '001', 12 to '012'
+  
+  // 3. Build the final token string: CUST-2026001
+  const token = `CUST-${yr}${paddedNum}`;
+  
+  // 4. Inject that fresh token back into your visible token input box
+  document.getElementById('clientToken').value = token;
+  
+  // 5. Trigger your custom formatting or sync listener 
+  onTokenInput(document.getElementById('clientToken'));
+  
+  // 6. Sync the UI layout summaries
   syncSummary();
 }
+
+
+function checkTokenUnique(val) {
+  // Hide the checking spinner asset
+  document.getElementById('tokenSpinner').style.display = 'none';
+  
+  // Cross-reference against your dynamic database array
+  const isDup = EXISTING_TOKENS.includes(val);
+  const msg = document.getElementById('tokenMsg');
+  const tokenInput = document.getElementById('clientToken');
+
+  if (isDup) {
+    // IF EXISTING: Turn red, show error symbol, and block submission
+    tokenVerified = false;
+    document.getElementById('tokenErr').style.display = 'block';
+    document.getElementById('tokenOk').style.display = 'none';
+    tokenInput.className = 'form-control is-invalid';
+    
+    msg.className = 'field-msg err';
+    msg.textContent = `⚠ This token (${val}) already exists in the database. Please regenerate.`;
+  } else {
+    // IF NOT EXISTING: Turn green, show success checkmark, and allow save
+    tokenVerified = true;
+    document.getElementById('tokenOk').style.display = 'block';
+    document.getElementById('tokenErr').style.display = 'none';
+    tokenInput.className = 'form-control is-valid';
+    
+    msg.className = 'field-msg ok';
+    msg.textContent = `✓ Token ${val} is unique and available.`;
+  }
+  
+  updateChecklist();
+  syncSummary();
+}
+
+function onTokenInput(el){
+  el.value=el.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');
+  tokenVerified=false;
+  clearTimeout(tokenTimer);
+  const val=el.value.trim();
+  hideTokenFeedback();
+  syncSummary();
+  if(val.length>=6){
+    showTokenChecking();
+    tokenTimer=setTimeout(()=>checkTokenUnique(val),900);
+  }
+  updateChecklist();
+}
+
+function showTokenChecking(){
+  document.getElementById('tokenSpinner').style.display='block';
+  document.getElementById('tokenOk').style.display='none';
+  document.getElementById('tokenErr').style.display='none';
+  document.getElementById('clientToken').className='form-control checking';
+  const msg=document.getElementById('tokenMsg');
+  msg.className='field-msg info';
+  msg.textContent='Checking uniqueness…';
+}
+function hideTokenFeedback(){
+  document.getElementById('tokenSpinner').style.display='none';
+  document.getElementById('tokenOk').style.display='none';
+  document.getElementById('tokenErr').style.display='none';
+  document.getElementById('clientToken').className='form-control';
+  document.getElementById('tokenMsg').className='field-msg';
+  document.getElementById('tokenMsg').textContent='';
+}
+
+
 
 /* ── Phone validation ── */
 function validatePhone(el, msgId) {

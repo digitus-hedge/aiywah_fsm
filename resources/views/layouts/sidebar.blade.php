@@ -23,7 +23,7 @@
         </li>
         <li>
             <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
-                <i data-feather="clipboard"></i>Ticket Summary(Kanban)
+                <i data-feather="clipboard"></i>Ticket Summary
             </a>
         </li>
         <li>
@@ -84,6 +84,12 @@
                 <i data-feather="shield"></i>User Provisioning
             </a>
         </li>
+          <li>
+        <a href="{{ route('master_data') }}"  class="{{ request()->routeIs('master_data') ? 'active' : '' }}"><i data-feather="key"></i>Master Data
+    </a>
+
+        </li>
+
         <li>
             <a href="#" class="{{ request()->routeIs('system_config') ? 'active' : '' }}">
                 <i data-feather="settings"></i>System Config

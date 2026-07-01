@@ -294,17 +294,22 @@ textarea.form-control{resize:vertical;min-height:108px;}
 
             {{-- Service Type (2 static options) --}}
             <div class="col-sm-6">
-              <label class="form-label">Service Type <span class="req">*</span></label>
-              <div class="iw">
-                <span class="ii"><i class="bi bi-tag"></i></span>
-                <select class="form-select" id="svcType" name="service_type_id"
-                        onchange="pv('pvType',this.options[this.selectedIndex].text)">
-                  <option value="">— Select type —</option>
-                  <option value="1">Installation &amp; Maintenance</option>
-                  <option value="2">Repair &amp; Inspection</option>
-                </select>
-              </div>
-            </div>
+  <label class="form-label">Service Category <span class="req">*</span></label>
+  <div class="iw">
+    <span class="ii"><i class="bi bi-tag"></i></span>
+    
+    <select class="form-select" id="svcType" name="service_type_id"
+            onchange="pv('pvType', this.options[this.selectedIndex].text)">
+      <option value="">— Select Category —</option>
+      
+      @foreach($categories as $category)
+        <option value="{{ $category->id }}">
+          {{ $category->name }} </option>
+      @endforeach
+
+    </select>
+  </div>
+</div>
 
             {{-- Reported By --}}
             <div class="col-sm-6">

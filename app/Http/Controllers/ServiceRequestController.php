@@ -1,8 +1,10 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\ServiceRequest;
 use App\Models\Client;
+use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -11,8 +13,13 @@ class ServiceRequestController extends Controller
     public function create()
     {
         // Service types are hardcoded in the blade (ids 1 & 2), no DB needed
-        return view('sr_registration');
+
+        $categories = ServiceCategory::get();
+
+        return view('sr_registration', compact('categories'));
     }
+
+
 
     // Lookup endpoint — searches by company name, unique_code, or primary_mobile
     public function lookup(string $code)
@@ -22,8 +29,8 @@ class ServiceRequestController extends Controller
         $client = Client::with('projects')
             ->where(function ($q) use ($term) {
                 $q->where('unique_code', $term)
-                  ->orWhere('primary_mobile', $term)
-                  ->orWhere('company_name', 'like', "%{$term}%");
+                    ->orWhere('primary_mobile', $term)
+                    ->orWhere('company_name', 'like', "%{$term}%");
             })
             ->first();
 
@@ -32,7 +39,7 @@ class ServiceRequestController extends Controller
         }
 
         // Key each project by name → [ its single site_name ]
-        $projects = $client->projects->mapWithKeys(fn ($p) => [
+        $projects = $client->projects->mapWithKeys(fn($p) => [
             $p->project_name => array_filter([$p->site_name]),
         ]);
 
@@ -53,10 +60,8 @@ class ServiceRequestController extends Controller
     {
         $data = $request->validate([
             'client_id'         => ['required', 'exists:clients,id'],
-            'project'           => ['required', 'string', 'max:255'],
-            'project_site'      => ['required', 'string', 'max:255'],
-            'service_type_id'   => ['required', 'in:1,2'], // 2 static types, no DB table
-            'reported_by'       => ['required', 'string', 'max:255'],
+            'project_id'        => ['required', 'exists:projects,id'],
+            'service_type_id'   => ['required', 'exists:service_categories,id'], // Cleaned to match your dynamic DB category id lookup            'reported_by'       => ['required', 'string', 'max:255'],
             'priority_level'    => ['required', 'in:Low,Medium,High,Critical'],
             'issue_description' => ['required', 'string', 'min:20'],
             'internal_remark'   => ['nullable', 'string'],
@@ -73,7 +78,7 @@ class ServiceRequestController extends Controller
 
             return ServiceRequest::create([
                 'client_id'         => $data['client_id'],
-                'project_site'      => $data['project_site'],
+                'project_id'        => $data['project_id'],       // Stores your project primary ID key
                 'service_type_id'   => $data['service_type_id'],
                 'reported_by'       => $data['reported_by'],
                 'priority_level'    => $data['priority_level'],
@@ -94,7 +99,7 @@ class ServiceRequestController extends Controller
 
     public function approvalIndex()
     {
-        $inquiries = ServiceRequest::with('client')
+        $inquiries = ServiceRequest::with('client', 'project', 'creator', 'category')
             ->where('status', 'Pending')
             ->latest()
             ->get();
@@ -113,23 +118,39 @@ class ServiceRequestController extends Controller
     {
         $serviceRequest->update(['status' => 'Approved']);
 
-        return response()->json(['success' => true, 'message' => $serviceRequest->id . ' approved — sent to Dispatch Engine.']);
+        return response()->json([
+            'ok'      => true, // Matches JavaScript validation check
+            'success' => true,
+            'message' => 'Ticket ' . $serviceRequest->unique_code . ' approved — routed to Dispatch Engine.'
+        ]);
     }
 
     public function forward(ServiceRequest $serviceRequest)
     {
         $serviceRequest->update(['status' => 'Forwarded']);
 
-        return response()->json(['success' => true, 'message' => $serviceRequest->id . ' forwarded — sent to Quotation Desk.']);
+        return response()->json([
+            'ok'      => true, // Matches JavaScript validation check
+            'success' => true,
+            'message' => 'Ticket ' . $serviceRequest->unique_code . ' forwarded — routed to Quotation Desk.'
+        ]);
     }
 
     public function reject(Request $request, ServiceRequest $serviceRequest)
     {
+        $request->validate([
+            'reason' => 'required|string|min:10|max:500'
+        ]);
+
         $serviceRequest->update([
-            'status'         => 'Rejected',
+            'status'          => 'Rejected',
             'internal_remark' => trim(($serviceRequest->internal_remark ?? '') . "\nRejection reason: " . $request->input('reason', 'Not specified')),
         ]);
 
-        return response()->json(['success' => true, 'message' => $serviceRequest->id . ' rejected.']);
+        return response()->json([
+            'ok'      => true, // Matches JavaScript validation check
+            'success' => true,
+            'message' => 'Ticket ' . $serviceRequest->unique_code . ' successfully rejected and archived.'
+        ]);
     }
 }
