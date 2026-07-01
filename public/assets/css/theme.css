@@ -1,16 +1,3 @@
-/* ═══════════════════════════════════════════════════════════
-   DIGIT-US PORTAL  ·  GLOBAL THEME SYSTEM
-   Drop this file into: public/assets/css/theme.css
-   Load it in layout.blade.php BEFORE app.css
-
-   How it works:
-   · All CSS variables live on html[data-theme="light|dark"]
-   · A single JS (theme.js) toggles the attribute + saves to
-     localStorage — every page picks it up instantly on load.
-   · Bootstrap 5 variables are overridden so its own components
-     (alerts, badges, modals, form controls …) also theme-switch.
-═══════════════════════════════════════════════════════════ */
-
 /* ─────────────────────────────────────────
    1. LIGHT THEME  (default)
 ───────────────────────────────────────── */
@@ -38,7 +25,7 @@ html[data-theme="light"] {
   --card-border:    #f0f2f8;
   --file-border:    #e4e8f0;
   --input-border:   #e4e8f0;
-  --input-focus:    rgba(101,113,255,.5);
+  --input-focus:    rgba(154,123,79,.5);
 
   /* ── Text ── */
   --text-primary:   #1a2236;
@@ -57,9 +44,9 @@ html[data-theme="light"] {
 
   /* ── Overlays & dropzone ── */
   --overlay-bg:     rgba(9,15,35,.55);
-  --dz-border:      #b8bfff;
-  --dz-bg:          rgba(101,113,255,.03);
-  --dz-hover:       rgba(101,113,255,.08);
+  --dz-border:      #d8c6a8;
+  --dz-bg:          rgba(154,123,79,.03);
+  --dz-hover:       rgba(154,123,79,.08);
 
   /* ── Theme toggle track ── */
   --toggle-track:   #dde1ec;
@@ -113,7 +100,7 @@ html[data-theme="dark"] {
   --card-border:    #16243d;
   --file-border:    #16243d;
   --input-border:   #16243d;
-  --input-focus:    rgba(101,113,255,.6);
+  --input-focus:    rgba(154,123,79,.6);
 
   /* ── Text ── */
   --text-primary:   #c8d4e8;
@@ -132,14 +119,14 @@ html[data-theme="dark"] {
 
   /* ── Overlays & dropzone ── */
   --overlay-bg:     rgba(0,0,0,.72);
-  --dz-border:      #2d3d6e;
-  --dz-bg:          rgba(101,113,255,.05);
-  --dz-hover:       rgba(101,113,255,.12);
+  --dz-border:      #6e5a2d;
+  --dz-bg:          rgba(154,123,79,.05);
+  --dz-hover:       rgba(154,123,79,.12);
 
   /* ── Theme toggle track ── */
-  --toggle-track:   #6571ff;
+  --toggle-track:   #9A7B4F;
   --toggle-thumb:   #ffffff;
-  --toggle-border:  #6571ff;
+  --toggle-border:  #9A7B4F;
 
   /* ── Scrollbar ── */
   --scrollbar-track:#0d1829;
@@ -206,12 +193,23 @@ a { text-decoration: none; color: inherit; }
   color: var(--nav-link) !important;
 }
 .sidebar-nav a:hover {
-  background: var(--surface-2) !important;
-  color: #6571ff !important;
+  background: rgba(154,123,79,.06) !important;
+  color: #9A7B4F !important;
+}
+.sidebar-nav a:hover svg,
+.sidebar-nav a:hover i {
+  color: #9A7B4F !important;
+  stroke: #9A7B4F !important;
 }
 .sidebar-nav a.active {
-  background: rgba(101,113,255,.10) !important;
-  color: #6571ff !important;
+  background: rgba(154,123,79,.10) !important;
+  color: #9A7B4F !important;
+  border-left-color: #9A7B4F !important;
+}
+.sidebar-nav a.active svg,
+.sidebar-nav a.active i {
+  color: #9A7B4F !important;
+  stroke: #9A7B4F !important;
 }
 .sidebar-footer,
 .sidebar .sidebar-footer {
@@ -313,7 +311,7 @@ select {
 .finput:focus,
 .fselect:focus {
   border-color: var(--input-focus) !important;
-  box-shadow: 0 0 0 3px rgba(101,113,255,.14) !important;
+  box-shadow: 0 0 0 3px rgba(154,123,79,.14) !important;
   outline: none !important;
 }
 .form-control::placeholder,
@@ -358,10 +356,10 @@ table tbody tr,
   transition: background .15s;
 }
 .dtbl tbody tr:hover,
-table tbody tr:hover  { background: rgba(101,113,255,.04) !important; }
+table tbody tr:hover  { background: rgba(154,123,79,.04) !important; }
 html[data-theme="dark"] .dtbl tbody tr:hover,
-html[data-theme="dark"] table tbody tr:hover { background: rgba(101,113,255,.08) !important; }
-.dtbl tbody tr.sel    { background: rgba(101,113,255,.08) !important; border-left-color: #6571ff !important; }
+html[data-theme="dark"] table tbody tr:hover { background: rgba(154,123,79,.08) !important; }
+.dtbl tbody tr.sel    { background: rgba(154,123,79,.08) !important; border-left-color: #9A7B4F !important; }
 .dtbl tbody td,
 table tbody td        { color: var(--text-primary) !important; }
 .tbl-foot             { border-top-color: var(--card-border) !important; color: var(--text-muted) !important; }
@@ -415,7 +413,7 @@ table tbody td        { color: var(--text-primary) !important; }
 .dropdown-item:hover,
 .dropdown-item:focus {
   background: var(--surface-2) !important;
-  color: #6571ff !important;
+  color: #9A7B4F !important;
 }
 .dropdown-divider { border-color: var(--border-color) !important; }
 
@@ -449,9 +447,9 @@ html[data-theme="dark"] .chip-gray {
   border-color: var(--card-border) !important;
   transition: background .15s, border-color .15s;
 }
-.tech-card:hover  { background: rgba(101,113,255,.04) !important; border-color: rgba(101,113,255,.3) !important; }
-html[data-theme="dark"] .tech-card:hover { background: rgba(101,113,255,.08) !important; }
-.tech-card.selected { background: rgba(101,113,255,.08) !important; border-color: #6571ff !important; }
+.tech-card:hover  { background: rgba(154,123,79,.04) !important; border-color: rgba(154,123,79,.3) !important; }
+html[data-theme="dark"] .tech-card:hover { background: rgba(154,123,79,.08) !important; }
+.tech-card.selected { background: rgba(154,123,79,.08) !important; border-color: #9A7B4F !important; }
 .tech-name  { color: var(--text-heading) !important; }
 .tech-skill,
 .tech-id    { color: var(--text-muted)   !important; }
@@ -485,7 +483,7 @@ html[data-theme="dark"] .tech-card:hover { background: rgba(101,113,255,.08) !im
 .dropzone:hover,
 .dropzone.drag-over,
 .dz.over {
-  border-color: #6571ff !important;
+  border-color: #9A7B4F !important;
   background: var(--dz-hover) !important;
 }
 .dz-text,
@@ -531,9 +529,9 @@ html[data-theme="dark"] .client-reveal {
 }
 .pg-btn:hover,
 .pg-btn.act {
-  background: rgba(101,113,255,.1) !important;
-  border-color: #6571ff !important;
-  color: #6571ff !important;
+  background: rgba(154,123,79,.1) !important;
+  border-color: #9A7B4F !important;
+  color: #9A7B4F !important;
 }
 
 /* ─────────────────────────────────────────
@@ -589,9 +587,9 @@ html[data-theme="dark"] .toggle-track .toggle-thumb {
 .th-sun,
 .t-icon-sun  { color: #fbbc06; transition: color .28s; }
 .th-moon,
-.t-icon-moon { color: #8b9bff; transition: color .28s; }
+.t-icon-moon { color: #C4A882; transition: color .28s; }
 html[data-theme="dark"] .th-sun  { color: rgba(251,188,6,.35); }
-html[data-theme="dark"] .th-moon { color: #6571ff; }
+html[data-theme="dark"] .th-moon { color: #C4A882; }
 
 /* ─────────────────────────────────────────
    24. FOOTER
