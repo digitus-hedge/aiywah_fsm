@@ -1,10 +1,12 @@
 /* =============================================
    SR Portal - Main Stylesheet
+   Brown/gold theme: #9A7B4F → #C4A882
    ============================================= */
 
 :root {
-    --primary: #727cf5;
-    --primary-hover: #5a64f0;
+    --primary: #9A7B4F;
+    --primary-hover: #86693f;
+    --primary-light: #C4A882;
     --success: #0acf97;
     --info: #39afd1;
     --warning: #ffbc00;
@@ -115,12 +117,12 @@ body {
 }
 
 .sidebar-nav a:hover {
-    background: rgba(114, 124, 245, 0.05);
+    background: rgba(154,123,79,0.05);
     color: var(--primary);
 }
 
 .sidebar-nav a.active {
-    background: rgba(114, 124, 245, 0.08);
+    background: rgba(154,123,79,0.08);
     color: var(--primary);
     border-left-color: var(--primary);
     font-weight: 500;
@@ -260,7 +262,7 @@ body {
 .topbar-user .avatar {
     width: 34px;
     height: 34px;
-    background: linear-gradient(135deg, var(--primary), var(--info));
+    background: linear-gradient(135deg, #9A7B4F, #C4A882);
     border-radius: 50%;
     color: white;
     display: flex;
@@ -377,7 +379,7 @@ body {
 }
 
 .stat-card .stat-icon svg { width: 22px; height: 22px; }
-.stat-card .stat-icon.primary { background: rgba(114,124,245,0.15); color: var(--primary); }
+.stat-card .stat-icon.primary { background: rgba(154,123,79,0.15); color: var(--primary); }
 .stat-card .stat-icon.success { background: rgba(10,207,151,0.15); color: var(--success); }
 .stat-card .stat-icon.warning { background: rgba(255,188,0,0.15); color: var(--warning); }
 .stat-card .stat-icon.danger  { background: rgba(250,92,124,0.15); color: var(--danger); }
@@ -422,7 +424,7 @@ body {
 
 .badge-pending   { background: rgba(255,188,0,0.15); color: #b88400; }
 .badge-quoted    { background: rgba(57,175,209,0.15); color: #1f7a96; }
-.badge-approved  { background: rgba(114,124,245,0.15); color: #4a55c7; }
+.badge-approved  { background: rgba(154,123,79,0.15); color: #6f5836; }
 .badge-assigned  { background: rgba(108,117,125,0.15); color: #495057; }
 .badge-progress  { background: rgba(57,175,209,0.18); color: var(--info); }
 .badge-review    { background: rgba(255,188,0,0.18); color: #b88400; }
@@ -478,7 +480,7 @@ body {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #b3b9ff, #727cf5);
+    background: linear-gradient(135deg, #C4A882, #9A7B4F);
     color: white;
     display: flex;
     align-items: center;
@@ -506,7 +508,7 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(114,124,245,0.12);
+    background: rgba(154,123,79,0.12);
     color: var(--primary);
     display: flex;
     align-items: center;
