@@ -18,5 +18,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             DemoUserSeeder::class,
         ]);
+
+        $this->call(WhatsappTemplateSeeder::class);
     }
 }

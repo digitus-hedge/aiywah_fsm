@@ -29,6 +29,50 @@
     </a>
 
     <ul class="sidebar-nav">
+        <li class="sidebar-heading">Main</li>
+        <li>
+            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <i data-feather="layout"></i>Dashboard
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
+                <i data-feather="clipboard"></i>Ticket Summary
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">
+                <i data-feather="file-plus"></i>SR Registration
+            </a>
+        </li>
+
+        <li class="sidebar-heading">Workflow</li>
+        <li>
+            <a href="{{ route('inquiry-approval.index') }}"
+            class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
+                <i data-feather="clipboard"></i> Inquiry Approval
+                @php($pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count())
+        @if($pendingCount > 0)
+            <span class="badge-pill">{{ $pendingCount }}</span>
+        @endif
+                <!-- <span class="badge-pill">12</span> -->
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.*') ? 'active' : '' }}">
+                <i data-feather="users"></i>Client Accounts
+            </a>
+        </li>
+        <li>
+            <a href="{{ route('dispatch_engine') }}" class="{{ request()->routeIs('dispatch_engine') ? 'active' : '' }}">
+                <i data-feather="user-check"></i>Dispatch Engine
+            </a>
+        </li>
+        <li>
+            <a href="#" class="{{ request()->routeIs('quality_check') ? 'active' : '' }}">
+                <i data-feather="check-circle"></i>QC Review
+            </a>
+        </li>
 
         {{-- ══ MAIN ══ --}}
         @php
@@ -156,5 +200,27 @@
             @endif
         @endif
 
+        <li class="sidebar-heading">System</li>
+        <li>
+            <a href="#" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
+                <i data-feather="bar-chart-2"></i>Analytics
+            </a>
+        </li>
+        <li>
+            <a href="#" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
+                <i data-feather="shield"></i>User Provisioning
+            </a>
+        </li>
+          <li>
+        <a href="{{ route('master_data') }}"  class="{{ request()->routeIs('master_data') ? 'active' : '' }}"><i data-feather="key"></i>Master Data
+    </a>
+
+        </li>
+
+        <li>
+            <a href="#" class="{{ request()->routeIs('system_config') ? 'active' : '' }}">
+                <i data-feather="settings"></i>System Config
+            </a>
+        </li>
     </ul>
 </aside>
