@@ -13,11 +13,10 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasPermissions; 
-    protected $fillable = ['name', 'email', 'password', 'role_id', 'domains', 'fd_grants', 'status'];
+    protected $fillable = ['name', 'email', 'password', 'role_id', 'fd_grants', 'status'];
 
     protected $casts = [
-         'password'  => 'hashed',
-        'domains'   => 'array',
+        'password'  => 'hashed',
         'fd_grants' => 'array',
     ];
 
@@ -35,5 +34,12 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function serviceDomains()
+    {
+        return $this->belongsToMany(ServiceDomain::class, 'user_service_domain')
+            ->withPivot('service_category_id')
+            ->withTimestamps();
     }
 }

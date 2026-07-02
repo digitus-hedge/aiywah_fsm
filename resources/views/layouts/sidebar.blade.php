@@ -44,7 +44,7 @@
             @if ($can('kanban_view'))
                 <li>
                     <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
-                        <i data-feather="clipboard"></i>Ticket Summary (Kanban)
+                        <i data-feather="clipboard"></i>Ticket Summary
                     </a>
                 </li>
             @endif
