@@ -25,22 +25,27 @@ class PermissionSeeder extends Seeder
             ['kanban_view',       'Ticket Summary (Kanban)','Main',     'clipboard',    'kanban_view',            2],
             ['sr_registration',   'SR Registration',        'Main',     'file-plus',    'sr_registration',        3],
 
+             // Client Management
+            ['client_accounts',   'Client Accounts',        'Client Management', 'users',        'clients.create', 4],
+            ['client_directory',  'Client Directory',        'Client Management', 'bi bi-buildings',        'clients.directory',5],
+            
             // Workflow
-            ['inquiry_approval',  'Inquiry Approval',       'Workflow', 'clipboard',    'inquiry-approval.index', 4],
-            ['client_accounts',   'Client Accounts',        'Workflow', 'users',        'clients.create',         5],
-            ['dispatch_engine',   'Dispatch Engine',        'Workflow', 'user-check',   'dispatch_engine',        6],
-            ['qc_review',         'QC Review',              'Workflow', 'check-circle', null,                     7],
+            ['inquiry_approval',  'Inquiry Approval',       'Workflow', 'clipboard',    'inquiry-approval.index', 6],
+            ['client_accounts',   'Client Accounts',        'Workflow', 'users',        'clients.create',         7],
+            ['dispatch_engine',   'Dispatch Engine',        'Workflow', 'user-check',   'dispatch_engine',        8],
+            ['qc_review',         'QC Review',              'Workflow', 'check-circle', null,                     9],
 
             // Finance
-            ['quotation_desk',    'Quotation Desk',         'Finance',  'file-text',    null,                     8],
-            ['invoice_panel',     'Invoice Panel',          'Finance',  'file',         null,                     9],
-            ['expense_ledger',    'Expense Ledger',         'Finance',  'check-square', null,                    10],
+            ['quotation_desk',    'Quotation Desk',         'Finance',  'file-text',    null,                     10],
+            ['invoice_panel',     'Invoice Panel',          'Finance',  'file',         null,                     11],
+            ['expense_ledger',    'Expense Ledger',         'Finance',  'check-square', null,                    12],
 
             // System
-            ['analytics',         'Analytics',              'System',   'bar-chart-2',  null,                    11],
-            ['user_provisioning', 'User Provisioning',      'System',   'shield',       'user_provisioning',     12],
-            ['master_data',       'Master Data',            'System',   'database',     'masters.index',         13],
-            ['system_config',     'System Config',          'System',   'settings',     null,                    14],
+            ['analytics',         'Analytics',              'System',   'bar-chart-2',  null,                    13],
+            ['user_directory',    'User Directory',         'System',   'database',     'user_directory',        14],
+            ['user_provisioning', 'User Provisioning',      'System',   'shield',       'user_provisioning',     15],
+            ['master_data',       'Master Data',            'System',   'database',     'masters.index',         16],
+            ['system_config',     'System Config',          'System',   'settings',     null,                    17],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -66,16 +71,16 @@ class PermissionSeeder extends Seeder
             // Super Admin — everything.
             'SA' => [
                 'dashboard' => 'yes', 'kanban_view' => 'yes', 'sr_registration' => 'yes',
-                'inquiry_approval' => 'yes', 'client_accounts' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
+                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'system_config' => 'yes',
+                'analytics' => 'yes','user_directory' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'system_config' => 'yes',
             ],
             // Admin — everything except master System Config.
             'AD' => [
                 'dashboard' => 'yes', 'kanban_view' => 'yes', 'sr_registration' => 'yes',
-                'inquiry_approval' => 'yes', 'client_accounts' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
+                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'system_config' => 'no',
+                'analytics' => 'yes','user_directory' => 'yes','user_provisioning' => 'yes','master_data' => 'yes', 'system_config' => 'no',
             ],
             // Head of Projects — operational scope, filtered analytics, no finance panels / no user mgmt.
             'HP' => [

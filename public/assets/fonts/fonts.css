@@ -1,3 +1,11 @@
+/* ─────────────────────────────────────────
+   Vonique 43 — no longer used as the header font.
+   Kept here (commented out) so it can be restored later
+   if the brand header typeface is reinstated.
+   Removing the @font-face stops the browser from fetching
+   the unused Vonique43.woff2 / .woff files.
+───────────────────────────────────────── */
+/*
 @font-face {
     font-family: 'Vonique 43';
     src: url('./Vonique43.woff2') format('woff2'),
@@ -6,6 +14,7 @@
     font-style: normal;
     font-display: swap;
 }
+*/
 
 @font-face {
     font-family: 'SF Pro Display';

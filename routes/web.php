@@ -7,7 +7,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\UserProvisioningController;
-
+use App\Http\Controllers\UserDirectoryController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -49,6 +49,16 @@ Route::middleware('auth')->group(function () {
     Route::post('/user-provisioning', [UserProvisioningController::class, 'store'])->name('user_provisioning.store');
     Route::put('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])->name('user_provisioning.update');
 
+    //user-directory
+    Route::get('/user-directory', [UserDirectoryController::class, 'index'])
+    ->name('user_directory');
+
+    Route::post('/user-directory/{user}/toggle-status', [UserDirectoryController::class, 'toggleStatus'])
+        ->name('user_directory.toggle');
+
+    Route::post('/user-directory/{user}/reset-password', [UserDirectoryController::class, 'resetPassword'])
+        ->name('user_directory.reset');
+ 
     /* ---- Inquiry Approval ---- */
     Route::get('/inquiry-approval', [ServiceRequestController::class, 'approvalIndex'])->name('inquiry-approval.index');
     Route::post('/service-requests/{serviceRequest}/approve', [ServiceRequestController::class, 'approve'])->name('service-requests.approve');
@@ -75,7 +85,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
     Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::get('/clients/lookup-by-name', [ClientController::class, 'lookupByName'])->name('clients.lookupByName');
-
+    
+    Route::get('/clients/directory', [ClientController::class, 'directory'])
+    ->name('clients.directory');
     /*
     |--------------------------------------------------------------------------
     | Master Data Management
