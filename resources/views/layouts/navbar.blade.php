@@ -29,14 +29,18 @@
     <div class="topbar-right">
 
         @php
-            $userRole   = Auth::check() ? (Auth::user()->role ?? 'Front Desk') : 'Guest';
-            $userName   = Auth::check() ? (Auth::user()->name ?? 'User')       : 'Guest';
-            $userAvatar = strtoupper(substr(str_replace(' ', '', $userName), 0, 2));
-        @endphp
+    $user       = Auth::user();
+        $userName   = $user->name ?? 'Guest';
+        $roleModel  = $user ? $user->role : null;
+        $userRole   = optional($roleModel)->name  ?? 'Guest';
+        $roleIcon   = optional($roleModel)->icon  ?? 'bi-shield-check';
+        $roleColor  = optional($roleModel)->color ?? null;
+        $userAvatar = strtoupper(substr(str_replace(' ', '', $userName), 0, 2));
+    @endphp
 
         {{-- Role badge --}}
-        <div class="topbar-role-badge">
-            <i class="bi bi-shield-check role-icon"></i>
+       <div class="topbar-role-badge" @if($roleColor) style="color:{{ $roleColor }};" @endif>
+            <i class="bi {{ $roleIcon }} role-icon"></i>
             <span>{{ $userRole }}</span>
         </div>
 
@@ -55,7 +59,35 @@
         </div>
 
         {{-- Avatar --}}
-        <div class="topbar-avatar" title="{{ $userName }}">{{ $userAvatar }}</div>
+       <div class="topbar-avatar-wrap dropdown">
+    <button class="topbar-avatar" type="button"
+            id="avatarMenuBtn" title="{{ $userName }}"
+            data-bs-toggle="dropdown" aria-expanded="false"
+            style="border:none;cursor:pointer;">
+        {{ $userAvatar }}
+    </button>
+
+    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="avatarMenuBtn">
+        <li class="px-3 py-2">
+            <div style="font-weight:600;font-size:.85rem;">{{ $userName }}</div>
+            <div style="font-size:.72rem;color:var(--text-muted,#888);">{{ $userRole }}</div>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+            <a class="dropdown-item" href='#' }}">
+                <i class="bi bi-person me-2"></i>Profile
+            </a>
+        </li>
+        <li>
+            <form method="POST" action="{{ route('logout') }}" class="m-0">
+                @csrf
+                <button type="submit" class="dropdown-item text-danger">
+                    <i class="bi bi-box-arrow-right me-2"></i>Logout
+                </button>
+            </form>
+        </li>
+    </ul>
+</div>
 
     </div>
 </header>
