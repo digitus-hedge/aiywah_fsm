@@ -18,11 +18,19 @@ class ServiceRequest extends Model
         'internal_remark',
         'status',
         'attachments',
+        'assigned_user_id',
+        'service_domain_id',
+        'dispatched_at',
     ];
 
     protected $casts = [
         'attachments' => 'array',
     ];
+
+    public function assignedUser(): BelongsTo
+{
+    return $this->belongsTo(User::class, 'assigned_user_id');
+}
 
 
     public function client(): BelongsTo
@@ -40,5 +48,10 @@ class ServiceRequest extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function domains()
+    {
+        return $this->hasMany(ServiceDomain::class, 'service_category_id');
     }
 }

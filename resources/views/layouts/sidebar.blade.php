@@ -55,6 +55,9 @@
                     </a>
                 </li>
             @endif
+           <li>
+            <a href="{{ route('sr_explorer') }}" class="{{ request()->routeIs('sr_explorer') ? 'active' : '' }}" class="active"> <i data-feather="tag"></i>SR Explorer<span class="badge-pill">12</span></a>
+            </li>
         @endif
 
         {{-- ══ WORKFLOW ══ --}}
