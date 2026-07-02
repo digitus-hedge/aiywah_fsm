@@ -22,52 +22,54 @@ class ServiceRequestController extends Controller
 
 
     // Lookup endpoint — searches by company name, unique_code, or primary_mobile
-    public function lookup(string $code)
-    {
-        $term = trim($code);
+   public function lookup(string $code)
+{
+    $term = trim($code);
 
-        $client = Client::with('projects')
-            ->where(function ($q) use ($term) {
-                $q->where('unique_code', $term)
-                    ->orWhere('primary_mobile', $term)
-                    ->orWhere('company_name', 'like', "%{$term}%");
-            })
-            ->first();
+    $client = Client::with('projects')
+        ->where(function ($q) use ($term) {
+            $q->where('unique_code', $term)
+                ->orWhere('primary_mobile', $term)
+                ->orWhere('company_name', 'like', "%{$term}%");
+        })
+        ->first();
 
-        if (! $client) {
-            return response()->json(['found' => false], 404);
-        }
-
-        // Key each project by name → [ its single site_name ]
-        $projects = $client->projects->mapWithKeys(fn($p) => [
-            $p->project_name => array_filter([$p->site_name]),
-        ]);
-
-        return response()->json([
-            'found'  => true,
-            'client' => [
-                'id'       => $client->id,
-                'name'     => $client->company_name,
-                'status'   => 'Active',
-                'flag'     => $client->contact_name ?? '',
-                'contact'  => $client->primary_mobile ?? '',
-                'projects' => $projects,
-            ],
-        ]);
+    if (! $client) {
+        return response()->json(['found' => false], 404);
     }
+
+    // Array of { id, name, sites } so the frontend posts a real project_id
+    $projects = $client->projects->map(fn($p) => [
+        'id'    => $p->id,
+        'name'  => $p->project_name,
+        'sites' => array_values(array_filter([$p->site_name])),
+    ])->values();
+
+    return response()->json([
+        'found'  => true,
+        'client' => [
+            'id'       => $client->id,
+            'name'     => $client->company_name,
+            'status'   => 'Active',
+            'flag'     => $client->contact_name ?? '',
+            'contact'  => $client->primary_mobile ?? '',
+            'projects' => $projects,
+        ],
+    ]);
+}
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'client_id'         => ['required', 'exists:clients,id'],
-            'project_id'        => ['required', 'exists:projects,id'],
-            'service_type_id'   => ['required', 'exists:service_categories,id'], // Cleaned to match your dynamic DB category id lookup            'reported_by'       => ['required', 'string', 'max:255'],
-            'priority_level'    => ['required', 'in:Low,Medium,High,Critical'],
-            'issue_description' => ['required', 'string', 'min:20'],
-            'internal_remark'   => ['nullable', 'string'],
-            'attachments.*'     => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
-        ]);
-
+        'client_id'         => ['required', 'exists:clients,id'],
+        'project_id'        => ['required', 'exists:projects,id'],
+        'service_type_id'   => ['required', 'exists:service_categories,id'],
+        'reported_by'       => ['required', 'string', 'max:255'],
+        'priority_level'    => ['required', 'in:Low,Medium,High,Critical'],
+        'issue_description' => ['required', 'string', 'min:20'],
+        'internal_remark'   => ['nullable', 'string'],
+        'attachments.*'     => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
+    ]);
         $sr = DB::transaction(function () use ($request, $data) {
             $paths = [];
             if ($request->hasFile('attachments')) {
@@ -114,43 +116,52 @@ class ServiceRequestController extends Controller
         return view('inquiry_approval', compact('inquiries', 'stats'));
     }
 
-    public function approve(ServiceRequest $serviceRequest)
-    {
-        $serviceRequest->update(['status' => 'Approved']);
+  public function approve(ServiceRequest $serviceRequest)
+{
+    $serviceRequest->update(['status' => 'Approved']);
 
-        return response()->json([
-            'ok'      => true, // Matches JavaScript validation check
-            'success' => true,
-            'message' => 'Ticket ' . $serviceRequest->unique_code . ' approved — routed to Dispatch Engine.'
-        ]);
-    }
+    $ref = 'SR-' . ($serviceRequest->created_at?->year ?? now()->year)
+         . '-' . str_pad($serviceRequest->id, 5, '0', STR_PAD_LEFT);
 
-    public function forward(ServiceRequest $serviceRequest)
-    {
-        $serviceRequest->update(['status' => 'Forwarded']);
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => 'Ticket ' . $ref . ' approved — Dispatch Engine. In-Warranty approval stamped.',
+    ]);
+}
 
-        return response()->json([
-            'ok'      => true, // Matches JavaScript validation check
-            'success' => true,
-            'message' => 'Ticket ' . $serviceRequest->unique_code . ' forwarded — routed to Quotation Desk.'
-        ]);
-    }
+public function forward(ServiceRequest $serviceRequest)
+{
+    $serviceRequest->update(['status' => 'Forwarded']);
 
-    public function reject(Request $request, ServiceRequest $serviceRequest)
-    {
-        $request->validate([
-            'reason' => 'required|string|min:10|max:500'
-        ]);
+    $ref = 'SR-' . ($serviceRequest->created_at?->year ?? now()->year)
+         . '-' . str_pad($serviceRequest->id, 5, '0', STR_PAD_LEFT);
 
-        $serviceRequest->update([
-            'status'          => 'Rejected',
-            'internal_remark' => trim(($serviceRequest->internal_remark ?? '') . "\nRejection reason: " . $request->input('reason', 'Not specified')),
-        ]);
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => 'Ticket ' . $ref . ' forwarded — Quotation Desk. Scope set as Out-of-Warranty.',
+    ]);
+}
 
-        return response()->json([
-            'ok'      => true, // Matches JavaScript validation check
-            'success' => true,
-            'message' => 'Ticket ' . $serviceRequest->unique_code . ' successfully rejected and archived.'
-        ]);
-    }
+public function reject(Request $request, ServiceRequest $serviceRequest)
+{
+    $request->validate([
+        'reason' => 'required|string|min:10|max:500'
+    ]);
+
+    $serviceRequest->update([
+        'status'          => 'Rejected',
+        'internal_remark' => trim(($serviceRequest->internal_remark ?? '') . "\nRejection reason: " . $request->input('reason', 'Not specified')),
+    ]);
+
+    $ref = 'SR-' . ($serviceRequest->created_at?->year ?? now()->year)
+         . '-' . str_pad($serviceRequest->id, 5, '0', STR_PAD_LEFT);
+
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => 'Ticket ' . $ref . ' successfully rejected and archived.',
+    ]);
+}
 }

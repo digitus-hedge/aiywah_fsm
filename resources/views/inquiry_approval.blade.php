@@ -527,23 +527,26 @@ window.ROUTES = {
 
 const ALL_TICKETS = [
   @foreach($inquiries as $t)
+@php
+    $srRef = 'SR-' . ($t->created_at ? $t->created_at->year : now()->year) . '-' . str_pad($t->id, 5, '0', STR_PAD_LEFT);
+@endphp
   {
-    id:           @json($t->unique_code ?? '—'), 
+    id:           @json($srRef),
     dbId:         {{ $t->id }},
     client:       @json($t->client?->company_name ?? '—'),
     contract:     @json($t->client?->unique_code ?? '—'),
-    category:     @json($t->category?->name ?? '—'),
-    site:          @json($t->project?->site_name ?? '—'),
+    category:     @json($t->category?->category_name ?? '—'),
+    site:         @json($t->project?->site_name ?? '—'),
     project:      @json($t->project?->project_name ?? '—'),
-    priority:     @json(ucfirst($t->priority_level)), 
-    warranty:     @json(($t->project && !empty($t->project->start_date)) ? 'In Warranty' : 'Out of Warranty'),
-    description:  @json($t->issue_description ?? ''), 
-    submitter:    @json($t->reported_by ?? '—'), 
+    priority:     @json(ucfirst($t->priority_level)),
+    warranty:     @json(($t->project && $t->project->completion_date && \Carbon\Carbon::parse($t->project->completion_date)->isFuture()) ? 'In Warranty' : 'Out of Warranty'),
+    description:  @json($t->issue_description ?? ''),
+    submitter:    @json($t->reported_by ?? '—'),
     submittedStr: @json($t->created_at?->format('d M H:i')),
     hrsAgo:       {{ (int) ($t->created_at ? $t->created_at->diffInHours(now()) : 0) }},
-    status:       @json($t->status), 
+    status:       @json($t->status),
   },
-  @endforeach
+@endforeach
 ];
 
 /* ════════════════════════════════
@@ -783,7 +786,7 @@ function executeAction(){
   }
 
   fetch(url,{
-    method:'POST', // Aligned with web.php Route::post structure configurations
+    method:'POST',
     headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json','Content-Type':'application/json'},
     body:JSON.stringify(body)
   })
@@ -794,7 +797,15 @@ function executeAction(){
       if(pendingAction==='approve')todayApproved++;
       else if(pendingAction==='accounts')todayFwd++;
       else if(pendingAction==='reject')todayRejected++;
-      showToast(pendingAction==='reject'?'error':pendingAction==='accounts'?'warning':'success','Done',j.message);
+
+      const toastType  = pendingAction==='reject' ? 'error'
+                       : pendingAction==='accounts' ? 'warning'
+                       : 'success';
+      const toastTitle = pendingAction==='reject' ? 'Ticket Rejected'
+                       : pendingAction==='accounts' ? 'Forwarded to Accounts'
+                       : 'Ticket Approved';
+      showToast(toastType, toastTitle, j.message);
+
       closeModal();
       selectedId=null;
       filtered=[...tickets];

@@ -37,7 +37,11 @@
             <a href="{{ route('inquiry-approval.index') }}"
             class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
                 <i data-feather="clipboard"></i> Inquiry Approval
-                <span class="badge-pill">12</span>
+                @php($pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count())
+        @if($pendingCount > 0)
+            <span class="badge-pill">{{ $pendingCount }}</span>
+        @endif
+                <!-- <span class="badge-pill">12</span> -->
             </a>
         </li>
         <li>
