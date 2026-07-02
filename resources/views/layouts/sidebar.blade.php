@@ -57,8 +57,29 @@
             @endif
         @endif
 
+         {{-- ══ Client management ══ --}}
+        @php $showClientManagement = $can('client_accounts') || $can('client_directory'); @endphp
+        @if ($showClientManagement)
+            <li class="sidebar-heading">Client Management</li>
+           @if ($can('client_accounts'))
+            <li>
+                <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.create', 'clients.edit') ? 'active' : '' }}">
+                    <i data-feather="users"></i>Client Accounts
+                </a>
+            </li>
+            @endif
+            @if ($can('client_directory'))
+                <li>
+                    <a href="{{ route('clients.directory') }}" class="{{ request()->routeIs('clients.directory') ? 'active' : '' }}">
+                        <i data-feather="book-open"></i>Client Directory
+                    </a>
+                </li>
+            @endif
+            
+        @endif
+
         {{-- ══ WORKFLOW ══ --}}
-        @php $showWorkflow = $can('inquiry_approval') || $can('client_accounts') || $can('dispatch_engine') || $can('qc_review'); @endphp
+        @php $showWorkflow = $can('inquiry_approval') || $can('dispatch_engine') || $can('qc_review'); @endphp
         @if ($showWorkflow)
             <li class="sidebar-heading">Workflow</li>
             @if ($can('inquiry_approval'))
@@ -72,13 +93,7 @@
                     </a>
                 </li>
             @endif
-            @if ($can('client_accounts'))
-                <li>
-                    <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.*') ? 'active' : '' }}">
-                        <i data-feather="users"></i>Client Accounts
-                    </a>
-                </li>
-            @endif
+            
             @if ($can('dispatch_engine'))
                 <li>
                     <a href="{{ route('dispatch_engine') }}" class="{{ request()->routeIs('dispatch_engine') ? 'active' : '' }}">
@@ -130,6 +145,13 @@
                 <li>
                     <a href="#" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
                         <i data-feather="bar-chart-2"></i>Analytics
+                    </a>
+                </li>
+            @endif
+            @if ($can('user_directory'))
+                <li>
+                    <a href="{{ route('user_directory') }}" class="{{ request()->routeIs('user_directory') ? 'active' : '' }}">
+                        <i data-feather="user"></i>User Directory
                     </a>
                 </li>
             @endif

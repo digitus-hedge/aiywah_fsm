@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sign In · MatterMind Portal</title>
 
-    {{-- Self-hosted brand fonts: Vonique 43 (headers) + SF Pro Display (body) --}}
+    {{-- Self-hosted brand fonts: SF Pro Display (headers) + SF Pro Display (body) --}}
     <link rel="stylesheet" href="{{ asset('assets/fonts/fonts.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.1/dist/feather.min.js"></script>
 
@@ -89,7 +89,7 @@
             display:block;
             filter:brightness(0) invert(1);
         }
-        .bp-name{font-family:'Vonique 43',Georgia,serif;font-size:1.08rem;font-weight:600;letter-spacing:.04em;line-height:1.2;}
+        .bp-name{font-family:'SF Pro Display',Georgia,serif;font-size:1.08rem;font-weight:600;letter-spacing:.04em;line-height:1.2;}
         .bp-name small{font-family:'SF Pro Display',-apple-system,sans-serif;display:block;font-size:.66rem;font-weight:400;letter-spacing:.16em;opacity:.72;margin-top:3px;text-transform:uppercase;}
 
         .bp-mid{position:relative;z-index:1;max-width:400px;}
@@ -100,7 +100,7 @@
         }
         .bp-eyebrow::before{content:'';width:26px;height:1px;background:rgba(255,255,255,.5);}
         .bp-head{
-            font-family:'Vonique 43',Georgia,serif;
+            font-family:'SF Pro Display',Georgia,serif;
             font-weight:600;
             font-size:2.55rem;
             line-height:1.14;
@@ -126,7 +126,7 @@
             color:var(--brand-500);margin-bottom:14px;
         }
         .fp-title{
-            font-family:'Vonique 43',Georgia,serif;
+            font-family:'SF Pro Display',Georgia,serif;
             font-size:1.95rem;font-weight:600;letter-spacing:.01em;
             margin-bottom:7px;color:var(--ink);
         }

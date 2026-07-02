@@ -13,8 +13,10 @@
   /* rgb triplet of primary, used for rgba() overlays below */
   --color-primary-rgb: 154, 128, 83;
 
-  --font-header: 'Vonique 43', Georgia, serif;
+  /* Header font now uses the body stack (SF Pro Display).
+     Vonique 43 retired — the var name is kept so no other rule breaks. */
   --font-body:   'SF Pro Display', 'Roboto', Helvetica, Arial, sans-serif;
+  --font-header: var(--font-body);
 }
 
 /* ─────────────────────────────────────────
@@ -185,7 +187,9 @@ body {
 }
 a { text-decoration: none; color: inherit; }
 
-/* Global heading font — brand header typeface everywhere */
+/* Global heading font — now the body typeface (SF Pro Display) at bold weight.
+   --font-header resolves to --font-body, so headings render in SF Pro bold.
+   To reinstate a branded header font later, just repoint --font-header. */
 h1, h2, h3, h4, h5, h6,
 .topbar-page-title,
 .card-hdr h6, .chdr h6, .fc-head h6,
@@ -193,6 +197,7 @@ h1, h2, h3, h4, h5, h6,
 .success-modal h5, .success-box h5,
 .sidebar-brand {
   font-family: var(--font-header);
+  font-weight: 700;
 }
 
 /* ─────────────────────────────────────────

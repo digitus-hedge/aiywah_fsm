@@ -8,13 +8,64 @@ use Illuminate\Support\Facades\DB;
 
 class ClientController extends Controller
 {
+    /**
+     * Client Directory — searchable, filterable, paginated listing.
+     */
+    public function directory(Request $request)
+    {
+        $q       = trim((string) $request->query('q', ''));
+        $country = trim((string) $request->query('country', ''));
+
+        $clients = Client::query()
+            // counts for the "Projects" and "Contacts" columns (no N+1)
+            ->withCount(['projects', 'mobiles'])
+
+            // search across firm name, token, contact name & primary mobile
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('company_name', 'like', "%{$q}%")
+                        ->orWhere('unique_code', 'like', "%{$q}%")
+                        ->orWhere('contact_name', 'like', "%{$q}%")
+                        ->orWhere('primary_mobile', 'like', "%{$q}%");
+                });
+            })
+
+            // filter by primary country dial code
+            ->when($country !== '', fn ($query) => $query->where('primary_country', $country))
+
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();   // keep ?q= & ?country= across pages
+
+        // ── Stat-strip figures ──
+        $totalClients  = Client::count();
+        $totalProjects = DB::table('projects')->count();
+        $totalContacts = DB::table('client_mobiles')->count() + $totalClients; // stakeholders + primaries
+        $recentCount   = Client::where('created_at', '>=', now()->startOfMonth())->count();
+
+        // ── Distinct countries for the filter dropdown ──
+        $countries = Client::query()
+            ->whereNotNull('primary_country')
+            ->where('primary_country', '!=', '')
+            ->distinct()
+            ->orderBy('primary_country')
+            ->pluck('primary_country');
+
+        return view('client_directory', [
+            'clients'       => $clients,
+            'totalClients'  => $totalClients,
+            'totalProjects' => $totalProjects,
+            'totalContacts' => $totalContacts,
+            'recentCount'   => $recentCount,
+            'countries'     => $countries,
+        ]);
+    }
+
     public function create()
     {
         $recentClients  = Client::latest()->take(5)->get();
         $existingTokens = Client::pluck('unique_code')->toArray();
         $suggestedCode  = $this->nextCode();
-
-      
 
         return view('client_accounts', [
             'recentClients'  => $recentClients,
@@ -171,10 +222,10 @@ class ClientController extends Controller
                 continue;
             }
             $client->mobiles()->create([
-            'name'    => $sh['name'] ?? null,
-            'country' => $sh['country'],
-            'mobile'  => $sh['mobile'],
-        ]);
+                'name'    => $sh['name'] ?? null,
+                'country' => $sh['country'],
+                'mobile'  => $sh['mobile'],
+            ]);
         }
     }
 
@@ -191,42 +242,42 @@ class ClientController extends Controller
         }
     }
 
-  public function lookupByName(Request $request)
-{
-    $name = trim((string) $request->query('name', ''));
+    public function lookupByName(Request $request)
+    {
+        $name = trim((string) $request->query('name', ''));
 
-    if ($name === '') {
-        return response()->json(['found' => false]);
+        if ($name === '') {
+            return response()->json(['found' => false]);
+        }
+
+        $client = Client::where('company_name', $name)
+            ->with(['mobiles', 'projects'])
+            ->first();
+
+        if (! $client) {
+            return response()->json(['found' => false]);
+        }
+
+        return response()->json([
+            'found'           => true,
+            'client_id'       => $client->id,
+            'unique_code'     => $client->unique_code,
+            'contact_name'    => $client->contact_name,
+            'designation'     => $client->designation,
+            'primary_country' => $client->primary_country,
+            'primary_mobile'  => $client->primary_mobile,
+            'mobiles'         => $client->mobiles->map(fn ($m) => [
+                'name'    => $m->name,
+                'country' => $m->country,
+                'mobile'  => $m->mobile,
+            ])->values(),
+            'projects' => $client->projects->map(fn ($p) => [
+                'project_name'    => $p->project_name,
+                'project_code'    => $p->project_code,
+                'site_name'       => $p->site_name,
+                'site_address'    => $p->site_address,
+                'completion_date' => optional($p->completion_date)->format('Y-m-d'),
+            ])->values(),
+        ]);
     }
-
-    $client = Client::where('company_name', $name)
-        ->with(['mobiles', 'projects'])
-        ->first();
-
-    if (! $client) {
-        return response()->json(['found' => false]);
-    }
-
-    return response()->json([
-        'found'           => true,
-        'client_id'       => $client->id,
-        'unique_code'     => $client->unique_code,
-        'contact_name'    => $client->contact_name,
-        'designation'     => $client->designation,
-        'primary_country' => $client->primary_country,
-        'primary_mobile'  => $client->primary_mobile,
-        'mobiles'         => $client->mobiles->map(fn ($m) => [
-            'name'    => $m->name,
-            'country' => $m->country,
-            'mobile'  => $m->mobile,
-        ])->values(),
-        'projects' => $client->projects->map(fn ($p) => [
-            'project_name'    => $p->project_name,
-            'project_code'    => $p->project_code,
-            'site_name'       => $p->site_name,
-            'site_address'    => $p->site_address,
-            'completion_date' => optional($p->completion_date)->format('Y-m-d'),
-        ])->values(),
-    ]);
-}
 }

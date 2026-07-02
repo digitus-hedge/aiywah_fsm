@@ -8,14 +8,7 @@
 <style>
   /* ── Page header ─────────────────────────── */
   .sr-header {
-    background: linear-gradient(135deg, #9A7B4F 0%, #C4A882 100%);
-    border-radius: 12px;
-    padding: 24px 26px;
-    margin-bottom: 24px;
-    color: #fff;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 6px 28px rgba(154, 123, 79, .28);
+    background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden;
   }
 
   .sr-header::before,
@@ -978,7 +971,7 @@
       <i class="bi bi-check-circle-fill me-1" style="color:#05a34a;"></i>Timestamped and saved in the system.
     </p>
     <button class="btn-main w-100 mb-2" onclick="goHub()">
-      <i class="bi bi-grid-1x2"></i>Go to Central Explorer Hub
+      <i class="bi bi-grid-1x2"></i>Go to Dashboard
     </button>
     <button class="btn-ghost w-100" onclick="newTicket()">
       <i class="bi bi-plus-circle"></i>Register Another SR
