@@ -24,4 +24,11 @@ class ServiceDomain extends Model
     {
         return $this->belongsTo(ServiceCategory::class, 'service_category_id');
     }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'user_service_domain')
+            ->withPivot('service_category_id')
+            ->withTimestamps();
+    }
 }

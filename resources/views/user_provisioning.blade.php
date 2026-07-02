@@ -564,7 +564,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
 const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 const SAVE_URL   = @json($saveUrl ?? null);
 const UPDATE_URL_BASE = @json($updateUrlBase ?? null);
-let editingUserId     = null;  
+let editingUserId     = null;
 
 /* Permission matrix from the DB (permissions + permission_role).
    Each section: { label, items:[{ key, name, icon, access:{code:'yes|no|rls'}, grant:{code:true} }] } */
@@ -583,23 +583,30 @@ const RC = (@json($rolesData)).reduce((acc, r) => { acc[r.code] = r.color; retur
 let fdGrants = new Set();
 
 /* ════════════════════════════════
-   DOMAIN MASTER
+   DOMAIN MASTER — fully dynamic, sourced from service_categories / service_domains
 ════════════════════════════════ */
-const DOMAIN_CATS=[
-  {id:'hvac-mech', label:'Mechanical & HVAC', icon:'bi-wind', color:'#0ea5e9', bg:'rgba(14,165,233,.1)',
-    skills:[{id:'hvac-pm',label:'HVAC – Preventive Maintenance'},{id:'hvac-br',label:'HVAC – Breakdown / Repair'},{id:'hvac-inst',label:'HVAC – Installation'},{id:'chiller',label:'Chiller / AHU Service'},{id:'mech-gen',label:'Mechanical – General'}]},
-  {id:'electrical', label:'Electrical', icon:'bi-lightning-charge-fill', color:'#fbbc06', bg:'rgba(251,188,6,.1)',
-    skills:[{id:'elec-fault',label:'Electrical – Fault / Repair'},{id:'elec-pm',label:'Electrical – Preventive Maintenance'},{id:'lv-panel',label:'LV Panel / Distribution Board'},{id:'lighting',label:'Lighting Works'},{id:'ups',label:'UPS / Power Supply'}]},
-  {id:'plumbing-elec', label:'Plumbing & Electrical', icon:'bi-droplet-fill', color:'#4895ef', bg:'rgba(72,149,239,.1)',
-    skills:[{id:'plumb-leak',label:'Plumbing – Leak / Repair'},{id:'plumb-pm',label:'Plumbing – Preventive Maintenance'},{id:'drainage',label:'Drainage / Sewage'},{id:'pump',label:'Water Tank / Pump'},{id:'elec-plumb',label:'Electrical & Plumbing Combined'}]},
-  {id:'civil-infra', label:'Civil & Infrastructure', icon:'bi-building-fill', color:'#a8802a', bg:'rgba(168,128,42,.1)',
-    skills:[{id:'civil-rep',label:'Civil – Repair / Patching'},{id:'painting',label:'Painting Works'},{id:'structural',label:'Structural Inspection'},{id:'flooring',label:'Flooring / Tiling'},{id:'civil-gen',label:'Civil – General'}]},
-  {id:'it-systems', label:'IT & Systems', icon:'bi-hdd-network-fill', color:'#8b5cf6', bg:'rgba(139,92,246,.1)',
-    skills:[{id:'network',label:'Network / Cabling'},{id:'server',label:'Server Room Maintenance'},{id:'cctv',label:'Access Control / CCTV'},{id:'it-gen',label:'IT Equipment – General'}]},
-  {id:'safety', label:'Safety', icon:'bi-shield-fill', color:'#ff3366', bg:'rgba(255,51,102,.1)',
-    skills:[{id:'fire-alarm',label:'Fire Alarm System'},{id:'fire-supp',label:'Fire Suppression / Sprinkler'},{id:'safety-insp',label:'Safety Inspection'},{id:'fire-safety',label:'Fire Safety – General'}]},
-];
-const DOMAINS_FLAT=DOMAIN_CATS.flatMap(c=>c.skills.map(s=>({...s,catId:c.id,catLabel:c.label})));
+const DOMAIN_CATS = @json($domainCats);
+
+function hexToRgba(hex, alpha = 0.1) {
+  if (!hex) return `rgba(148,163,184,${alpha})`;
+  const h = hex.replace('#', '');
+  const bigint = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+  const r = (bigint >> 16) & 255, g = (bigint >> 8) & 255, b = bigint & 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// Normalize every category/skill id to a real Number up front, once,
+// so nothing downstream ever has to guess about string vs number ids.
+DOMAIN_CATS.forEach(c => {
+  c.id = Number(c.id);
+  c.bg = hexToRgba(c.color, 0.1);
+  c.skills = (c.skills || [])
+    .map(s => ({ ...s, id: Number(s.id), catId: c.id, catLabel: c.label }))
+    .filter(s => Number.isInteger(s.id) && s.id > 0); // guards against bad/zero/NaN ids from the server
+});
+
+const DOMAINS_FLAT = DOMAIN_CATS.flatMap(c => c.skills);
+const VALID_DOMAIN_IDS = new Set(DOMAINS_FLAT.map(d => d.id));
 
 let selectedRole=null;
 let selectedDomains=new Set();
@@ -658,7 +665,7 @@ function renderPermTable(roleId){
     (sec.items||[]).forEach(item=>{
       const label = item.name;
       const icon  = item.icon || 'bi-dot';
-      const val   = (item.access && item.access[roleId]) || 'no';   // 'yes' | 'no' | 'rls'
+      const val   = (item.access && item.access[roleId]) || 'no';
       const isGrantable = isFD && item.grant && item.grant['FD'];
       const isGranted   = fdGrants.has(item.key);
 
@@ -721,7 +728,7 @@ function toggleFdGrant(key,checked){
 }
 
 /* ════════════════════════════════
-   DOMAIN EXPERTISE — nested
+   DOMAIN EXPERTISE — nested, fully dynamic
 ════════════════════════════════ */
 function renderDomains(){
   const wrap=document.getElementById('domainCardWrap');
@@ -737,7 +744,7 @@ function renderDomains(){
     return `
     <div class="dom-cat" id="domcat-${cat.id}">
       <div class="dom-cat-hdr${picked.length?' has-picks':''}${isOpen?' open':''}"
-           onclick="toggleCat('${cat.id}')">
+           onclick="toggleCat(${cat.id})">
         <div class="dom-cat-icon" style="background:${cat.bg};">
           <i class="bi ${cat.icon}" style="color:${cat.color};"></i>
         </div>
@@ -749,7 +756,7 @@ function renderDomains(){
         <div class="skill-tags">
           ${cat.skills.map(s=>`
             <div class="d-tag${selectedDomains.has(s.id)?' picked':''}"
-                 onclick="toggleDomain('${s.id}')">
+                 onclick="toggleDomain(${s.id})">
               <div class="chk"></div>${s.label}
             </div>`).join('')}
         </div>
@@ -765,12 +772,13 @@ function renderDomains(){
   if(!selectedDomains.size){chips.innerHTML='';return;}
   chips.innerHTML=Array.from(selectedDomains).map(id=>{
     const s=DOMAINS_FLAT.find(x=>x.id===id);
-    return s?`<span class="dschip">${s.label}<i class="bi bi-x rm" onclick="removeDomain('${id}')"></i></span>`:'';
+    return s?`<span class="dschip">${s.label}<i class="bi bi-x rm" onclick="removeDomain(${id})"></i></span>`:'';
   }).join('');
   syncAll();
 }
 
 function toggleCat(catId){
+  catId = Number(catId);
   const hdr=document.querySelector(`#domcat-${catId} .dom-cat-hdr`);
   const body=document.getElementById(`domcatbody-${catId}`);
   if(!hdr||!body)return;
@@ -797,12 +805,21 @@ function clearAllDomains(){
   renderDomains();syncAll();
 }
 
+// Only real, known domain ids (as validated against VALID_DOMAIN_IDS) can ever
+// enter selectedDomains — this is what prevents a bad "0" or stale id from
+// ever reaching the save payload.
 function toggleDomain(id){
+  id = Number(id);
+  if(!VALID_DOMAIN_IDS.has(id)) return;
   if(selectedDomains.has(id))selectedDomains.delete(id);
   else selectedDomains.add(id);
   renderDomains();syncAll();
 }
-function removeDomain(id){selectedDomains.delete(id);renderDomains();syncAll();}
+function removeDomain(id){
+  id = Number(id);
+  selectedDomains.delete(id);
+  renderDomains();syncAll();
+}
 
 /* ════════════════════════════════
    EMAIL VALIDATION
@@ -886,7 +903,6 @@ function saveUser(){
 
   if(!name){showToast('error','Missing','Employee full name is required.');document.getElementById('empName').focus();return;}
   if(!emailValid){showToast('error','Email Issue','Enter a valid, unique corporate email.');document.getElementById('empEmail').focus();return;}
-  // Password required only when creating; optional when editing.
   if(!isEditing && (!password || password.length<8)){showToast('error','Password Required','Password must be at least 8 characters.');document.getElementById('empPassword').focus();return;}
   if(isEditing && password && password.length<8){showToast('error','Password Too Short','New password must be at least 8 characters.');document.getElementById('empPassword').focus();return;}
   if(!selectedRole){showToast('error','Role Required','Please select an operational role.');return;}
@@ -895,7 +911,8 @@ function saveUser(){
   btn.disabled=true;
   btn.innerHTML='<span class="spinner-border" style="width:13px;height:13px;border-width:2px;"></span>Saving…';
 
-  const domLabels=Array.from(selectedDomains).map(id=>DOMAINS_FLAT.find(d=>d.id===id)?.label||id);
+  // Only real, currently-valid domain ids ever leave the browser.
+  const domainIds = Array.from(selectedDomains).filter(id => VALID_DOMAIN_IDS.has(id));
   const grants=Array.from(fdGrants);
 
   const payload={
@@ -903,10 +920,10 @@ function saveUser(){
     email:email.toLowerCase(),
     role:m.name,
     roleId:selectedRole,
-    domains:domLabels,
+    domains:domainIds,
     fdGrants:grants,
   };
-  if(password) payload.password = password;   // include only if provided
+  if(password) payload.password = password;
 
   const url    = isEditing ? `${UPDATE_URL_BASE}/${editingUserId}` : SAVE_URL;
   const method = isEditing ? 'PUT' : 'POST';
@@ -940,13 +957,15 @@ function saveUser(){
 }
 
 function commitSavedUser(saved,m,email){
-  const btn=document.getElementById('saveBtn');
+  const domainIds = (saved.domains || []).map(id => Number(id));
+  const domainLabels = domainIds.map(id => DOMAINS_FLAT.find(d=>d.id===id)?.label || id);
+
   USERS.unshift({
     name:saved.name,
     email:(saved.email||email).toLowerCase(),
     role:saved.role||m.name,
     roleId:saved.roleId||selectedRole,
-    domains:saved.domains||[],
+    domains:domainIds,
     fdGrants:saved.fdGrants||[],
     created:saved.created||new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
     status:saved.status||'pending',
@@ -959,7 +978,7 @@ function commitSavedUser(saved,m,email){
     <div class="msr"><div class="ml">Full Name</div><div class="mv">${saved.name}</div></div>
     <div class="msr"><div class="ml">Role</div><div class="mv" style="color:${m.color};font-weight:700;">${saved.role||m.name}</div></div>
     <div class="msr full"><div class="ml">Email</div><div class="mv">${saved.email||email}</div></div>
-    <div class="msr full"><div class="ml">Domains</div><div class="mv">${(saved.domains||[]).join(', ')||'—'}</div></div>
+    <div class="msr full"><div class="ml">Domains</div><div class="mv">${domainLabels.join(', ')||'—'}</div></div>
     ${(saved.fdGrants&&saved.fdGrants.length)?`<div class="msr full"><div class="ml">Extended FD Permissions</div><div class="mv" style="color:#f97316;">${saved.fdGrants.join(', ')}</div></div>`:''}`;
   document.getElementById('successModal').classList.add('show');
 }
@@ -970,7 +989,7 @@ function closeModal(){document.getElementById('successModal').classList.remove('
    RESET
 ════════════════════════════════ */
 function resetForm(){
-  editingUserId=null;                    // ← back to create mode
+  editingUserId=null;
   document.getElementById('empName').value='';
   document.getElementById('empEmail').value='';
   document.getElementById('empPassword').value='';
@@ -981,7 +1000,7 @@ function resetForm(){
   document.getElementById('rolePillPreview').style.display='none';
   const dcw=document.getElementById('domainCardWrap');if(dcw)dcw.classList.remove('show');
   const btn=document.getElementById('saveBtn');
-  btn.innerHTML='<i class="bi bi-floppy-fill"></i>Save User Profile';   // ← reset label
+  btn.innerHTML='<i class="bi bi-floppy-fill"></i>Save User Profile';
   renderDomains();syncAll();
   showToast('primary','Reset','Form cleared.');
 }
@@ -1005,14 +1024,14 @@ function renderFull(){
     <tr onclick="loadUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">
       <td><div class="u-cell"><div class="uav" style="background:linear-gradient(135deg,${RC[u.roleId]},${RC[u.roleId]}99);">${u.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div><div><div class="uname">${u.name}</div><div class="uemail">${u.email}</div></div></div></td>
       <td><span class="rpill" style="background:${RC[u.roleId]}1a;color:${RC[u.roleId]};">${u.role}</span></td>
-      <td><div class="dchips">${u.domains.length?u.domains.map(d=>`<span class="dch">${d}</span>`).join(''):'<span style="font-size:.7rem;color:var(--text-muted);">—</span>'}</div></td>
+      <td><div class="dchips">${u.domains.length?u.domains.map(id=>`<span class="dch">${DOMAINS_FLAT.find(d=>d.id===Number(id))?.label||id}</span>`).join(''):'<span style="font-size:.7rem;color:var(--text-muted);">—</span>'}</div></td>
       <td style="font-size:.72rem;color:var(--text-muted);">${u.created}</td>
       <td><span class="sdot ${u.status==='active'?'dot-a':u.status==='pending'?'dot-p':'dot-i'}"></span><span style="font-size:.72rem;color:var(--text-muted);">${u.status==='pending'?'Pending invite':'Active'}</span></td>
     </tr>`).join('');
 }
 
 function loadUser(u){
-  editingUserId = u.id ?? null;          // ← remember the id
+  editingUserId = u.id ?? null;
   document.getElementById('empName').value=u.name;
   document.getElementById('empEmail').value=u.email;
   emailValid=true;
@@ -1023,10 +1042,17 @@ function loadUser(u){
   selectedRole=u.roleId;
   onRoleChange(u.roleId);
   fdGrants=new Set(u.fdGrants||[]);
-  selectedDomains=new Set(u.domains.map(d=>DOMAINS_FLAT.find(x=>x.label===d)?.id).filter(Boolean));
+
+  // Only accept ids that are real, currently-known domains — guards against
+  // stale/soft-deleted/legacy references stored against this user.
+  selectedDomains = new Set(
+    (u.domains||[])
+      .map(id => Number(id))
+      .filter(id => VALID_DOMAIN_IDS.has(id))
+  );
+
   renderPermTable(u.roleId);
   renderDomains();syncAll();
-  // Reflect edit mode on the button
   const btn=document.getElementById('saveBtn');
   btn.innerHTML='<i class="bi bi-pencil-fill"></i>Update User Profile';
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1056,7 +1082,7 @@ renderFull();
 /* Ensure the create form always starts empty — clears any browser-restored
    values (e.g. admin@demo.com / password) after a refresh or bfcache restore. */
 function clearCreateForm(){
-  if(editingUserId!==null) return;            // don't wipe an active edit session
+  if(editingUserId!==null) return;
   document.getElementById('empName').value='';
   document.getElementById('empEmail').value='';
   document.getElementById('empPassword').value='';
