@@ -39,7 +39,8 @@ class PermissionSeeder extends Seeder
             // System
             ['analytics',         'Analytics',              'System',   'bar-chart-2',  null,                    11],
             ['user_provisioning', 'User Provisioning',      'System',   'shield',       'user_provisioning',     12],
-            ['system_config',     'System Config',          'System',   'settings',     null,                    13],
+            ['master_data',       'Master Data',            'System',   'database',     'masters.index',         13],
+            ['system_config',     'System Config',          'System',   'settings',     null,                    14],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -67,14 +68,14 @@ class PermissionSeeder extends Seeder
                 'dashboard' => 'yes', 'kanban_view' => 'yes', 'sr_registration' => 'yes',
                 'inquiry_approval' => 'yes', 'client_accounts' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes', 'user_provisioning' => 'yes', 'system_config' => 'yes',
+                'analytics' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'system_config' => 'yes',
             ],
             // Admin — everything except master System Config.
             'AD' => [
                 'dashboard' => 'yes', 'kanban_view' => 'yes', 'sr_registration' => 'yes',
                 'inquiry_approval' => 'yes', 'client_accounts' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes', 'user_provisioning' => 'yes', 'system_config' => 'no',
+                'analytics' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'system_config' => 'no',
             ],
             // Head of Projects — operational scope, filtered analytics, no finance panels / no user mgmt.
             'HP' => [
