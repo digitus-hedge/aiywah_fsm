@@ -5,14 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="csrf-token" content="{{ csrf_token() }}">    
     <title>@yield('title', 'MATTER MIND')</title>
 
+    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
+    
     {{-- ① theme.js FIRST — sets data-theme before any paint, prevents flash --}}
     <script src="{{ asset('assets/js/theme.js') }}"></script>
 
-    {{-- Fonts --}}
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    {{-- Fonts (self-hosted) --}}
+    <link rel="stylesheet" href="{{ asset('assets/fonts/fonts.css') }}">
 
+    {{-- Google Fonts Roboto — can now remove, or keep as a fallback --}}
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
     {{-- Bootstrap 5 CSS --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 

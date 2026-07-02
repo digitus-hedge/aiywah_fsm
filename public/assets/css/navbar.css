@@ -2,15 +2,19 @@
    NAVBAR / TOPBAR  ·  public/assets/css/navbar.css
    Uses Bootstrap Icons (bi-*) — no JS needed to render.
    Theme state driven by data-theme on <html>.
-   Brown/gold theme: #9A7B4F → #C4A882
+   Brand theme (Matter Mind): #9a8053 → #c4ad86
+   Reuses --color-primary / --color-primary-rgb / --font-header
+   tokens defined in theme.css (loaded before this file).
+   Fallback values are provided so this file still works if
+   loaded on its own.
 ═══════════════════════════════════════════════════════ */
 
 /* ── Variables ── */
 :root {
-    --topbar-bg:     #ffffff;
+    --topbar-bg:     var(--color-secondary, #ffffff);
     --topbar-border: #e8ecf4;
     --topbar-shadow: 0 2px 10px rgba(100,120,160,.08);
-    --text-heading:  #0d1626;
+    --text-heading:  var(--color-tertiary, #393837);
     --text-muted:    #7987a1;
     --text-light:    #b0bac9;
     --surface-2:     #f0f3f9;
@@ -72,7 +76,7 @@
     transition: background .15s;
 }
 .topbar-toggle:hover  { background: var(--surface-2); }
-.topbar-toggle:focus  { outline: 2px solid rgba(154,123,79,.4); outline-offset: 2px; }
+.topbar-toggle:focus  { outline: 2px solid rgba(var(--color-primary-rgb, 154, 128, 83), .4); outline-offset: 2px; }
 
 /* Show hamburger on mobile/tablet */
 @media (max-width: 991.98px) {
@@ -86,6 +90,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    font-family: var(--font-header, Georgia, serif);
     font-size: .9375rem;
     font-weight: 600;
     color: var(--text-heading);
@@ -94,7 +99,7 @@
 }
 .topbar-page-title strong { color: var(--text-heading); font-weight: 600; }
 .topbar-page-icon {
-    color: #9A7B4F;
+    color: var(--color-primary, #9a8053);
     font-size: .95rem;            /* bi icon */
     flex-shrink: 0;
     line-height: 1;
@@ -109,7 +114,7 @@
     color: var(--text-muted);
     white-space: nowrap;
 }
-.topbar-breadcrumb a       { color: #9A7B4F; text-decoration: none; }
+.topbar-breadcrumb a       { color: var(--color-primary, #9a8053); text-decoration: none; }
 .topbar-breadcrumb a:hover { text-decoration: underline; }
 .bc-sep                    { color: var(--text-light); margin: 0 1px; }
 .bc-current                { color: var(--text-muted); }
@@ -129,9 +134,9 @@
     gap: 5px;
     font-size: .72rem;
     font-weight: 500;
-    color: #9A7B4F;
-    background: rgba(154,123,79,.10);
-    border: 1px solid rgba(154,123,79,.22);
+    color: var(--color-primary, #9a8053);
+    background: rgba(var(--color-primary-rgb, 154, 128, 83), .10);
+    border: 1px solid rgba(var(--color-primary-rgb, 154, 128, 83), .22);
     border-radius: 20px;
     padding: 3px 10px;
     white-space: nowrap;
@@ -165,12 +170,12 @@
     transition: background .15s;
 }
 .topbar-theme-wrap:hover { background: var(--surface-2); }
-.topbar-theme-wrap:focus { outline: 2px solid rgba(154,123,79,.4); outline-offset: 2px; }
+.topbar-theme-wrap:focus { outline: 2px solid rgba(var(--color-primary-rgb, 154, 128, 83), .4); outline-offset: 2px; }
 
 /* Sun / moon icons (bi-* font icons) */
 .th-icon { font-size: .85rem; line-height: 1; flex-shrink: 0; transition: color .25s; }
 .th-sun  { color: #fbbc06; }
-.th-moon { color: #C4A882; }
+.th-moon { color: #c4ad86; }
 
 /* Track */
 .th-track {
@@ -198,10 +203,10 @@
 }
 
 /* Dark mode states */
-[data-theme="dark"] .th-track { background: #9A7B4F; border-color: #9A7B4F; }
+[data-theme="dark"] .th-track { background: var(--color-primary, #9a8053); border-color: var(--color-primary, #9a8053); }
 [data-theme="dark"] .th-thumb { transform: translateX(16px); }
 [data-theme="dark"] .th-sun   { color: rgba(251,188,6,.35); }
-[data-theme="dark"] .th-moon  { color: #C4A882; }
+[data-theme="dark"] .th-moon  { color: #c4ad86; }
 
 /* Dark mode topbar tokens */
 [data-theme="dark"] .topbar {
@@ -219,7 +224,7 @@
     height: 34px;
     border-radius: 50%;
     flex-shrink: 0;
-    background: linear-gradient(135deg, #9A7B4F, #C4A882);
+    background: linear-gradient(135deg, var(--color-primary, #9a8053), #c4ad86);
     color: #fff;
     font-size: .72rem;
     font-weight: 700;

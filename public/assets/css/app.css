@@ -1,17 +1,20 @@
 /* =============================================
    SR Portal - Main Stylesheet
-   Brown/gold theme: #9A7B4F → #C4A882
+   Brand theme (Matter Mind): #9a8053 → #c4ad86
+   Ties into --color-primary / --color-tertiary / --font-header
+   tokens from theme.css when loaded together; falls back to
+   the values below if used standalone.
    ============================================= */
 
 :root {
-    --primary: #9A7B4F;
-    --primary-hover: #86693f;
-    --primary-light: #C4A882;
+    --primary: var(--color-primary, #9a8053);
+    --primary-hover: #866e43;
+    --primary-light: #c4ad86;
     --success: #0acf97;
     --info: #39afd1;
     --warning: #ffbc00;
     --danger: #fa5c7c;
-    --dark: #313a46;
+    --dark: var(--color-tertiary, #393837);
     --secondary: #6c757d;
     --light: #eef2f7;
     --body-bg: #f5f7fb;
@@ -25,7 +28,7 @@
 * { box-sizing: border-box; }
 
 body {
-    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: var(--font-body, 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif);
     font-size: 0.875rem;
     background: var(--body-bg);
     color: var(--dark);
@@ -62,28 +65,31 @@ body {
 }
 
 .sidebar-brand .brand-mark {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
     display: flex;
     align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    margin-right: 10px;
-    font-size: 14px;
     flex-shrink: 0;
 }
 
+.sidebar-brand .brand-mark img {
+    max-width: 100%;
+    max-height: 36px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
 .sidebar-brand .brand-text {
+    font-family: var(--font-header, Georgia, serif);
     font-size: 1rem;
     line-height: 1.1;
+    color: var(--primary);
 }
 
 .sidebar-brand .brand-text small {
     display: block;
+    font-family: var(--font-body, 'Roboto', sans-serif);
     font-size: 10px;
-    color: var(--text-muted);
+    color: var(--primary);
     font-weight: 400;
     margin-top: 2px;
 }
@@ -117,12 +123,12 @@ body {
 }
 
 .sidebar-nav a:hover {
-    background: rgba(154,123,79,0.05);
+    background: rgba(154,128,83,0.05);
     color: var(--primary);
 }
 
 .sidebar-nav a.active {
-    background: rgba(154,123,79,0.08);
+    background: rgba(154,128,83,0.08);
     color: var(--primary);
     border-left-color: var(--primary);
     font-weight: 500;
@@ -262,7 +268,7 @@ body {
 .topbar-user .avatar {
     width: 34px;
     height: 34px;
-    background: linear-gradient(135deg, #9A7B4F, #C4A882);
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
     border-radius: 50%;
     color: white;
     display: flex;
@@ -302,6 +308,7 @@ body {
 
 .page-header h4 {
     margin: 0;
+    font-family: var(--font-header, Georgia, serif);
     font-size: 1.1rem;
     font-weight: 500;
     color: var(--dark);
@@ -355,6 +362,7 @@ body {
 
 .card-title {
     margin: 0;
+    font-family: var(--font-header, Georgia, serif);
     font-size: 0.95rem;
     font-weight: 500;
     color: var(--dark);
@@ -379,7 +387,7 @@ body {
 }
 
 .stat-card .stat-icon svg { width: 22px; height: 22px; }
-.stat-card .stat-icon.primary { background: rgba(154,123,79,0.15); color: var(--primary); }
+.stat-card .stat-icon.primary { background: rgba(154,128,83,0.15); color: var(--primary); }
 .stat-card .stat-icon.success { background: rgba(10,207,151,0.15); color: var(--success); }
 .stat-card .stat-icon.warning { background: rgba(255,188,0,0.15); color: var(--warning); }
 .stat-card .stat-icon.danger  { background: rgba(250,92,124,0.15); color: var(--danger); }
@@ -424,7 +432,7 @@ body {
 
 .badge-pending   { background: rgba(255,188,0,0.15); color: #b88400; }
 .badge-quoted    { background: rgba(57,175,209,0.15); color: #1f7a96; }
-.badge-approved  { background: rgba(154,123,79,0.15); color: #6f5836; }
+.badge-approved  { background: rgba(154,128,83,0.15); color: #6f5836; }
 .badge-assigned  { background: rgba(108,117,125,0.15); color: #495057; }
 .badge-progress  { background: rgba(57,175,209,0.18); color: var(--info); }
 .badge-review    { background: rgba(255,188,0,0.18); color: #b88400; }
@@ -480,7 +488,7 @@ body {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #C4A882, #9A7B4F);
+    background: linear-gradient(135deg, var(--primary-light), var(--primary));
     color: white;
     display: flex;
     align-items: center;
@@ -508,7 +516,7 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(154,123,79,0.12);
+    background: rgba(154,128,83,0.12);
     color: var(--primary);
     display: flex;
     align-items: center;

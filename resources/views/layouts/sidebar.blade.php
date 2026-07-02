@@ -1,93 +1,160 @@
 <!-- Sidebar Overlay (mobile) -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
+@php
+    /**
+     * Map each sidebar link to its permission KEY (must match permissions.key).
+     * A link renders only if $u->hasAccess($key) is true — i.e. the role has
+     * 'yes' access OR the key is in the user's fd_grants. 'rls'/'no' hide it.
+     *
+     * ⚠️ Adjust these key strings to match YOUR permissions table.
+     */
+    $u = auth()->user();
+
+    // Section headings show only if at least one child link is visible.
+    $can = fn ($key) => $u && $u->hasAccess($key);
+@endphp
+
 <aside class="sidebar" id="sidebar">
     <a href="{{ route('dashboard') }}" class="sidebar-brand">
         <div class="brand-mark">
-    <img src="{{ asset('assets/images/logo-mattermind-icon-only.png') }}"
-         alt="MatterMind Logo"
-         style="width:40px; height:40px; object-fit:contain;">
-</div>
+            <img src="{{ asset('assets/images/logo-icon.webp') }}"
+                 alt="MatterMind Logo"
+                 style="width:40px; height:40px; object-fit:contain;">
+        </div>
         <div class="brand-text">
             MATTER MIND
-            <small>Perfection Is A State Of Mind</small>
+            <small>Service That Matters. Always.</small>
         </div>
     </a>
 
     <ul class="sidebar-nav">
-        <li class="sidebar-heading">Main</li>
-        <li>
-            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                <i data-feather="layout"></i>Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
-                <i data-feather="clipboard"></i>Ticket Summary(Kanban)
-            </a>
-        </li>
-        <li>
-            <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">
-                <i data-feather="file-plus"></i>SR Registration
-            </a>
-        </li>
 
-        <li class="sidebar-heading">Workflow</li>
-        <li>
-            <a href="{{ route('inquiry-approval.index') }}"
-            class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
-                <i data-feather="clipboard"></i> Inquiry Approval
-                <span class="badge-pill">12</span>
-            </a>
-        </li>
-        <li>
-            <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.*') ? 'active' : '' }}">
-                <i data-feather="users"></i>Client Accounts
-            </a>
-        </li>
-        <li>
-            <a href="{{ route('dispatch_engine') }}" class="{{ request()->routeIs('dispatch_engine') ? 'active' : '' }}">
-                <i data-feather="user-check"></i>Dispatch Engine
-            </a>
-        </li>
-        <li>
-            <a href="#" class="{{ request()->routeIs('quality_check') ? 'active' : '' }}">
-                <i data-feather="check-circle"></i>QC Review
-            </a>
-        </li>
+        {{-- ══ MAIN ══ --}}
+        @php
+            $showMain = $can('dashboard') || $can('kanban_view') || $can('sr_registration');
+        @endphp
+        @if ($showMain)
+            <li class="sidebar-heading">Main</li>
+            @if ($can('dashboard'))
+                <li>
+                    <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                        <i data-feather="layout"></i>Dashboard
+                    </a>
+                </li>
+            @endif
+            @if ($can('kanban_view'))
+                <li>
+                    <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
+                        <i data-feather="clipboard"></i>Ticket Summary(Kanban)
+                    </a>
+                </li>
+            @endif
+            @if ($can('sr_registration'))
+                <li>
+                    <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">
+                        <i data-feather="file-plus"></i>SR Registration
+                    </a>
+                </li>
+            @endif
+        @endif
 
-        <li class="sidebar-heading">Finance</li>
-        <li>
-            <a href="#" class="{{ request()->routeIs('quotation_desk') ? 'active' : '' }}">
-                <i data-feather="file-text"></i>Quotation Desk
-            </a>
-        </li>
-        <li>
-            <a href="#" class="{{ request()->routeIs('invoice_panel') ? 'active' : '' }}">
-                <i data-feather="file"></i>Invoice Panel
-            </a>
-        </li>
-        <li>
-            <a href="#" class="{{ request()->routeIs('expense_ledger') ? 'active' : '' }}">
-                <i data-feather="check-square"></i>Expense Ledger
-            </a>
-        </li>
+        {{-- ══ WORKFLOW ══ --}}
+        @php
+            $showWorkflow = $can('inquiry_approval') || $can('client_accounts')
+                          || $can('dispatch_engine') || $can('qc_review');
+        @endphp
+        @if ($showWorkflow)
+            <li class="sidebar-heading">Workflow</li>
+            @if ($can('inquiry_approval'))
+                <li>
+                    <a href="{{ route('inquiry-approval.index') }}"
+                       class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
+                        <i data-feather="clipboard"></i> Inquiry Approval
+                        <span class="badge-pill">12</span>
+                    </a>
+                </li>
+            @endif
+            @if ($can('client_accounts'))
+                <li>
+                    <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.*') ? 'active' : '' }}">
+                        <i data-feather="users"></i>Client Accounts
+                    </a>
+                </li>
+            @endif
+            @if ($can('dispatch_engine'))
+                <li>
+                    <a href="{{ route('dispatch_engine') }}" class="{{ request()->routeIs('dispatch_engine') ? 'active' : '' }}">
+                        <i data-feather="user-check"></i>Dispatch Engine
+                    </a>
+                </li>
+            @endif
+            @if ($can('qc_review'))
+                <li>
+                    <a href="#" class="{{ request()->routeIs('quality_check') ? 'active' : '' }}">
+                        <i data-feather="check-circle"></i>QC Review
+                    </a>
+                </li>
+            @endif
+        @endif
 
-        <li class="sidebar-heading">System</li>
-        <li>
-            <a href="#" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
-                <i data-feather="bar-chart-2"></i>Analytics
-            </a>
-        </li>
-        <li>
-            <a href="#" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
-                <i data-feather="shield"></i>User Provisioning
-            </a>
-        </li>
-        <li>
-            <a href="#" class="{{ request()->routeIs('system_config') ? 'active' : '' }}">
-                <i data-feather="settings"></i>System Config
-            </a>
-        </li>
+        {{-- ══ FINANCE ══ --}}
+        @php
+            $showFinance = $can('quotation_desk') || $can('invoice_panel') || $can('expense_ledger');
+        @endphp
+        @if ($showFinance)
+            <li class="sidebar-heading">Finance</li>
+            @if ($can('quotation_desk'))
+                <li>
+                    <a href="#" class="{{ request()->routeIs('quotation_desk') ? 'active' : '' }}">
+                        <i data-feather="file-text"></i>Quotation Desk
+                    </a>
+                </li>
+            @endif
+            @if ($can('invoice_panel'))
+                <li>
+                    <a href="#" class="{{ request()->routeIs('invoice_panel') ? 'active' : '' }}">
+                        <i data-feather="file"></i>Invoice Panel
+                    </a>
+                </li>
+            @endif
+            @if ($can('expense_ledger'))
+                <li>
+                    <a href="#" class="{{ request()->routeIs('expense_ledger') ? 'active' : '' }}">
+                        <i data-feather="check-square"></i>Expense Ledger
+                    </a>
+                </li>
+            @endif
+        @endif
+
+        {{-- ══ SYSTEM ══ --}}
+        @php
+            $showSystem = $can('analytics') || $can('user_provisioning') || $can('system_config');
+        @endphp
+        @if ($showSystem)
+            <li class="sidebar-heading">System</li>
+            @if ($can('analytics'))
+                <li>
+                    <a href="#" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
+                        <i data-feather="bar-chart-2"></i>Analytics
+                    </a>
+                </li>
+            @endif
+            @if ($can('user_provisioning'))
+                <li>
+                    <a href="{{ route('user_provisioning') }}" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
+                        <i data-feather="shield"></i>User Provisioning
+                    </a>
+                </li>
+            @endif
+            @if ($can('system_config'))
+                <li>
+                    <a href="#" class="{{ request()->routeIs('system_config') ? 'active' : '' }}">
+                        <i data-feather="settings"></i>System Config
+                    </a>
+                </li>
+            @endif
+        @endif
+
     </ul>
 </aside>
