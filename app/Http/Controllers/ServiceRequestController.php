@@ -95,7 +95,16 @@ class ServiceRequestController extends Controller
         }
 
         // ---- Paginated results ----
-        $sr_explorer = $query->latest()->paginate(10)->withQueryString();
+        // $sr_explorer = $query->latest()->paginate(10)->withQueryString();
+
+        $sortCol = $request->query('sort', 'id');
+        $sortDir = $request->query('dir', 'desc');
+        $allowed = ['id', 'created_at', 'status'];
+        
+        if(!in_array($sortCol, $allowed)) $sortCol = 'id';
+
+        $sr_explorer = $query->orderBy($sortCol, $sortDir === 'asc' ? 'asc' : 'desc')
+            ->paginate(10)->withQueryString();
 
         // ---- Stats (needed by the view for both full page and fragments) ----
         $stats = [

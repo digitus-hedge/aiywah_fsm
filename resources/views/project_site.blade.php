@@ -1,13 +1,20 @@
 @extends('layouts.layout')
 
 @section('title', 'Project & Site Directory — Digit-Us Portal')
-@section('page_title', 'Project & Site Directory')
+@section('page_title')
+  Project &amp; Site<span class="hide-mobile"> Directory</span>
+@endsection
 @section('page_icon', 'briefcase')
 
 
 @push('styles')
 <style>
 /* ═══ THEME TOKENS ═══ */
+
+
+@media (max-width: 576px) {
+  .hide-mobile { display: none; }
+}
 
 /* ═══ SIDEBAR ═══ */
 .sb-brand{display:flex;align-items:center;gap:11px;padding:18px 20px 15px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
