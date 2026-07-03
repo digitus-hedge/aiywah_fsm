@@ -8,6 +8,7 @@ use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\UserProvisioningController;
 use App\Http\Controllers\UserDirectoryController;
+use App\Http\Controllers\ProjectController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -15,6 +16,7 @@ use App\Http\Controllers\UserDirectoryController;
 */
 
 /* ---- Auth ---- */
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [LoginController::class, 'login'])->name('login.attempt');
@@ -50,20 +52,17 @@ Route::middleware('auth')->group(function () {
     Route::put('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])->name('user_provisioning.update');
 
     //user-directory
-    Route::get('/user-directory', [UserDirectoryController::class, 'index'])
-    ->name('user_directory');
+    Route::get('/user-directory', [UserDirectoryController::class, 'index'])->name('user_directory');
+    Route::post('/user-directory/{user}/toggle-status', [UserDirectoryController::class, 'toggleStatus'])->name('user_directory.toggle');
+    Route::post('/user-directory/{user}/reset-password', [UserDirectoryController::class, 'resetPassword'])->name('user_directory.reset');
 
-    Route::post('/user-directory/{user}/toggle-status', [UserDirectoryController::class, 'toggleStatus'])
-        ->name('user_directory.toggle');
 
-    Route::post('/user-directory/{user}/reset-password', [UserDirectoryController::class, 'resetPassword'])
-        ->name('user_directory.reset');
- 
     /* ---- Inquiry Approval ---- */
     Route::get('/inquiry-approval', [ServiceRequestController::class, 'approvalIndex'])->name('inquiry-approval.index');
     Route::post('/service-requests/{serviceRequest}/approve', [ServiceRequestController::class, 'approve'])->name('service-requests.approve');
     Route::post('/service-requests/{serviceRequest}/forward', [ServiceRequestController::class, 'forward'])->name('service-requests.forward');
     Route::post('/service-requests/{serviceRequest}/reject', [ServiceRequestController::class, 'reject'])->name('service-requests.reject');
+
 
     /* ---- Service Request ---- */
     Route::get('/sr-registration', [ServiceRequestController::class, 'create'])->name('sr_registration');
@@ -71,14 +70,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/service-requests', [ServiceRequestController::class, 'store'])->name('service-requests.store');
     Route::get('/sr-explorer', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
 
-    /* ---- Dispatch Engine / Kanban ---- */
-    Route::get('/dispatch-engine',[ServiceRequestController::class, 'dispatch_engine'])->name('dispatch_engine');
 
+    /* ---- Dispatch Engine / Kanban ---- */
+    Route::get('/dispatch-engine', [ServiceRequestController::class, 'dispatch_engine'])->name('dispatch_engine');
     Route::post('/service-requests/{serviceRequest}/dispatch', [ServiceRequestController::class, 'dispatch'])->name('service-requests.dispatch');
 
     Route::get('/ticket-summary', function () {
         return view('kanban_view');
     })->name('kanban_view');
+
 
     /* ---- Clients / Projects ---- */
     Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
@@ -86,9 +86,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/{client}/edit', [ClientController::class, 'edit'])->name('clients.edit');
     Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::get('/clients/lookup-by-name', [ClientController::class, 'lookupByName'])->name('clients.lookupByName');
-    
-    Route::get('/clients/directory', [ClientController::class, 'directory'])
-    ->name('clients.directory');
+    Route::get('/clients/directory', [ClientController::class, 'directory'])->name('clients.directory');
+    Route::post('/clients-directory/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle');
+
+
+
+
+    Route::get('project_site_directory',   [ProjectController::class, 'index'])->name('project_site_directory');
+    Route::post('projects',                [ProjectController::class, 'store'])->name('projects.store');
+    Route::put('projects/{project}',       [ProjectController::class, 'update'])->name('projects.update');
+    Route::delete('projects/{project}',    [ProjectController::class, 'destroy'])->name('projects.destroy');
+
+
     /*
     |--------------------------------------------------------------------------
     | Master Data Management

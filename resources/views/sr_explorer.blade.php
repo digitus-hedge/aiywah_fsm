@@ -5,12 +5,9 @@
 @section('page_icon', 'clipboard-check')
 
 
-
-
-  @push('styles')
-  <style>
+@push('styles')
+<style>
   /* SIDEBAR */
-.sidebar{width:var(--sidebar-width);min-height:100vh;background:var(--sidebar-bg);border-right:1px solid var(--border-color);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:300;box-shadow:var(--sidebar-shadow);transition:transform .28s cubic-bezier(.4,0,.2,1);}
 .sb-brand{display:flex;align-items:center;gap:11px;padding:18px 20px 15px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .sb-brand-icon{width:38px;height:38px;flex-shrink:0;background:linear-gradient(135deg,#9A7B4F,#C4A882);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.05rem;}
 .sb-brand-name{font-size:.9375rem;font-weight:700;color:var(--text-heading);line-height:1.2;}
@@ -77,7 +74,7 @@
 @media(max-width:767px){.stats-strip{grid-template-columns:repeat(2,1fr);}}
 /* FILTER BAR */
 .filter-bar{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--card-shadow);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
-.filter-group{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.filter-group{display:flex;flex-direction:column;gap:4px;min-width:0;flex: 1 1 auto;}
 .filter-label{font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;}
 .filter-control{height:34px;padding:0 10px;border:1px solid var(--border-color);border-radius:7px;background:var(--input-bg);color:var(--text-primary);font-size:.8rem;font-family:'Roboto',sans-serif;min-width:130px;transition:border-color .15s,box-shadow .15s;}
 .filter-control:focus{outline:none;border-color:#9A7B4F;box-shadow:var(--input-focus-shadow);}
@@ -205,17 +202,9 @@ table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;col
   </style>
   @endpush
 
-
-
 @section('content')
 
-
-<div class="sb-overlay" id="sbOverlay" onclick="closeSidebar()"></div>
-
-
-
-
-<div class="pg-header" style="background:linear-gradient(135deg,#1e3a5f,#2563eb);">
+<div class="pg-header" style="background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);">
   <h4><i class="bi bi-ticket-detailed me-2"></i>SR Explorer — Service Request Listing</h4>
   <p>Centralised grid for monitoring, filtering and drilling into service tickets across their full lifecycle.</p>
   <div class="meta-row">
@@ -235,62 +224,63 @@ table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;col
 <div class="stats-strip">
   <div class="stat-card">
     <div class="stat-icon" style="background:rgba(37,99,235,.1);"><i class="bi bi-ticket-detailed" style="color:#2563eb;"></i></div>
-    <div><div class="stat-num">47</div><div class="stat-lbl">Total Active SRs</div></div>
+    <div><div class="stat-num">{{ $stats['total'] }}</div><div class="stat-lbl">Total Active SRs</div></div>
   </div>
   <div class="stat-card">
     <div class="stat-icon" style="background:rgba(107,114,128,.1);"><i class="bi bi-hourglass-split" style="color:#6b7280;"></i></div>
-    <div><div class="stat-num">12</div><div class="stat-lbl">Pending Review</div></div>
+    <div><div class="stat-num">{{ $stats['pendingRev'] }}</div><div class="stat-lbl">Pending</div></div>
   </div>
   <div class="stat-card">
     <div class="stat-icon" style="background:rgba(6,182,212,.1);"><i class="bi bi-wrench-adjustable-circle" style="color:#0891b2;"></i></div>
-    <div><div class="stat-num">9</div><div class="stat-lbl">In Progress Today</div></div>
+    <div><div class="stat-num">{{ $stats['inProgress'] }}</div><div class="stat-lbl">Assigned</div></div>
   </div>
   <div class="stat-card">
-    <div class="stat-icon" style="background:rgba(239,68,68,.1);"><i class="bi bi-exclamation-triangle" style="color:#ef4444;"></i></div>
-    <div><div class="stat-num">3</div><div class="stat-lbl">SLA Breached</div></div>
+    <div class="stat-icon" style="background:rgba(239,68,68,.1);"><i class="bi bi-calendar-day" style="color:#ef4444;"></i></div>
+    <div><div class="stat-num">{{ $stats['slaBreached'] }}</div><div class="stat-lbl">Today SR</div></div>
   </div>
 </div>
 
+<form id="filterForm" onsubmit="return false">
 <div class="filter-bar">
   <div class="filter-group">
     <div class="filter-label">Search</div>
-    <input class="filter-control filter-search" type="text" placeholder="SR ID, client name, site…" oninput="filterTable()"/>
+    <input class="filter-control filter-search" type="text" name="search"
+           placeholder="SR ID, client name, site…" oninput="debounceFilter()"/>
   </div>
   <div class="filter-group">
     <div class="filter-label">Status</div>
-    <select class="filter-control" id="filter-status" onchange="filterTable()">
+    <select class="filter-control" id="filter-status" name="status" onchange="applyFilters()">
       <option value="">All Statuses</option>
-      <option>Pending</option><option>Quoted</option><option>Approved</option>
-      <option>Assigned</option><option>In Progress</option><option>Pending Review</option>
-      <option>Rework</option><option>Completed</option><option>Cancelled</option>
+      @foreach($statuses as $st)
+        <option value="{{ $st }}">{{ $st }}</option>
+      @endforeach
     </select>
   </div>
   <div class="filter-group">
     <div class="filter-label">Date From</div>
-    <input class="filter-control" type="date"/>
+    <input class="filter-control" type="date" name="date_from" onchange="applyFilters()"/>
   </div>
   <div class="filter-group">
     <div class="filter-label">Date To</div>
-    <input class="filter-control" type="date"/>
+    <input class="filter-control" type="date" name="date_to" onchange="applyFilters()"/>
   </div>
   <div class="filter-actions">
-    <button class="btn-ghost" onclick="resetFilters()"><i class="bi bi-x-circle"></i>Reset</button>
-    <button class="btn-gold" onclick="showToast('ok','Export Started','Generating CSV for current filtered view…')"><i class="bi bi-download"></i>Export CSV</button>
+    <button type="button" class="btn-ghost" onclick="resetFilters()"><i class="bi bi-x-circle"></i>Reset</button>
+    <a class="btn-gold" id="exportBtn" href="#"><i class="bi bi-download"></i>Export CSV</a>
   </div>
 </div>
+</form>
 
 <div class="tbl-card">
   <div class="tbl-card-hdr">
     <div class="tbl-card-hdr-left">
       <span class="tbl-card-title">Service Requests</span>
-      <span class="result-count" id="result-count">Showing 10 of 47</span>
-    </div>
-    <div class="sr-legend">
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--row-ok);border:1px solid rgba(16,185,129,.3);"></div>On Track</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--row-warn);border:1px solid rgba(245,158,11,.3);"></div>SLA Warning</div>
-      <div class="legend-item"><div class="legend-swatch" style="background:var(--row-breach);border:1px solid rgba(239,68,68,.3);"></div>SLA Breach</div>
+      <span class="result-count" id="result-count">
+        Showing {{ $sr_explorer->count() }} of {{ $sr_explorer->total() }}
+      </span>
     </div>
   </div>
+
   <div class="tbl-wrap">
     <table class="listing" id="sr-table">
       <thead>
@@ -300,160 +290,68 @@ table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;col
           <th>Site / Location</th>
           <th>Assigned To</th>
           <th class="sortable">Status <i class="bi bi-chevron-expand"></i></th>
-          <th>SLA Status</th>
           <th class="sortable">Created <i class="bi bi-chevron-expand"></i></th>
           <th style="width:70px;">Action</th>
         </tr>
       </thead>
-     
-
       <tbody id="sr-tbody">
+        @fragment('rows')
+        @forelse($sr_explorer as $sr)
+          @php
+            $hours = \Carbon\Carbon::parse($sr->created_at)->diffInHours(now());
+            $rowClass = $hours <= 8 ? 'sla-ok' : ($hours <= 24 ? 'sla-warn' : 'sla-breach');
+            $srCode = 'SR-'.\Carbon\Carbon::parse($sr->created_at)->format('Y').'-'.str_pad($sr->id,5,'0',STR_PAD_LEFT);
+            $badge  = $statusMap[$sr->status] ?? 'sb-pending';
+          @endphp
+          <tr class="{{ $rowClass }}" data-status="{{ $sr->status }}" onclick="goToDetail('{{ $srCode }}')">
+            <td class="mono">{{ $srCode }}</td>
+            <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name }}</strong></td>
+           <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
 
-@foreach($sr_explorer as $sr)
-
-@php
-
-    $hours = \Carbon\Carbon::parse($sr->created_at)->diffInHours(now());
-
-    if($hours <= 8){
-        $rowClass='sla-ok';
-        $dot='sla-ok-dot';
-        $text='sla-ok-text';
-        $sla='On Track';
-    }
-    elseif($hours <=24){
-        $rowClass='sla-warn';
-        $dot='sla-warn-dot';
-        $text='sla-warn-text';
-        $sla='Warning';
-    }
-    else{
-        $rowClass='sla-breach';
-        $dot='sla-breach-dot';
-        $text='sla-breach-text';
-        $sla='Breach';
-    }
-
-@endphp
-
-<tr class="{{ $rowClass }}" onclick="goToDetail('SR-{{ date('Y') }}-{{ str_pad($sr->id,5,'0',STR_PAD_LEFT) }}')">
-
-<td class="mono">
-SR-{{ date('Y') }}-{{ str_pad($sr->id,5,'0',STR_PAD_LEFT) }}
-</td>
-
-<td>
-<strong style="font-size:.82rem">
-{{ optional($sr->client)->company_name }}
-</strong>
-</td>
-
-<td class="muted">
-{{ $sr->project_site ?? optional($sr->project)->project_name }}
-</td>
-
-<td>
-    @if($sr->assignedUser)
-        {{ $sr->assignedUser->name }}
-    @else
-        <span style="color:#999;">Unassigned</span>
-    @endif
-</td>
-
-<td>
-
-@php
-
-$statusClass=[
-
-'Pending'=>'sb-pending',
-
-'Approved'=>'sb-approved',
-
-'Assigned'=>'sb-assigned',
-
-'In Progress'=>'sb-inprog',
-
-'Pending Review'=>'sb-review',
-
-'Completed'=>'sb-completed',
-
-'Cancelled'=>'sb-cancelled',
-
-'Quoted'=>'sb-quoted',
-
-'Rework'=>'sb-rework'
-
-];
-
-@endphp
-
-<span class="sbadge {{ $statusClass[$sr->status] ?? 'sb-pending' }}">
-<i class="bi bi-circle-fill" style="font-size:.4rem;"></i>
-
-{{ $sr->status }}
-
-</span>
-
-</td>
-
-<td>
-
-<div class="sla-ind">
-
-<span class="sla-dot {{ $dot }}"></span>
-
-<span class="{{ $text }}">
-{{ $sla }} · {{ $hours }}h
-</span>
-
-</div>
-
-</td>
-
-<td class="muted">
-
-{{ $sr->created_at->diffForHumans() }}
-
-</td>
-
-<td onclick="event.stopPropagation()">
-
-<div style="display:flex;gap:5px;">
-
-<button class="btn-xs btn-xs-view"
-onclick="goToDetail('SR-{{ date('Y') }}-{{ str_pad($sr->id,5,'0',STR_PAD_LEFT) }}')">
-
-<i class="bi bi-eye"></i>
-
-View
-
-</button>
-
-</div>
-
-</td>
-
-</tr>
-
-@endforeach
-
-</tbody>
-
+            <td>
+              @if($sr->assignedUser){{ $sr->assignedUser->name }}
+              @else <span style="color:#999;">Unassigned</span> @endif
+            </td>
+            <td>
+              <span class="sbadge {{ $badge }}">
+                <i class="bi bi-circle-fill" style="font-size:.4rem;"></i> {{ $sr->status }}
+              </span>
+            </td>
+            <td class="muted">{{ \Carbon\Carbon::parse($sr->created_at)->diffForHumans() }}</td>
+            <td onclick="event.stopPropagation()">
+              <div style="display:flex;gap:5px;">
+                <button class="btn-xs btn-xs-view" onclick="goToDetail('{{ $srCode }}')">
+                  <i class="bi bi-eye"></i> View
+                </button>
+              </div>
+            </td>
+          </tr>
+        @empty
+          <tr><td colspan="7" style="text-align:center;padding:20px;color:#999;">No service requests found.</td></tr>
+        @endforelse
+        @endfragment
+      </tbody>
     </table>
   </div>
+
   <div class="pagination-bar">
-    <div class="page-info">Page 1 of 5 · 47 total records</div>
-    <div class="page-btns">
-      <button class="page-btn"><i class="bi bi-chevron-left"></i></button>
-      <button class="page-btn active">1</button>
-      <button class="page-btn">2</button>
-      <button class="page-btn">3</button>
-      <button class="page-btn"><i class="bi bi-chevron-right"></i></button>
+    @fragment('pager')
+    <div class="page-info">
+      Page {{ $sr_explorer->currentPage() }} of {{ $sr_explorer->lastPage() }} · {{ $sr_explorer->total() }} total records
     </div>
+    <div class="page-btns">
+      <button class="page-btn" {{ $sr_explorer->onFirstPage() ? 'disabled' : '' }}
+        onclick="goToPage({{ $sr_explorer->currentPage() - 1 }})"><i class="bi bi-chevron-left"></i></button>
+      @foreach($sr_explorer->getUrlRange(1, $sr_explorer->lastPage()) as $page => $url)
+        <button class="page-btn {{ $page == $sr_explorer->currentPage() ? 'active' : '' }}"
+          onclick="goToPage({{ $page }})">{{ $page }}</button>
+      @endforeach
+      <button class="page-btn" {{ $sr_explorer->hasMorePages() ? '' : 'disabled' }}
+        onclick="goToPage({{ $sr_explorer->currentPage() + 1 }})"><i class="bi bi-chevron-right"></i></button>
+    </div>
+    @endfragment
   </div>
 </div>
-
 
 <div id="toastWrap"></div>
 
@@ -461,54 +359,67 @@ View
 
 @push('scripts')
 <script>
+// declarations FIRST (top of script)
+var currentPage = 1;
+var filterTimer = null;
 
-function toggleTheme(){
-  const h=document.documentElement;
-  h.setAttribute('data-bs-theme',h.getAttribute('data-bs-theme')==='dark'?'light':'dark');
-}
-function toggleSidebar(){
-  document.getElementById('sidebar').classList.toggle('open');
-  document.getElementById('sbOverlay').classList.toggle('show');
-}
-function closeSidebar(){
-  document.getElementById('sidebar').classList.remove('open');
-  document.getElementById('sbOverlay').classList.remove('show');
-}
+// ---- Live clock (guard against missing element) ----
 function updateClock(){
-  document.getElementById('clock').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var el = document.getElementById('clock');
+  if (!el) return;                      // no clock on this page → skip
+  el.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 }
-setInterval(updateClock,1000);updateClock();
-function showToast(type,title,body){
-  const w=document.getElementById('toastWrap');
-  const icons={ok:'bi-check-circle-fill',err:'bi-x-circle-fill',info:'bi-info-circle-fill'};
-  const t=document.createElement('div');t.className='toast-item';
-  t.innerHTML=`<i class="bi ${icons[type]||icons.info} t-ico ${type}"></i><div><p class="t-title">${title}</p><p class="t-body">${body}</p></div>`;
+setInterval(updateClock, 1000); updateClock();
+
+// ---- Toast ----
+function showToast(type, title, body){
+  var w = document.getElementById('toastWrap');
+  if (!w) return;
+  var icons = {ok:'bi-check-circle-fill', err:'bi-x-circle-fill', info:'bi-info-circle-fill'};
+  var t = document.createElement('div');
+  t.className = 'toast-item';
+  t.innerHTML = '<i class="bi '+(icons[type]||icons.info)+' t-ico '+type+'"></i><div><p class="t-title">'+title+'</p><p class="t-body">'+body+'</p></div>';
   w.appendChild(t);
-  setTimeout(()=>{t.style.transition='opacity .3s';t.style.opacity='0';setTimeout(()=>t.remove(),300);},3500);
+  setTimeout(function(){ t.style.transition='opacity .3s'; t.style.opacity='0'; setTimeout(function(){t.remove();},300); }, 3500);
 }
 
-
-function goToDetail(id){showToast('info','Navigating','Opening SR timeline for '+id+'…');}
-function filterTable(){
-  const q=document.querySelector('.filter-search').value.toLowerCase();
-  const rows=document.querySelectorAll('#sr-tbody tr');
-  let visible=0;
-  rows.forEach(r=>{
-    const txt=r.textContent.toLowerCase();
-    const show=txt.includes(q);
-    r.style.display=show?'':'none';
-    if(show)visible++;
-  });
-  document.getElementById('result-count').textContent='Showing '+visible+' of 47';
+// ---- Row navigation ----
+function goToDetail(id){
+  showToast('info','Navigating','Opening SR timeline for '+id+'…');
 }
+
+// ---- AJAX filtering ----
+function debounceFilter(){
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(function(){ currentPage = 1; applyFilters(); }, 400);
+}
+function goToPage(p){ currentPage = p; applyFilters(); }
+
+function applyFilters(){
+  var form = document.getElementById('filterForm');
+  var params = new URLSearchParams(new FormData(form));
+  params.set('page', currentPage);
+
+  var exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) exportBtn.href = window.location.pathname + "?" + params.toString() + "&export=csv";
+
+  fetch(window.location.pathname + "?" + params.toString() + "&frag=rows", {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(r){ return r.text(); })
+  .then(function(html){ document.getElementById('sr-tbody').innerHTML = html; });
+
+  fetch(window.location.pathname + "?" + params.toString() + "&frag=pager", {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+  })
+  .then(function(r){ return r.text(); })
+  .then(function(html){ document.querySelector('.pagination-bar').innerHTML = html; });
+}
+
 function resetFilters(){
-  document.querySelector('.filter-search').value='';
-  document.getElementById('filter-status').value='';
-  document.querySelectorAll('#sr-tbody tr').forEach(r=>r.style.display='');
-  document.getElementById('result-count').textContent='Showing 10 of 47';
+  document.getElementById('filterForm').reset();
+  currentPage = 1;
+  applyFilters();
 }
-
 </script>
 @endpush
-
-

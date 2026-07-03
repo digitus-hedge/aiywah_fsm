@@ -19,20 +19,102 @@ class ServiceRequestController extends Controller
         return view('sr_registration', compact('categories'));
     }
 
-    public function sr_explorer()
+    public function sr_explorer(Request $request)
     {
         // Service types are hardcoded in the blade (ids 1 & 2), no DB needed
 
-     $sr_explorer = ServiceRequest::with([
-        'client',
-        'project',
-        'category',
-    'assignedUser'
-    ])
-    ->latest()
-    ->get();
+        // $sr_explorer = ServiceRequest::with([
+        //     'client',
+        //     'project',
+        //     'category',
+        //     'assignedUser'
+        // ])
+        //     ->latest()
+        //     ->get();
 
-        return view('sr_explorer', compact('sr_explorer'));
+
+        $statusMap = [
+            'Pending'   => 'sb-pending',
+            'Approved'  => 'sb-approved',
+            'Forwarded' => 'sb-forwarded',
+            'Rejected'  => 'sb-cancelled',
+            'Assigned'  => 'sb-assigned',
+        ];
+        $statuses = array_keys($statusMap);
+
+        $query = ServiceRequest::with(['client', 'project', 'assignedUser']);
+
+        // ---- Filters ----
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+
+            // If they typed a formatted code like "SR-2026-00002", pull out the numeric id
+            $numericId = null;
+            if (preg_match('/(\d+)\s*$/', $s, $m)) {
+                $numericId = (int) ltrim($m[1], '0');   // "00002" → 2
+            }
+
+            $query->where(function ($q) use ($s, $numericId) {
+                $q->orWhereHas('client', fn($c) => $c->where('company_name', 'like', "%{$s}%"))
+                    ->orWhere('project_site', 'like', "%{$s}%")
+                    ->orWhereHas('project', fn($p) => $p->where('site_name', 'like', "%{$s}%"));
+
+                if ($numericId !== null) {
+                    $q->orWhere('id', $numericId);
+                }
+            });
+        }
+
+
+        if ($request->filled('status'))    $query->where('status', $request->status);
+        if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->date_from);
+        if ($request->filled('date_to'))   $query->whereDate('created_at', '<=', $request->date_to);
+
+        // ---- Export current filtered view ----
+        if ($request->export === 'csv') {
+            $rows = (clone $query)->latest()->get();
+            $headers = [
+                'Content-Type'        => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="service_requests.csv"',
+            ];
+            return response()->stream(function () use ($rows) {
+                $out = fopen('php://output', 'w');
+                fputcsv($out, ['SR ID', 'Client', 'Site', 'Assigned To', 'Status', 'Created']);
+                foreach ($rows as $sr) {
+                    fputcsv($out, [
+                        'SR-' . \Carbon\Carbon::parse($sr->created_at)->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+                        optional($sr->client)->company_name,
+                        $sr->project_site ?? optional($sr->project)->project_name,
+                        optional($sr->assignedUser)->name ?? 'Unassigned',
+                        $sr->status,
+                        \Carbon\Carbon::parse($sr->created_at)->format('Y-m-d H:i'),
+                    ]);
+                }
+                fclose($out);
+            }, 200, $headers);
+        }
+
+        // ---- Paginated results ----
+        $sr_explorer = $query->latest()->paginate(10)->withQueryString();
+
+        // ---- Stats (needed by the view for both full page and fragments) ----
+        $stats = [
+            'total'       => ServiceRequest::count(),
+            'pendingRev'  => ServiceRequest::where('status', 'Pending')->count(),
+            'inProgress'  => ServiceRequest::where('status', 'Assigned')->count(),
+            'slaBreached' => ServiceRequest::whereDate('created_at', today())->count(),
+        ];
+
+        // ---- AJAX: return only the requested fragment from the SAME blade file ----
+        if ($request->ajax() && $request->filled('frag')) {
+            return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats'))
+                ->fragment($request->frag);   // 'rows' or 'pager'
+        }
+
+        // ---- Full page load ----
+        return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats'));
+
+        // return view('sr_explorer', compact('sr_explorer'));
     }
 
 
@@ -143,7 +225,7 @@ class ServiceRequestController extends Controller
         $tickets = $inquiries->map(function ($sr) {
             return [
                 'id' => 'SR-' . ($sr->created_at?->year ?? now()->year) . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
-                        'dbId' => $sr->id,                    // ← ADD THIS LINE
+                'dbId' => $sr->id,                    // ← ADD THIS LINE
 
                 'client' => optional($sr->client)->company_name ?? '-',
                 'contract' => optional($sr->project)->project_name ?? '-',
@@ -190,30 +272,30 @@ class ServiceRequestController extends Controller
 
 
     public function dispatch(Request $request, ServiceRequest $serviceRequest)
-{
-    $data = $request->validate([
-        'assigned_user_id'  => ['required', 'exists:users,id'],
-        'service_domain_id' => ['nullable', 'exists:service_domains,id'],
-    ]);
+    {
+        $data = $request->validate([
+            'assigned_user_id'  => ['required', 'exists:users,id'],
+            'service_domain_id' => ['nullable', 'exists:service_domains,id'],
+        ]);
 
-    $serviceRequest->update([
-        'status'            => 'Assigned',
-        'assigned_user_id'  => $data['assigned_user_id'],
-        'service_domain_id' => $data['service_domain_id'] ?? null,
-        'dispatched_at'     => now(),
-    ]);
+        $serviceRequest->update([
+            'status'            => 'Assigned',
+            'assigned_user_id'  => $data['assigned_user_id'],
+            'service_domain_id' => $data['service_domain_id'] ?? null,
+            'dispatched_at'     => now(),
+        ]);
 
-    $ref = 'SR-' . ($serviceRequest->created_at?->year ?? now()->year)
-         . '-' . str_pad($serviceRequest->id, 5, '0', STR_PAD_LEFT);
+        $ref = 'SR-' . ($serviceRequest->created_at?->year ?? now()->year)
+            . '-' . str_pad($serviceRequest->id, 5, '0', STR_PAD_LEFT);
 
-    $tech = \App\Models\User::find($data['assigned_user_id']);
+        $tech = \App\Models\User::find($data['assigned_user_id']);
 
-    return response()->json([
-        'ok'      => true,
-        'success' => true,
-        'message' => 'Ticket ' . $ref . ' dispatched to ' . ($tech->name ?? 'technician') . '. Status: Assigned.',
-    ]);
-}
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => 'Ticket ' . $ref . ' dispatched to ' . ($tech->name ?? 'technician') . '. Status: Assigned.',
+        ]);
+    }
 
 
     public function approve(ServiceRequest $serviceRequest)
