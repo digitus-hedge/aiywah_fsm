@@ -118,8 +118,21 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 
 
 /* Description block */
-.desc-block{background:var(--surface-2);border:1px solid var(--border-color);border-radius:6px;padding:10px 12px;font-size:.78rem;color:var(--text-primary);line-height:1.55;max-height:120px;overflow-y:auto;}
-.desc-block::-webkit-scrollbar{width:3px;}
+.desc-block {
+  font-size: .8rem;
+  line-height: 1.55;
+  color: var(--text-body, #333);
+  background: var(--surface-2, #f7f7f9);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 8px;
+  padding: 12px 14px;
+  /* key fixes for mobile: */
+  word-break: break-word;      /* long words/URLs wrap instead of overflowing */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;       /* preserves line breaks from the description */
+  max-width: 100%;
+  box-sizing: border-box;
+}.desc-block::-webkit-scrollbar{width:3px;}
 .desc-block::-webkit-scrollbar-thumb{background:var(--border-color);}
 
 /* ═══════════════════════════════════════
@@ -309,6 +322,15 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 @media(max-width:380px){
   .stats-strip{grid-template-columns:1fr;}
 }
+
+
+@media (max-width: 576px) {
+  .desc-block {
+    font-size: .78rem;
+    padding: 10px 12px;
+    line-height: 1.5;
+  }
+}
   
   </style>
   @endpush
@@ -459,7 +481,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
       </div>
 
       <!-- Inquiry Description -->
-      <div class="dp-card">
+      <!-- <div class="dp-card">
         <div class="dp-hdr">
           <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
           <div><h6>Inquiry Description</h6><span class="sub">Client-submitted details</span></div>
@@ -467,7 +489,21 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
         <div class="dp-body" id="descBody">
           <div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>
         </div>
-      </div>
+      </div> -->
+
+
+      <div class="dp-card">
+  <div class="dp-hdr" onclick="toggleDescCard(this)" style="cursor:pointer;">
+    <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
+    <div style="flex:1;"><h6>Inquiry Description and Attachments</h6><span class="sub">Client-submitted details</span></div>
+    <i class="bi bi-chevron-down dp-toggle-icon" style="transition:transform .2s;color:var(--text-muted);"></i>
+  </div>
+  <div class="dp-body" id="descBody">
+    <div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>
+  </div>
+</div>
+
+
 
       <!-- Action Panel -->
       <div class="action-panel">
@@ -545,6 +581,8 @@ const ALL_TICKETS = [
     submittedStr: @json($t->created_at?->format('d M H:i')),
     hrsAgo:       {{ (int) ($t->created_at ? $t->created_at->diffInHours(now()) : 0) }},
     status:       @json($t->status),
+        attachments:  @json($t->attachments ?? []),
+
   },
 @endforeach
 ];
@@ -683,16 +721,62 @@ function loadContractPanel(t){
     </div>`;
 }
 
+
+
+function toggleDescCard(hdr){
+  const body = hdr.parentElement.querySelector('.dp-body');
+  const icon = hdr.querySelector('.dp-toggle-icon');
+  const collapsed = body.style.display === 'none';
+  body.style.display = collapsed ? '' : 'none';
+  if(icon) icon.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
+}
+
+
+
 function loadDescPanel(t){
-  document.getElementById('descBody').innerHTML=`
+  // t.attachments is an array like ["service-requests/xxxx.png", ...]
+  let attachHtml = '';
+  const files = t.attachments || [];
+  if(files.length){
+    attachHtml = `
+      <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:14px 0 7px;">Attachments (${files.length})</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${files.map(f=>{
+          const url = `/storage/${f}`;
+          const isImg = /\.(png|jpe?g|gif|webp|svg)$/i.test(f);
+          return isImg
+            ? `<a href="${url}" target="_blank" style="display:block;">
+                 <img src="${url}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border);"/>
+               </a>`
+            : `<a href="${url}" target="_blank" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.72rem;">
+                 <i class="bi bi-paperclip"></i>${f.split('/').pop()}
+               </a>`;
+        }).join('')}
+      </div>`;
+  }
+
+  document.getElementById('descBody').innerHTML = `
     <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:7px;">Issue Description</div>
-    <div class="desc-block">${t.description||'—'}</div>
+    <div class="desc-block">${t.description || '—'}</div>
     <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-geo-alt"></i>${t.site}</span>
       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-person"></i>${t.submitter}</span>
       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-calendar3"></i>${t.submittedStr}</span>
-    </div>`;
+    </div>
+    ${attachHtml}`;
 }
+
+
+// function loadDescPanel(t){
+//   document.getElementById('descBody').innerHTML=`
+//     <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:7px;">Issue Description</div>
+//     <div class="desc-block">${t.description||'—'}</div>
+//     <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
+//       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-geo-alt"></i>${t.site}</span>
+//       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-person"></i>${t.submitter}</span>
+//       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-calendar3"></i>${t.submittedStr}</span>
+//     </div>`;
+// }
 
 function enableActionButtons(){
   ['btnApprove','btnAccounts','btnReject'].forEach(id=>{document.getElementById(id).disabled=false;});
