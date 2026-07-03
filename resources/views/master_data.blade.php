@@ -10,7 +10,6 @@
 
 
 /* ── SIDEBAR ── */
-.sidebar{width:var(--sidebar-width);min-height:100vh;background:var(--sidebar-bg);border-right:1px solid var(--border-color);display:flex;flex-direction:column;position:fixed;top:0;left:0;z-index:300;box-shadow:var(--sidebar-shadow);transition:transform .28s cubic-bezier(.4,0,.2,1),background .3s;}
 .sb-brand{display:flex;align-items:center;gap:11px;padding:18px 20px 15px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .sb-brand-icon{width:38px;height:38px;flex-shrink:0;background:linear-gradient(135deg,#9A7B4F,#C4A882);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.05rem;}
 .sb-brand-name{font-size:.9375rem;font-weight:700;color:var(--text-heading);line-height:1.2;}
