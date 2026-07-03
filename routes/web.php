@@ -69,11 +69,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/sr-registration', [ServiceRequestController::class, 'create'])->name('sr_registration');
     Route::get('/service-requests/lookup/{code}', [ServiceRequestController::class, 'lookup'])->name('service-requests.lookup');
     Route::post('/service-requests', [ServiceRequestController::class, 'store'])->name('service-requests.store');
+    Route::get('/sr-explorer', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
 
     /* ---- Dispatch Engine / Kanban ---- */
-    Route::get('/dispatch-engine', function () {
-        return view('dispatch_engine');
-    })->name('dispatch_engine');
+    Route::get('/dispatch-engine',[ServiceRequestController::class, 'dispatch_engine'])->name('dispatch_engine');
+
+    Route::post('/service-requests/{serviceRequest}/dispatch', [ServiceRequestController::class, 'dispatch'])->name('service-requests.dispatch');
 
     Route::get('/ticket-summary', function () {
         return view('kanban_view');
