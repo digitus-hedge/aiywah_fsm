@@ -575,7 +575,7 @@ const ALL_TICKETS = [
     site:         @json($t->project?->site_name ?? '—'),
     project:      @json($t->project?->project_name ?? '—'),
     priority:     @json(ucfirst($t->priority_level)),
-    warranty:     @json(($t->project && $t->project->completion_date && \Carbon\Carbon::parse($t->project->completion_date)->isFuture()) ? 'In Warranty' : 'Out of Warranty'),
+    warranty:     @json(($t->project && $t->project->warranty_end_date && \Carbon\Carbon::parse($t->project->warranty_end_date)->endOfDay()->isFuture()) ? 'In Warranty' : 'Out of Warranty'),
     description:  @json($t->issue_description ?? ''),
     submitter:    @json($t->reported_by ?? '—'),
     submittedStr: @json($t->created_at?->format('d M H:i')),

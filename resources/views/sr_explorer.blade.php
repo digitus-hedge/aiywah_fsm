@@ -198,6 +198,32 @@ table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;col
 .rls-banner{display:flex;align-items:center;gap:9px;padding:9px 14px;border-radius:7px;font-size:.78rem;color:var(--text-muted);margin-bottom:14px;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.15);}
 .rls-banner i{color:#3b82f6;flex-shrink:0;}
 
+/* ══════════════════════════════════════════
+   SR DETAIL MODAL
+══════════════════════════════════════════ */
+.sr-modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg,rgba(9,15,35,.6));z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px;}
+.sr-modal-overlay.show{display:flex;}
+.sr-modal-box{background:var(--modal-bg,var(--card-bg));border-radius:12px;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--modal-shadow,0 24px 64px rgba(0,0,0,.16));border:1px solid var(--card-border);overflow:hidden;animation:srModalIn .2s ease;}
+@keyframes srModalIn{from{opacity:0;transform:scale(.96) translateY(6px);}to{opacity:1;transform:scale(1) translateY(0);}}
+.sr-modal-hdr{border-bottom:1px solid var(--border-color);flex-shrink:0;}
+.sr-modal-hdr-banner{background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);color:#fff;padding:16px 22px;position:relative;overflow:hidden;}
+.sr-modal-hdr-banner::after{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);}
+.sr-modal-close{position:absolute;top:14px;right:16px;z-index:2;background:rgba(255,255,255,.18);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.sr-modal-close:hover{background:rgba(255,255,255,.32);}
+.sr-modal-id{font-family:monospace;font-size:1.05rem;font-weight:700;margin:0 0 4px;position:relative;z-index:1;}
+.sr-modal-client{font-size:.82rem;opacity:.9;position:relative;z-index:1;display:flex;align-items:center;gap:6px;}
+.sr-modal-body{padding:20px 22px;overflow-y:auto;}
+.sr-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;}
+@media(max-width:560px){.sr-detail-grid{grid-template-columns:1fr;}}
+.sr-detail-item{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.sr-detail-item.full{grid-column:1 / -1;}
+.sr-detail-label{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
+.sr-detail-label i{font-size:.8rem;color:#9A7B4F;}
+.sr-detail-value{font-size:.85rem;color:var(--text-heading);font-weight:500;word-break:break-word;}
+.sr-detail-value.muted{color:var(--text-muted);font-weight:400;}
+.sr-detail-divider{grid-column:1 / -1;height:1px;background:var(--border-color);margin:2px 0;}
+.sr-modal-foot{padding:14px 22px;border-top:1px solid var(--border-color);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;}
+@media(max-width:480px){.sr-modal-foot{justify-content:stretch;}.sr-modal-foot > *{flex:1;justify-content:center;}}
 
   </style>
   @endpush
@@ -302,8 +328,25 @@ table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;col
             $rowClass = $hours <= 8 ? 'sla-ok' : ($hours <= 24 ? 'sla-warn' : 'sla-breach');
             $srCode = 'SR-'.\Carbon\Carbon::parse($sr->created_at)->format('Y').'-'.str_pad($sr->id,5,'0',STR_PAD_LEFT);
             $badge  = $statusMap[$sr->status] ?? 'sb-pending';
+            // All fields the detail popup reads, packed onto the row as one JSON payload.
+            $srPayload = [
+              'code'      => $srCode,
+              'status'    => $sr->status,
+              'badge'     => $badge,
+              'client'    => optional($sr->client)->company_name ?? '—',
+              'site'      => optional($sr->project)->site_name ?? '—',
+              'assigned'  => $sr->assignedUser->name ?? 'Unassigned',
+              'issue'     => $sr->issue ?? $sr->description ?? '—',
+              'warranty'  => $sr->warranty_status ?? (($sr->is_oow ?? false) ? 'Out of Warranty' : '—'),
+              'contact'   => optional($sr->client)->phone ?? optional($sr->client)->contact_number ?? '—',
+              'created'   => \Carbon\Carbon::parse($sr->created_at)->format('d M Y · h:i A'),
+              'created_h' => \Carbon\Carbon::parse($sr->created_at)->diffForHumans(),
+              'updated'   => $sr->updated_at ? \Carbon\Carbon::parse($sr->updated_at)->diffForHumans() : '—',
+            ];
           @endphp
-          <tr class="{{ $rowClass }}" data-status="{{ $sr->status }}" onclick="goToDetail('{{ $srCode }}')">
+          <tr class="{{ $rowClass }}" data-status="{{ $sr->status }}"
+              data-sr='@json($srPayload)'
+              onclick="openSrModal(this)">
             <td class="mono">{{ $srCode }}</td>
             <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name }}</strong></td>
            <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
@@ -320,7 +363,7 @@ table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;col
             <td class="muted">{{ \Carbon\Carbon::parse($sr->created_at)->diffForHumans() }}</td>
             <td onclick="event.stopPropagation()">
               <div style="display:flex;gap:5px;">
-                <button class="btn-xs btn-xs-view" onclick="goToDetail('{{ $srCode }}')">
+                <button class="btn-xs btn-xs-view" onclick="openSrModal(this.closest('tr'))">
                   <i class="bi bi-eye"></i> View
                 </button>
               </div>
@@ -350,6 +393,72 @@ table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;col
         onclick="goToPage({{ $sr_explorer->currentPage() + 1 }})"><i class="bi bi-chevron-right"></i></button>
     </div>
     @endfragment
+  </div>
+</div>
+
+{{-- ══════════════ SR DETAIL MODAL ══════════════ --}}
+<div class="sr-modal-overlay" id="srModal" onclick="if(event.target===this)closeSrModal()">
+  <div class="sr-modal-box" role="dialog" aria-modal="true" aria-labelledby="sr-m-id">
+    <div class="sr-modal-hdr">
+      <div class="sr-modal-hdr-banner">
+        <button class="sr-modal-close" onclick="closeSrModal()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+        <div class="sr-modal-id" id="sr-m-id">—</div>
+        <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client">—</span></div>
+      </div>
+    </div>
+    <div class="sr-modal-body">
+      <div class="sr-detail-grid">
+        <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-flag"></i>Status</span>
+          <span class="sr-detail-value" id="sr-m-status">—</span>
+        </div>
+        <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-shield-check"></i>Warranty Scope</span>
+          <span class="sr-detail-value" id="sr-m-warranty">—</span>
+        </div>
+
+        <div class="sr-detail-divider"></div>
+
+        <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-geo-alt"></i>Site / Location</span>
+          <span class="sr-detail-value" id="sr-m-site">—</span>
+        </div>
+        <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-person-workspace"></i>Assigned To</span>
+          <span class="sr-detail-value" id="sr-m-assigned">—</span>
+        </div>
+        <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-telephone"></i>Client Contact</span>
+          <span class="sr-detail-value muted" id="sr-m-contact">—</span>
+        </div>
+        <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-clock-history"></i>Last Updated</span>
+          <span class="sr-detail-value muted" id="sr-m-updated">—</span>
+        </div>
+
+        <div class="sr-detail-item full">
+          <span class="sr-detail-label"><i class="bi bi-card-text"></i>Reported Issue</span>
+          <span class="sr-detail-value muted" id="sr-m-issue">—</span>
+        </div>
+
+        <div class="sr-detail-divider"></div>
+
+        <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-calendar-plus"></i>Created On</span>
+          <span class="sr-detail-value" id="sr-m-created">—</span>
+        </div>
+        <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-hourglass-split"></i>Age</span>
+          <span class="sr-detail-value muted" id="sr-m-created-h">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="sr-modal-foot">
+      <button class="btn-ghost" onclick="closeSrModal()"><i class="bi bi-x-circle"></i>Close</button>
+      <button class="btn-gold" id="sr-m-open" onclick="goToDetail(document.getElementById('sr-m-id').textContent)">
+        <i class="bi bi-box-arrow-up-right"></i>Open Full Timeline
+      </button>
+    </div>
   </div>
 </div>
 
@@ -383,9 +492,57 @@ function showToast(type, title, body){
   setTimeout(function(){ t.style.transition='opacity .3s'; t.style.opacity='0'; setTimeout(function(){t.remove();},300); }, 3500);
 }
 
-// ---- Row navigation ----
+// ══════════════ SR DETAIL MODAL ══════════════
+function _set(id, val){
+  var el = document.getElementById(id);
+  if (el) el.textContent = (val === null || val === undefined || val === '') ? '—' : val;
+}
+
+// Opens the modal from a <tr> that carries a data-sr JSON payload.
+function openSrModal(row){
+  if (!row) return;
+  var data;
+  try { data = JSON.parse(row.getAttribute('data-sr') || '{}'); }
+  catch (e) { data = {}; }
+
+  _set('sr-m-id', data.code);
+  _set('sr-m-client', data.client);
+  _set('sr-m-site', data.site);
+  _set('sr-m-assigned', data.assigned);
+  _set('sr-m-contact', data.contact);
+  _set('sr-m-updated', data.updated);
+  _set('sr-m-issue', data.issue);
+  _set('sr-m-warranty', data.warranty);
+  _set('sr-m-created', data.created);
+  _set('sr-m-created-h', data.created_h);
+
+  // Status badge (styled pill) instead of plain text
+  var statusEl = document.getElementById('sr-m-status');
+  if (statusEl){
+    var badge = data.badge || 'sb-pending';
+    statusEl.innerHTML = '<span class="sbadge '+badge+'"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i> '+(data.status || '—')+'</span>';
+  }
+
+  var overlay = document.getElementById('srModal');
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';   // lock background scroll while open
+}
+
+function closeSrModal(){
+  document.getElementById('srModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// Close on Escape key
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeSrModal();
+});
+
+// ---- Row navigation (full page / timeline) ----
 function goToDetail(id){
   showToast('info','Navigating','Opening SR timeline for '+id+'…');
+  // Wire to real detail route later, e.g.:
+  // window.location.href = "/sr/" + encodeURIComponent(id);
 }
 
 // ---- AJAX filtering ----

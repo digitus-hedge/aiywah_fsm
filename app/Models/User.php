@@ -42,4 +42,40 @@ class User extends Authenticatable
             ->withPivot('service_category_id')
             ->withTimestamps();
     }
+    
+    public function punches()
+    {
+        return $this->hasMany(\App\Models\Punch::class);
+    }
+ 
+    // Service requests dispatched to this worker
+    public function assignedServiceRequests()
+    {
+        return $this->hasMany(\App\Models\ServiceRequest::class, 'assigned_user_id');
+    }
+ 
+    // Is this user a field worker?
+    public function isWorker(): bool
+    {
+        return optional($this->role)->code === 'ML';
+    }
+    
+    // Two-letter avatar initials, e.g. "Rajesh Kumar" -> "RK"
+    public function getInitialsAttribute(): string
+    {
+        $parts = preg_split('/\s+/', trim((string) $this->name));
+        $first = mb_substr($parts[0] ?? '', 0, 1);
+        $last  = count($parts) > 1 ? mb_substr(end($parts), 0, 1) : '';
+        return mb_strtoupper($first . $last) ?: '—';
+    }
+ 
+    // "Trade" label derived from the worker's service domains
+    public function getTradeLabelAttribute(): ?string
+    {
+        if (!$this->relationLoaded('serviceDomains') && !$this->exists) {
+            return null;
+        }
+        $names = $this->serviceDomains->pluck('name')->filter()->values();
+        return $names->isNotEmpty() ? $names->join(', ') : null;
+    }
 }

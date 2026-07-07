@@ -42,13 +42,6 @@ $srExplorer = \App\Models\ServiceRequest::count();
             </a>
         </li>
         @endif
-        @if ($can('kanban_view'))
-        <li>
-            <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
-                <i data-feather="clipboard"></i>Ticket Summary
-            </a>
-        </li>
-        @endif
         @if ($can('sr_registration'))
         <li>
             <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">
@@ -56,7 +49,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
             </a>
         </li>
         @endif
-
+         @if ($can('sr_explorer'))
         <li>
             <a href="{{ route('sr_explorer') }}" class="{{ request()->routeIs('sr_explorer') ? 'active' : '' }}" class="active"> <i data-feather="tag"></i>SR Explorer
                 @if ($srExplorer > 0)
@@ -64,7 +57,14 @@ $srExplorer = \App\Models\ServiceRequest::count();
                 @endif
             </a>
         </li>
-
+        @endif
+        @if ($can('kanban_view'))
+        <li>
+            <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
+                <i data-feather="clipboard"></i>Ticket Summary
+            </a>
+        </li>
+        @endif
         @endif
 
         {{-- ══ Client management ══ --}}
@@ -124,7 +124,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @endif
         @if ($can('qc_review'))
         <li>
-            <a href="#" class="{{ request()->routeIs('quality_check') ? 'active' : '' }}">
+            <a href="{{ route('qc_review') }}" class="{{ request()->routeIs('qc_review') ? 'active' : '' }}">
                 <i data-feather="check-circle"></i>QC Review
             </a>
         </li>
@@ -137,21 +137,21 @@ $srExplorer = \App\Models\ServiceRequest::count();
         <li class="sidebar-heading">Finance</li>
         @if ($can('quotation_desk'))
         <li>
-            <a href="#" class="{{ request()->routeIs('quotation_desk') ? 'active' : '' }}">
+            <a href="{{ route('quotation_desk') }}" class="{{ request()->routeIs('quotation_desk') ? 'active' : '' }}">
                 <i data-feather="file-text"></i>Quotation Desk
             </a>
         </li>
         @endif
         @if ($can('invoice_panel'))
         <li>
-            <a href="#" class="{{ request()->routeIs('invoice_panel') ? 'active' : '' }}">
+            <a href="{{ route('invoice_panel') }}" class="{{ request()->routeIs('invoice_panel') ? 'active' : '' }}">
                 <i data-feather="file"></i>Invoice Panel
             </a>
         </li>
         @endif
         @if ($can('expense_ledger'))
         <li>
-            <a href="#" class="{{ request()->routeIs('expense_ledger') ? 'active' : '' }}">
+            <a href="{{ route('expense_ledger') }}" class="{{ request()->routeIs('expense_ledger') ? 'active' : '' }}">
                 <i data-feather="check-square"></i>Expense Ledger
             </a>
         </li>
@@ -164,7 +164,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         <li class="sidebar-heading">System</li>
         @if ($can('analytics'))
         <li>
-            <a href="#" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
+            <a href="{{ route('analytics') }}" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
                 <i data-feather="bar-chart-2"></i>Analytics
             </a>
         </li>
@@ -187,6 +187,13 @@ $srExplorer = \App\Models\ServiceRequest::count();
         <li>
             <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}">
                 <i data-feather="database"></i>Master Data
+            </a>
+        </li>
+        @endif
+         @if ($can('wa_notification_log'))
+        <li>
+            <a href="{{ route('wa_notification_log') }}" class="{{ request()->routeIs('wa_notification_log') ? 'active' : '' }}">
+                <i data-feather="settings"></i>WhatsApp Notifications
             </a>
         </li>
         @endif
