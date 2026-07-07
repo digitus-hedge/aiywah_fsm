@@ -16,7 +16,13 @@ class Project extends Model
         'site_name',
         'site_address',
         'completion_date',
+        'warranty_end_date',
         'status'
+    ];
+
+    protected $casts = [
+        'completion_date'   => 'date',
+        'warranty_end_date' => 'date',
     ];
 
     public function client(): BelongsTo

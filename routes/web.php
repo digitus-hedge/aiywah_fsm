@@ -9,6 +9,7 @@ use App\Http\Controllers\MasterController;
 use App\Http\Controllers\UserProvisioningController;
 use App\Http\Controllers\UserDirectoryController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\WorkerpunchController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -46,6 +47,28 @@ Route::middleware('auth')->group(function () {
         return view('dashboard');
     })->name('dashboard');
 
+     Route::get('/expense_ledger', function () {
+        return view('expense_ledger');
+    })->name('expense_ledger');
+    Route::get('/invoice_panel', function () {
+        return view('invoice_panel');
+    })->name('invoice_panel');
+    
+     Route::get('/qc_review', function () {
+        return view('qc_review');
+    })->name('qc_review');
+
+     Route::get('/quotation_desk', function () {
+        return view('quotation_desk');
+    })->name('quotation_desk');
+     Route::get('/analytics', function () {
+        return view('analytics_dashboard');
+    })->name('analytics');
+    Route::get('/wa_notification_log', function () {
+        return view('wa_notification_log');
+    })->name('wa_notification_log');
+
+
     /* ---- User Provisioning ---- */
     Route::get('/user-provisioning', [UserProvisioningController::class, 'index'])->name('user_provisioning');
     Route::post('/user-provisioning', [UserProvisioningController::class, 'store'])->name('user_provisioning.store');
@@ -69,15 +92,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/service-requests/lookup/{code}', [ServiceRequestController::class, 'lookup'])->name('service-requests.lookup');
     Route::post('/service-requests', [ServiceRequestController::class, 'store'])->name('service-requests.store');
     Route::get('/sr-explorer', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
-
+    Route::get('/ticket-summary', [ServiceRequestController::class, 'ticketSummary'])
+    ->name('kanban_view');
 
     /* ---- Dispatch Engine / Kanban ---- */
     Route::get('/dispatch-engine', [ServiceRequestController::class, 'dispatch_engine'])->name('dispatch_engine');
     Route::post('/service-requests/{serviceRequest}/dispatch', [ServiceRequestController::class, 'dispatch'])->name('service-requests.dispatch');
-
-    Route::get('/ticket-summary', function () {
-        return view('kanban_view');
-    })->name('kanban_view');
 
 
     /* ---- Clients / Projects ---- */
@@ -88,9 +108,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/lookup-by-name', [ClientController::class, 'lookupByName'])->name('clients.lookupByName');
     Route::get('/clients/directory', [ClientController::class, 'directory'])->name('clients.directory');
     Route::post('/clients-directory/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle');
-
-
-
 
     Route::get('project_site_directory',   [ProjectController::class, 'index'])->name('project_site_directory');
     Route::post('projects',                [ProjectController::class, 'store'])->name('projects.store');
@@ -155,5 +172,22 @@ Route::middleware('auth')->group(function () {
         Route::get('/ajax/priorities', [MasterController::class, 'ajaxPriorities'])->name('ajax.priorities');
         Route::get('/ajax/sla', [MasterController::class, 'ajaxSla'])->name('ajax.sla');
         Route::get('/ajax/templates', [MasterController::class, 'ajaxTemplates'])->name('ajax.templates');
+
+        Route::controller(ServiceRequestController::class)->group(function () {
+    Route::get('/qc-review', 'qcReview')->name('qc.review');
+    Route::post('/qc-review/{serviceRequest}/pass', 'qcPass')->name('qc.pass');
+    Route::post('/qc-review/{serviceRequest}/fail', 'qcFail')->name('qc.fail');
+});
     });
 });
+
+ 
+Route::middleware(['auth'])
+    ->prefix('worker/sr/{serviceRequest}')
+    ->name('worker.punch.')
+    ->group(function () {
+        Route::get('/punch',       [WorkerpunchController::class, 'show'])->name('show');
+        Route::post('/punch-in',   [WorkerpunchController::class, 'punchIn'])->name('in');
+        Route::post('/save-draft', [WorkerpunchController::class, 'saveDraft'])->name('draft');
+        Route::post('/submit',     [WorkerpunchController::class, 'submit'])->name('submit');
+    });

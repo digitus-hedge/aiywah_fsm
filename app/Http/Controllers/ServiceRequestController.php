@@ -7,7 +7,7 @@ use App\Models\Client;
 use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-
+use Illuminate\Support\Facades\Auth;
 class ServiceRequestController extends Controller
 {
     public function create()
@@ -354,5 +354,259 @@ class ServiceRequestController extends Controller
             'success' => true,
             'message' => 'Ticket ' . $ref . ' successfully rejected and archived.',
         ]);
+    }
+
+    public function ticketSummary()
+{
+    // Map DB statuses → Kanban lanes
+    $statusMap = [
+        'Pending'   => 'Pending',
+        'Approved'  => 'Approved',
+        'Assigned'  => 'Assigned',
+        'Forwarded' => 'Forwarded',
+        'Rejected'  => 'Rejected',
+    ];
+
+    $requests = ServiceRequest::with(['client', 'project', 'assignedUser', 'category'])
+        ->latest()
+        ->get();
+
+    $tickets = $requests->map(function ($sr) {
+        return [
+            'id'        => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'client'    => optional($sr->client)->company_name ?? '—',
+            'contract'  => optional($sr->project)->project_name ?? '—',
+            'site'      => optional($sr->project)->site_name ?? '—',
+            'category'  => optional($sr->category)->category_name ?? '—',
+            'status'    => $sr->status,
+            'priority'  => $sr->priority_level,
+            'tech'      => optional($sr->assignedUser)->name ?? 'Unassigned',
+            'techInitials' => $this->initials(optional($sr->assignedUser)->name),
+            'createdAt' => $sr->created_at?->format('d M Y h:i A') ?? '—',
+            'createdRaw'=> $sr->created_at?->toIso8601String(),
+        ];
+    })->values();
+
+    $statuses = array_values(array_unique($statusMap));
+
+return view('kanban_view', compact('tickets', 'statuses'));
+}
+
+private function initials(?string $name): string
+{
+    if (!$name) return '??';
+    $parts = preg_split('/\s+/', trim($name));
+    return strtoupper(substr($parts[0], 0, 1) . (isset($parts[1]) ? substr($parts[1], 0, 1) : ''));
+}
+
+/**
+     * QC Review Terminal — lists SRs that have been punched out
+     * and are awaiting supervisor quality control.
+     */
+   public function qcReview()
+    {
+        // SRs whose punch-out moved them into QC review.
+        $requests = ServiceRequest::with([
+                'client', 'project', 'assignedUser',
+                'punches' => fn($q) => $q->whereIn('status', ['submitted', 'qc_review'])
+                                         ->latest('punch_out_at')->with('items'),
+            ])
+            ->where('status', 'qc_review')          // matches WorkerPunchController::SR_STATUS_QC_REVIEW
+            ->latest('updated_at')
+            ->get();
+
+        $queue = $requests->map(function ($sr) {
+            $punch = $sr->punches->first();          // the submitted punch
+            if (!$punch) return null;                // no punch = nothing to review
+
+            $scope = $this->srScope($sr);            // 'iw' | 'oow'
+            $sla   = $this->srSla($sr, $punch);
+            $exp   = $this->srExpenses($punch);
+
+            return [
+                'id'           => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                                    . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+                'dbId'         => $sr->id,
+                'client'       => optional($sr->client)->company_name ?? '—',
+                'site'         => $punch->site_location
+                                    ?? optional($sr->project)->site_name ?? '—',
+                'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
+                'scope'        => $scope,
+                'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
+                'punchIn'      => $punch->punch_in_at?->format('d M · h:i A') ?? '—',
+                'punchOut'     => $punch->punch_out_at?->format('d M · h:i A') ?? '—',
+                'sla'          => $sla,
+                'slaFill'      => $sla['fill'],
+                'slaColor'     => $sla['color'],
+                'expenses'     => $exp['rows'],
+                'totalExpense' => 'AED ' . number_format($exp['total'], 0),
+            ];
+        })->filter()->values();
+
+        $today = today();
+
+        $passedToday = ServiceRequest::whereIn('status', ['Completed', 'Pending Invoice'])
+            ->whereDate('qc_reviewed_at', $today)->count();
+
+        $returnedRework = ServiceRequest::where('status', 'Rework')
+            ->whereDate('qc_reviewed_at', $today)->count();
+
+        $avgReviewTime = (int) round(
+            ServiceRequest::whereDate('qc_reviewed_at', $today)
+                ->whereNotNull('qc_reviewed_at')
+                ->with(['punches' => fn($q) => $q->whereNotNull('punch_out_at')->latest('punch_out_at')])
+                ->get()
+                ->map(function ($sr) {
+                    $p = $sr->punches->first();
+                    return ($p && $p->punch_out_at && $sr->qc_reviewed_at)
+                        ? abs($p->punch_out_at->diffInMinutes($sr->qc_reviewed_at))
+                        : null;
+                })
+                ->filter()
+                ->avg() ?? 0
+        );
+
+        return view('qc_review', compact(
+            'queue', 'passedToday', 'returnedRework', 'avgReviewTime'
+        ));
+    }
+
+    public function qcPass(ServiceRequest $serviceRequest)
+    {
+        $scope     = $this->srScope($serviceRequest);
+        $newStatus = $scope === 'iw' ? 'Completed' : 'Pending Invoice';
+
+        DB::transaction(function () use ($serviceRequest, $newStatus) {
+            $serviceRequest->update([
+                'status'         => $newStatus,
+                'qc_reviewed_at' => now(),
+                'qc_reviewed_by' => Auth::id(),
+            ]);
+            // close the punch record too
+            $serviceRequest->punches()
+                ->whereIn('status', ['submitted', 'qc_review'])
+                ->update(['status' => 'qc_passed']);
+        });
+
+        $ref = 'SR-' . ($serviceRequest->created_at?->year ?? now()->year)
+            . '-' . str_pad($serviceRequest->id, 5, '0', STR_PAD_LEFT);
+
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'scope'   => $scope,
+            'status'  => $newStatus,
+            'message' => $scope === 'iw'
+                ? "Ticket {$ref} passed QC — marked Completed. Client WhatsApp summary queued."
+                : "Ticket {$ref} passed QC — forwarded to Invoice Panel.",
+        ]);
+    }
+
+    public function qcFail(Request $request, ServiceRequest $serviceRequest)
+    {
+        $data = $request->validate([
+            'rework_notes' => ['required', 'string', 'min:5', 'max:1000'],
+        ]);
+
+        DB::transaction(function () use ($serviceRequest, $data) {
+            $serviceRequest->update([
+                'status'          => 'Rework',
+                'qc_reviewed_at'  => now(),
+                'qc_reviewed_by'  => Auth::id(),
+                'rework_notes'    => $data['rework_notes'],
+                'internal_remark' => trim(($serviceRequest->internal_remark ?? '')
+                    . "\nQC Rework: " . $data['rework_notes']),
+            ]);
+            // reopen the punch so the technician can act on it
+            $serviceRequest->punches()
+                ->whereIn('status', ['submitted', 'qc_review'])
+                ->update(['status' => 'rework']);
+        });
+
+        $ref = 'SR-' . ($serviceRequest->created_at?->year ?? now()->year)
+            . '-' . str_pad($serviceRequest->id, 5, '0', STR_PAD_LEFT);
+
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => "Ticket {$ref} returned to rework. Technician notified.",
+        ]);
+    }
+
+    // ---------- helpers ----------
+
+    private function srScope(ServiceRequest $sr): string
+    {
+        // Approval flow: 'Forwarded' → quotation desk = out-of-warranty.
+        if (!empty($sr->warranty_scope)) {
+            return $sr->warranty_scope === 'oow' ? 'oow' : 'iw';
+        }
+        return $sr->status === 'Forwarded' ? 'oow' : 'iw';
+    }
+
+    private function srSla(ServiceRequest $sr, \App\Models\Punch $punch): array
+    {
+        $target  = 48 * 60; // 48h in minutes — tune to your SLA rule
+        $elapsed = $punch->punch_out_at
+            ? abs($sr->created_at->diffInMinutes($punch->punch_out_at))
+            : 0;
+
+        $pct = $target > 0 ? min(100, (int) round($elapsed / $target * 100)) : 0;
+
+        [$cls, $color] = match (true) {
+            $pct >= 100 => ['breach', '#ef4444'],
+            $pct >= 75  => ['warn',   '#d97706'],
+            default     => ['',       '#15803d'],
+        };
+
+        $h = intdiv($elapsed, 60);
+        $m = $elapsed % 60;
+
+        return [
+            'label' => $h > 0 ? "{$h}h {$m}m" : "{$m}m",
+            'cls'   => $cls,
+            'fill'  => $pct,
+            'color' => $color,
+        ];
+    }
+
+    /**
+     * Build the expense summary from the punch's line items + labour.
+     * Your billing model is PunchItem rows (materials) + a labour_charge.
+     */
+    private function srExpenses(\App\Models\Punch $punch): array
+    {
+        $rows  = [];
+        $total = 0;
+
+        foreach (($punch->items ?? []) as $it) {
+            $line   = (float) ($it->line_total ?? ($it->qty * $it->rate));
+            $total += $line;
+            $rows[] = [
+                'cat'     => $it->name . ' × ' . rtrim(rtrim(number_format((float)$it->qty, 2), '0'), '.'),
+                'icon'    => 'bi-box-seam',
+                'amt'     => 'AED ' . number_format($line, 0),
+                'receipt' => !empty($punch->receipt_number),
+            ];
+        }
+
+        $labour = (float) $punch->labour_charge;
+        if ($labour > 0) {
+            $total += $labour;
+            $rows[] = [
+                'cat'     => 'Labour Charge',
+                'icon'    => 'bi-people',
+                'amt'     => 'AED ' . number_format($labour, 0),
+                'receipt' => false,
+            ];
+        }
+
+        // Prefer the punch's own grand_total if present (already materials + labour).
+        if ((float) $punch->grand_total > 0) {
+            $total = (float) $punch->grand_total;
+        }
+
+        return ['rows' => $rows, 'total' => $total];
     }
 }

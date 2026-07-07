@@ -21,7 +21,7 @@ class ClientController extends Controller
     $clients = Client::query()
         // counts for the "Projects" and "Contacts" columns (no N+1)
         ->withCount(['projects', 'mobiles'])
-
+        ->with(['mobiles', 'projects'])
         // search across firm name, token, contact name & primary mobile
         ->when($q !== '', function ($query) use ($q) {
             $query->where(function ($sub) use ($q) {
@@ -301,4 +301,5 @@ class ClientController extends Controller
             ])->values(),
         ]);
     }
+    
 }

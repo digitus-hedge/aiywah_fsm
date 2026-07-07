@@ -655,6 +655,118 @@
       max-width: none;
     }
   }
+  /* ═══════════════ VIEW MODAL ═══════════════ */
+  .cd-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 16, 10, .55);
+    backdrop-filter: blur(3px);
+    z-index: 9998;
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    overflow-y: auto;
+  }
+  .cd-modal-overlay.open { display: flex; }
+
+  .cd-modal {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 640px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, .28);
+    animation: cdModalIn .22s ease;
+    overflow: hidden;
+    margin: auto;
+  }
+  @keyframes cdModalIn {
+    from { opacity: 0; transform: translateY(16px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* Modal header — gold gradient to match page */
+  .cd-modal-hdr {
+    background: linear-gradient(135deg, #9A7B4F 0%, #7A6140 100%);
+    color: #fff;
+    padding: 18px 22px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .cd-modal-hdr-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .cd-modal-avatar {
+    width: 44px; height: 44px; border-radius: 10px;
+    background: rgba(255, 255, 255, .2);
+    border: 1px solid rgba(255, 255, 255, .3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 700; flex-shrink: 0;
+  }
+  .cd-modal-title { font-size: .95rem; font-weight: 700; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cd-modal-sub { font-size: .72rem; opacity: .85; margin: 2px 0 0; }
+  .cd-modal-close {
+    background: rgba(255, 255, 255, .18);
+    border: none; color: #fff; width: 30px; height: 30px;
+    border-radius: 7px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+  }
+  .cd-modal-close:hover { background: rgba(255, 255, 255, .32); }
+
+  .cd-modal-body { padding: 20px 22px; max-height: 60vh; overflow-y: auto; }
+
+  .cd-modal-section-title {
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--text-muted);
+    margin: 0 0 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .cd-modal-section + .cd-modal-section { margin-top: 22px; }
+
+  .cd-detail-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 18px;
+  }
+  .cd-detail-item { min-width: 0; }
+  .cd-detail-lbl { font-size: .68rem; color: var(--text-muted); margin-bottom: 2px; }
+  .cd-detail-val { font-size: .84rem; color: var(--text-heading); font-weight: 500; word-break: break-word; }
+
+  .cd-modal-list-item {
+    background: var(--surface-2);
+    border: 1px solid var(--border-color);
+    border-radius: 8px; padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .cd-modal-list-item:last-child { margin-bottom: 0; }
+  .cd-mli-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .cd-mli-name { font-size: .82rem; font-weight: 600; color: var(--text-heading); }
+  .cd-mli-code { font-size: .7rem; color: var(--text-muted); background: var(--card-bg); padding: 2px 8px; border-radius: 6px; }
+  .cd-mli-meta { font-size: .74rem; color: var(--text-muted); margin-top: 4px; }
+  .cd-modal-empty { font-size: .78rem; color: var(--text-muted); font-style: italic; }
+
+  .cd-modal-ftr {
+    padding: 14px 22px;
+    border-top: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    background: var(--surface-2);
+  }
+
+  .cd-modal-loading {
+    padding: 50px 20px; text-align: center; color: var(--text-muted);
+  }
+  .cd-modal-loading .spinner {
+    width: 30px; height: 30px; border: 3px solid var(--border-color);
+    border-top-color: #9A7B4F; border-radius: 50%;
+    animation: cdSpin .7s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes cdSpin { to { transform: rotate(360deg); } }
+
+  @media(max-width:575.98px) {
+    .cd-modal-overlay { padding: 0; align-items: stretch; }
+    .cd-modal { max-width: none; border-radius: 0; min-height: 100vh; }
+    .cd-detail-grid { grid-template-columns: 1fr; }
+  }
 </style>
 @endpush
 
@@ -753,7 +865,33 @@
       </thead>
       <tbody>
         @forelse($clients as $index => $client)
-        <tr onclick="window.location.href='{{ route('clients.edit', $client) }}'">
+        @php
+          $clientData = [
+            'id'              => $client->id,
+            'company_name'    => $client->company_name,
+            'unique_code'     => $client->unique_code,
+            'contact_name'    => $client->contact_name,
+            'designation'     => $client->designation,
+            'primary_country' => $client->primary_country,
+            'primary_mobile'  => $client->primary_mobile,
+            'status'          => $client->status,
+            'projects_count'  => $client->projects_count,
+            'mobiles' => $client->mobiles->map(fn($m) => [
+                'name'    => $m->name,
+                'country' => $m->country,
+                'mobile'  => $m->mobile,
+            ])->values(),
+            'projects' => $client->projects->map(fn($p) => [
+                'project_name'    => $p->project_name,
+                'project_code'    => $p->project_code,
+                'site_name'       => $p->site_name,
+                'site_address'    => $p->site_address,
+                'completion_date' => optional($p->completion_date)->format('Y-m-d'),
+            ])->values(),
+            'edit_url' => route('clients.edit', $client),
+          ];
+        @endphp
+        <tr data-json='@json($clientData)' style="cursor:pointer;" onclick="cdViewClient(this)">
           <td class="muted">{{ $clients->firstItem() + $index }}</td>
           <td>
             <div class="cd-client-name">{{ $client->company_name }}</div>
@@ -784,9 +922,8 @@
           </td>
           <td onclick="event.stopPropagation()">
             <div style="display:flex;gap:5px;">
-              <a href="{{ route('clients.edit', $client) }}" class="cd-btn-xs cd-btn-xs-view"><i class="bi bi-eye"></i>View</a>
+              <button type="button" class="cd-btn-xs cd-btn-xs-view" onclick="cdViewClient(this.closest('tr'))"><i class="bi bi-eye"></i>View</button>
               <a href="{{ route('clients.edit', $client) }}" class="cd-btn-xs cd-btn-xs-edit"><i class="bi bi-pencil"></i>Edit</a>
-              <!-- <button class="btn-xs btn-xs-off"><i class="bi bi-slash-circle"></i></button> -->
 
               <button type="button" class="btn-xs btn-xs-off"
                 onclick="udPost('{{ route('clients.toggle', $client->id) }}','warning','Status Toggled','Account status changed for {{ $client->contact_name }}')">
@@ -819,6 +956,51 @@
     </div>
     <div>
       {{ $clients->onEachSide(1)->links('pagination::bootstrap-5') }}
+    </div>
+  </div>
+</div>
+
+{{-- ══ CLIENT VIEW MODAL ══ --}}
+<div class="cd-modal-overlay" id="cdViewModal" onclick="if(event.target===this)cdCloseModal()">
+  <div class="cd-modal">
+    <div class="cd-modal-hdr">
+      <div class="cd-modal-hdr-left">
+        <div class="cd-modal-avatar" id="cdmAvatar">?</div>
+        <div style="min-width:0;">
+          <h6 class="cd-modal-title" id="cdmTitle">Client</h6>
+          <p class="cd-modal-sub" id="cdmSub">Client account details</p>
+        </div>
+      </div>
+      <button class="cd-modal-close" onclick="cdCloseModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <div class="cd-modal-body">
+      <div class="cd-modal-section">
+        <div class="cd-modal-section-title"><i class="bi bi-building"></i>Account</div>
+        <div class="cd-detail-grid">
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Company Name</div><div class="cd-detail-val" id="cdmCompany">—</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Client Token</div><div class="cd-detail-val" id="cdmToken">—</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Primary Contact</div><div class="cd-detail-val" id="cdmContact">—</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Designation</div><div class="cd-detail-val" id="cdmDesignation">—</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Primary Mobile</div><div class="cd-detail-val" id="cdmMobile">—</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Status</div><div class="cd-detail-val" id="cdmStatus">—</div></div>
+        </div>
+      </div>
+
+      <div class="cd-modal-section">
+        <div class="cd-modal-section-title"><i class="bi bi-telephone"></i>Additional Contacts</div>
+        <div id="cdmContacts"></div>
+      </div>
+
+      <div class="cd-modal-section">
+        <div class="cd-modal-section-title"><i class="bi bi-folder"></i>Projects &amp; Sites</div>
+        <div id="cdmProjects"></div>
+      </div>
+    </div>
+
+    <div class="cd-modal-ftr">
+      <button class="cd-btn cd-btn-ghost" onclick="cdCloseModal()">Close</button>
+      <a href="#" id="cdmEditLink" class="cd-btn cd-btn-gold"><i class="bi bi-pencil"></i>Edit Client</a>
     </div>
   </div>
 </div>
@@ -902,5 +1084,77 @@
       udToast('error', 'Network Error', 'Could not reach the server.');
     }
   }
+
+  /* ═══════════════ CLIENT VIEW MODAL ═══════════════ */
+  function cdEsc(s) {
+    return (s == null ? '' : String(s)).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  function cdViewClient(tr) {
+    const c = JSON.parse(tr.dataset.json);
+
+    const initials = (c.company_name || '?').trim().charAt(0).toUpperCase();
+    document.getElementById('cdmAvatar').textContent = initials;
+    document.getElementById('cdmTitle').textContent  = c.company_name || '—';
+    document.getElementById('cdmSub').textContent    = c.unique_code || 'Client account details';
+
+    document.getElementById('cdmCompany').textContent     = c.company_name || '—';
+    document.getElementById('cdmToken').textContent       = c.unique_code || '—';
+    document.getElementById('cdmContact').textContent     = c.contact_name || '—';
+    document.getElementById('cdmDesignation').textContent = c.designation || '—';
+
+    const dial = c.primary_country ? '+' + String(c.primary_country).replace(/^\+/, '') + ' ' : '';
+    document.getElementById('cdmMobile').textContent = (dial + (c.primary_mobile || '')).trim() || '—';
+
+    document.getElementById('cdmStatus').innerHTML =
+      c.status === 'Active'
+        ? '<span class="cd-sbadge cd-sb-active"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>Active</span>'
+        : '<span class="cd-sbadge cd-sb-inactive"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>Inactive</span>';
+
+    // Additional contacts
+    const contactsEl = document.getElementById('cdmContacts');
+    if (c.mobiles && c.mobiles.length) {
+      contactsEl.innerHTML = c.mobiles.map(m => {
+        const d = m.country ? '+' + String(m.country).replace(/^\+/, '') + ' ' : '';
+        return `<div class="cd-modal-list-item">
+            <div class="cd-mli-top"><span class="cd-mli-name">${cdEsc(m.name || 'Unnamed contact')}</span></div>
+            <div class="cd-mli-meta"><i class="bi bi-telephone"></i> ${cdEsc((d + (m.mobile || '')).trim() || '—')}</div>
+          </div>`;
+      }).join('');
+    } else {
+      contactsEl.innerHTML = '<div class="cd-modal-empty">No additional contacts.</div>';
+    }
+
+    // Projects & sites
+    const projEl = document.getElementById('cdmProjects');
+    if (c.projects && c.projects.length) {
+      projEl.innerHTML = c.projects.map(p => `
+        <div class="cd-modal-list-item">
+          <div class="cd-mli-top">
+            <span class="cd-mli-name">${cdEsc(p.project_name || '—')}</span>
+            <span class="cd-mli-code">${cdEsc(p.project_code || '')}</span>
+          </div>
+          ${p.site_name ? `<div class="cd-mli-meta"><i class="bi bi-geo-alt"></i> ${cdEsc(p.site_name)}</div>` : ''}
+          ${p.site_address ? `<div class="cd-mli-meta">${cdEsc(p.site_address)}</div>` : ''}
+          ${p.completion_date ? `<div class="cd-mli-meta"><i class="bi bi-calendar-check"></i> ${cdEsc(p.completion_date)}</div>` : ''}
+        </div>`).join('');
+    } else {
+      projEl.innerHTML = '<div class="cd-modal-empty">No projects registered.</div>';
+    }
+
+    document.getElementById('cdmEditLink').href = c.edit_url || '#';
+
+    document.getElementById('cdViewModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function cdCloseModal() {
+    document.getElementById('cdViewModal').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') cdCloseModal(); });
 </script>
 @endpush

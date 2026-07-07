@@ -21,6 +21,10 @@ class ServiceRequest extends Model
         'assigned_user_id',
         'service_domain_id',
         'dispatched_at',
+        'qc_reviewed_at', 
+        'qc_reviewed_by', 
+        'rework_notes', 
+        'warranty_scope',
     ];
 
     protected $casts = [
@@ -53,5 +57,33 @@ class ServiceRequest extends Model
     public function domains()
     {
         return $this->hasMany(ServiceDomain::class, 'service_category_id');
+    }
+
+    public function activePunch()
+    {
+        return $this->hasMany(\App\Models\Punch::class)
+            ->whereIn('status', ['draft', 'punched_in'])
+            ->latest()
+            ->first();
+    }
+    
+    public function punches()
+    {
+        return $this->hasMany(\App\Models\Punch::class);
+    }
+    
+    // Display reference, e.g. "SR-2026-000123"
+    public function getRefAttribute(): string
+    {
+        return 'SR-' . now()->format('Y') . '-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+    }
+
+    /** The submitted punch awaiting / undergoing QC review. */
+    public function qcPunch()
+    {
+        return $this->hasMany(\App\Models\Punch::class)
+            ->whereIn('status', ['submitted', 'qc_review'])
+            ->latest('punch_out_at')
+            ->first();
     }
 }
