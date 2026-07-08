@@ -295,6 +295,15 @@ textarea.form-control{resize:vertical;min-height:72px;}
       <span class="trb-label">Expense Categories</span>
       <span class="trb-count" id="cnt-expense">{{ $counts['expense'] ?? 0 }}</span>
     </button>
+
+
+    <button class="trb" onclick="switchTab('warranty')" data-tab="warranty">
+      <i class="bi bi-receipt"></i>
+      <span class="trb-label">Warranty Categories</span>
+      <span class="trb-count" id="cnt-warranty">{{ $counts['warranty'] ?? 0 }}</span>
+    </button>
+
+
     <button class="trb" onclick="switchTab('priority')" data-tab="priority">
       <i class="bi bi-flag"></i>
       <span class="trb-label">Priority Levels</span>
@@ -419,6 +428,77 @@ textarea.form-control{resize:vertical;min-height:72px;}
       </div>
     </div>
   </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="master-panel" id="panel-warranty">
+    <div class="simple-card">
+      <div class="simple-card-hdr">
+        <div class="card-hdr-icon" style="background:rgba(236,72,153,.1);"><i class="bi bi-receipt" style="color:#ec4899;"></i></div>
+        <div>
+          <h6 style="font-size:.875rem;font-weight:600;color:var(--text-heading);margin:0 0 1px;">Warranty Categories</h6>
+          <div class="csub" style="font-size:.72rem;color:var(--text-muted);">Options available to Maintenance Leads on the Field Expenditure module</div>
+        </div>
+        <div class="card-hdr-actions">
+          <button class="btn-primary-gold" onclick="openModal('modal-warranty','add')"><i class="bi bi-plus-lg"></i>Add Warranty</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:40px;">#</th>
+              <th>Category Name</th>
+              <th>Description</th>
+              <th>Status</th>
+              <th style="width:110px;text-align:center;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-warranty">
+            @forelse($expenseCategories as $exp)
+              <tr>
+                <td class="muted">{{ $loop->iteration }}</td>
+                <td><strong>{{ $exp->name }}</strong></td>
+                <td class="muted">{{ $exp->description ?: '—' }}</td>
+                <td>
+                  <span class="spill {{ $exp->status ? 'spill-on' : 'spill-off' }}" id="exp-status-{{ $exp->id }}">
+                    <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $exp->status ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td style="text-align:center;">
+                  <div class="row-actions" style="justify-content:center;">
+                    <button class="btn-icon-status" title="Toggle status"
+                      onclick="toggleStatus('warranty',{{ $exp->id }})"><i class="bi bi-toggle-on"></i></button>
+                    <button class="btn-icon-edit" title="Edit"
+                      data-id="{{ $exp->id }}"
+                      data-name="{{ $exp->name }}"
+                      data-desc="{{ $exp->description }}"
+                      data-active="{{ $exp->status ? 1 : 0 }}"
+                      onclick="editWarrantyBtn(this)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn-icon-del" title="Delete"
+                      onclick="confirmDel('warranty',{{ $exp->id }},'{{ addslashes($exp->name) }}')"><i class="bi bi-trash3"></i></button>
+                  </div>
+                </td>
+              </tr>
+            @empty
+              <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No expense categories yet.</td></tr>
+            @endforelse
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
  
   <!-- ════════════════════════════════
        PANEL 3: PRIORITY LEVELS (dynamic list)
@@ -702,6 +782,43 @@ textarea.form-control{resize:vertical;min-height:72px;}
     </div>
   </div>
 </div>
+
+
+
+
+<!-- ════ MODAL: WARRANTY CATEGORIES ════ -->
+<div class="modal-overlay" id="modal-warranty" onclick="handleOverlayClick(event,'modal-warranty')">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-hdr">
+      <div class="modal-hdr-left">
+        <div class="modal-hdr-icon" style="background:rgba(236,72,153,.1);"><i class="bi bi-receipt" style="color:#ec4899;"></i></div>
+        <h6 id="modal-warranty-title">Add Expense Category</h6>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-warranty')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Category Name <span class="req">*</span></label>
+        <input type="text" class="form-control" id="exp-name" placeholder="e.g. Spare Parts"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <input type="text" class="form-control" id="exp-desc" placeholder="Brief description"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <div class="tog-wrap" onclick="toggleTog('exp-tog-track',this)">
+          <div class="tog-track on" id="exp-tog-track"><div class="tog-thumb"></div></div>
+          <span class="tog-label">Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeModal('modal-warranty')">Cancel</button>
+      <button class="btn-primary-gold" onclick="saveWarranty()"><i class="bi bi-floppy"></i>Save</button>
+    </div>
+  </div>
+</div>
+
  
 <!-- ════ MODAL: PRIORITY ════ -->
 <div class="modal-overlay" id="modal-priority" onclick="handleOverlayClick(event,'modal-priority')">
@@ -817,6 +934,13 @@ window.M_ROUTES = {
   expUpdate: (id) => `{{ url('masters/expense-category/update') }}/${id}`,
   expDelete: (id) => `{{ url('masters/expense-category/delete') }}/${id}`,
   expStatus: (id) => `{{ url('masters/expense-category/status') }}/${id}`,
+
+  warrantyStore:  "{{ route('masters.warranty-category.store') }}",
+  warrantyUpdate: (id) => `{{ url('masters/warranty-category/update') }}/${id}`,
+  warrantyDelete: (id) => `{{ url('masters/warranty-category/delete') }}/${id}`,
+  warrantyStatus: (id) => `{{ url('masters/warranty-category/status') }}/${id}`,
+ 
+
  
   priStore:  "{{ route('masters.priority.store') }}",
   priUpdate: (id) => `{{ url('masters/priority/update') }}/${id}`,
@@ -1019,6 +1143,14 @@ function openModal(id,mode,data){
     document.getElementById('exp-desc').value = data?.desc || '';
     setTog('exp-tog-track', data ? !!data.active : true);
   }
+
+    if(id==='modal-warranty'){
+    editMode.expense = (mode==='edit' && data) ? data.id : null;
+    document.getElementById('modal-warranty-title').textContent = mode==='edit'?'Edit Warranty Category':'Add Warranty Category';
+    document.getElementById('exp-name').value = data?.name || '';
+    document.getElementById('exp-desc').value = data?.desc || '';
+    setTog('exp-tog-track', data ? !!data.active : true);
+  }
  
   if(id==='modal-priority'){
     editMode.priority = (mode==='edit' && data) ? data.id : null;
@@ -1042,6 +1174,16 @@ function editExpenseBtn(btn){
     active: btn.dataset.active === '1',
   });
 }
+
+function editWarrantyBtn(btn){
+  openModal('modal-warranty','edit',{
+    id:     parseInt(btn.dataset.id,10),
+    name:   btn.dataset.name,
+    desc:   btn.dataset.desc,
+    active: btn.dataset.active === '1',
+  });
+}
+
 function editPriorityBtn(btn){
   openModal('modal-priority','edit',{
     id:     parseInt(btn.dataset.id,10),
@@ -1165,6 +1307,30 @@ async function saveExpense(){
     setTimeout(()=>location.reload(),700);
   }catch(e){showToast('err','Error',e.message);}
 }
+
+
+
+async function saveWarranty(){
+  const name=document.getElementById('exp-name').value.trim();
+  if(!name){showToast('err','Missing Field','Please enter a category name.');return;}
+  const payload={
+    name,
+    description: document.getElementById('exp-desc').value.trim(),
+    status:      document.getElementById('exp-tog-track').classList.contains('on')?1:0,
+  };
+  try{
+    if(editMode.warranty){
+      await api(window.M_ROUTES.warrantyUpdate(editMode.warranty),'PUT',payload);
+      showToast('ok','Updated',`"${name}" has been updated.`);
+    }else{
+      await api(window.M_ROUTES.expStore,'POST',payload);
+      showToast('ok','Saved',`"${name}" has been saved.`);
+    }
+    closeModal('modal-warranty');
+    setTimeout(()=>location.reload(),700);
+  }catch(e){showToast('err','Error',e.message);}
+}
+
  
 /* ─── SAVE PRIORITY (create OR update) ─── */
 async function savePriority(){

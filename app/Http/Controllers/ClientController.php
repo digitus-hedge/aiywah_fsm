@@ -13,61 +13,61 @@ class ClientController extends Controller
      */
     public function directory(Request $request)
     {
-      
-    $q       = trim((string) $request->query('q', ''));
-    $country = trim((string) $request->query('country', ''));
-    $status  = trim((string) $request->query('status', '')); // <-- 1. Capture status input
 
-    $clients = Client::query()
-        // counts for the "Projects" and "Contacts" columns (no N+1)
-        ->withCount(['projects', 'mobiles'])
-        ->with(['mobiles', 'projects'])
-        // search across firm name, token, contact name & primary mobile
-        ->when($q !== '', function ($query) use ($q) {
-            $query->where(function ($sub) use ($q) {
-                $sub->where('company_name', 'like', "%{$q}%")
-                    ->orWhere('unique_code', 'like', "%{$q}%")
-                    ->orWhere('contact_name', 'like', "%{$q}%")
-                    ->orWhere('primary_mobile', 'like', "%{$q}%");
-            });
-        })
+        $q       = trim((string) $request->query('q', ''));
+        $country = trim((string) $request->query('country', ''));
+        $status  = trim((string) $request->query('status', '')); // <-- 1. Capture status input
 
-        // filter by primary country dial code
-        ->when($country !== '', fn($query) => $query->where('primary_country', $country))
+        $clients = Client::query()
+            // counts for the "Projects" and "Contacts" columns (no N+1)
+            ->withCount(['projects', 'mobiles'])
+            ->with(['mobiles', 'projects'])
+            // search across firm name, token, contact name & primary mobile
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('company_name', 'like', "%{$q}%")
+                        ->orWhere('unique_code', 'like', "%{$q}%")
+                        ->orWhere('contact_name', 'like', "%{$q}%")
+                        ->orWhere('primary_mobile', 'like', "%{$q}%");
+                });
+            })
 
-        // filter by status ('Active' or 'Inactive')
-        ->when($status !== '', fn($query) => $query->where('status', $status)) // <-- 2. Apply status filter
+            // filter by primary country dial code
+            ->when($country !== '', fn($query) => $query->where('primary_country', $country))
 
-        ->orderByDesc('id')
-        ->paginate(10)
-        ->withQueryString();   // keep ?q=, ?country=, & ?status= across pages
+            // filter by status ('Active' or 'Inactive')
+            ->when($status !== '', fn($query) => $query->where('status', $status)) // <-- 2. Apply status filter
 
-    // ── Stat-strip figures ──
-    $totalClients  = Client::count();
-    $activeClients = Client::where('status', 'Active')->count();   // <-- 3. New Dynamic Stat
-    $totalProjects = DB::table('projects')->whereNull('deleted_at')->count(); // Added soft-delete check safety
-    $totalContacts = DB::table('client_mobiles')->count() + $totalClients; 
-    $recentCount   = Client::where('created_at', '>=', now()->startOfMonth())->count();
+            ->orderByDesc('id')
+            ->paginate(10)
+            ->withQueryString();   // keep ?q=, ?country=, & ?status= across pages
 
-    // ── Distinct countries for the filter dropdown ──
-    $countries = Client::query()
-        ->whereNotNull('primary_country')
-        ->where('primary_country', '!=', '')
-        ->distinct()
-        ->orderBy('primary_country')
-        ->pluck('primary_country');
+        // ── Stat-strip figures ──
+        $totalClients  = Client::count();
+        $activeClients = Client::where('status', 'Active')->count();   // <-- 3. New Dynamic Stat
+        $totalProjects = DB::table('projects')->whereNull('deleted_at')->count(); // Added soft-delete check safety
+        $totalContacts = DB::table('client_mobiles')->count() + $totalClients;
+        $recentCount   = Client::where('created_at', '>=', now()->startOfMonth())->count();
 
-    return view('client_directory', [
-        'clients'       => $clients,
-        'totalClients'  => $totalClients,
-        'activeClients' => $activeClients, // <-- Pass to view
-        'totalProjects' => $totalProjects,
-        'totalContacts' => $totalContacts,
-        'recentCount'   => $recentCount,
-        'countries'     => $countries,
-        'currentStatus' => $status,        // <-- Pass to keep selection highlighted
-    ]);
-}
+        // ── Distinct countries for the filter dropdown ──
+        $countries = Client::query()
+            ->whereNotNull('primary_country')
+            ->where('primary_country', '!=', '')
+            ->distinct()
+            ->orderBy('primary_country')
+            ->pluck('primary_country');
+
+        return view('client_directory', [
+            'clients'       => $clients,
+            'totalClients'  => $totalClients,
+            'activeClients' => $activeClients, // <-- Pass to view
+            'totalProjects' => $totalProjects,
+            'totalContacts' => $totalContacts,
+            'recentCount'   => $recentCount,
+            'countries'     => $countries,
+            'currentStatus' => $status,        // <-- Pass to keep selection highlighted
+        ]);
+    }
 
     public function toggleStatus(Client $client)
     {
@@ -95,6 +95,39 @@ class ClientController extends Controller
             'client'         => null,
         ]);
     }
+
+
+   public function show($id)
+{
+    $client = \App\Models\Client::findOrFail($id);
+
+    $projects = \App\Models\Project::where('client_id', $client->id)
+        ->orderByDesc('created_at')
+        ->get();
+
+    // Pre-shape for the JS
+    $projectsJs = $projects->map(function ($p) {
+        return [
+            'id'          => $p->id,
+            'code'        => $p->project_code,
+            'name'        => $p->project_name,
+            'siteName'    => $p->site_name,
+            'siteAddress' => $p->site_address,
+            'contract'    => $p->contract_type ?? '—',
+            'startDate'   => optional($p->created_at)->format('d M Y'),
+            'srCount'     => $p->sr_count ?? 0,
+            'active'      => in_array(strtolower($p->status ?? ''), ['active','1']),
+        ];
+    })->values();
+
+    $lifetimeSrs = 0;
+    $activeSrs   = 0;
+    $avgRating   = '—';
+
+    return view('client_view', compact(
+        'client', 'projects', 'projectsJs', 'lifetimeSrs', 'activeSrs', 'avgRating'
+    ));
+}
 
     public function edit(Client $client)
     {
@@ -301,5 +334,4 @@ class ClientController extends Controller
             ])->values(),
         ]);
     }
-    
 }

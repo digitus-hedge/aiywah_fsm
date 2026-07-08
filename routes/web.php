@@ -92,8 +92,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/service-requests/lookup/{code}', [ServiceRequestController::class, 'lookup'])->name('service-requests.lookup');
     Route::post('/service-requests', [ServiceRequestController::class, 'store'])->name('service-requests.store');
     Route::get('/sr-explorer', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
-    Route::get('/ticket-summary', [ServiceRequestController::class, 'ticketSummary'])
-    ->name('kanban_view');
+    Route::get('/ticket-summary', [ServiceRequestController::class, 'ticketSummary'])->name('kanban_view');
 
     /* ---- Dispatch Engine / Kanban ---- */
     Route::get('/dispatch-engine', [ServiceRequestController::class, 'dispatch_engine'])->name('dispatch_engine');
@@ -107,6 +106,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/clients/{client}', [ClientController::class, 'update'])->name('clients.update');
     Route::get('/clients/lookup-by-name', [ClientController::class, 'lookupByName'])->name('clients.lookupByName');
     Route::get('/clients/directory', [ClientController::class, 'directory'])->name('clients.directory');
+    Route::get('/clients/{id}', [ClientController::class, 'show'])->name('clients.show');
     Route::post('/clients-directory/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle');
 
     Route::get('project_site_directory',   [ProjectController::class, 'index'])->name('project_site_directory');
@@ -142,6 +142,15 @@ Route::middleware('auth')->group(function () {
         Route::put('/expense-category/update/{id}', [MasterController::class, 'updateExpenseCategory'])->name('expense-category.update');
         Route::delete('/expense-category/delete/{id}', [MasterController::class, 'deleteExpenseCategory'])->name('expense-category.delete');
         Route::post('/expense-category/status/{id}', [MasterController::class, 'changeExpenseCategoryStatus'])->name('expense-category.status');
+
+
+
+         // Warranty Categories
+        Route::post('/warranty-category/store', [MasterController::class, 'storeExpenseCategory'])->name('warranty-category.store');
+        Route::put('/warranty-category/update/{id}', [MasterController::class, 'updateExpenseCategory'])->name('warranty-category.update');
+        Route::delete('/warranty-category/delete/{id}', [MasterController::class, 'deleteExpenseCategory'])->name('warranty-category.delete');
+        Route::post('/warranty-category/status/{id}', [MasterController::class, 'changeExpenseCategoryStatus'])->name('warranty-category.status');
+
 
         // Priorities
         Route::post('/priority/store', [MasterController::class, 'storePriority'])->name('priority.store');

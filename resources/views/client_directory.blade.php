@@ -922,7 +922,10 @@
           </td>
           <td onclick="event.stopPropagation()">
             <div style="display:flex;gap:5px;">
-              <button type="button" class="cd-btn-xs cd-btn-xs-view" onclick="cdViewClient(this.closest('tr'))"><i class="bi bi-eye"></i>View</button>
+              <!-- <button type="button" class="cd-btn-xs cd-btn-xs-view" onclick="cdViewClient(this.closest('tr'))"><i class="bi bi-eye"></i>View</button> -->
+             <a href="{{ route('clients.show', $client->id) }}" class="cd-btn-xs cd-btn-xs-view">
+    <i class="bi bi-eye"></i>View
+</a>
               <a href="{{ route('clients.edit', $client) }}" class="cd-btn-xs cd-btn-xs-edit"><i class="bi bi-pencil"></i>Edit</a>
 
               <button type="button" class="btn-xs btn-xs-off"
