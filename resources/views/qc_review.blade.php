@@ -337,40 +337,29 @@
             <span class="csub">Click any image to enlarge</span>
           </div>
           <div class="proof-grid">
-            <div class="proof-thumb" onclick="openLightbox('before')">
-              <div class="proof-img before-photo">
-                <i class="bi bi-camera proof-img-icon"></i>
-                <span class="proof-img-label">Before Work</span>
-                <div class="proof-hover-overlay"><i class="bi bi-zoom-in"></i></div>
+              <div class="proof-thumb" onclick="openLightbox('before')">
+                <div class="proof-img before-photo" id="proof-before">
+                  <i class="bi bi-camera proof-img-icon"></i>
+                  <span class="proof-img-label">Before Work</span>
+                  <div class="proof-hover-overlay"><i class="bi bi-zoom-in"></i></div>
+                </div>
+                <div class="proof-thumb-foot">
+                  <span class="proof-thumb-name">Start Photo</span>
+                  <span class="proof-status-ok" id="proof-before-status"><i class="bi bi-check-circle-fill"></i>Uploaded</span>
+                </div>
               </div>
-              <div class="proof-thumb-foot">
-                <span class="proof-thumb-name">before_photo.jpg</span>
-                <span class="proof-status-ok"><i class="bi bi-check-circle-fill"></i>2.4 MB</span>
-              </div>
-            </div>
-            <div class="proof-thumb" onclick="openLightbox('after')">
-              <div class="proof-img after-photo">
-                <i class="bi bi-camera-fill proof-img-icon"></i>
-                <span class="proof-img-label">After Work</span>
-                <div class="proof-hover-overlay"><i class="bi bi-zoom-in"></i></div>
-              </div>
-              <div class="proof-thumb-foot">
-                <span class="proof-thumb-name">after_photo.jpg</span>
-                <span class="proof-status-ok"><i class="bi bi-check-circle-fill"></i>3.1 MB</span>
-              </div>
-            </div>
-            <div class="proof-thumb" onclick="openLightbox('signature')">
-              <div class="proof-img signature-photo">
-                <i class="bi bi-file-earmark-check proof-img-icon"></i>
-                <span class="proof-img-label">Customer Acceptance</span>
-                <div class="proof-hover-overlay"><i class="bi bi-zoom-in"></i></div>
-              </div>
-              <div class="proof-thumb-foot">
-                <span class="proof-thumb-name">acceptance_form.pdf</span>
-                <span class="proof-status-ok"><i class="bi bi-check-circle-fill"></i>Signed</span>
+              <div class="proof-thumb" onclick="openLightbox('after')">
+                <div class="proof-img after-photo" id="proof-after">
+                  <i class="bi bi-camera-fill proof-img-icon"></i>
+                  <span class="proof-img-label">After Work</span>
+                  <div class="proof-hover-overlay"><i class="bi bi-zoom-in"></i></div>
+                </div>
+                <div class="proof-thumb-foot">
+                  <span class="proof-thumb-name">Finish Photo</span>
+                  <span class="proof-status-ok" id="proof-after-status"><i class="bi bi-check-circle-fill"></i>Uploaded</span>
+                </div>
               </div>
             </div>
-          </div>
           <div style="margin:0 18px 14px;padding:9px 13px;background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.2);border-radius:7px;display:flex;align-items:center;gap:8px;font-size:.78rem;color:#15803d;">
             <i class="bi bi-shield-fill-check"></i>
             All 3 required documents uploaded — Before photo, After photo, and Signed customer acceptance form.
@@ -560,6 +549,27 @@ function selectSR(id){
       <span style="font-size:.8rem;"><strong>Out-of-Warranty path:</strong> QC Pass will forward this SR to <strong>Invoice Panel</strong> for invoice upload before final closure.</span>`;
   }
 
+// ---- Proof photos ----
+const proof = selectedSR.proof || {};
+function setProof(elId, statusId, url){
+  const el = document.getElementById(elId);
+  const st = document.getElementById(statusId);
+  if(url){
+    el.style.backgroundImage = `url('${url}')`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.querySelector('.proof-img-icon').style.display = 'none';
+    st.innerHTML = '<i class="bi bi-check-circle-fill"></i>Uploaded';
+    st.style.color = '#15803d';
+  } else {
+    el.style.backgroundImage = 'none';
+    el.querySelector('.proof-img-icon').style.display = '';
+    st.innerHTML = '<i class="bi bi-x-circle"></i>Missing';
+    st.style.color = '#ef4444';
+  }
+}
+setProof('proof-before', 'proof-before-status', proof.before);
+setProof('proof-after',  'proof-after-status',  proof.after);
   const expBody = document.getElementById('ws-expense-body');
   document.getElementById('ws-expense-total').textContent = selectedSR.totalExpense;
   const expenses = selectedSR.expenses || [];
@@ -733,23 +743,22 @@ function qcFilterQueue(q){
 }
 
 /* ---------- LIGHTBOX ---------- */
-const LB_CONFIG = {
-  before:    {title:'Before Photo',filename:'before_photo.jpg',bg:'linear-gradient(145deg,#dce8f5,#c8ddf0)',darkBg:'linear-gradient(145deg,#1a2836,#1e3245)',icon:'bi-camera',size:'2.4 MB · JPG'},
-  after:     {title:'After Photo',filename:'after_photo.jpg',bg:'linear-gradient(145deg,#d5f0e2,#b8e8ce)',darkBg:'linear-gradient(145deg,#1a2e24,#1e3829)',icon:'bi-camera-fill',size:'3.1 MB · JPG'},
-  signature: {title:'Customer Acceptance Form',filename:'acceptance_form.pdf',bg:'linear-gradient(145deg,#f5f0e8,#ede3d0)',darkBg:'linear-gradient(145deg,#2a2820,#302e24)',icon:'bi-file-earmark-check-fill',size:'Signed & Submitted'},
-};
+
 function openLightbox(type){
-  const cfg = LB_CONFIG[type];
-  const isDark = document.documentElement.getAttribute('data-bs-theme')==='dark';
-  document.getElementById('lb-title').textContent    = cfg.title;
-  document.getElementById('lb-filename').textContent = cfg.filename;
-  document.getElementById('lb-img').style.background = isDark ? cfg.darkBg : cfg.bg;
-  document.getElementById('lb-img').innerHTML=`
-    <i class="bi ${cfg.icon}" style="font-size:3.5rem;opacity:.2;"></i>
-    <div style="text-align:center;">
-      <div style="font-size:.75rem;opacity:.35;margin-top:3px;">${cfg.size}</div>
-      <div style="font-size:.72rem;opacity:.3;margin-top:6px;">[Actual image renders here in production]</div>
-    </div>`;
+  const proof = (selectedSR && selectedSR.proof) || {};
+  const url = type === 'before' ? proof.before : proof.after;
+  const title = type === 'before' ? 'Start Photo (Punch In)' : 'Finish Photo (Punch Out)';
+
+  document.getElementById('lb-title').textContent = title;
+  document.getElementById('lb-filename').textContent = url ? url.split('/').pop() : 'No image';
+  const box = document.getElementById('lb-img');
+  if(url){
+    box.style.background = '#000';
+    box.innerHTML = `<img src="${url}" style="max-width:100%;max-height:70vh;object-fit:contain;" alt="${title}">`;
+  } else {
+    box.style.background = 'var(--surface-2)';
+    box.innerHTML = `<i class="bi bi-image" style="font-size:3rem;opacity:.3;"></i><div style="opacity:.5;">No image uploaded</div>`;
+  }
   document.getElementById('lightbox-modal').classList.add('show');
 }
 function closeLightbox(){document.getElementById('lightbox-modal').classList.remove('show');}

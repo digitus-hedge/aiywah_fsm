@@ -179,6 +179,7 @@ class WorkerPunchController extends Controller
                 return array_map(
                     fn ($v) => trim($v, "'"),
                     str_getcsv($m[1])
+                    
                 );
             }
         } catch (\Throwable $e) {
