@@ -499,9 +499,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 
 @push('scripts')
 
-<script>
-  window.warrantiesData = @json($warranties);
-</script>
+
 <script>
 @php
   $clientData = null;

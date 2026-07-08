@@ -1596,12 +1596,12 @@
       <button class="btn-hero-out" onclick="window.location='{{ url('admin/clients') }}'">
         <i class="bi bi-arrow-left"></i>Back to Directory
       </button>
-      <a class="btn-hero-out" href="{{ url('admin/clients/'.$client->id.'/edit') }}">
+      <a class="btn-hero-out" href="{{ url('clients/'.$client->id.'/edit') }}">
         <i class="bi bi-pencil"></i>Edit Client
       </a>
-      <button class="btn-hero-solid" onclick="openProjectModal()">
+      <!-- <button class="btn-hero-solid" onclick="openProjectModalNeW()">
         <i class="bi bi-plus-lg"></i>Create Project
-      </button>
+      </button> -->
     </div>
   </div>
   <div class="hero-meta">

@@ -208,6 +208,22 @@ class ClientController extends Controller
         ));
     }
 
+      public function edit(Client $client)
+    {
+        $client->load(['mobiles', 'projects']);
+
+        $recentClients  = Client::latest()->take(5)->get();
+        $existingTokens = Client::pluck('unique_code');
+
+        return view('client_accounts', [
+            'recentClients'  => $recentClients,
+            'existingTokens' => $existingTokens,
+            'suggestedCode'  => $client->unique_code,
+            'client'         => $client,
+        ]);
+    }
+    
+
     public function store(Request $request)
     {
         $validated = $this->validateData($request);
