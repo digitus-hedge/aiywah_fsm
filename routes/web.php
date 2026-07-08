@@ -53,10 +53,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoice_panel', function () {
         return view('invoice_panel');
     })->name('invoice_panel');
-    
-     Route::get('/qc_review', function () {
-        return view('qc_review');
-    })->name('qc_review');
 
      Route::get('/quotation_desk', function () {
         return view('quotation_desk');
@@ -114,6 +110,12 @@ Route::middleware('auth')->group(function () {
     Route::put('projects/{project}',       [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('projects/{project}',    [ProjectController::class, 'destroy'])->name('projects.destroy');
 
+    
+        Route::controller(ServiceRequestController::class)->group(function () {
+    Route::get('/qc-review', 'qcReview')->name('qc_review');
+    Route::post('/qc-review/{serviceRequest}/pass', 'qcPass')->name('qc.pass');
+    Route::post('/qc-review/{serviceRequest}/fail', 'qcFail')->name('qc.fail');
+});
 
     /*
     |--------------------------------------------------------------------------
@@ -172,12 +174,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/ajax/priorities', [MasterController::class, 'ajaxPriorities'])->name('ajax.priorities');
         Route::get('/ajax/sla', [MasterController::class, 'ajaxSla'])->name('ajax.sla');
         Route::get('/ajax/templates', [MasterController::class, 'ajaxTemplates'])->name('ajax.templates');
-
-        Route::controller(ServiceRequestController::class)->group(function () {
-    Route::get('/qc-review', 'qcReview')->name('qc.review');
-    Route::post('/qc-review/{serviceRequest}/pass', 'qcPass')->name('qc.pass');
-    Route::post('/qc-review/{serviceRequest}/fail', 'qcFail')->name('qc.fail');
-});
     });
 });
 

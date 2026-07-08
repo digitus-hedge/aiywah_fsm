@@ -404,45 +404,57 @@ private function initials(?string $name): string
      * QC Review Terminal — lists SRs that have been punched out
      * and are awaiting supervisor quality control.
      */
-   public function qcReview()
-    {
-        // SRs whose punch-out moved them into QC review.
-        $requests = ServiceRequest::with([
-                'client', 'project', 'assignedUser',
-                'punches' => fn($q) => $q->whereIn('status', ['submitted', 'qc_review'])
-                                         ->latest('punch_out_at')->with('items'),
-            ])
-            ->where('status', 'qc_review')          // matches WorkerPunchController::SR_STATUS_QC_REVIEW
-            ->latest('updated_at')
-            ->get();
+  public function qcReview()
+{
+    $requests = ServiceRequest::with([
+            'client', 'project', 'assignedUser',
+            // load the latest punch regardless of its status,
+            // so an SR in qc_review always shows even if the punch
+            // status wasn't updated to 'submitted'
+            'punches' => fn($q) => $q->latest('punch_out_at')
+                                     ->latest('id')
+                                     ->with('items'),
+        ])
+        ->where('status', 'qc_review')
+        ->latest('updated_at')
+        ->get();
 
-        $queue = $requests->map(function ($sr) {
-            $punch = $sr->punches->first();          // the submitted punch
-            if (!$punch) return null;                // no punch = nothing to review
+    $queue = $requests->map(function ($sr) {
+        $punch = $sr->punches->first();   // may be null — that's OK now
 
-            $scope = $this->srScope($sr);            // 'iw' | 'oow'
-            $sla   = $this->srSla($sr, $punch);
-            $exp   = $this->srExpenses($punch);
+        $scope = $this->srScope($sr);
+        $sla   = $punch ? $this->srSla($sr, $punch)
+                        : ['label' => '—', 'cls' => '', 'fill' => 0, 'color' => '#9ca3af'];
+        $exp   = $punch ? $this->srExpenses($punch)
+                        : ['rows' => [], 'total' => 0];
 
-            return [
-                'id'           => 'SR-' . ($sr->created_at?->year ?? now()->year)
-                                    . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
-                'dbId'         => $sr->id,
-                'client'       => optional($sr->client)->company_name ?? '—',
-                'site'         => $punch->site_location
-                                    ?? optional($sr->project)->site_name ?? '—',
-                'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
-                'scope'        => $scope,
-                'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
-                'punchIn'      => $punch->punch_in_at?->format('d M · h:i A') ?? '—',
-                'punchOut'     => $punch->punch_out_at?->format('d M · h:i A') ?? '—',
-                'sla'          => $sla,
-                'slaFill'      => $sla['fill'],
-                'slaColor'     => $sla['color'],
-                'expenses'     => $exp['rows'],
-                'totalExpense' => 'AED ' . number_format($exp['total'], 0),
-            ];
-        })->filter()->values();
+        return [
+            'id'           => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                                . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'         => $sr->id,
+            'client'       => optional($sr->client)->company_name ?? '—',
+            'site'         => $punch?->site_location
+                                ?? optional($sr->project)->site_name ?? '—',
+            'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
+            'scope'        => $scope,
+            'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
+            'punchIn'      => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
+            'punchOut'     => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
+            'sla'          => $sla,
+            'slaFill'      => $sla['fill'],
+            'slaColor'     => $sla['color'],
+            'expenses'     => $exp['rows'],
+            'totalExpense' => 'AED ' . number_format($exp['total'], 0),
+            'proof' => [
+                'before' => $punch?->start_photo_path
+                                ? asset('storage/' . $punch->start_photo_path) : null,
+                'after'  => $punch?->finish_photo_path
+                                ? asset('storage/' . $punch->finish_photo_path) : null,
+            ],
+            'completionSummary' => $punch?->completion_summary ?? '',
+            'customerName'      => $punch?->customer_name ?? '',
+        ];
+    })->values();   
 
         $today = today();
 

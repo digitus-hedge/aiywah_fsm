@@ -155,7 +155,6 @@ class ClientController extends Controller
             // Rebuild stakeholder mobiles + projects from the submitted form
             // (primary mobile now lives on the clients table itself)
             $client->mobiles()->delete();
-            $client->projects()->delete();
 
             $this->syncMobiles($client, $request, $validated);
             $this->syncProjects($client, $validated);
@@ -212,6 +211,7 @@ class ClientController extends Controller
             'projects.*.site_name'     => ['nullable', 'string', 'max:255'],
             'projects.*.site_address'  => ['nullable', 'string', 'max:1000'],
             'projects.*.completion_date' => ['nullable', 'date'],
+            'projects.*.warranty_end_date' => ['nullable', 'date'],
         ];
 
         // Firm name is always editable
@@ -250,18 +250,33 @@ class ClientController extends Controller
         }
     }
 
-    private function syncProjects(Client $client, array $validated): void
-    {
-        foreach ($validated['projects'] as $project) {
-            $client->projects()->create([
-                'project_name'    => $project['project_name'],
-                'project_code'    => $project['project_code'],
-                'site_name'       => $project['site_name'] ?? null,
-                'site_address'    => $project['site_address'] ?? null,
-                'completion_date' => $project['completion_date'] ?? null,
-            ]);
-        }
+   private function syncProjects(Client $client, array $validated): void
+{
+    $keepCodes = [];
+
+    foreach ($validated['projects'] as $project) {
+        // Restore a soft-deleted row with this code if one exists, then update it.
+        $model = $client->projects()->withTrashed()->updateOrCreate(
+            ['project_code' => $project['project_code']],
+            [
+                'project_name'      => $project['project_name'],
+                'site_name'         => $project['site_name'] ?? null,
+                'site_address'      => $project['site_address'] ?? null,
+                'completion_date'   => $project['completion_date'] ?? null,
+                'warranty_end_date' => $project['warranty_end_date'] ?? null,
+                'deleted_at'        => null,   // un-trash if it was soft-deleted
+            ]
+        );
+
+        $keepCodes[] = $model->project_code;
     }
+
+    // Soft-delete any projects the user removed from the form.
+    // Safe because SoftDeletes preserves rows referenced by service requests.
+    $client->projects()
+        ->whereNotIn('project_code', $keepCodes)
+        ->delete();
+}
 
     public function lookupByName(Request $request)
     {
@@ -298,6 +313,7 @@ class ClientController extends Controller
                 'site_name'       => $p->site_name,
                 'site_address'    => $p->site_address,
                 'completion_date' => optional($p->completion_date)->format('Y-m-d'),
+                'warranty_end_date' => optional($p->warranty_end_date)->format('Y-m-d'),
             ])->values(),
         ]);
     }
