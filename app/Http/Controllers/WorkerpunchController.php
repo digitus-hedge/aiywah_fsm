@@ -7,6 +7,7 @@ use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;   
 
 class WorkerPunchController extends Controller
 {
@@ -109,45 +110,66 @@ class WorkerPunchController extends Controller
             ->with('ok', 'Draft saved.');
     }
 
+    /** Decode a base64 signature data-URI and save it as a PNG. Returns the stored path or null. */
+private function storeSignature(?string $dataUri, int $srId): ?string
+{
+    if (!$dataUri || !preg_match('/^data:image\/(\w+);base64,/', $dataUri, $m)) {
+        return null;
+    }
+
+    $binary = base64_decode(substr($dataUri, strpos($dataUri, ',') + 1), true);
+    if ($binary === false) {
+        return null;
+    }
+
+    $path = "punches/signatures/sr_{$srId}_" . time() . ".png";
+    Storage::disk('public')->put($path, $binary);
+
+    return $path;
+}
     /** Punch OUT / final submit — completion photo, summary, sign-off. */
     public function submit(Request $request, ServiceRequest $serviceRequest)
-    {
-        $punch = $serviceRequest->activePunch();
-        abort_if(!$punch, 400, 'Punch in first.');
+{
+    $punch = $serviceRequest->activePunch();
+    abort_if(!$punch, 400, 'Punch in first.');
 
-        $data = $request->validate([
-            'completion_summary' => ['required', 'string'],
-            'finish_photo'       => ['required', 'image', 'max:8192'],
-            'finish_gps_lat'     => ['nullable', 'numeric'],
-            'finish_gps_lng'     => ['nullable', 'numeric'],
-            'customer_name'      => ['required', 'string', 'max:255'],
-            'customer_phone'     => ['nullable', 'string', 'max:32'],
+    $data = $request->validate([
+        'completion_summary' => ['required', 'string'],
+        'finish_photo'       => ['required', 'image', 'max:8192'],
+        'finish_gps_lat'     => ['nullable', 'numeric'],
+        'finish_gps_lng'     => ['nullable', 'numeric'],
+        'customer_name'      => ['required', 'string', 'max:255'],
+        'customer_phone'     => ['nullable', 'string', 'max:32'],
+        'customer_signature' => ['required', 'string'],   // ← base64 data-URI from canvas
+    ]);
+
+    $path = $request->file('finish_photo')->store('punches/finish', 'public');
+
+    // Decode the signature data-URI and save as a PNG file
+    $signaturePath = $this->storeSignature($request->input('customer_signature'), $serviceRequest->id);
+
+    DB::transaction(function () use ($request, $serviceRequest, $punch, $data, $path, $signaturePath) {
+        $this->syncBilling($request, $punch);
+
+        $punch->update([
+            'punch_out_at'            => now(),
+            'finish_photo_path'       => $path,
+            'finish_gps_lat'          => $data['finish_gps_lat'] ?? null,
+            'finish_gps_lng'          => $data['finish_gps_lng'] ?? null,
+            'completion_summary'      => $data['completion_summary'],
+            'customer_name'           => $data['customer_name'],
+            'customer_phone'          => $data['customer_phone'] ?? null,
+            'customer_signature_path' => $signaturePath,   // ← added
+            'status'                  => 'submitted',
         ]);
 
-        $path = $request->file('finish_photo')->store('punches/finish', 'public');
+        $this->safeSetSrStatus($serviceRequest, self::SR_STATUS_QC_REVIEW);
+    });
 
-        DB::transaction(function () use ($request, $serviceRequest, $punch, $data, $path) {
-            $this->syncBilling($request, $punch);
-
-            $punch->update([
-                'punch_out_at'       => now(),
-                'finish_photo_path'  => $path,
-                'finish_gps_lat'     => $data['finish_gps_lat'] ?? null,
-                'finish_gps_lng'     => $data['finish_gps_lng'] ?? null,
-                'completion_summary' => $data['completion_summary'],
-                'customer_name'      => $data['customer_name'],
-                'customer_phone'     => $data['customer_phone'] ?? null,
-                'status'             => 'submitted',
-            ]);
-
-            // Move SR to QC review — only if the column allows the value.
-            $this->safeSetSrStatus($serviceRequest, self::SR_STATUS_QC_REVIEW);
-        });
-
-        return redirect()
-            ->route('worker.punch.show', $serviceRequest)
-            ->with('ok', 'Punch out submitted. Moved to QC review.');
-    }
+    return redirect()
+        ->route('worker.punch.show', $serviceRequest)
+        ->with('ok', 'Punch out submitted. Moved to QC review.');
+}
 
     /**
      * Update service_requests.status only if the given value is actually

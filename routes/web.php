@@ -50,13 +50,7 @@ Route::middleware('auth')->group(function () {
      Route::get('/expense_ledger', function () {
         return view('expense_ledger');
     })->name('expense_ledger');
-    Route::get('/invoice_panel', function () {
-        return view('invoice_panel');
-    })->name('invoice_panel');
 
-     Route::get('/quotation_desk', function () {
-        return view('quotation_desk');
-    })->name('quotation_desk');
      Route::get('/analytics', function () {
         return view('analytics_dashboard');
     })->name('analytics');
@@ -115,6 +109,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/qc-review', 'qcReview')->name('qc_review');
     Route::post('/qc-review/{serviceRequest}/pass', 'qcPass')->name('qc.pass');
     Route::post('/qc-review/{serviceRequest}/fail', 'qcFail')->name('qc.fail');
+
+    Route::get('/quotation_desk', [ServiceRequestController::class, 'quotationDesk'])
+    ->name('quotation_desk');
+
+    Route::get('/invoice_panel', [ServiceRequestController::class, 'invoicePanel'])
+    ->name('invoice_panel');
 });
 
     /*
