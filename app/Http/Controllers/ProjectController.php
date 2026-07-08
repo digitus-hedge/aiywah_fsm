@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Project;
+use App\Models\Warranty;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -12,6 +13,7 @@ class ProjectController extends Controller
     {
         $projects = Project::with('client')->latest()->get();
         $clients  = Client::orderBy('company_name')->get();
+        $warranties = Warranty::where('status', 1)->orderBy('name')->get();
 
         $stats = [
             'total'    => $projects->count(),
@@ -20,7 +22,7 @@ class ProjectController extends Controller
             'clients'  => $projects->pluck('client_id')->unique()->count(),
         ];
 
-        return view('project_site', compact('projects','clients','stats'));
+        return view('project_site', compact('projects','clients','stats','warranties'));
     }
 
     public function store(Request $request)
@@ -53,12 +55,25 @@ class ProjectController extends Controller
             'completion_date' => 'nullable|date',
             'site_address'    => 'required|string',
             'status'          => 'required|in:Active,Inactive',
+            'warranty_id' => 'nullable|exists:warranties,id',
         ]);
 
         // Warranty runs one year (365 days) from the completion date.
-        $data['warranty_end_date'] = !empty($data['completion_date'])
-            ? Carbon::parse($data['completion_date'])->addYear()
-            : null;
+        // $data['warranty_end_date'] = !empty($data['completion_date'])
+        //     ? Carbon::parse($data['completion_date'])->addYear()
+        //     : null;
+
+
+        $warrantyDays = 0;
+
+if (!empty($data['warranty_id'])) {
+    $warranty = Warranty::find($data['warranty_id']);
+    $warrantyDays = (int) ($warranty->value ?? 0);
+}
+
+$data['warranty_end_date'] = !empty($data['completion_date'])
+    ? Carbon::parse($data['completion_date'])->addDays($warrantyDays)->toDateString()
+    : null;
 
         return $data;
     }

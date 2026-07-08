@@ -1673,7 +1673,7 @@
         </div>
         <div style="display:flex;gap:7px;">
           <button class="btn-ghost" onclick="showToast('ok','Export','Generating projects CSV…')"><i class="bi bi-download"></i>Export</button>
-          <button class="btn-gold" onclick="openProjectModal()"><i class="bi bi-plus-lg"></i>Create Project</button>
+          <button class="btn-gold" onclick="openProjectModalNew()"><i class="bi bi-plus-lg"></i>Create Project</button>
         </div>
       </div>
 
@@ -1748,41 +1748,33 @@
 
     <!-- Stakeholders -->
     <div class="info-card">
-      <div class="info-card-hdr">
-        <i class="bi bi-people-fill"></i>
-        <span class="info-card-title">Notification Contacts</span>
-        <button class="btn-xs btn-xs-edit" style="margin-left:auto;" onclick="showToast('info','Contacts','Manage contacts modal…')"><i class="bi bi-plus-lg"></i>Add</button>
+  <div class="info-card-hdr">
+    <i class="bi bi-people-fill"></i>
+    <span class="info-card-title">Notification Contacts</span>
+    <!-- <button class="btn-xs btn-xs-edit" style="margin-left:auto;" onclick="showToast('info','Contacts','Manage contacts modal…')"><i class="bi bi-plus-lg"></i>Add</button> -->
+  </div>
+  <div class="stk-list">
+    @forelse($mobiles as $m)
+      <div class="stk-row">
+        <div class="stk-av">{{ strtoupper(\Illuminate\Support\Str::substr($m->name, 0, 2)) }}</div>
+        <div style="min-width:0;flex:1;">
+          <div class="stk-name">{{ $m->name }}</div>
+          <div class="stk-role">{{ $m->role ?? 'Contact' }}</div>
+        </div>
+        <div class="stk-phone">{{ $m->country }} {{ $m->mobile }}</div>
       </div>
-      <div class="stk-list">
-        <div class="stk-row">
-          <div class="stk-av">JH</div>
-          <div style="min-width:0;flex:1;">
-            <div class="stk-name">James Harrington</div>
-            <div class="stk-role">Facilities Manager</div>
-          </div>
-          <div class="stk-phone">+971 50 123 4567</div>
-        </div>
-        <div class="stk-row">
-          <div class="stk-av" style="background:linear-gradient(135deg,#0891b2,#0e7490);">RK</div>
-          <div style="min-width:0;flex:1;">
-            <div class="stk-name">Rakesh Kumar</div>
-            <div class="stk-role">Site Supervisor</div>
-          </div>
-          <div class="stk-phone">+971 55 987 6543</div>
-        </div>
-        <div class="stk-row">
-          <div class="stk-av" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);">SA</div>
-          <div style="min-width:0;flex:1;">
-            <div class="stk-name">Sarah Al Mansoori</div>
-            <div class="stk-role">Ops Coordinator</div>
-          </div>
-          <div class="stk-phone">+971 56 445 2211</div>
-        </div>
+    @empty
+      <div class="stk-row">
+        <div class="stk-name" style="color:#888;">No contacts added yet.</div>
       </div>
-    </div>
+    @endforelse
+  </div>
+</div>
+
+
 
     <!-- Recent Activity -->
-    <div class="info-card">
+    <!-- <div class="info-card">
       <div class="info-card-hdr"><i class="bi bi-clock-history"></i><span class="info-card-title">Recent Activity</span></div>
       <div class="timeline">
         <div class="tl-item">
@@ -1819,6 +1811,41 @@
         </div>
       </div>
     </div>
+     -->
+
+
+     <div class="info-card">
+  <div class="info-card-hdr"><i class="bi bi-clock-history"></i><span class="info-card-title">Recent Activity</span></div>
+  <div class="timeline">
+    @forelse($activity as $a)
+      @php
+        // pick icon + colors per activity type/status
+        $style = match(true) {
+          $a['type'] === 'project'                                => ['bg'=>'rgba(154,128,83,.12)','bd'=>'rgba(154,128,83,.3)','ic'=>'bi-plus','col'=>'#9a8053','fs'=>'.72rem'],
+          in_array($a['status'], ['approved','closed','completed']) => ['bg'=>'rgba(16,185,129,.12)','bd'=>'rgba(16,185,129,.3)','ic'=>'bi-check-lg','col'=>'#10b981','fs'=>'.66rem'],
+          $a['status'] === 'rejected'                             => ['bg'=>'rgba(239,68,68,.1)','bd'=>'rgba(239,68,68,.3)','ic'=>'bi-x-lg','col'=>'#ef4444','fs'=>'.62rem'],
+          $a['status'] === 'forwarded'                            => ['bg'=>'rgba(6,182,212,.1)','bd'=>'rgba(6,182,212,.3)','ic'=>'bi-arrow-right','col'=>'#0891b2','fs'=>'.62rem'],
+          default                                                 => ['bg'=>'rgba(37,99,235,.1)','bd'=>'rgba(37,99,235,.3)','ic'=>'bi-hourglass-split','col'=>'#2563eb','fs'=>'.62rem'],
+        };
+      @endphp
+      <div class="tl-item">
+        <div class="tl-dot" style="background:{{ $style['bg'] }};border-color:{{ $style['bd'] }};">
+          <i class="bi {{ $style['ic'] }}" style="color:{{ $style['col'] }};font-size:{{ $style['fs'] }};"></i>
+        </div>
+        <div class="tl-content">
+          <div class="tl-action">{{ $a['title'] }}</div>
+          <div class="tl-by">{{ $a['sub'] }}</div>
+          <div class="tl-time">{{ $a['time']->diffForHumans() }}</div>
+        </div>
+      </div>
+    @empty
+      <div class="tl-item">
+        <div class="tl-content"><div class="tl-by" style="color:#888;">No recent activity.</div></div>
+      </div>
+    @endforelse
+  </div>
+</div>
+
 
   </div><!-- /right panel -->
 </div><!-- /view-layout -->
@@ -1853,42 +1880,51 @@
         </div>
       </div>
 
-      <!-- Project details -->
+ 
+
       <div class="m-section">
-        <div class="m-section-label"><span class="step-num">2</span>Project Details</div>
-        <div class="form-group">
-          <label class="form-label">Project Name <span class="req">*</span></label>
-          <input type="text" class="form-control" id="pn-name" placeholder="e.g. Downtown Retail Portfolio" />
-          <div class="field-hint">A clear, human-readable identifier for this contract scope.</div>
-        </div>
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Project Code <span class="auto-tag">AUTO</span></label>
-          <div class="auto-code-row">
-            <input type="text" class="form-control auto-code-field" id="pn-code" value="PRJ-A1F004" style="max-width:220px;" oninput="this.value=this.value.toUpperCase()" />
-            <button class="btn-ghost" style="padding:6px 11px;font-size:.78rem;" onclick="regenCode()">
-              <i class="bi bi-arrow-repeat"></i>Regenerate
-            </button>
-          </div>
-          <div class="field-hint">Auto-generated from client token. Editable if you need a specific format.</div>
-        </div>
+  <div class="m-section-label"><span class="step-num">2</span>Project Details</div>
+  <div class="form-group">
+    <label class="form-label">Project Name <span class="req">*</span></label>
+    <input type="text" class="form-control" id="pn-name" placeholder="e.g. Downtown Retail Portfolio" />
+    <div class="field-hint">A clear, human-readable identifier for this contract scope.</div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Project Code <span class="auto-tag">AUTO</span></label>
+    <div class="auto-code-row">
+      <input type="text" class="form-control auto-code-field" id="pn-code" value="PRJ-A1F004" style="max-width:220px;" oninput="this.value=this.value.toUpperCase()" />
+      <button class="btn-ghost" style="padding:6px 11px;font-size:.78rem;" onclick="regenCode()">
+        <i class="bi bi-arrow-repeat"></i>Regenerate
+      </button>
+    </div>
+    <div class="field-hint">Auto-generated from client token. Editable if you need a specific format.</div>
+  </div>
+
+ <div class="form-group" style="margin-bottom:0;">
+  <div style="display:flex;gap:14px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:180px;">
 
 
-        <!-- <div class="form-group" style="margin-bottom:0;flex:1;min-width:200px;">
-          <label class="form-label">Completion Date</label>
-          <div class="auto-code-row">
-            <input type="date" class="form-control" id="proj-completion" style="max-width:200px;">
-          </div>
-          <div class="field-hint">Expected or actual completion date.</div>
-        </div> -->
+     <label class="form-label">Warranty</label>
+      <select class="form-control" id="pn-warranty">
+        <option value="">Select Warranty</option>
+        @foreach($warranties as $w)
+          <option value="{{ $w->id }}">{{ $w->name }}</option>
+        @endforeach
+      </select>
+      <div class="field-hint">Warranty applied from completion date.</div>
 
+    </div>
+    <div style="flex:1;min-width:180px;">
+           <label class="form-label">Completion Date</label>
+      <input type="date" class="form-control" id="pn-completion" />
+      <div class="field-hint">Expected or actual completion date.</div>
+    </div>
+  </div>
+</div>
 
+</div>
 
-
-
-
-
-
-      </div>
 
       <!-- Site details -->
       <div class="m-section">
@@ -1902,21 +1938,7 @@
           <label class="form-label">Full Site Address <span class="req">*</span></label>
           <textarea class="form-control" id="pn-addr" rows="2" placeholder="Building name, floor/unit, street, area, city…"></textarea>
         </div>
-        <div class="split-row">
-          <div class="form-group">
-            <label class="form-label">Contract Type</label>
-            <select class="form-select" id="pn-contract">
-              <option>AMC — Annual Maintenance</option>
-              <option>PPM — Periodic</option>
-              <option>Reactive Only</option>
-              <option>One-Time Project</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Contract Start</label>
-            <input type="date" class="form-control" id="pn-start" />
-          </div>
-        </div>
+       
         <div class="form-group" style="margin-bottom:0;">
           <div class="tog-wrap" onclick="toggleTog('statusTog',this)">
             <div class="tog-track on" id="statusTog">
@@ -1940,36 +1962,25 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-  /* ─────────────────────────────────────────────
-   THEME — declared BEFORE the IIFE that calls it
-───────────────────────────────────────────── */
-
-
-  /* ─────────────────────────────────────────────
-     CLIENT + PROJECT DATA
-  ───────────────────────────────────────────── */
   var CLIENT = {
-    id: @json($client - > id),
-    token: @json($client - > unique_code),
-    name: @json($client - > company_name),
-    contact: @json($client - > contact_name),
-    phone: @json(trim(($client - > primary_country ?? '').
-      ' '.($client - > primary_mobile ?? '')))
+    id: @json($client->id),
+    token: @json($client->unique_code),
+    name: @json($client->company_name),
+    contact: @json($client->contact_name),
+    phone: @json(trim(($client->primary_country ?? ''). ' '.($client->primary_mobile ?? '')))
   };
 
-  // Built from the projects table (shaped in the controller)
   var PROJECTS = @json($projectsJs);
-
   var filteredProjects = PROJECTS.slice();
+  var editingProjectId = null;
 
-  /* ─────────────────────────────────────────────
-     RENDER PROJECTS
-  ───────────────────────────────────────────── */
+  /* ── RENDER ── */
   function renderProjects(list) {
     var tbody = document.getElementById('pf-tbody');
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-st"><i class="bi bi-inbox"></i><h6>No Projects Yet</h6><p>No projects match your filters, or this client has none registered.</p><button class="btn-gold" onclick="openProjectModal()"><i class="bi bi-plus-lg"></i>Create First Project</button></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-st"><i class="bi bi-inbox"></i><h6>No Projects Yet</h6><p>No projects match your filters, or this client has none registered.</p><button class="btn-gold" onclick="openProjectModalNew()"><i class="bi bi-plus-lg"></i>Create First Project</button></div></td></tr>';
       document.getElementById('pf-count').textContent = '0 projects';
       document.getElementById('pf-page-info').textContent = 'No results';
       return;
@@ -1990,8 +2001,7 @@
         '<td>' + badge + '</td>' +
         '<td>' +
         '<div class="row-actions">' +
-        '<button class="btn-xs btn-xs-view" onclick="window.location=\'{{ url('
-      admin / projects ') }}/\' + p.id"><i class="bi bi-eye"></i>View</button>' +
+        '<button class="btn-xs btn-xs-view" onclick="window.location=\'{{ url('admin/projects') }}/' + p.id + '\'"><i class="bi bi-eye"></i>View</button>' +
         '<button class="btn-xs btn-xs-edit" onclick="editProject(' + p.id + ')"><i class="bi bi-pencil"></i></button>' +
         '<button class="btn-xs btn-xs-danger" onclick="confirmDelete(' + p.id + ')"><i class="bi bi-trash3"></i></button>' +
         '</div>' +
@@ -2022,48 +2032,10 @@
     renderProjects(filteredProjects);
   }
 
-  function editProject(id) {
-    var p = PROJECTS.find(function(x) {
-      return x.id === id;
-    });
-    showToast('info', 'Edit Project', 'Opening editor for ' + (p ? p.name : 'project'));
-  }
-
-  function confirmDelete(id) {
-    var p = PROJECTS.find(function(x) {
-      return x.id === id;
-    });
-    if (!p) return;
-    if (confirm('Delete "' + p.name + '"? Existing SRs will retain their data but the project will be removed.')) {
-      PROJECTS = PROJECTS.filter(function(x) {
-        return x.id !== id;
-      });
-      filterProjects();
-      showToast('ok', 'Deleted', p.name + ' has been removed.');
-    }
-  }
-
-  /* ─────────────────────────────────────────────
-     CREATE PROJECT MODAL
-  ───────────────────────────────────────────── */
-  function openProjectModal() {
-    /* reset form */
-    document.getElementById('pn-name').value = '';
-    document.getElementById('pn-site').value = '';
-    document.getElementById('pn-addr').value = '';
-    document.getElementById('pn-contract').selectedIndex = 0;
-    document.getElementById('pn-start').value = '';
-    regenCode();
-    var tog = document.getElementById('statusTog');
-    if (!tog.classList.contains('on')) tog.classList.add('on');
-    var togLbl = tog.parentElement.querySelector('.tog-label');
-    if (togLbl) togLbl.textContent = 'Active — project visible across SR Registration and Dispatch';
-
+  /* ── MODAL DISPLAY (no reset) ── */
+  function showProjectModal() {
     document.getElementById('projectModal').classList.add('show');
     document.body.style.overflow = 'hidden';
-    setTimeout(function() {
-      document.getElementById('pn-name').focus();
-    }, 100);
   }
 
   function closeProjectModal() {
@@ -2071,19 +2043,106 @@
     document.body.style.overflow = '';
   }
 
+  /* ── CREATE (reset + open) ── */
+  function openProjectModalNew() {
+    editingProjectId = null;
+    document.getElementById('pn-name').value = '';
+    document.getElementById('pn-site').value = '';
+    document.getElementById('pn-addr').value = '';
+    document.getElementById('pn-completion').value = '';
+    document.getElementById('pn-warranty').value = '';
+    var tog = document.getElementById('statusTog');
+    tog.classList.add('on');
+    var togLbl = tog.parentElement.querySelector('.tog-label');
+    if (togLbl) togLbl.textContent = 'Active — project visible across SR Registration and Dispatch';
+    regenCode();
+    document.querySelector('#projectModal .modal-hdr h6').textContent = 'Create New Project';
+    document.getElementById('pn-save-btn').innerHTML = '<i class="bi bi-floppy"></i>Save Project';
+    showProjectModal();
+    setTimeout(function(){ document.getElementById('pn-name').focus(); }, 100);
+  }
+
+  /* ── EDIT (fill + open, NO reset) ── */
+  function editProject(id) {
+    var p = PROJECTS.find(function (x) { return x.id === id; });
+    if (!p) { showToast('err', 'Not found', 'Project not found.'); return; }
+
+    editingProjectId = id;
+
+    document.getElementById('pn-name').value = p.name || '';
+    document.getElementById('pn-code').value = p.code || '';
+    document.getElementById('pn-site').value = p.siteName || '';
+    document.getElementById('pn-addr').value = p.siteAddress || '';
+    document.getElementById('pn-completion').value = p.completionDate || '';
+    document.getElementById('pn-warranty').value = p.warrantyId ? String(p.warrantyId) : '';
+
+    var tog = document.getElementById('statusTog');
+    tog.classList.toggle('on', !!p.active);
+    var togLbl = tog.parentElement.querySelector('.tog-label');
+    if (togLbl) togLbl.textContent = p.active ?
+      'Active — project visible across SR Registration and Dispatch' :
+      'Inactive — hidden from SR Registration';
+
+    document.querySelector('#projectModal .modal-hdr h6').textContent = 'Edit Project';
+    document.getElementById('pn-save-btn').innerHTML = '<i class="bi bi-floppy"></i>Update Project';
+
+    showProjectModal();
+  }
+
+  function confirmDelete(id) {
+  var p = PROJECTS.find(function(x){ return x.id === id; });
+  if (!p) return;
+
+  Swal.fire({
+    title: 'Delete project?',
+    html: 'Delete <strong>' + p.name + '</strong>?<br><span style="font-size:.85rem;color:#888;">Existing SRs will retain their data, but the project will be removed.</span>',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Yes, delete it',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    reverseButtons: true,
+  }).then(function(result){
+    if (!result.isConfirmed) return;
+
+    fetch('{{ url('projects') }}/' + id, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+      },
+    })
+    .then(function(res){
+      return res.json().then(function(d){
+        if (!res.ok) throw new Error(d.message || 'Delete failed');
+        return d;
+      });
+    })
+    .then(function(){
+      PROJECTS = PROJECTS.filter(function(x){ return x.id !== id; });
+      filterProjects();
+      Swal.fire({
+        title: 'Deleted',
+        text: p.name + ' has been removed.',
+        icon: 'success',
+        timer: 1800,
+        showConfirmButton: false,
+      });
+    })
+    .catch(function(e){
+      Swal.fire({ title: 'Error', text: e.message, icon: 'error' });
+    });
+  });
+}
+
   function regenCode() {
     var year = new Date().getFullYear();
     var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     var rand = '';
-    for (var i = 0; i < 4; i++) {
-      rand += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
+    for (var i = 0; i < 4; i++) rand += chars.charAt(Math.floor(Math.random() * chars.length));
     document.getElementById('pn-code').value = 'PRJ-' + year + '-' + rand;
   }
-
-
-
-
 
   function toggleTog(id, wrap) {
     var t = document.getElementById(id);
@@ -2094,92 +2153,85 @@
       'Inactive — hidden from SR Registration';
   }
 
-  function saveProject() {
+  /* ── SAVE (create or update) ── */
+  async function saveProject() {
     var name = document.getElementById('pn-name').value.trim();
     var code = document.getElementById('pn-code').value.trim();
     var site = document.getElementById('pn-site').value.trim();
     var addr = document.getElementById('pn-addr').value.trim();
-    var contract = document.getElementById('pn-contract').value;
-    var startDate = document.getElementById('pn-start').value;
+    var completion = document.getElementById('pn-completion').value || null;
+    var warranty = document.getElementById('pn-warranty').value || null;
     var active = document.getElementById('statusTog').classList.contains('on');
 
-    if (!name) {
-      showToast('err', 'Missing', 'Please enter a project name.');
-      document.getElementById('pn-name').focus();
-      return;
-    }
-    if (!site) {
-      showToast('err', 'Missing', 'Please enter the site name.');
-      document.getElementById('pn-site').focus();
-      return;
-    }
-    if (!addr) {
-      showToast('err', 'Missing', 'Please enter the site address.');
-      document.getElementById('pn-addr').focus();
-      return;
-    }
+    if (!name) { showToast('err','Missing','Please enter a project name.'); document.getElementById('pn-name').focus(); return; }
+    if (!site) { showToast('err','Missing','Please enter the site name.'); document.getElementById('pn-site').focus(); return; }
+    if (!addr) { showToast('err','Missing','Please enter the site address.'); document.getElementById('pn-addr').focus(); return; }
 
     var btn = document.getElementById('pn-save-btn');
     btn.disabled = true;
     btn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Saving…';
 
-    setTimeout(function() {
-      var newId = PROJECTS.reduce(function(a, p) {
-        return Math.max(a, p.id);
-      }, 0) + 1;
-      PROJECTS.push({
-        id: newId,
-        code: code || ('PRJ-A1F' + String(newId).padStart(3, '0')),
-        name: name,
-        siteName: site,
-        siteAddress: addr,
-        contract: contract,
-        startDate: startDate || '—',
-        srCount: 0,
-        active: active
+    var payload = {
+      client_id:       {{ $client->id }},
+      project_name:    name,
+      project_code:    code || null,
+      site_name:       site,
+      site_address:    addr,
+      completion_date: completion,
+      warranty_id:     warranty,
+      status:          active ? 'Active' : 'Inactive',
+    };
+
+    var url    = editingProjectId ? '{{ url('projects') }}/' + editingProjectId : '{{ route('projects.store') }}';
+    var method = editingProjectId ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        },
+        body: JSON.stringify(payload),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data.errors ? Object.values(data.errors).flat().join(' ') : (data.message || 'Save failed');
+        throw new Error(msg);
+      }
+
       closeProjectModal();
-      filterProjects();
-      showToast('ok', 'Project Created', name + ' has been added to this client.');
+      showToast('ok', editingProjectId ? 'Project Updated' : 'Project Created', name + (editingProjectId ? ' has been updated.' : ' has been added to this client.'));
+      setTimeout(function(){ location.reload(); }, 700);
+    } catch (e) {
+      showToast('err', 'Error', e.message);
+    } finally {
       btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-floppy"></i>Save Project';
-    }, 700);
+      btn.innerHTML = editingProjectId ? '<i class="bi bi-floppy"></i>Update Project' : '<i class="bi bi-floppy"></i>Save Project';
+    }
   }
 
-  /* ─────────────────────────────────────────────
-     SIDEBAR / CLOCK
-  ───────────────────────────────────────────── */
+  /* ── SIDEBAR / CLOCK ── */
   function toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
     document.getElementById('sbOverlay').classList.toggle('show');
   }
-
   function closeSidebar() {
     document.getElementById('sidebar').classList.remove('open');
     document.getElementById('sbOverlay').classList.remove('show');
   }
-
   function updateClock() {
     var el = document.getElementById('clock');
-    if (el) el.textContent = new Date().toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
+    if (el) el.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   }
   setInterval(updateClock, 1000);
   updateClock();
 
-  /* ─────────────────────────────────────────────
-     TOAST
-  ───────────────────────────────────────────── */
+  /* ── TOAST ── */
   function showToast(type, title, body) {
     var w = document.getElementById('toastWrap');
-    var icons = {
-      ok: 'bi-check-circle-fill',
-      err: 'bi-x-circle-fill',
-      info: 'bi-info-circle-fill'
-    };
+    var icons = { ok: 'bi-check-circle-fill', err: 'bi-x-circle-fill', info: 'bi-info-circle-fill' };
     var t = document.createElement('div');
     t.className = 'toast-item';
     t.innerHTML = '<i class="bi ' + (icons[type] || icons.info) + ' t-ico ' + type + '"></i><div><p class="t-title">' + title + '</p><p class="t-body">' + body + '</p></div>';
@@ -2187,15 +2239,11 @@
     setTimeout(function() {
       t.style.transition = 'opacity .3s';
       t.style.opacity = '0';
-      setTimeout(function() {
-        t.remove();
-      }, 300);
+      setTimeout(function() { t.remove(); }, 300);
     }, 3500);
   }
 
-  /* ─────────────────────────────────────────────
-     INIT
-  ───────────────────────────────────────────── */
+  /* ── INIT ── */
   renderProjects(PROJECTS);
 </script>
 @endpush

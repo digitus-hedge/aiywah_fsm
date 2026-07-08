@@ -498,6 +498,10 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 @endsection
 
 @push('scripts')
+
+<script>
+  window.warrantiesData = @json($warranties);
+</script>
 <script>
 @php
   $clientData = null;
@@ -516,6 +520,8 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
         'site_name'       => $p->site_name,
         'site_address'    => $p->site_address,
         'completion_date' => optional($p->completion_date)->format('Y-m-d'),
+          'warranty_id'     => $p->warranty_id,
+
     ])->values(),
 ] : null;
   }
@@ -788,6 +794,12 @@ function addProject(prefill, existing) {
   const sn = prefill && prefill.site_name ? prefill.site_name.replace(/"/g,'&quot;') : '';
   const sa = prefill && prefill.site_address ? prefill.site_address : '';
   const cd = prefill && prefill.completion_date ? prefill.completion_date : '';
+  const wid = prefill && prefill.warranty_id ? String(prefill.warranty_id) : '';
+
+  const warrantyOptions = (window.warrantiesData || [])
+    .map(w => `<option value="${w.id}" ${String(w.id) === wid ? 'selected' : ''}>${w.name}</option>`)
+    .join('');
+
   div.innerHTML = `
     <div class="ps-row-hdr">
       <div class="ps-row-num"><i class="bi bi-diagram-3" style="color:#9A7B4F;"></i>Project Entry
@@ -811,6 +823,13 @@ function addProject(prefill, existing) {
       <div>
         <span class="ps-label">Completion Date</span>
         <input type="date" class="ps-input" name="projects[${idx}][completion_date]" value="${cd}" oninput="syncSummary()"/>
+      </div>
+       <div>
+        <span class="ps-label">Warranty</span>
+        <select class="ps-input" name="projects[${idx}][warranty_id]" onchange="syncSummary()">
+          <option value="">Select Warranty</option>
+          ${warrantyOptions}
+        </select>
       </div>
       <div class="ps-full">
         <span class="ps-label">Site Name / Header</span>

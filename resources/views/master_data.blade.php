@@ -111,8 +111,11 @@
 .cat-name{font-size:.8125rem;font-weight:500;color:var(--text-heading);flex:1;}
 .cat-count-badge{font-size:.65rem;background:var(--surface-3);color:var(--text-muted);padding:1px 7px;border-radius:9px;font-weight:600;white-space:nowrap;}
 .cat-row.selected .cat-count-badge{background:rgba(154,123,79,.2);color:#9A7B4F;}
-.cat-actions{display:flex;gap:2px;opacity:0;transition:opacity .12s;}
-.cat-row:hover .cat-actions{opacity:1;}
+.cat-actions{
+  display:flex;gap:2px;
+  /* opacity:0; */
+  transition:opacity .12s;}
+.cat-row:hover .cat-actions{}
 .cat-status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
 .md-right{display:flex;flex-direction:column;}
 .md-right-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border-color);flex-shrink:0;gap:10px;}
@@ -127,8 +130,8 @@
 .domain-card-name{font-size:.8125rem;font-weight:600;color:var(--text-heading);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .domain-card-desc{font-size:.72rem;color:var(--text-muted);margin-bottom:6px;line-height:1.4;}
 .domain-card-foot{display:flex;align-items:center;justify-content:space-between;}
-.domain-card-actions{display:flex;gap:4px;opacity:0;transition:opacity .12s;}
-.domain-card:hover .domain-card-actions{opacity:1;}
+.domain-card-actions{display:flex;gap:4px;transition:opacity .12s;}
+.domain-card:hover .domain-card-actions{}
 
 /* ── NO SELECTION PLACEHOLDER ── */
 .no-sel{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 24px;text-align:center;}
@@ -146,8 +149,8 @@
 .data-table tbody tr:last-child{border-bottom:none;}
 .data-table td{padding:11px 16px;font-size:.8125rem;color:var(--text-primary);vertical-align:middle;}
 .data-table td.muted{color:var(--text-muted);font-size:.78rem;}
-.row-actions{display:flex;gap:4px;opacity:0;transition:opacity .12s;}
-.data-table tr:hover .row-actions{opacity:1;}
+.row-actions{display:flex;gap:4px;transition:opacity .12s;}
+.data-table tr:hover .row-actions{}
 
 /* ── STATUS PILL ── */
 .spill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;}
@@ -430,17 +433,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
   </div>
 
 
-
-
-
-
-
-
-
-
-
-
-
+<!-- Warranties Categories -->
   <div class="master-panel" id="panel-warranty">
     <div class="simple-card">
       <div class="simple-card-hdr">
@@ -458,40 +451,40 @@ textarea.form-control{resize:vertical;min-height:72px;}
           <thead>
             <tr>
               <th style="width:40px;">#</th>
-              <th>Category Name</th>
-              <th>Description</th>
+              <th>Warranty Name</th>
+              <th>Value</th>
               <th>Status</th>
               <th style="width:110px;text-align:center;">Actions</th>
             </tr>
           </thead>
           <tbody id="tbody-warranty">
-            @forelse($expenseCategories as $exp)
+            @forelse($warranties as $war)
               <tr>
                 <td class="muted">{{ $loop->iteration }}</td>
-                <td><strong>{{ $exp->name }}</strong></td>
-                <td class="muted">{{ $exp->description ?: '—' }}</td>
+                <td><strong>{{ $war->name }}</strong></td>
+                <td class="muted">{{ $war->value ?: '—' }}</td>
                 <td>
-                  <span class="spill {{ $exp->status ? 'spill-on' : 'spill-off' }}" id="exp-status-{{ $exp->id }}">
-                    <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $exp->status ? 'Active' : 'Inactive' }}
+                  <span class="spill {{ $war->status ? 'spill-on' : 'spill-off' }}" id="exp-status-{{ $war->id }}">
+                    <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $war->status ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
                 <td style="text-align:center;">
                   <div class="row-actions" style="justify-content:center;">
-                    <button class="btn-icon-status" title="Toggle status"
-                      onclick="toggleStatus('warranty',{{ $exp->id }})"><i class="bi bi-toggle-on"></i></button>
+                    <!-- <button class="btn-icon-status" title="Toggle status"
+                      onclick="toggleStatus('warranty',{{ $war->id }})"><i class="bi bi-toggle-on"></i></button> -->
                     <button class="btn-icon-edit" title="Edit"
-                      data-id="{{ $exp->id }}"
-                      data-name="{{ $exp->name }}"
-                      data-desc="{{ $exp->description }}"
-                      data-active="{{ $exp->status ? 1 : 0 }}"
+                      data-id="{{ $war->id }}"
+                      data-name="{{ $war->name }}"
+                      data-value="{{ $war->value }}"
+                      data-active="{{ $war->status ? 1 : 0 }}"
                       onclick="editWarrantyBtn(this)"><i class="bi bi-pencil"></i></button>
                     <button class="btn-icon-del" title="Delete"
-                      onclick="confirmDel('warranty',{{ $exp->id }},'{{ addslashes($exp->name) }}')"><i class="bi bi-trash3"></i></button>
+                      onclick="confirmDel('warranty',{{ $war->id }},'{{ addslashes($war->name) }}')"><i class="bi bi-trash3"></i></button>
                   </div>
                 </td>
               </tr>
             @empty
-              <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No expense categories yet.</td></tr>
+              <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No warranties categories yet.</td></tr>
             @endforelse
           </tbody>
         </table>
@@ -784,30 +777,28 @@ textarea.form-control{resize:vertical;min-height:72px;}
 </div>
 
 
-
-
 <!-- ════ MODAL: WARRANTY CATEGORIES ════ -->
 <div class="modal-overlay" id="modal-warranty" onclick="handleOverlayClick(event,'modal-warranty')">
   <div class="modal-box" style="max-width:420px;">
     <div class="modal-hdr">
       <div class="modal-hdr-left">
         <div class="modal-hdr-icon" style="background:rgba(236,72,153,.1);"><i class="bi bi-receipt" style="color:#ec4899;"></i></div>
-        <h6 id="modal-warranty-title">Add Expense Category</h6>
+        <h6 id="modal-warranty-title">Add Warranty Category</h6>
       </div>
       <button class="modal-close" onclick="closeModal('modal-warranty')"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="modal-body">
       <div class="form-group">
-        <label class="form-label">Category Name <span class="req">*</span></label>
-        <input type="text" class="form-control" id="exp-name" placeholder="e.g. Spare Parts"/>
+        <label class="form-label">Warranty Name <span class="req">*</span></label>
+        <input type="text" class="form-control" id="warranty-name" placeholder="e.g. Spare Parts"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Description</label>
-        <input type="text" class="form-control" id="exp-desc" placeholder="Brief description"/>
+        <label class="form-label">Value</label>
+        <input type="text" class="form-control" id="warranty-value" placeholder="Warranty Value"/>
       </div>
       <div class="form-group" style="margin-bottom:0;">
-        <div class="tog-wrap" onclick="toggleTog('exp-tog-track',this)">
-          <div class="tog-track on" id="exp-tog-track"><div class="tog-thumb"></div></div>
+        <div class="tog-wrap" onclick="toggleTog('warranty-tog-track',this)">
+          <div class="tog-track on" id="warranty-tog-track"><div class="tog-thumb"></div></div>
           <span class="tog-label">Active</span>
         </div>
       </div>
@@ -1145,11 +1136,11 @@ function openModal(id,mode,data){
   }
 
     if(id==='modal-warranty'){
-    editMode.expense = (mode==='edit' && data) ? data.id : null;
-    document.getElementById('modal-warranty-title').textContent = mode==='edit'?'Edit Warranty Category':'Add Warranty Category';
-    document.getElementById('exp-name').value = data?.name || '';
-    document.getElementById('exp-desc').value = data?.desc || '';
-    setTog('exp-tog-track', data ? !!data.active : true);
+    editMode.warranty = (mode==='edit' && data) ? data.id : null;
+  document.getElementById('modal-warranty-title').textContent = mode==='edit'?'Edit Warranty Category':'Add Warranty Category';
+  document.getElementById('warranty-name').value = data?.name || '';
+  document.getElementById('warranty-value').value = data?.value || '';
+  setTog('warranty-tog-track', data ? !!data.active : true);
   }
  
   if(id==='modal-priority'){
@@ -1179,7 +1170,7 @@ function editWarrantyBtn(btn){
   openModal('modal-warranty','edit',{
     id:     parseInt(btn.dataset.id,10),
     name:   btn.dataset.name,
-    desc:   btn.dataset.desc,
+    value:   btn.dataset.value,
     active: btn.dataset.active === '1',
   });
 }
@@ -1293,7 +1284,7 @@ async function saveExpense(){
   const payload={
     name,
     description: document.getElementById('exp-desc').value.trim(),
-    status:      document.getElementById('exp-tog-track').classList.contains('on')?1:0,
+    status:      document.getElementById('warranty-tog-track').classList.contains('on')?1:0,
   };
   try{
     if(editMode.expense){
@@ -1311,19 +1302,19 @@ async function saveExpense(){
 
 
 async function saveWarranty(){
-  const name=document.getElementById('exp-name').value.trim();
-  if(!name){showToast('err','Missing Field','Please enter a category name.');return;}
-  const payload={
-    name,
-    description: document.getElementById('exp-desc').value.trim(),
-    status:      document.getElementById('exp-tog-track').classList.contains('on')?1:0,
-  };
+  const name=document.getElementById('warranty-name').value.trim();
+  if(!name){showToast('err','Missing Field','Please enter name.');return;}
+  const payload = {
+  name,
+  value: document.getElementById('warranty-value').value.trim(),
+  status: document.getElementById('warranty-tog-track').classList.contains('on') ? 1 : 0,
+};
   try{
     if(editMode.warranty){
       await api(window.M_ROUTES.warrantyUpdate(editMode.warranty),'PUT',payload);
       showToast('ok','Updated',`"${name}" has been updated.`);
     }else{
-      await api(window.M_ROUTES.expStore,'POST',payload);
+      await api(window.M_ROUTES.warrantyStore,'POST',payload);
       showToast('ok','Saved',`"${name}" has been saved.`);
     }
     closeModal('modal-warranty');
@@ -1415,7 +1406,7 @@ function confirmDel(type,id,name){
 async function execDel(){
   const {type,id,name}=pendingDel;
   const map={ cat:window.M_ROUTES.catDelete, domain:window.M_ROUTES.domDelete,
-              expense:window.M_ROUTES.expDelete, priority:window.M_ROUTES.priDelete };
+              expense:window.M_ROUTES.expDelete, warranty:window.M_ROUTES.warrantyDelete, priority:window.M_ROUTES.priDelete };
   const urlFn=map[type];
   if(!urlFn){closeModal('modal-del');return;}
   try{

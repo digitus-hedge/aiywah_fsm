@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Warranty;
 use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ClientController extends Controller
 {
@@ -49,6 +51,9 @@ class ClientController extends Controller
         $totalContacts = DB::table('client_mobiles')->count() + $totalClients;
         $recentCount   = Client::where('created_at', '>=', now()->startOfMonth())->count();
 
+
+        $warranties = Warranty::where('status', 1)->orderBy('name')->get();
+
         // ── Distinct countries for the filter dropdown ──
         $countries = Client::query()
             ->whereNotNull('primary_country')
@@ -66,6 +71,7 @@ class ClientController extends Controller
             'recentCount'   => $recentCount,
             'countries'     => $countries,
             'currentStatus' => $status,        // <-- Pass to keep selection highlighted
+            'warranties' => $warranties,
         ]);
     }
 
@@ -87,61 +93,119 @@ class ClientController extends Controller
         $recentClients  = Client::latest()->take(5)->get();
         $existingTokens = Client::pluck('unique_code')->toArray();
         $suggestedCode  = $this->nextCode();
+        $warranties = Warranty::where('status', 1)->orderBy('name')->get();
 
         return view('client_accounts', [
             'recentClients'  => $recentClients,
             'existingTokens' => $existingTokens,
             'suggestedCode'  => $suggestedCode,
+            'warranties'    =>  $warranties,
             'client'         => null,
         ]);
     }
 
 
-   public function show($id)
-{
-    $client = \App\Models\Client::findOrFail($id);
-
-    $projects = \App\Models\Project::where('client_id', $client->id)
-        ->orderByDesc('created_at')
-        ->get();
-
-    // Pre-shape for the JS
-    $projectsJs = $projects->map(function ($p) {
-        return [
-            'id'          => $p->id,
-            'code'        => $p->project_code,
-            'name'        => $p->project_name,
-            'siteName'    => $p->site_name,
-            'siteAddress' => $p->site_address,
-            'contract'    => $p->contract_type ?? '—',
-            'startDate'   => optional($p->created_at)->format('d M Y'),
-            'srCount'     => $p->sr_count ?? 0,
-            'active'      => in_array(strtolower($p->status ?? ''), ['active','1']),
-        ];
-    })->values();
-
-    $lifetimeSrs = 0;
-    $activeSrs   = 0;
-    $avgRating   = '—';
-
-    return view('client_view', compact(
-        'client', 'projects', 'projectsJs', 'lifetimeSrs', 'activeSrs', 'avgRating'
-    ));
-}
-
-    public function edit(Client $client)
+    public function show($id)
     {
-        $client->load(['mobiles', 'projects']);
+        $client = \App\Models\Client::findOrFail($id);
 
-        $recentClients  = Client::latest()->take(5)->get();
-        $existingTokens = Client::pluck('unique_code');
+        $projects = \App\Models\Project::where('client_id', $client->id)
+            ->whereNull('deleted_at')
+            ->orderByDesc('created_at')
+            ->get();
 
-        return view('client_accounts', [
-            'recentClients'  => $recentClients,
-            'existingTokens' => $existingTokens,
-            'suggestedCode'  => $client->unique_code,
-            'client'         => $client,
-        ]);
+        // Count service requests per project for this client
+        $srCounts = \App\Models\ServiceRequest::where('client_id', $client->id)
+            ->selectRaw('project_id, COUNT(*) as total')
+            ->groupBy('project_id')
+            ->pluck('total', 'project_id');   // [project_id => count]
+
+        $mobiles = \App\Models\ClientMobile::where('client_id', $client->id)
+            ->orderBy('id')
+            ->get();
+
+       $projectsJs = $projects->map(function ($p) use ($srCounts) {
+    return [
+        'id'             => $p->id,
+        'code'           => $p->project_code,
+        'name'           => $p->project_name,
+        'siteName'       => $p->site_name,
+        'siteAddress'    => $p->site_address,
+        'contract'       => $p->contract_type ?? '—',
+        'startDate'      => optional($p->created_at)->format('d M Y'),
+        'completionDate' => optional($p->completion_date)->format('Y-m-d'),  // <-- add
+        'warrantyId'     => $p->warranty_id,                                  // <-- add
+        'srCount'        => $srCounts[$p->id] ?? 0,
+        'active'         => in_array(strtolower($p->status ?? ''), ['active', '1']),
+    ];
+})->values();
+
+        // Project-created events — one per project_code, newest kept
+        $projectActivity = $projects
+            ->sortByDesc('created_at')
+            ->unique('project_code')
+            ->map(fn($p) => [
+                'type'   => 'project',
+                'status' => 'created',
+                'title'  => "Project {$p->project_code} — Created",
+                'sub'    => $p->project_name,
+                'time'   => $p->created_at,
+            ]);
+
+        // Recent service requests for this client
+        $recentSrs = \App\Models\ServiceRequest::where('client_id', $client->id)
+            ->orderByDesc('created_at')
+            ->limit(6)
+            ->get()
+            ->map(fn($sr) => [
+                'type'   => 'sr',
+                'status' => strtolower($sr->status ?? 'pending'),
+                'title'  => 'SR-' . optional($sr->created_at)->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT)
+                    . ' — ' . ucfirst($sr->status ?? 'Pending'),
+                'sub'    => $sr->project_site ?? $sr->reported_by ?? '—',
+                'time'   => $sr->created_at,
+            ]);
+
+        // Only the single most-recent project as an activity item
+        $latestProject = $projects->sortByDesc('created_at')->first();
+
+        $projectActivity = collect();
+        if ($latestProject) {
+            $projectActivity->push([
+                'type'   => 'project',
+                'status' => 'created',
+                'title'  => "Project {$latestProject->project_code} — Created",
+                'sub'    => $latestProject->project_name,
+                'time'   => $latestProject->created_at,
+            ]);
+        }
+
+        // Merge, drop null times, newest first, cap at 6
+        $activity = $recentSrs->concat($projectActivity)
+            ->filter(fn($a) => $a['time'])
+            ->sortByDesc(fn($a) => $a['time'])
+            ->take(5)
+            ->values();
+
+
+     $warranties = Warranty::where('status', 1)->orderBy('name')->get();
+
+
+        $lifetimeSrs = 0;
+        $activeSrs   = 0;
+        $avgRating   = '—';
+
+        return view('client_view', compact(
+            'client',
+            'projects',
+            'projectsJs',
+            'mobiles',
+            'activity',
+            'lifetimeSrs',
+            'activeSrs',
+            'avgRating',
+            'warranties'
+        ));
     }
 
     public function store(Request $request)
@@ -187,8 +251,12 @@ class ClientController extends Controller
 
             // Rebuild stakeholder mobiles + projects from the submitted form
             // (primary mobile now lives on the clients table itself)
-            $client->mobiles()->delete();
-            $client->projects()->delete();
+            // $client->mobiles()->delete();
+            // $client->projects()->delete();
+
+
+            $client->mobiles()->forceDelete();   // <-- changed
+            $client->projects()->forceDelete();  // <-- changed
 
             $this->syncMobiles($client, $request, $validated);
             $this->syncProjects($client, $validated);
@@ -244,7 +312,9 @@ class ClientController extends Controller
             'projects.*.project_code'  => ['required', 'string', 'max:50'],
             'projects.*.site_name'     => ['nullable', 'string', 'max:255'],
             'projects.*.site_address'  => ['nullable', 'string', 'max:1000'],
-            'projects.*.completion_date' => ['nullable', 'date'],
+            'projects.*.completion_date'    => ['nullable', 'date'],
+            'projects.*.warranty_id' => 'nullable|exists:warranties,id',
+            'projects.*.warranty_end_date'  => ['nullable', 'date'],
         ];
 
         // Firm name is always editable
@@ -286,12 +356,28 @@ class ClientController extends Controller
     private function syncProjects(Client $client, array $validated): void
     {
         foreach ($validated['projects'] as $project) {
+
+
+            $warrantyDays = 0;
+
+            if (!empty($project['warranty_id'])) {
+                $warranty = Warranty::find($project['warranty_id']);
+                $warrantyDays = (int) ($warranty->value ?? 0);
+            }
+
+            $warrantyEndDate = !empty($project['completion_date'])
+                ? Carbon::parse($project['completion_date'])->addDays($warrantyDays)->toDateString()
+                : null;
+
+
             $client->projects()->create([
-                'project_name'    => $project['project_name'],
-                'project_code'    => $project['project_code'],
-                'site_name'       => $project['site_name'] ?? null,
-                'site_address'    => $project['site_address'] ?? null,
-                'completion_date' => $project['completion_date'] ?? null,
+                'project_name'      => $project['project_name'],
+                'project_code'      => $project['project_code'],
+                'site_name'         => $project['site_name'] ?? null,
+                'site_address'      => $project['site_address'] ?? null,
+                'completion_date'   => $project['completion_date'] ?? null,
+                'warranty_id'       => $project['warranty_id'] ?? null,
+                'warranty_end_date' => $warrantyEndDate,
             ]);
         }
     }

@@ -17,7 +17,8 @@ class Project extends Model
         'site_address',
         'completion_date',
         'warranty_end_date',
-        'status'
+        'status',
+        'warranty_id'
     ];
 
     protected $casts = [
