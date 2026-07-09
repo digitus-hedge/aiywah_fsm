@@ -21,6 +21,8 @@
   --lane-assigned-bg:#eef3f8; --lane-assigned-border:#5b8bbf;
   --lane-forward-bg:#f6f0f8;  --lane-forward-border:#9a6fb0;
   --lane-reject-bg:#faf0f0;   --lane-reject-border:#c25a5a;
+  --lane-invoice-bg:#eff5f4;  --lane-invoice-border:#4f9a8e;
+  --lane-done-bg:#eef4ef;     --lane-done-border:#4d8a5e;
 }
 [data-theme="dark"]{
   --brand:#b89968; --brand-dark:#9a8053; --brand-soft:rgba(184,153,104,.14);
@@ -36,6 +38,8 @@
   --lane-assigned-bg:rgba(91,139,191,.07);  --lane-assigned-border:#3a5878;
   --lane-forward-bg:rgba(154,111,176,.07);  --lane-forward-border:#63456f;
   --lane-reject-bg:rgba(194,90,90,.07);     --lane-reject-border:#7a3838;
+  --lane-invoice-bg:rgba(79,154,142,.07);   --lane-invoice-border:#316158;
+  --lane-done-bg:rgba(77,138,94,.07);       --lane-done-border:#2f5a3b;
 }
 
 /* ═══════════════ PAGE HEADER ═══════════════ */
@@ -51,13 +55,14 @@
 @media(max-width:575.98px){.pg-header{padding:14px 16px;}.pg-header h4{font-size:.9rem;}}
 
 /* ═══════════════ STATS STRIP ═══════════════ */
-.stats-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px;}
-.stat-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:12px 14px;text-align:center;box-shadow:var(--card-shadow);transition:transform .2s;}
+.stats-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
+.stat-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:12px 10px;text-align:center;box-shadow:var(--card-shadow);transition:transform .2s;}
 .stat-card:hover{transform:translateY(-2px);}
-.stat-num{font-size:1.4rem;font-weight:700;line-height:1;margin-bottom:2px;}
-.stat-lbl{font-size:.6875rem;color:var(--text-muted);font-weight:500;}
-@media(max-width:991.98px){.stats-strip{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:575.98px){.stats-strip{grid-template-columns:repeat(2,1fr);}}
+.stat-num{font-size:1.3rem;font-weight:700;line-height:1;margin-bottom:2px;color:var(--text-heading);}
+.stat-lbl{font-size:.64rem;color:var(--text-muted);font-weight:500;line-height:1.25;}
+@media(max-width:1199.98px){.stats-strip{grid-template-columns:repeat(4,1fr);}}
+@media(max-width:767.98px){.stats-strip{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:479.98px){.stats-strip{grid-template-columns:repeat(2,1fr);}}
 
 /* ═══════════════ FILTER BAR ═══════════════ */
 .filter-bar{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:14px 16px;margin-bottom:18px;box-shadow:var(--card-shadow);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
@@ -81,22 +86,45 @@
 .kanban-board{display:flex;gap:14px;min-width:max-content;align-items:flex-start;padding:2px 2px 8px;}
 
 .lane{width:290px;flex-shrink:0;display:flex;flex-direction:column;}
-.lane-header{border-radius:8px 8px 0 0;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;}
-.lane-title{display:flex;align-items:center;gap:8px;font-size:.8125rem;font-weight:600;color:var(--text-heading);}
+.lane-header{border-radius:8px 8px 0 0;padding:11px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.lane-title{display:flex;align-items:center;gap:8px;font-size:.8125rem;font-weight:600;color:var(--text-heading);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .lane-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-.lane-count{font-size:.6875rem;font-weight:700;padding:2px 8px;border-radius:10px;}
+.lane-count{font-size:.6875rem;font-weight:700;padding:2px 8px;border-radius:10px;flex-shrink:0;}
 .lane-body{background:var(--surface-2);border:1px solid var(--card-border);border-top:none;border-radius:0 0 8px 8px;padding:10px 9px;min-height:200px;display:flex;flex-direction:column;gap:10px;}
 
-.lane-Pending   .lane-header{background:var(--lane-pending-bg); border:1px solid var(--lane-pending-border); border-bottom:none;}
-.lane-Pending   .lane-dot{background:#d4b876;} .lane-Pending  .lane-count{background:rgba(212,184,118,.2);color:#8a6f2a;}
-.lane-Approved  .lane-header{background:var(--lane-approved-bg);border:1px solid var(--lane-approved-border);border-bottom:none;}
-.lane-Approved  .lane-dot{background:#7ba85e;} .lane-Approved .lane-count{background:rgba(123,168,94,.2);color:#4d6b3a;}
-.lane-Assigned  .lane-header{background:var(--lane-assigned-bg);border:1px solid var(--lane-assigned-border);border-bottom:none;}
-.lane-Assigned  .lane-dot{background:#5b8bbf;} .lane-Assigned .lane-count{background:rgba(91,139,191,.2);color:#3a5878;}
-.lane-Forwarded .lane-header{background:var(--lane-forward-bg); border:1px solid var(--lane-forward-border); border-bottom:none;}
-.lane-Forwarded .lane-dot{background:#9a6fb0;} .lane-Forwarded.lane-count{background:rgba(154,111,176,.2);color:#63456f;}
-.lane-Rejected  .lane-header{background:var(--lane-reject-bg);  border:1px solid var(--lane-reject-border);  border-bottom:none;}
-.lane-Rejected  .lane-dot{background:#c25a5a;} .lane-Rejected .lane-count{background:rgba(194,90,90,.2);color:#7a3838;}
+/* Lane colour sets — keyed by slugified status */
+.lane-pending .lane-header,
+.lane-qc-review .lane-header,
+.lane-rework .lane-header{background:var(--lane-pending-bg);border:1px solid var(--lane-pending-border);border-bottom:none;}
+.lane-pending .lane-dot,.lane-qc-review .lane-dot,.lane-rework .lane-dot{background:#d4b876;}
+.lane-pending .lane-count,.lane-qc-review .lane-count,.lane-rework .lane-count{background:rgba(212,184,118,.2);color:#8a6f2a;}
+
+.lane-approved .lane-header{background:var(--lane-approved-bg);border:1px solid var(--lane-approved-border);border-bottom:none;}
+.lane-approved .lane-dot{background:#7ba85e;}
+.lane-approved .lane-count{background:rgba(123,168,94,.2);color:#4d6b3a;}
+
+.lane-assigned .lane-header{background:var(--lane-assigned-bg);border:1px solid var(--lane-assigned-border);border-bottom:none;}
+.lane-assigned .lane-dot{background:#5b8bbf;}
+.lane-assigned .lane-count{background:rgba(91,139,191,.2);color:#3a5878;}
+
+.lane-forwarded .lane-header,
+.lane-quoted .lane-header{background:var(--lane-forward-bg);border:1px solid var(--lane-forward-border);border-bottom:none;}
+.lane-forwarded .lane-dot,.lane-quoted .lane-dot{background:#9a6fb0;}
+.lane-forwarded .lane-count,.lane-quoted .lane-count{background:rgba(154,111,176,.2);color:#63456f;}
+
+.lane-rejected .lane-header,
+.lane-quote-rejected .lane-header{background:var(--lane-reject-bg);border:1px solid var(--lane-reject-border);border-bottom:none;}
+.lane-rejected .lane-dot,.lane-quote-rejected .lane-dot{background:#c25a5a;}
+.lane-rejected .lane-count,.lane-quote-rejected .lane-count{background:rgba(194,90,90,.2);color:#7a3838;}
+
+.lane-pending-invoice .lane-header,
+.lane-invoice-submitted .lane-header{background:var(--lane-invoice-bg);border:1px solid var(--lane-invoice-border);border-bottom:none;}
+.lane-pending-invoice .lane-dot,.lane-invoice-submitted .lane-dot{background:#4f9a8e;}
+.lane-pending-invoice .lane-count,.lane-invoice-submitted .lane-count{background:rgba(79,154,142,.2);color:#316158;}
+
+.lane-completed .lane-header{background:var(--lane-done-bg);border:1px solid var(--lane-done-border);border-bottom:none;}
+.lane-completed .lane-dot{background:#4d8a5e;}
+.lane-completed .lane-count{background:rgba(77,138,94,.2);color:#2f5a3b;}
 
 /* ═══════════════ KANBAN CARD ═══════════════ */
 .kcard{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:12px 13px;box-shadow:var(--card-shadow);transition:box-shadow .2s,transform .2s;}
@@ -121,6 +149,10 @@
 .tech-name{font-size:.7rem;color:var(--text-muted);}
 .lane-empty{text-align:center;padding:28px 16px;color:var(--text-light);font-size:.78rem;}
 .lane-empty i{font-size:1.6rem;display:block;margin-bottom:6px;opacity:.4;}
+
+/* ═══════════════ SHOW MORE ═══════════════ */
+.lane-more{width:100%;padding:8px;background:var(--card-bg);border:1px dashed var(--border-color);border-radius:7px;color:var(--brand);font-size:.72rem;font-weight:600;cursor:pointer;transition:background .15s,border-color .15s;}
+.lane-more:hover{background:var(--brand-soft);border-color:var(--brand);}
 </style>
 @endpush
 
@@ -135,8 +167,8 @@
 <div class="stats-strip">
   @foreach($statuses as $s)
     <div class="stat-card">
-      <div class="stat-num" id="cnt-{{ $s }}">{{ $tickets->where('status', $s)->count() }}</div>
-      <div class="stat-lbl">{{ $s }}</div>
+      <div class="stat-num" id="cnt-{{ Str::slug($s) }}">{{ $tickets->where('status', $s)->count() }}</div>
+      <div class="stat-lbl">{{ $labels[$s] ?? $s }}</div>
     </div>
   @endforeach
 </div>
@@ -144,15 +176,16 @@
 {{-- FILTER BAR --}}
 <div class="filter-bar">
   <div class="filter-search">
+    <i class="bi bi-search"></i>
     <input type="text" class="form-control" id="searchInput"
            placeholder="Search SR ID, client, site…" oninput="applyFilter()"/>
   </div>
   <div style="display:flex;align-items:center;gap:6px;">
     <label>Status</label>
-    <select class="form-select" style="width:160px;" id="statusFilter" onchange="applyFilter()">
+    <select class="form-select" style="width:180px;" id="statusFilter" onchange="applyFilter()">
       <option value="">All Statuses</option>
       @foreach($statuses as $s)
-        <option value="{{ $s }}">{{ $s }}</option>
+        <option value="{{ $s }}">{{ $labels[$s] ?? $s }}</option>
       @endforeach
     </select>
   </div>
@@ -171,10 +204,17 @@
 @push('scripts')
 <script>
 /* Data injected from the controller */
-const TICKETS  = @json($tickets);
-const STATUSES = @json($statuses);
+const TICKETS   = @json($tickets);
+const STATUSES  = @json($statuses);
+const LABELS    = @json($labels);
+const PAGE_SIZE = 10;
 
 let filtered = [...TICKETS];
+let expanded = {};   // { "Pending Invoice": true } once "Show more" is clicked
+
+const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+const esc  = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 function priorityClass(p){ return 'prio-' + (p || 'Medium'); }
 
@@ -191,25 +231,31 @@ function buildCard(t){
   return `
     <div class="kcard">
       <div class="kc-top">
-        <span class="kc-sr">${t.id}</span>
-        <span class="kc-priority ${priorityClass(t.priority)}">${t.priority || '—'}</span>
+        <span class="kc-sr">${esc(t.id)}</span>
+        <span class="kc-priority ${priorityClass(t.priority)}">${esc(t.priority) || '—'}</span>
       </div>
-      <div class="kc-client">${t.client}</div>
-      <div class="kc-contract"><i class="bi bi-file-earmark-text me-1"></i>${t.contract}</div>
+      <div class="kc-client">${esc(t.client)}</div>
+      <div class="kc-contract"><i class="bi bi-file-earmark-text me-1"></i>${esc(t.contract)}</div>
       <hr class="kc-divider"/>
       <div class="kc-meta-row">
         <span><i class="bi bi-clock me-1"></i>${elapsed(t.createdRaw)}</span>
-        <span class="kc-site"><i class="bi bi-geo me-1"></i>${t.site}</span>
+        <span class="kc-site"><i class="bi bi-geo me-1"></i>${esc(t.site)}</span>
       </div>
       <div class="kc-actions">
-        <span class="kc-cat">${t.category}</span>
+        <span class="kc-cat">${esc(t.category)}</span>
       </div>
       <div class="kc-tech">
-        <div class="tech-av">${t.techInitials}</div>
-        <span class="tech-name">${t.tech}</span>
+        <div class="tech-av">${esc(t.techInitials)}</div>
+        <span class="tech-name">${esc(t.tech)}</span>
       </div>
     </div>`;
 }
+
+function toggleLane(status){
+  expanded[status] = !expanded[status];
+  renderBoard();
+}
+window.toggleLane = toggleLane;
 
 function renderBoard(){
   const board = document.getElementById('kanbanBoard');
@@ -217,7 +263,7 @@ function renderBoard(){
 
   // Update stat counts
   STATUSES.forEach(s => {
-    const el = document.getElementById('cnt-' + s);
+    const el = document.getElementById('cnt-' + slug(s));
     if(el) el.textContent = filtered.filter(t => t.status === s).length;
   });
 
@@ -226,26 +272,42 @@ function renderBoard(){
 
   // Build lanes
   STATUSES.forEach(s => {
-    const cards = filtered.filter(t => t.status === s);
-    const lane  = document.createElement('div');
-    lane.className = `lane lane-${s}`;
+    const all    = filtered.filter(t => t.status === s);
+    const isOpen = !!expanded[s];
+    const shown  = isOpen ? all : all.slice(0, PAGE_SIZE);
+    const hidden = all.length - shown.length;
+
+    const lane = document.createElement('div');
+    lane.className = `lane lane-${slug(s)}`;
     lane.innerHTML = `
       <div class="lane-header">
-        <div class="lane-title"><div class="lane-dot"></div>${s}</div>
-        <span class="lane-count">${cards.length}</span>
+        <div class="lane-title"><div class="lane-dot"></div>${esc(LABELS[s] || s)}</div>
+        <span class="lane-count">${all.length}</span>
       </div>
       <div class="lane-body">
-        ${cards.length
-          ? cards.map(buildCard).join('')
+        ${shown.length
+          ? shown.map(buildCard).join('')
           : '<div class="lane-empty"><i class="bi bi-inbox"></i>No tickets</div>'}
       </div>`;
     board.appendChild(lane);
+
+    // Attach the show more / show less button with a real listener
+    if(hidden > 0 || (isOpen && all.length > PAGE_SIZE)){
+      const btn = document.createElement('button');
+      btn.className = 'lane-more';
+      btn.innerHTML = hidden > 0
+        ? `<i class="bi bi-chevron-down me-1"></i>Show ${hidden} more`
+        : `<i class="bi bi-chevron-up me-1"></i>Show less`;
+      btn.addEventListener('click', () => toggleLane(s));
+      lane.querySelector('.lane-body').appendChild(btn);
+    }
   });
 }
 
 function applyFilter(){
   const q  = document.getElementById('searchInput').value.toLowerCase().trim();
   const st = document.getElementById('statusFilter').value;
+  expanded = {};   // collapse lanes when the filter changes
   filtered = TICKETS.filter(t => {
     const mq = !q  || t.id.toLowerCase().includes(q)
                    || (t.client || '').toLowerCase().includes(q)
@@ -255,6 +317,7 @@ function applyFilter(){
   });
   renderBoard();
 }
+window.applyFilter = applyFilter;
 
 renderBoard();
 </script>

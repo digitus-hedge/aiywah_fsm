@@ -3,252 +3,231 @@
 namespace App\Http\Controllers;
 
 use App\Models\Punch;
+use App\Models\PunchItem;
 use App\Models\ServiceRequest;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;   
-
+use Illuminate\Support\Facades\Storage;
 class WorkerPunchController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | SR status values — CHANGE THESE to match your service_requests.status ENUM
-    |--------------------------------------------------------------------------
-    | Run:  SHOW COLUMNS FROM service_requests WHERE Field = 'status';
-    | then set the two constants below to the matching allowed values.
-    | If a value here isn't in the column's allowed set, the SR status simply
-    | isn't changed (no error) — the punch lifecycle still drives the UI.
-    */
-    private const SR_STATUS_IN_PROGRESS = 'in_progress';
-    private const SR_STATUS_QC_REVIEW   = 'qc_review';
+    private function worker(Request $request): User
+{
+    $id = $request->input('worker') ?? session('dev_worker_id');
 
-    /**
-     * Show the punch in / out page for a given service request.
-     * Worker == the SR's assigned User (role ML). All data from DB.
-     */
-    public function show(ServiceRequest $serviceRequest)
+    if ($id) {
+        return User::findOrFail((int) $id);
+    }
+
+    $mlRoleId = Role::where('code', 'ML')->value('id');
+    abort_unless($mlRoleId, 500, 'ML role missing — run RoleSeeder.');
+
+    $worker = User::where('role_id', $mlRoleId)->first();
+    abort_unless($worker, 500, 'No Maintenance Lead user exists.');
+
+    return $worker;
+}
+
+    private function ownedRequest(Request $request, int $srId): ServiceRequest
+{
+    return ServiceRequest::where('id', $srId)
+        ->where('assigned_user_id', $this->worker($request)->id)
+        ->firstOrFail();
+}
+
+    /** The one open punch for this SR, or 404. */
+  private function openPunch(Request $request, int $srId): Punch
+{
+    $this->ownedRequest($request, $srId);
+
+    return Punch::where('service_request_id', $srId)
+        ->where('user_id', $this->worker($request)->id)
+        ->whereIn('status', ['draft', 'punched_in'])
+        ->latest('id')
+        ->firstOrFail();
+}
+
+    public function punchIn(Request $request)
     {
-        $serviceRequest->load(['assignedUser.role', 'assignedUser.serviceDomains', 'client', 'project', 'category']);
+        $data = $request->validate([
+            'sr_id' => ['required', 'integer'],
+            'lat'   => ['required', 'numeric', 'between:-90,90'],
+            'lng'   => ['required', 'numeric', 'between:-180,180'],
+        ]);
 
-        $worker = $serviceRequest->assignedUser;
-        abort_if(!$worker, 404, 'No worker assigned to this service request.');
+        $sr     = $this->ownedRequest($request, $data['sr_id']);
+         $worker = $this->worker($request);
 
-        // Optional: ensure only the assigned worker (or staff) can view.
-        // abort_unless(Auth::id() === $worker->id || Auth::user()?->isWorker() === false, 403);
+        abort_unless($sr->accepted_at, 422, 'Accept the job before punching in.');
 
-        $punch = $serviceRequest->activePunch();
+        $exists = Punch::where('service_request_id', $sr->id)
+            ->whereIn('status', ['draft', 'punched_in'])
+            ->exists();
+        abort_if($exists, 409, 'A punch is already open for this job.');
 
-        if (!$punch) {
-            $punch = new Punch([
-                'service_request_id' => $serviceRequest->id,
+        $punch = DB::transaction(function () use ($sr, $worker, $data) {
+            $p = Punch::create([
+                'service_request_id' => $sr->id,
                 'user_id'            => $worker->id,
-                'status'             => 'draft',
+                'punch_in_at'        => now(),
+                'site_location'      => $data['lat'] . ',' . $data['lng'],
+                'status'             => 'punched_in',
                 'materials_subtotal' => 0,
                 'labour_charge'      => 0,
                 'grand_total'        => 0,
             ]);
-        } else {
-            $punch->load('items');
-        }
 
-        return view('worker.punch', [
-            'sr'     => $serviceRequest,
-            'worker' => $worker,
-            'punch'  => $punch,
-            'items'  => $punch->exists ? $punch->items : collect(),
+            $sr->update(['status' => 'in_progress']);
+
+            return $p;
+        });
+
+        return response()->json([
+            'ok'          => true,
+            'punch_id'    => $punch->id,
+            'punch_in_at' => $punch->punch_in_at->toIso8601String(),
         ]);
     }
 
-    /** Punch IN — start time, description, start photo, GPS. */
-    public function punchIn(Request $request, ServiceRequest $serviceRequest)
+    /** Compliance photo / signature upload. */
+    public function upload(Request $request)
     {
-        $worker = $serviceRequest->assignedUser;
-        abort_if(!$worker, 404, 'No worker assigned.');
-
         $data = $request->validate([
-            'site_location'    => ['required', 'string', 'max:255'],
-            'work_description' => ['required', 'string'],
-            'start_photo'      => ['required', 'image', 'max:8192'],
-            'start_gps_lat'    => ['nullable', 'numeric'],
-            'start_gps_lng'    => ['nullable', 'numeric'],
+            'sr_id' => ['required', 'integer'],
+            'type'  => ['required', 'in:before,after,sig'],
+            'file'  => ['required', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp,pdf'],
         ]);
 
-        $path = $request->file('start_photo')->store('punches/start', 'public');
+        $punch = $this->openPunch($request, $data['sr_id']);
 
-        Punch::create([
-            'service_request_id' => $serviceRequest->id,
-            'user_id'            => $worker->id,
-            'punch_in_at'        => now(),
-            'site_location'      => $data['site_location'],
-            'work_description'   => $data['work_description'],
-            'start_photo_path'   => $path,
-            'start_gps_lat'      => $data['start_gps_lat'] ?? null,
-            'start_gps_lng'      => $data['start_gps_lng'] ?? null,
-            'status'             => 'punched_in',
-        ]);
+        $column = match ($data['type']) {
+            'before' => 'start_photo_path',
+            'after'  => 'finish_photo_path',
+            'sig'    => 'customer_signature_path',
+        };
 
-        // Reflect progress on the SR — only if the value is one your
-        // service_requests.status column actually allows (prevents ENUM truncation).
-        $this->safeSetSrStatus($serviceRequest, self::SR_STATUS_IN_PROGRESS);
+        $path = $request->file('file')->store("punches/{$punch->id}", 'public');
 
-        return redirect()
-            ->route('worker.punch.show', $serviceRequest)
-            ->with('ok', 'Punched in successfully.');
+        $punch->update([$column => $path]);
+
+        return response()->json(['ok' => true, 'path' => $path, 'type' => $data['type']]);
     }
 
-    /** Save equipment + billing as a draft without submitting. */
-    public function saveDraft(Request $request, ServiceRequest $serviceRequest)
-    {
-        $punch = $serviceRequest->activePunch();
-        abort_if(!$punch, 400, 'Punch in first.');
-
-        $this->syncBilling($request, $punch);
-
-        return redirect()
-            ->route('worker.punch.show', $serviceRequest)
-            ->with('ok', 'Draft saved.');
-    }
-
-    /** Decode a base64 signature data-URI and save it as a PNG. Returns the stored path or null. */
-private function storeSignature(?string $dataUri, int $srId): ?string
+    /** Log one material line against the open punch. */
+   public function expense(Request $request)
 {
-    if (!$dataUri || !preg_match('/^data:image\/(\w+);base64,/', $dataUri, $m)) {
-        return null;
-    }
-
-    $binary = base64_decode(substr($dataUri, strpos($dataUri, ',') + 1), true);
-    if ($binary === false) {
-        return null;
-    }
-
-    $path = "punches/signatures/sr_{$srId}_" . time() . ".png";
-    Storage::disk('public')->put($path, $binary);
-
-    return $path;
-}
-    /** Punch OUT / final submit — completion photo, summary, sign-off. */
-    public function submit(Request $request, ServiceRequest $serviceRequest)
-{
-    $punch = $serviceRequest->activePunch();
-    abort_if(!$punch, 400, 'Punch in first.');
-
     $data = $request->validate([
-        'completion_summary' => ['required', 'string'],
-        'finish_photo'       => ['required', 'image', 'max:8192'],
-        'finish_gps_lat'     => ['nullable', 'numeric'],
-        'finish_gps_lng'     => ['nullable', 'numeric'],
-        'customer_name'      => ['required', 'string', 'max:255'],
-        'customer_phone'     => ['nullable', 'string', 'max:32'],
-        'customer_signature' => ['required', 'string'],   // ← base64 data-URI from canvas
+        'sr_id'    => ['required', 'integer'],
+        'category' => ['required', 'string', 'max:120'],
+        'amount'   => ['required', 'numeric', 'min:0.01'],
+        'name'     => ['nullable', 'string', 'max:190'],
+        'qty'      => ['nullable', 'numeric', 'min:0.01'],
+        'receipt'  => ['nullable', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp,pdf'],
     ]);
 
-    $path = $request->file('finish_photo')->store('punches/finish', 'public');
+    $punch = $this->openPunch($request, $data['sr_id']);
+    $qty   = $data['qty'] ?? 1;
 
-    // Decode the signature data-URI and save as a PNG file
-    $signaturePath = $this->storeSignature($request->input('customer_signature'), $serviceRequest->id);
+    // Store outside the transaction — a rolled-back write shouldn't strand a file,
+    // and a failed upload shouldn't leave a half-committed item.
+    $receiptPath = $request->hasFile('receipt')
+        ? $request->file('receipt')->store("punches/{$punch->id}/receipts", 'public')
+        : null;
 
-    DB::transaction(function () use ($request, $serviceRequest, $punch, $data, $path, $signaturePath) {
-        $this->syncBilling($request, $punch);
+    try {
+        $item = DB::transaction(function () use ($punch, $data, $qty, $receiptPath) {
+            $item = PunchItem::create([
+                'punch_id'     => $punch->id,
+                'name'         => $data['name'] ?? $data['category'],
+                'category'     => $data['category'],
+                'qty'          => $qty,
+                'rate'         => round($data['amount'] / $qty, 2),
+                'line_total'   => $data['amount'],
+                'receipt_path' => $receiptPath,
+                'recon_status' => 'pending',
+            ]);
 
-        $punch->update([
-            'punch_out_at'            => now(),
-            'finish_photo_path'       => $path,
-            'finish_gps_lat'          => $data['finish_gps_lat'] ?? null,
-            'finish_gps_lng'          => $data['finish_gps_lng'] ?? null,
-            'completion_summary'      => $data['completion_summary'],
-            'customer_name'           => $data['customer_name'],
-            'customer_phone'          => $data['customer_phone'] ?? null,
-            'customer_signature_path' => $signaturePath,   // ← added
-            'status'                  => 'submitted',
-        ]);
+            $this->recalcTotals($punch);
 
-        $this->safeSetSrStatus($serviceRequest, self::SR_STATUS_QC_REVIEW);
-    });
+            return $item;
+        });
+    } catch (\Throwable $e) {
+        if ($receiptPath) {
+            Storage::disk('public')->delete($receiptPath);
+        }
+        throw $e;
+    }
 
-    return redirect()
-        ->route('worker.punch.show', $serviceRequest)
-        ->with('ok', 'Punch out submitted. Moved to QC review.');
+    $punch->refresh();
+
+    return response()->json([
+        'ok'                 => true,
+        'item_id'            => $item->id,
+        'receipt_url'        => $item->receipt_url,
+        'materials_subtotal' => (string) $punch->materials_subtotal,
+        'grand_total'        => (string) $punch->grand_total,
+    ]);
 }
 
-    /**
-     * Update service_requests.status only if the given value is actually
-     * allowed by the column. Works whether the column is an ENUM or a plain
-     * string, and never throws a truncation error.
-     */
-    private function safeSetSrStatus(ServiceRequest $sr, string $status): void
+    public function punchOut(Request $request)
     {
-        static $allowed = null;
-
-        if ($allowed === null) {
-            $allowed = $this->serviceRequestStatusValues();
-        }
-
-        // If we couldn't read an ENUM list (e.g. it's a VARCHAR), $allowed is
-        // an empty array — in that case just write the value directly.
-        if ($allowed === [] || in_array($status, $allowed, true)) {
-            $sr->update(['status' => $status]);
-        }
-        // else: silently skip — punch lifecycle still drives the stepper.
-    }
-
-    /** Read the allowed ENUM values for service_requests.status, or [] if not an ENUM. */
-    private function serviceRequestStatusValues(): array
-    {
-        try {
-            $row = DB::selectOne("SHOW COLUMNS FROM service_requests WHERE Field = 'status'");
-            if ($row && preg_match('/^enum\((.*)\)$/i', $row->Type, $m)) {
-                return array_map(
-                    fn ($v) => trim($v, "'"),
-                    str_getcsv($m[1])
-                    
-                );
-            }
-        } catch (\Throwable $e) {
-            // Ignore — fall through to "write directly".
-        }
-        return [];
-    }
-
-    /**
-     * Rebuild line items + recompute totals.
-     * Expects arrays: item_name[], item_qty[], item_rate[], plus labour_charge.
-     */
-    private function syncBilling(Request $request, Punch $punch): void
-    {
-        $names = $request->input('item_name', []);
-        $qtys  = $request->input('item_qty', []);
-        $rates = $request->input('item_rate', []);
-
-        $subtotal = 0;
-        $rows = [];
-
-        foreach ($names as $i => $name) {
-            $name = trim((string) $name);
-            if ($name === '') {
-                continue;
-            }
-            $qty  = (float) ($qtys[$i] ?? 0);
-            $rate = (float) ($rates[$i] ?? 0);
-            $line = round($qty * $rate, 2);
-            $subtotal += $line;
-
-            $rows[] = ['name' => $name, 'qty' => $qty, 'rate' => $rate, 'line_total' => $line];
-        }
-
-        $labour = (float) $request->input('labour_charge', 0);
-
-        $punch->items()->delete();
-        if ($rows) {
-            $punch->items()->createMany($rows);
-        }
-
-        $punch->update([
-            'materials_subtotal' => $subtotal,
-            'labour_charge'      => $labour,
-            'grand_total'        => $subtotal + $labour,
-            'receipt_number'     => $request->input('receipt_number'),
-            'notes'              => $request->input('notes'),
+        $data = $request->validate([
+            'sr_id'         => ['required', 'integer'],
+            'summary'       => ['nullable', 'string', 'max:2000'],
+            'customer_name' => ['nullable', 'string', 'max:190'],
+            'customer_phone'=> ['nullable', 'string', 'max:40'],
+            'labour_charge' => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        $sr    = $this->ownedRequest($request, $data['sr_id']);
+    $punch = $this->openPunch($request, $sr->id);
+
+        // Server-side compliance gate. The JS lock is a convenience, not a control.
+        foreach ([
+            'start_photo_path'        => 'Before photo',
+            'finish_photo_path'       => 'After photo',
+            'customer_signature_path' => 'Customer signature',
+        ] as $col => $label) {
+            abort_if(blank($punch->$col), 422, "{$label} is required before finishing.");
+        }
+
+        DB::transaction(function () use ($punch, $sr, $data) {
+            $punch->fill([
+                'punch_out_at'       => now(),
+                'completion_summary' => $data['summary'] ?? null,
+                'customer_name'      => $data['customer_name'] ?? null,
+                'customer_phone'     => $data['customer_phone'] ?? null,
+                'labour_charge'      => $data['labour_charge'] ?? $punch->labour_charge ?? 0,
+                'status'             => 'submitted',
+            ])->save();
+
+            $this->recalcTotals($punch);
+
+            $sr->update([
+                'status'         => 'qc_review',
+                'qc_reviewed_at' => null,
+                'qc_reviewed_by' => null,
+            ]);
+        });
+
+        $punch->refresh();
+
+        return response()->json([
+            'ok'          => true,
+            'duration'    => $punch->duration_label,
+            'grand_total' => (string) $punch->grand_total,
+        ]);
+    }
+
+    private function recalcTotals(Punch $punch): void
+    {
+        $subtotal = PunchItem::where('punch_id', $punch->id)->sum('line_total');
+
+        $punch->forceFill([
+            'materials_subtotal' => $subtotal,
+            'grand_total'        => $subtotal + (float) ($punch->labour_charge ?? 0),
+        ])->save();
     }
 }
