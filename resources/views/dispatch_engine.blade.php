@@ -981,12 +981,16 @@
               <option value="{{ $cat->category_name }}">{{ $cat->category_name }}</option>
             @endforeach
           </select>
+
+
           <select class="fselect" style="width:110px;" id="slaFilter" onchange="applyFilter()">
             <option value="">All SLA</option>
             <option value="ok">On Track</option>
             <option value="warn">At Risk</option>
             <option value="crit">Overdue</option>
           </select>
+
+
           <span style="font-size:.7rem;color:var(--text-muted);" id="filterLbl"></span>
         </div>
       </div>
