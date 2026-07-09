@@ -26,6 +26,21 @@ class ServiceRequest extends Model
         'qc_reviewed_by',
         'rework_notes',
         'warranty_scope',
+        'invoice_code', 
+        'invoice_total', 
+        'invoice_path', 
+        'invoice_submitted_at',
+        'invoice_uploaded_by', 
+        'hop_approved_at', 
+        'hop_approved_by',
+        'erp_quote_ref',
+        'quote_path', 
+        'quote_submitted_at',
+        'client_approved_at', 
+        'eta_at',
+        'accepted_at',
+        'hold_reason',
+        'held_at',
     ];
 
     protected $casts = [
@@ -74,7 +89,6 @@ class ServiceRequest extends Model
     {
         return $this->hasMany(\App\Models\Punch::class);
     }
-
     // Display reference, e.g. "SR-2026-000123"
     public function getRefAttribute(): string
     {
@@ -88,11 +102,11 @@ class ServiceRequest extends Model
     }
 
     /** The submitted punch awaiting / undergoing QC review. */
-    public function qcPunch()
+    public function getQcPunchAttribute()
     {
-        return $this->hasMany(\App\Models\Punch::class)
+        return $this->punches
             ->whereIn('status', ['submitted', 'qc_review'])
-            ->latest('punch_out_at')
+            ->sortByDesc('punch_out_at')
             ->first();
     }
 

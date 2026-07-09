@@ -424,7 +424,7 @@
    ========================================================= */
 var INV_QUEUE   = @json($invQueue ?? []);
 var PENDING_HOP = @json($pendingHop ?? []);
-
+var CSRF        = '{{ csrf_token() }}';
 var selInv = null;
 var inv_fileOk = false;
 
@@ -549,17 +549,37 @@ function openInvConfirm(){
 }
 function execInvSubmit(){
   document.getElementById('inv-conf-modal').classList.remove('show');
-  var sr = selInv;
+  var sr   = selInv;
   var code = document.getElementById('inv-code').value.trim();
-  INV_QUEUE.splice(INV_QUEUE.findIndex(function(s){return s.id===sr.id;}),1);
-  PENDING_HOP.push({id:'IA-'+Date.now(),sr:sr.id,client:sr.client,site:sr.site,code:code.toUpperCase(),submitted:'Just now',waiting:'0m'});
-  document.getElementById('inv-detail').style.display = 'none';
-  document.getElementById('inv-success-title').textContent = sr.id+' — Invoice Submitted';
-  document.getElementById('inv-success-body').textContent  = 'Invoice committed. Head of Projects notified. Ticket now appears in Pending HoP Approval below.';
-  document.getElementById('inv-success').classList.add('show');
-  selInv = null; inv_fileOk = false;
-  renderInvQueue(); renderPH();
-  showToast('ok','Invoice Submitted',sr.id+' moved to Pending HoP Approval.');
+  var btn  = document.getElementById('inv-btn');
+  btn.disabled = true;
+
+  var fd = new FormData();
+  fd.append('invoice_code',  code);
+  fd.append('invoice_total', sr.totalExp || 0);
+  fd.append('invoice_pdf',   document.getElementById('inv-fi').files[0]);
+
+  fetch('/invoice_panel/'+sr.dbId+'/submit', {
+    method:'POST',
+    headers:{'X-CSRF-TOKEN': CSRF, 'Accept':'application/json'},
+    body: fd
+  })
+  .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
+  .then(function(d){
+    INV_QUEUE.splice(INV_QUEUE.findIndex(function(s){return s.id===sr.id;}),1);
+    PENDING_HOP.push({id:'IA-'+sr.dbId,dbId:sr.dbId,sr:sr.id,client:sr.client,site:sr.site,code:code.toUpperCase(),submitted:'Just now',waiting:'0m'});
+    document.getElementById('inv-detail').style.display = 'none';
+    document.getElementById('inv-success-title').textContent = sr.id+' — Invoice Submitted';
+    document.getElementById('inv-success-body').textContent  = 'Invoice committed. Head of Projects notified. Ticket now appears in Pending HoP Approval below.';
+    document.getElementById('inv-success').classList.add('show');
+    selInv = null; inv_fileOk = false;
+    renderInvQueue(); renderPH();
+    showToast('ok','Invoice Submitted',sr.id+' moved to Pending HoP Approval.');
+  })
+  .catch(function(e){
+    btn.disabled = false;
+    showToast('err','Upload Failed', e.message);
+  });
 }
 function invNext(){document.getElementById('inv-success').classList.remove('show');document.getElementById('inv-empty').style.display='';}
 
@@ -595,12 +615,22 @@ function renderPH(){
 var pendingHopId = null;
 function openHopModal(id,sr){pendingHopId=id;document.getElementById('hop-sr').textContent=sr;document.getElementById('hop-modal').classList.add('show');}
 function execHopApproval(){
-  var idx = PENDING_HOP.findIndex(function(i){return i.id===pendingHopId;});
+  var idx  = PENDING_HOP.findIndex(function(i){return i.id===pendingHopId;});
   var item = PENDING_HOP[idx];
-  if(idx>-1) PENDING_HOP.splice(idx,1);
   document.getElementById('hop-modal').classList.remove('show');
-  renderPH();
-  if(item) showToast('ok','SR Closed',item.sr+' — Completed. WhatsApp summary sent to client.');
+  if(!item) return;
+
+  fetch('/invoice_panel/'+item.dbId+'/hop-approve', {
+    method:'POST',
+    headers:{'X-CSRF-TOKEN': CSRF, 'Accept':'application/json'}
+  })
+  .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
+  .then(function(){
+    PENDING_HOP.splice(idx,1);
+    renderPH();
+    showToast('ok','SR Closed',item.sr+' — Completed. WhatsApp summary sent to client.');
+  })
+  .catch(function(e){ showToast('err','Approval Failed', e.message); });
 }
 
 document.addEventListener('DOMContentLoaded', function(){

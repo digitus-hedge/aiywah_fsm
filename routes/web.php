@@ -9,8 +9,8 @@ use App\Http\Controllers\MasterController;
 use App\Http\Controllers\UserProvisioningController;
 use App\Http\Controllers\UserDirectoryController;
 use App\Http\Controllers\ProjectController;
-use App\Http\Controllers\WorkerpunchController;
-use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\WorkerPipelineController;
+use App\Http\Controllers\WorkerPunchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -118,9 +118,15 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/quotation_desk', [ServiceRequestController::class, 'quotationDesk'])
     ->name('quotation_desk');
+    Route::post('/quotation_desk/{serviceRequest}/quote',   [ServiceRequestController::class, 'quoteSubmit'])->name('quote.submit');
+    Route::post('/quotation_desk/{serviceRequest}/approve', [ServiceRequestController::class, 'quoteApprove'])->name('quote.approve');
 
     Route::get('/invoice_panel', [ServiceRequestController::class, 'invoicePanel'])
     ->name('invoice_panel');
+    Route::post('/invoice_panel/{serviceRequest}/submit', [ServiceRequestController::class, 'invoiceSubmit'])->name('invoice.submit');
+    Route::post('/invoice_panel/{serviceRequest}/hop-approve', [ServiceRequestController::class, 'hopApprove'])->name('invoice.hop');
+
+    Route::get('/expense_ledger', [ServiceRequestController::class, 'expenseLedger'])->name('expense_ledger');
 });
 
     /*
@@ -192,12 +198,14 @@ Route::middleware('auth')->group(function () {
 });
 
  
-Route::middleware(['auth'])
-    ->prefix('worker/sr/{serviceRequest}')
-    ->name('worker.punch.')
-    ->group(function () {
-        Route::get('/punch',       [WorkerpunchController::class, 'show'])->name('show');
-        Route::post('/punch-in',   [WorkerpunchController::class, 'punchIn'])->name('in');
-        Route::post('/save-draft', [WorkerpunchController::class, 'saveDraft'])->name('draft');
-        Route::post('/submit',     [WorkerpunchController::class, 'submit'])->name('submit');
-    });
+Route::prefix('worker')->name('worker.')->group(function () {
+    Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
+    
+    Route::post('/job/accept',     [WorkerPipelineController::class, 'accept'])->name('job.accept');
+    Route::post('/job/reschedule', [WorkerPipelineController::class, 'reschedule'])->name('job.reschedule');
+    Route::post('/job/hold',       [WorkerPipelineController::class, 'hold'])->name('job.hold');
+    Route::post('/punch/in',       [WorkerPunchController::class, 'punchIn'])->name('punch.in');
+    Route::post('/punch/out',      [WorkerPunchController::class, 'punchOut'])->name('punch.out');
+    Route::post('/punch/upload',   [WorkerPunchController::class, 'upload'])->name('punch.upload');
+    Route::post('/punch/expense',  [WorkerPunchController::class, 'expense'])->name('punch.expense');
+});
