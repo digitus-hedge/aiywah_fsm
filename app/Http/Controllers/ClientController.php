@@ -398,6 +398,13 @@ class ClientController extends Controller
         }
     }
 
+    // Soft-delete any projects the user removed from the form.
+    // Safe because SoftDeletes preserves rows referenced by service requests.
+    $client->projects()
+        ->whereNotIn('project_code', $keepCodes)
+        ->delete();
+}
+
     public function lookupByName(Request $request)
     {
         $name = trim((string) $request->query('name', ''));
@@ -433,6 +440,7 @@ class ClientController extends Controller
                 'site_name'       => $p->site_name,
                 'site_address'    => $p->site_address,
                 'completion_date' => optional($p->completion_date)->format('Y-m-d'),
+                'warranty_end_date' => optional($p->warranty_end_date)->format('Y-m-d'),
             ])->values(),
         ]);
     }

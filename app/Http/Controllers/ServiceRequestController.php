@@ -404,45 +404,58 @@ private function initials(?string $name): string
      * QC Review Terminal — lists SRs that have been punched out
      * and are awaiting supervisor quality control.
      */
-   public function qcReview()
-    {
-        // SRs whose punch-out moved them into QC review.
-        $requests = ServiceRequest::with([
-                'client', 'project', 'assignedUser',
-                'punches' => fn($q) => $q->whereIn('status', ['submitted', 'qc_review'])
-                                         ->latest('punch_out_at')->with('items'),
-            ])
-            ->where('status', 'qc_review')          // matches WorkerPunchController::SR_STATUS_QC_REVIEW
-            ->latest('updated_at')
-            ->get();
+  public function qcReview()
+{
+    $requests = ServiceRequest::with([
+            'client', 'project', 'assignedUser',
+            // load the latest punch regardless of its status,
+            // so an SR in qc_review always shows even if the punch
+            // status wasn't updated to 'submitted'
+            'punches' => fn($q) => $q->latest('punch_out_at')
+                                     ->latest('id')
+                                     ->with('items'),
+        ])
+        ->where('status', 'qc_review')
+        ->latest('updated_at')
+        ->get();
 
-        $queue = $requests->map(function ($sr) {
-            $punch = $sr->punches->first();          // the submitted punch
-            if (!$punch) return null;                // no punch = nothing to review
+    $queue = $requests->map(function ($sr) {
+        $punch = $sr->punches->first();   // may be null — that's OK now
 
-            $scope = $this->srScope($sr);            // 'iw' | 'oow'
-            $sla   = $this->srSla($sr, $punch);
-            $exp   = $this->srExpenses($punch);
+        $scope = $this->srScope($sr);
+        $sla   = $punch ? $this->srSla($sr, $punch)
+                        : ['label' => '—', 'cls' => '', 'fill' => 0, 'color' => '#9ca3af'];
+        $exp   = $punch ? $this->srExpenses($punch)
+                        : ['rows' => [], 'total' => 0];
 
-            return [
-                'id'           => 'SR-' . ($sr->created_at?->year ?? now()->year)
-                                    . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
-                'dbId'         => $sr->id,
-                'client'       => optional($sr->client)->company_name ?? '—',
-                'site'         => $punch->site_location
-                                    ?? optional($sr->project)->site_name ?? '—',
-                'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
-                'scope'        => $scope,
-                'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
-                'punchIn'      => $punch->punch_in_at?->format('d M · h:i A') ?? '—',
-                'punchOut'     => $punch->punch_out_at?->format('d M · h:i A') ?? '—',
-                'sla'          => $sla,
-                'slaFill'      => $sla['fill'],
-                'slaColor'     => $sla['color'],
-                'expenses'     => $exp['rows'],
-                'totalExpense' => 'AED ' . number_format($exp['total'], 0),
-            ];
-        })->filter()->values();
+        return [
+            'id'           => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                                . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'         => $sr->id,
+            'client'       => optional($sr->client)->company_name ?? '—',
+            'site'         => $punch?->site_location
+                                ?? optional($sr->project)->site_name ?? '—',
+            'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
+            'scope'        => $scope,
+            'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
+            'punchIn'      => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
+            'punchOut'     => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
+            'sla'          => $sla,
+            'slaFill'      => $sla['fill'],
+            'slaColor'     => $sla['color'],
+            'expenses'     => $exp['rows'],
+            'totalExpense' => 'AED ' . number_format($exp['total'], 0),
+            'proof' => [
+                'before' => $punch?->start_photo_path
+                                ? asset('storage/' . $punch->start_photo_path) : null,
+                'after'  => $punch?->finish_photo_path
+                                ? asset('storage/' . $punch->finish_photo_path) : null,
+                'signature' => $punch->customer_signature_path ? asset('storage/'.$punch->customer_signature_path) : null,
+            ],
+            'completionSummary' => $punch?->completion_summary ?? '',
+            'customerName'      => $punch?->customer_name ?? '',
+        ];
+    })->values();   
 
         $today = today();
 
@@ -609,4 +622,130 @@ private function initials(?string $name): string
 
         return ['rows' => $rows, 'total' => $total];
     }
+
+    public function quotationDesk()
+{
+    // Left queue: forwarded from Inquiry Approval, awaiting quote upload
+    $forwarded = ServiceRequest::with(['client', 'project'])
+        ->where('status', 'Forwarded')
+        ->latest('updated_at')
+        ->get();
+
+    $qQueue = $forwarded->map(function ($sr) {
+        return [
+            'id'     => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                          . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'   => $sr->id,
+            'client' => optional($sr->client)->company_name ?? '—',
+            'site'   => optional($sr->project)->site_name ?? '—',
+            'logged' => $sr->updated_at?->diffForHumans() ?? '—',
+            'issue'  => $sr->issue_description ?? '—',
+        ];
+    })->values();
+
+    // Right section: already quoted, awaiting client approval
+    $quoted = ServiceRequest::with(['client', 'project'])
+        ->where('status', 'Quoted')
+        ->latest('updated_at')
+        ->get();
+
+    $pendingApproval = $quoted->map(function ($sr) {
+        return [
+            'id'        => 'PA-' . $sr->id,
+            'sr'        => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                             . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'      => $sr->id,
+            'client'    => optional($sr->client)->company_name ?? '—',
+            'site'      => optional($sr->project)->site_name ?? '—',
+            'ref'       => $sr->erp_quote_ref ?? '—',
+            'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '—',
+            'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+        ];
+    })->values();
+
+    $clientApproved = ServiceRequest::where('status', 'Approved')
+        ->where('warranty_scope', 'oow')->count();
+    $quoteRejected  = ServiceRequest::where('status', 'Quote Rejected')->count();
+
+    return view('quotation_desk', compact(
+        'qQueue', 'pendingApproval', 'clientApproved', 'quoteRejected'
+    ));
+}
+
+public function invoicePanel()
+{
+    // Left queue: QC-passed OoW SRs awaiting invoice upload
+    $pending = ServiceRequest::with(['client', 'project', 'assignedUser',
+            'punches' => fn($q) => $q->whereNotNull('punch_out_at')
+                                     ->latest('punch_out_at')->with('items'),
+        ])
+        ->where('status', 'Pending Invoice')
+        ->latest('updated_at')
+        ->get();
+
+    $invQueue = $pending->map(function ($sr) {
+        $punch = $sr->punches->first();
+        $exp   = $punch ? $this->srExpenses($punch) : ['rows' => [], 'total' => 0];
+
+        $duration = '—';
+        if ($punch && $punch->punch_in_at && $punch->punch_out_at) {
+            $mins = abs($punch->punch_in_at->diffInMinutes($punch->punch_out_at));
+            $duration = intdiv($mins, 60) . 'h ' . ($mins % 60) . 'm';
+        }
+
+        return [
+            'id'         => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                              . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'       => $sr->id,
+            'client'     => optional($sr->client)->company_name ?? '—',
+            'site'       => $punch?->site_location ?? optional($sr->project)->site_name ?? '—',
+            'technician' => optional($sr->assignedUser)->name ?? 'Unassigned',
+            'logged'     => $sr->updated_at?->diffForHumans() ?? '—',
+            'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
+            'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
+            'duration'   => $duration,
+            'expenses'   => collect($exp['rows'])->map(fn($r) => [
+                'cat' => $r['cat'],
+                'amt' => (float) preg_replace('/[^0-9.]/', '', $r['amt']),
+            ])->values(),
+            'totalExp'   => $exp['total'],
+        ];
+    })->values();
+
+    // Bottom table: invoice committed, awaiting HoP approval
+    $submitted = ServiceRequest::with(['client', 'project'])
+        ->where('status', 'Invoice Submitted')
+        ->latest('updated_at')
+        ->get();
+
+    $pendingHop = $submitted->map(function ($sr) {
+        return [
+            'id'        => 'IA-' . $sr->id,
+            'sr'        => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                             . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'      => $sr->id,
+            'client'    => optional($sr->client)->company_name ?? '—',
+            'site'      => optional($sr->project)->site_name ?? '—',
+            'code'      => $sr->invoice_code ?? '—',
+            'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '—',
+            'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+        ];
+    })->values();
+
+    // Stat cards
+    $completedThisMonth = ServiceRequest::where('status', 'Completed')
+        ->whereMonth('updated_at', now()->month)
+        ->whereYear('updated_at', now()->year)->count();
+
+    $invoicedThisMonth = number_format(
+        ServiceRequest::whereIn('status', ['Invoice Submitted', 'Completed'])
+            ->whereMonth('updated_at', now()->month)
+            ->whereYear('updated_at', now()->year)
+            ->sum('invoice_total') ?? 0, 0
+    );
+
+    return view('invoice_panel', compact(
+        'invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth'
+    ));
+}
 }

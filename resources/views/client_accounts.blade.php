@@ -15,7 +15,7 @@
   --card-bg:#fff;--card-border:#eaeef6;--modal-bg:#fff;--input-bg:#fff;
   --text-primary:#1a2236;--text-heading:#0d1626;--text-muted:#7987a1;
   --text-light:#b0bac9;--nav-link:#4a5568;--border-color:#e4e8f0;
-  --card-shadow:0 2px 12px rgba(100,120,160,.09);
+  --card-shadow:0 2px 12px rgba(70, 80, 99, 0.09);
   --overlay-bg:rgba(9,15,35,.6);--modal-shadow:0 24px 64px rgba(0,0,0,.16);
   --table-row-hover:rgba(154,123,79,.04);--table-header:#f7f9fd;
   --input-focus-shadow:0 0 0 3px rgba(154,123,79,.12);
@@ -384,7 +384,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="card">
         <div class="card-hdr">
           <div class="card-hdr-icon" style="background:rgba(37,211,102,.1);"><i class="bi bi-whatsapp" style="color:#25d366;"></i></div>
-          <div><h6>WhatsApp Stakeholders</h6><span class="csub">Additional contacts for ticket notifications</span></div>
+          <div><h6>WhatsApp Contacts</h6><span class="csub">Additional contacts for ticket notifications</span></div>
         </div>
         <div class="card-body">
           <div style="font-size:.72rem;color:var(--text-muted);background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.18);border-radius:7px;padding:8px 11px;display:flex;align-items:flex-start;gap:7px;margin-bottom:14px;">
@@ -393,7 +393,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
           </div>
           <div class="stakeholder-list" id="stakeholderList"></div>
           <button type="button" class="btn-add-sh" onclick="addStakeholder()">
-            <i class="bi bi-plus-lg"></i>Add Stakeholder Number
+            <i class="bi bi-plus-lg"></i>Add WhatsApp Contact
           </button>
         </div>
       </div>
@@ -441,7 +441,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
           <hr class="sum-hr"/>
           <div class="sum-row"><span class="sk">Projects</span><span class="sv" id="sumProjects"><span class="project-count-pill">0</span></span></div>
           <div class="sum-row" style="align-items:flex-start;margin-bottom:0;">
-            <span class="sk" style="margin-top:3px;">Stakeholders</span>
+            <span class="sk" style="margin-top:3px;">WhatsApp Contact</span>
             <div class="stakeholder-pill-list" id="sumStakeholders">
               <span style="font-size:.72rem;color:var(--text-light);font-style:italic;">None added</span>
             </div>

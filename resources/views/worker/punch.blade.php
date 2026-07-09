@@ -272,6 +272,31 @@
         .btn-submit:active { transform:translateY(0); }
         .btn svg { width:16px; height:16px; }
 
+        .sig-wrap {
+            position: relative;
+            border: 2px dashed var(--gray-300);
+            border-radius: var(--radius);
+            background: var(--gray-50);
+            height: 180px;
+            overflow: hidden;
+            touch-action: none;           /* stops page scroll while signing */
+        }
+        .sig-wrap.signed { border-style: solid; border-color: var(--primary); background: #fff; }
+        .sig-canvas { width: 100%; height: 100%; display: block; cursor: crosshair; }
+        .sig-placeholder {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 8px; color: var(--gray-400); font-size: 0.85rem; pointer-events: none;
+        }
+        .sig-placeholder svg { width: 26px; height: 26px; }
+        .sig-clear {
+            position: absolute; top: 10px; right: 10px;
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #fff; border: 1px solid var(--border); color: var(--gray-600);
+            padding: 5px 10px; border-radius: 8px; font-size: 0.72rem; font-weight: 600;
+            cursor: pointer; box-shadow: var(--shadow-sm);
+        }
+        .sig-clear svg { width: 13px; height: 13px; }
         /* ============ VALIDATION ERRORS ============ */
         .error-box { background:var(--danger-light); border:1px solid #e0a99e; color:#7a2a1c; border-radius:var(--radius-sm); padding:12px 16px; margin-bottom:1.25rem; font-size:0.82rem; }
         .error-box ul { margin:6px 0 0; padding-left:18px; }
@@ -708,6 +733,21 @@
                             <input type="tel" name="customer_phone" class="input" placeholder="+91 XXXXX XXXXX" value="{{ old('customer_phone', $punch->customer_phone) }}" {{ $isPunchedIn ? '' : 'disabled' }}>
                         </div>
                     </div>
+                        <div class="field">
+                <label class="label">Customer Signature <span class="req">*</span></label>
+                <div class="sig-wrap" id="sigWrap">
+                    <canvas id="sigCanvas" class="sig-canvas"></canvas>
+                    <div class="sig-placeholder" id="sigPlaceholder">
+                        <i data-feather="edit-3"></i>
+                        <span>Sign here with finger or stylus</span>
+                    </div>
+                    <button type="button" class="sig-clear" onclick="clearSignature()">
+                        <i data-feather="rotate-ccw"></i> Clear
+                    </button>
+                </div>
+                <input type="hidden" name="customer_signature" id="customer_signature">
+                <span class="hint">Ask the customer to sign confirming the work is complete.</span>
+            </div>
                 </div>
             </div>
 
@@ -856,6 +896,65 @@
         @unless($isPunchedIn)
             captureGeo('start');
         @endunless
+
+        // ===== SIGNATURE PAD =====
+(function(){
+    const canvas = document.getElementById('sigCanvas');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const wrap = document.getElementById('sigWrap');
+    const placeholder = document.getElementById('sigPlaceholder');
+    const hidden = document.getElementById('customer_signature');
+    let drawing = false, hasInk = false, last = null;
+
+    function resize(){
+        const ratio = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        // preserve existing drawing
+        const prev = hasInk ? canvas.toDataURL() : null;
+        canvas.width  = rect.width  * ratio;
+        canvas.height = rect.height * ratio;
+        ctx.scale(ratio, ratio);
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#1a1712';
+        if(prev){ const img = new Image(); img.onload = () => ctx.drawImage(img,0,0,rect.width,rect.height); img.src = prev; }
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function pos(e){
+        const r = canvas.getBoundingClientRect();
+        const p = e.touches ? e.touches[0] : e;
+        return { x: p.clientX - r.left, y: p.clientY - r.top };
+    }
+    function start(e){ e.preventDefault(); drawing = true; last = pos(e);
+        if(!hasInk){ hasInk = true; placeholder.style.display='none'; wrap.classList.add('signed'); } }
+    function move(e){ if(!drawing) return; e.preventDefault();
+        const p = pos(e);
+        ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke();
+        last = p; }
+    function end(){ if(!drawing) return; drawing = false; save(); }
+
+    function save(){ hidden.value = hasInk ? canvas.toDataURL('image/png') : ''; }
+
+    // If reloading with an old signature, paint it back
+   
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', end);
+    canvas.addEventListener('touchstart', start, {passive:false});
+    canvas.addEventListener('touchmove', move, {passive:false});
+    canvas.addEventListener('touchend', end);
+
+    window.clearSignature = function(){
+        const r = canvas.getBoundingClientRect();
+        ctx.clearRect(0,0,r.width,r.height);
+        hasInk = false; hidden.value=''; placeholder.style.display='flex'; wrap.classList.remove('signed');
+    };
+})();
     </script>
 </body>
 </html>
