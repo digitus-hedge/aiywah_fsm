@@ -450,6 +450,7 @@ private function initials(?string $name): string
                                 ? asset('storage/' . $punch->start_photo_path) : null,
                 'after'  => $punch?->finish_photo_path
                                 ? asset('storage/' . $punch->finish_photo_path) : null,
+                'signature' => $punch->customer_signature_path ? asset('storage/'.$punch->customer_signature_path) : null,
             ],
             'completionSummary' => $punch?->completion_summary ?? '',
             'customerName'      => $punch?->customer_name ?? '',
@@ -621,4 +622,130 @@ private function initials(?string $name): string
 
         return ['rows' => $rows, 'total' => $total];
     }
+
+    public function quotationDesk()
+{
+    // Left queue: forwarded from Inquiry Approval, awaiting quote upload
+    $forwarded = ServiceRequest::with(['client', 'project'])
+        ->where('status', 'Forwarded')
+        ->latest('updated_at')
+        ->get();
+
+    $qQueue = $forwarded->map(function ($sr) {
+        return [
+            'id'     => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                          . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'   => $sr->id,
+            'client' => optional($sr->client)->company_name ?? '—',
+            'site'   => optional($sr->project)->site_name ?? '—',
+            'logged' => $sr->updated_at?->diffForHumans() ?? '—',
+            'issue'  => $sr->issue_description ?? '—',
+        ];
+    })->values();
+
+    // Right section: already quoted, awaiting client approval
+    $quoted = ServiceRequest::with(['client', 'project'])
+        ->where('status', 'Quoted')
+        ->latest('updated_at')
+        ->get();
+
+    $pendingApproval = $quoted->map(function ($sr) {
+        return [
+            'id'        => 'PA-' . $sr->id,
+            'sr'        => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                             . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'      => $sr->id,
+            'client'    => optional($sr->client)->company_name ?? '—',
+            'site'      => optional($sr->project)->site_name ?? '—',
+            'ref'       => $sr->erp_quote_ref ?? '—',
+            'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '—',
+            'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+        ];
+    })->values();
+
+    $clientApproved = ServiceRequest::where('status', 'Approved')
+        ->where('warranty_scope', 'oow')->count();
+    $quoteRejected  = ServiceRequest::where('status', 'Quote Rejected')->count();
+
+    return view('quotation_desk', compact(
+        'qQueue', 'pendingApproval', 'clientApproved', 'quoteRejected'
+    ));
+}
+
+public function invoicePanel()
+{
+    // Left queue: QC-passed OoW SRs awaiting invoice upload
+    $pending = ServiceRequest::with(['client', 'project', 'assignedUser',
+            'punches' => fn($q) => $q->whereNotNull('punch_out_at')
+                                     ->latest('punch_out_at')->with('items'),
+        ])
+        ->where('status', 'Pending Invoice')
+        ->latest('updated_at')
+        ->get();
+
+    $invQueue = $pending->map(function ($sr) {
+        $punch = $sr->punches->first();
+        $exp   = $punch ? $this->srExpenses($punch) : ['rows' => [], 'total' => 0];
+
+        $duration = '—';
+        if ($punch && $punch->punch_in_at && $punch->punch_out_at) {
+            $mins = abs($punch->punch_in_at->diffInMinutes($punch->punch_out_at));
+            $duration = intdiv($mins, 60) . 'h ' . ($mins % 60) . 'm';
+        }
+
+        return [
+            'id'         => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                              . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'       => $sr->id,
+            'client'     => optional($sr->client)->company_name ?? '—',
+            'site'       => $punch?->site_location ?? optional($sr->project)->site_name ?? '—',
+            'technician' => optional($sr->assignedUser)->name ?? 'Unassigned',
+            'logged'     => $sr->updated_at?->diffForHumans() ?? '—',
+            'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
+            'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
+            'duration'   => $duration,
+            'expenses'   => collect($exp['rows'])->map(fn($r) => [
+                'cat' => $r['cat'],
+                'amt' => (float) preg_replace('/[^0-9.]/', '', $r['amt']),
+            ])->values(),
+            'totalExp'   => $exp['total'],
+        ];
+    })->values();
+
+    // Bottom table: invoice committed, awaiting HoP approval
+    $submitted = ServiceRequest::with(['client', 'project'])
+        ->where('status', 'Invoice Submitted')
+        ->latest('updated_at')
+        ->get();
+
+    $pendingHop = $submitted->map(function ($sr) {
+        return [
+            'id'        => 'IA-' . $sr->id,
+            'sr'        => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                             . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'dbId'      => $sr->id,
+            'client'    => optional($sr->client)->company_name ?? '—',
+            'site'      => optional($sr->project)->site_name ?? '—',
+            'code'      => $sr->invoice_code ?? '—',
+            'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '—',
+            'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+        ];
+    })->values();
+
+    // Stat cards
+    $completedThisMonth = ServiceRequest::where('status', 'Completed')
+        ->whereMonth('updated_at', now()->month)
+        ->whereYear('updated_at', now()->year)->count();
+
+    $invoicedThisMonth = number_format(
+        ServiceRequest::whereIn('status', ['Invoice Submitted', 'Completed'])
+            ->whereMonth('updated_at', now()->month)
+            ->whereYear('updated_at', now()->year)
+            ->sum('invoice_total') ?? 0, 0
+    );
+
+    return view('invoice_panel', compact(
+        'invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth'
+    ));
+}
 }

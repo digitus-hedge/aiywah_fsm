@@ -359,6 +359,17 @@
                   <span class="proof-status-ok" id="proof-after-status"><i class="bi bi-check-circle-fill"></i>Uploaded</span>
                 </div>
               </div>
+              <div class="proof-thumb" onclick="openLightbox('signature')">
+                <div class="proof-img signature-photo" id="proof-signature">
+                  <i class="bi bi-pen proof-img-icon"></i>
+                  <span class="proof-img-label">Customer Sign-off</span>
+                  <div class="proof-hover-overlay"><i class="bi bi-zoom-in"></i></div>
+                </div>
+                <div class="proof-thumb-foot">
+                  <span class="proof-thumb-name">Signature</span>
+                  <span class="proof-status-ok" id="proof-signature-status"><i class="bi bi-check-circle-fill"></i>Uploaded</span>
+                </div>
+              </div>
             </div>
           <div style="margin:0 18px 14px;padding:9px 13px;background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.2);border-radius:7px;display:flex;align-items:center;gap:8px;font-size:.78rem;color:#15803d;">
             <i class="bi bi-shield-fill-check"></i>
@@ -570,6 +581,7 @@ function setProof(elId, statusId, url){
 }
 setProof('proof-before', 'proof-before-status', proof.before);
 setProof('proof-after',  'proof-after-status',  proof.after);
+setProof('proof-signature', 'proof-signature-status', proof.signature);
   const expBody = document.getElementById('ws-expense-body');
   document.getElementById('ws-expense-total').textContent = selectedSR.totalExpense;
   const expenses = selectedSR.expenses || [];
@@ -746,14 +758,20 @@ function qcFilterQueue(q){
 
 function openLightbox(type){
   const proof = (selectedSR && selectedSR.proof) || {};
-  const url = type === 'before' ? proof.before : proof.after;
-  const title = type === 'before' ? 'Start Photo (Punch In)' : 'Finish Photo (Punch Out)';
+  let url, title;
+  if(type === 'before'){
+    url = proof.before;  title = 'Start Photo (Punch In)';
+  } else if(type === 'after'){
+    url = proof.after;   title = 'Finish Photo (Punch Out)';
+  } else {
+    url = proof.signature; title = 'Customer Signature (Sign-off)';
+  }
 
   document.getElementById('lb-title').textContent = title;
   document.getElementById('lb-filename').textContent = url ? url.split('/').pop() : 'No image';
   const box = document.getElementById('lb-img');
   if(url){
-    box.style.background = '#000';
+    box.style.background = '#fff';   // white bg suits a signature better than black
     box.innerHTML = `<img src="${url}" style="max-width:100%;max-height:70vh;object-fit:contain;" alt="${title}">`;
   } else {
     box.style.background = 'var(--surface-2)';
