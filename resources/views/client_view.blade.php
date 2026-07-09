@@ -695,6 +695,8 @@
     display: flex;
     flex-direction: column;
     gap: 3px;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
   .filter-label {
@@ -1592,17 +1594,16 @@
       <div class="hero-name">{{ $client->company_name }}</div>
       <div class="hero-tag"><i class="bi bi-person-fill"></i>{{ $client->contact_name ?? '—' }} · Primary Contact</div>
     </div>
+
     <div class="hero-actions">
-      <button class="btn-hero-out" onclick="window.location='{{ url('admin/clients') }}'">
+      <button class="btn-hero-out" onclick="window.location='{{ url('clients/directory') }}'">
         <i class="bi bi-arrow-left"></i>Back to Directory
       </button>
       <a class="btn-hero-out" href="{{ url('clients/'.$client->id.'/edit') }}">
         <i class="bi bi-pencil"></i>Edit Client
       </a>
-      <!-- <button class="btn-hero-solid" onclick="openProjectModalNeW()">
-        <i class="bi bi-plus-lg"></i>Create Project
-      </button> -->
     </div>
+
   </div>
   <div class="hero-meta">
     @if($client->status === 'Active' || $client->status === 'active')
@@ -1980,7 +1981,7 @@
   function renderProjects(list) {
     var tbody = document.getElementById('pf-tbody');
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-st"><i class="bi bi-inbox"></i><h6>No Projects Yet</h6><p>No projects match your filters, or this client has none registered.</p><button class="btn-gold" onclick="openProjectModalNew()"><i class="bi bi-plus-lg"></i>Create First Project</button></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-st"><i class="bi bi-inbox"></i><h6>No Projects Yet</h6><p>No projects match your filters, or this client has none registered.</p></div></td></tr>';
       document.getElementById('pf-count').textContent = '0 projects';
       document.getElementById('pf-page-info').textContent = 'No results';
       return;
@@ -2001,7 +2002,7 @@
         '<td>' + badge + '</td>' +
         '<td>' +
         '<div class="row-actions">' +
-        '<button class="btn-xs btn-xs-view" onclick="window.location=\'{{ url('admin/projects') }}/' + p.id + '\'"><i class="bi bi-eye"></i>View</button>' +
+        '<button class="btn-xs btn-xs-view" onclick="window.location=\'{{ url('projects') }}/' + p.id + '\'"><i class="bi bi-eye"></i>View</button>' +
         '<button class="btn-xs btn-xs-edit" onclick="editProject(' + p.id + ')"><i class="bi bi-pencil"></i></button>' +
         '<button class="btn-xs btn-xs-danger" onclick="confirmDelete(' + p.id + ')"><i class="bi bi-trash3"></i></button>' +
         '</div>' +

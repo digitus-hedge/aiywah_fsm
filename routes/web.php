@@ -10,6 +10,8 @@ use App\Http\Controllers\UserProvisioningController;
 use App\Http\Controllers\UserDirectoryController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\WorkerpunchController;
+use App\Http\Controllers\InquiryController;
+
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -84,6 +86,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/sr-explorer', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
     Route::get('/ticket-summary', [ServiceRequestController::class, 'ticketSummary'])->name('kanban_view');
 
+
     /* ---- Dispatch Engine / Kanban ---- */
     Route::get('/dispatch-engine', [ServiceRequestController::class, 'dispatch_engine'])->name('dispatch_engine');
     Route::post('/service-requests/{serviceRequest}/dispatch', [ServiceRequestController::class, 'dispatch'])->name('service-requests.dispatch');
@@ -99,13 +102,16 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/{id}', [ClientController::class, 'show'])->name('clients.show');
     Route::post('/clients-directory/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle');
 
+
     Route::get('project_site_directory',   [ProjectController::class, 'index'])->name('project_site_directory');
     Route::post('projects',                [ProjectController::class, 'store'])->name('projects.store');
     Route::put('projects/{project}',       [ProjectController::class, 'update'])->name('projects.update');
     Route::delete('projects/{project}',    [ProjectController::class, 'destroy'])->name('projects.destroy');
+    Route::get('projects/{project}',       [ProjectController::class, 'show'])->name('projects.show');
+    Route::post('projects/{project}/inquiries', [InquiryController::class, 'store'])->name('inquiries.store');
 
     
-        Route::controller(ServiceRequestController::class)->group(function () {
+    Route::controller(ServiceRequestController::class)->group(function () {
     Route::get('/qc-review', 'qcReview')->name('qc_review');
     Route::post('/qc-review/{serviceRequest}/pass', 'qcPass')->name('qc.pass');
     Route::post('/qc-review/{serviceRequest}/fail', 'qcFail')->name('qc.fail');

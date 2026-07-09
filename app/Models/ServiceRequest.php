@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ServiceRequest extends Model
 {
@@ -21,20 +22,22 @@ class ServiceRequest extends Model
         'assigned_user_id',
         'service_domain_id',
         'dispatched_at',
-        'qc_reviewed_at', 
-        'qc_reviewed_by', 
-        'rework_notes', 
+        'qc_reviewed_at',
+        'qc_reviewed_by',
+        'rework_notes',
         'warranty_scope',
     ];
 
     protected $casts = [
         'attachments' => 'array',
+        'dispatched_at'  => 'datetime',
+        'qc_reviewed_at' => 'datetime',
     ];
 
     public function assignedUser(): BelongsTo
-{
-    return $this->belongsTo(User::class, 'assigned_user_id');
-}
+    {
+        return $this->belongsTo(User::class, 'assigned_user_id');
+    }
 
 
     public function client(): BelongsTo
@@ -66,16 +69,22 @@ class ServiceRequest extends Model
             ->latest()
             ->first();
     }
-    
+
     public function punches()
     {
         return $this->hasMany(\App\Models\Punch::class);
     }
-    
+
     // Display reference, e.g. "SR-2026-000123"
     public function getRefAttribute(): string
     {
         return 'SR-' . now()->format('Y') . '-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+    }
+
+    public function getCodeAttribute(): string
+    {
+        return 'SR-' . ($this->created_at?->format('Y') ?? now()->year)
+            . '-' . str_pad($this->id, 5, '0', STR_PAD_LEFT);
     }
 
     /** The submitted punch awaiting / undergoing QC review. */
@@ -86,4 +95,9 @@ class ServiceRequest extends Model
             ->latest('punch_out_at')
             ->first();
     }
+
+    public function punch(): HasOne
+{
+    return $this->hasOne(Punch::class)->latestOfMany();
+}
 }

@@ -734,22 +734,25 @@ function toggleDescCard(hdr){
 
 
 function loadDescPanel(t){
-  // t.attachments is an array like ["service-requests/xxxx.png", ...]
   let attachHtml = '';
   const files = t.attachments || [];
-  if(files.length){
+
+  if (files.length) {
     attachHtml = `
       <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin:14px 0 7px;">Attachments (${files.length})</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        ${files.map(f=>{
-          const url = `/storage/${f}`;
-          const isImg = /\.(png|jpe?g|gif|webp|svg)$/i.test(f);
+        ${files.map(f => {
+          const path  = typeof f === 'string' ? f : (f.path || '');
+          const label = typeof f === 'string' ? path.split('/').pop() : (f.name || path.split('/').pop());
+          const url   = `/storage/${path}`;
+          const isImg = /\.(png|jpe?g|gif|webp|svg)$/i.test(path);
+
           return isImg
             ? `<a href="${url}" target="_blank" style="display:block;">
                  <img src="${url}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border);"/>
                </a>`
             : `<a href="${url}" target="_blank" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.72rem;">
-                 <i class="bi bi-paperclip"></i>${f.split('/').pop()}
+                 <i class="bi bi-paperclip"></i>${label}
                </a>`;
         }).join('')}
       </div>`;
