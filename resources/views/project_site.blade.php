@@ -467,7 +467,25 @@ textarea.form-control{resize:vertical;min-height:70px;}
 
 </div>
 
+
+
+
+ <div class="form-group" style="margin-top:10px;flex:1;min-width:200px;">
+  <label class="form-label">Warranty Name</label>
+  <div class="auto-code-row">
+    <select class="form-control" id="proj-warranty" style="max-width:200px;">
+      <option value="">Select Warranty</option>
+      @foreach($warranties as $warranty)
+        <option value="{{ $warranty->id }}">{{ $warranty->name }}</option>
+      @endforeach
+    </select>
+  </div>
+  <div class="field-hint">Select a warranty.</div>
+</div>
+
+
         </div>
+
 
         <div class="m-section">
           <div class="m-section-label" id="step3-label">
@@ -696,6 +714,7 @@ function saveProject(){
     site_name:    document.getElementById('site-name').value.trim(),
     site_address: document.getElementById('site-address').value.trim(),
     completion_date: document.getElementById('proj-completion').value || null, // <-- ADD THIS LINE
+    warranty_id:     document.getElementById('proj-warranty').value || null, // <-- warranty
     status:       document.getElementById('status-tog').classList.contains('on') ? 'Active' : 'Inactive',
   };
   if(!payload.client_id){ showToast('err','Missing','Please select a client.'); return; }

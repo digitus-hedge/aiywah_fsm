@@ -146,12 +146,11 @@ Route::middleware('auth')->group(function () {
         Route::post('/expense-category/status/{id}', [MasterController::class, 'changeExpenseCategoryStatus'])->name('expense-category.status');
 
 
-
          // Warranty Categories
-        Route::post('/warranty-category/store', [MasterController::class, 'storeExpenseCategory'])->name('warranty-category.store');
-        Route::put('/warranty-category/update/{id}', [MasterController::class, 'updateExpenseCategory'])->name('warranty-category.update');
-        Route::delete('/warranty-category/delete/{id}', [MasterController::class, 'deleteExpenseCategory'])->name('warranty-category.delete');
-        Route::post('/warranty-category/status/{id}', [MasterController::class, 'changeExpenseCategoryStatus'])->name('warranty-category.status');
+        Route::post('/warranty-category/store', [MasterController::class, 'storeWarrantyCategory'])->name('warranty-category.store');
+        Route::put('/warranty-category/update/{id}', [MasterController::class, 'updateWarrantyCategory'])->name('warranty-category.update');
+        Route::delete('/warranty-category/delete/{id}', [MasterController::class, 'deleteWarrantyCategory'])->name('warranty-category.delete');
+        Route::post('/warranty-category/status/{id}', [MasterController::class, 'changeWarrantyCategoryStatus'])->name('warranty-category.status');
 
 
         // Priorities

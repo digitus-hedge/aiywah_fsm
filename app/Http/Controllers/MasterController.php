@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\ServiceCategory;
 use App\Models\ServiceDomain;
 use App\Models\ExpenseCategory;
+use App\Models\Warranty;
 use App\Models\Priority;
 use App\Models\SlaMatrix;
 use App\Models\WhatsappTemplate;
@@ -44,6 +45,7 @@ class MasterController extends Controller
             ->get();
 
         $expenseCategories = ExpenseCategory::orderBy('name')->get();
+        $warranties        = Warranty::orderBy('name')->get();
         $priorities        = Priority::orderBy('display_order')->get();
         $slaMatrix         = SlaMatrix::with('priority')->orderBy('priority_id')->get();
         $templates         = WhatsappTemplate::orderBy('template_name')->get();
@@ -52,12 +54,13 @@ class MasterController extends Controller
             'service'   => $categories->count(),
             'expense'   => $expenseCategories->count(),
             'priority'  => $priorities->count(),
+            'warranty'  => $warranties->count(),
             'sla'       => $slaMatrix->count(),
             'templates' => $templates->count(),
         ];
 
         return view('master_data', compact(
-            'categories', 'expenseCategories', 'priorities',
+            'categories', 'expenseCategories','warranties', 'priorities',
             'slaMatrix', 'templates', 'counts'
         ));
     }
@@ -291,6 +294,55 @@ class MasterController extends Controller
         ]);
     }
 
+
+    public function storeWarrantyCategory(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'name'   => 'required|string|max:255',
+        'value'  => 'nullable|string|max:500',
+        'status' => 'required|in:0,1',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+    }
+
+    $warranty = Warranty::create($request->only('name', 'value', 'status'));
+    $this->log('Warranty Category', 'Create', "Created warranty: {$warranty->name}");
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Warranty Category created successfully.',
+        'data'    => $warranty,
+    ]);
+}
+
+
+
+public function updateWarrantyCategory(Request $request, $id)
+{
+    $warranty = Warranty::findOrFail($id);
+
+    $validator = Validator::make($request->all(), [
+        'name'   => 'required|string|max:255',
+        'value'  => 'nullable|string|max:500',
+        'status' => 'required|in:0,1',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+    }
+
+    $warranty->update($request->only('name', 'value', 'status'));
+    $this->log('Warranty Category', 'Update', "Updated warranty: {$warranty->name}");
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'Warranty Category updated successfully.',
+        'data'    => $warranty,
+    ]);
+}
+
     public function updateExpenseCategory(Request $request, $id)
     {
         $expense = ExpenseCategory::findOrFail($id);
@@ -328,6 +380,22 @@ class MasterController extends Controller
         ]);
     }
 
+
+
+    public function deleteWarrantyCategory($id)
+    {
+        $warranty = Warranty::findOrFail($id);
+        $name = $warranty->name;
+        $warranty->delete();
+        $this->log('Warranty', 'Delete', "Deleted expense: {$name}");
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Warranty Category deleted successfully.',
+        ]);
+    }
+
+
     public function changeExpenseCategoryStatus(Request $request, $id)
     {
         $expense = ExpenseCategory::findOrFail($id);
@@ -341,6 +409,23 @@ class MasterController extends Controller
             'message'        => 'Expense Category status updated.',
             'current_status' => $expense->status,
             'status_text'    => $expense->status ? 'Active' : 'Inactive',
+        ]);
+    }
+
+
+     public function changeWarrantyCategoryStatus(Request $request, $id)
+    {
+        $warranty = Warranty::findOrFail($id);
+        $warranty->status = $request->has('status')
+            ? (int) $request->status
+            : ($warranty->status ? 0 : 1);
+        $warranty->save();
+
+        return response()->json([
+            'status'         => true,
+            'message'        => 'Warranty Category status updated.',
+            'current_status' => $warranty->status,
+            'status_text'    => $warranty->status ? 'Active' : 'Inactive',
         ]);
     }
 
