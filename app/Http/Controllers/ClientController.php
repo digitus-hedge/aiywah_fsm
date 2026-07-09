@@ -400,10 +400,10 @@ class ClientController extends Controller
 
     // Soft-delete any projects the user removed from the form.
     // Safe because SoftDeletes preserves rows referenced by service requests.
-    $client->projects()
-        ->whereNotIn('project_code', $keepCodes)
-        ->delete();
-}
+    // $client->projects()
+    //     ->whereNotIn('project_code', $keepCodes)
+    //     ->delete();
+
 
     public function lookupByName(Request $request)
     {
