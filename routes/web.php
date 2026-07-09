@@ -11,7 +11,7 @@ use App\Http\Controllers\UserDirectoryController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\WorkerPipelineController;
 use App\Http\Controllers\WorkerPunchController;
-
+use App\Http\Controllers\InquiryController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
