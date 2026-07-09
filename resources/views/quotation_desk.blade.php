@@ -380,7 +380,7 @@
    ========================================================= */
 var Q_QUEUE          = @json($qQueue ?? []);
 var PENDING_APPROVAL = @json($pendingApproval ?? []);
-
+var CSRF             = '{{ csrf_token() }}';
 var selQ = null;
 var q_fileOk = false;
 
@@ -492,16 +492,51 @@ function selectQ(id){
 function submitQuote(){
   var ref = document.getElementById('q-ref').value.trim();
   if(!ref || !q_fileOk){ showValMsg('q','Please fill the ERP Reference and attach a PDF.'); return; }
-  var sr = selQ;
-  Q_QUEUE.splice(Q_QUEUE.findIndex(function(s){return s.id===sr.id;}),1);
-  PENDING_APPROVAL.push({id:'PA-'+Date.now(),sr:sr.id,client:sr.client,site:sr.site,ref:ref.toUpperCase(),submitted:'Just now',waiting:'0m'});
-  document.getElementById('q-detail').style.display = 'none';
-  document.getElementById('q-success-title').textContent = sr.id+' — Quote Submitted';
-  document.getElementById('q-success-body').textContent  = 'Quote PDF uploaded with ERP ref '+ref.toUpperCase()+'. Client notified via WhatsApp. Ticket now appears in Pending Client Approval below.';
-  document.getElementById('q-success').classList.add('show');
-  selQ = null; q_fileOk = false;
-  renderQQueue(); renderPA();
-  showToast('ok','Quote Submitted',sr.id+' moved to Pending Client Approval.');
+  var sr  = selQ;
+  var btn = document.getElementById('q-btn');
+  btn.disabled = true;
+
+  var fd = new FormData();
+  fd.append('erp_quote_ref', ref);
+  fd.append('quote_pdf', document.getElementById('q-fi').files[0]);
+
+  fetch('/quotation_desk/'+sr.dbId+'/quote', {
+    method:'POST',
+    headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+    body: fd
+  })
+  .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
+  .then(function(){
+    Q_QUEUE.splice(Q_QUEUE.findIndex(function(s){return s.id===sr.id;}),1);
+    PENDING_APPROVAL.push({id:'PA-'+sr.dbId,dbId:sr.dbId,sr:sr.id,client:sr.client,site:sr.site,ref:ref.toUpperCase(),submitted:'Just now',waiting:'0m'});
+    document.getElementById('q-detail').style.display = 'none';
+    document.getElementById('q-success-title').textContent = sr.id+' — Quote Submitted';
+    document.getElementById('q-success-body').textContent  = 'Quote PDF uploaded with ERP ref '+ref.toUpperCase()+'. Client notified via WhatsApp.';
+    document.getElementById('q-success').classList.add('show');
+    selQ = null; q_fileOk = false;
+    renderQQueue(); renderPA();
+    showToast('ok','Quote Submitted',sr.id+' moved to Pending Client Approval.');
+  })
+  .catch(function(e){ btn.disabled = false; showToast('err','Upload Failed', e.message); });
+}
+
+function execQApproval(){
+  var idx  = PENDING_APPROVAL.findIndex(function(i){return i.id===pendingQAId;});
+  var item = PENDING_APPROVAL[idx];
+  document.getElementById('qa-modal').classList.remove('show');
+  if(!item) return;
+
+  fetch('/quotation_desk/'+item.dbId+'/approve', {
+    method:'POST',
+    headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}
+  })
+  .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
+  .then(function(){
+    PENDING_APPROVAL.splice(idx,1);
+    renderPA();
+    showToast('ok','Client Approved',item.sr+' — status set to Approved.');
+  })
+  .catch(function(e){ showToast('err','Approval Failed', e.message); });
 }
 function qdNext(){document.getElementById('q-success').classList.remove('show');document.getElementById('q-empty').style.display='';}
 
@@ -537,14 +572,6 @@ function renderPA(){
 
 var pendingQAId = null;
 function openQAModal(id,sr){pendingQAId=id;document.getElementById('qa-sr').textContent=sr;document.getElementById('qa-modal').classList.add('show');}
-function execQApproval(){
-  var idx = PENDING_APPROVAL.findIndex(function(i){return i.id===pendingQAId;});
-  var item = PENDING_APPROVAL[idx];
-  if(idx>-1) PENDING_APPROVAL.splice(idx,1);
-  document.getElementById('qa-modal').classList.remove('show');
-  renderPA();
-  if(item) showToast('ok','Client Approved',item.sr+' — status set to Approved. Now available in HoP dispatch queue.');
-}
 
 function showValMsg(prefix,msg){
   var el = document.getElementById(prefix+'-val-msg');

@@ -356,41 +356,43 @@ class ServiceRequestController extends Controller
         ]);
     }
 
-    public function ticketSummary()
+   public function ticketSummary()
 {
-    // Map DB statuses → Kanban lanes
-    $statusMap = [
-        'Pending'   => 'Pending',
-        'Approved'  => 'Approved',
-        'Assigned'  => 'Assigned',
-        'Forwarded' => 'Forwarded',
-        'Rejected'  => 'Rejected',
+    $statuses = [
+        'Pending', 'Approved', 'Forwarded', 'Rejected', 'Assigned',
+        'Quoted', 'Quote Rejected', 'qc_review', 'Rework',
+        'Pending Invoice', 'Invoice Submitted', 'Completed',
     ];
 
-    $requests = ServiceRequest::with(['client', 'project', 'assignedUser', 'category'])
+    $labels = [
+        'qc_review'         => 'QC Review',
+        'Pending Invoice'   => 'Pending Invoice',
+        'Invoice Submitted' => 'Invoice Submitted',
+        'Quote Rejected'    => 'Quote Rejected',
+    ];
+
+    $tickets = ServiceRequest::with(['client', 'project', 'assignedUser', 'category'])
         ->latest()
-        ->get();
+        ->get()
+        ->map(function ($sr) {
+            return [
+                'id'           => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                                    . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+                'dbId'         => $sr->id,
+                'client'       => optional($sr->client)->company_name ?? '—',
+                'contract'     => optional($sr->project)->project_name ?? '—',
+                'site'         => optional($sr->project)->site_name ?? '—',
+                'category'     => optional($sr->category)->category_name ?? '—',
+                'status'       => $sr->status,
+                'priority'     => $sr->priority_level,
+                'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
+                'techInitials' => $this->initials(optional($sr->assignedUser)->name),
+                'createdAt'    => $sr->created_at?->format('d M Y h:i A') ?? '—',
+                'createdRaw'   => $sr->created_at?->toIso8601String(),
+            ];
+        })->values();
 
-    $tickets = $requests->map(function ($sr) {
-        return [
-            'id'        => 'SR-' . ($sr->created_at?->year ?? now()->year)
-                            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
-            'client'    => optional($sr->client)->company_name ?? '—',
-            'contract'  => optional($sr->project)->project_name ?? '—',
-            'site'      => optional($sr->project)->site_name ?? '—',
-            'category'  => optional($sr->category)->category_name ?? '—',
-            'status'    => $sr->status,
-            'priority'  => $sr->priority_level,
-            'tech'      => optional($sr->assignedUser)->name ?? 'Unassigned',
-            'techInitials' => $this->initials(optional($sr->assignedUser)->name),
-            'createdAt' => $sr->created_at?->format('d M Y h:i A') ?? '—',
-            'createdRaw'=> $sr->created_at?->toIso8601String(),
-        ];
-    })->values();
-
-    $statuses = array_values(array_unique($statusMap));
-
-return view('kanban_view', compact('tickets', 'statuses'));
+    return view('kanban_view', compact('tickets', 'statuses', 'labels'));
 }
 
 private function initials(?string $name): string
@@ -672,6 +674,35 @@ private function initials(?string $name): string
     ));
 }
 
+public function quoteSubmit(Request $request, ServiceRequest $serviceRequest)
+{
+    $data = $request->validate([
+        'erp_quote_ref' => ['required', 'string', 'max:100'],
+        'quote_pdf'     => ['required', 'file', 'mimes:pdf', 'max:25600'],
+    ]);
+
+    $serviceRequest->update([
+        'status'             => 'Quoted',
+        'warranty_scope'     => 'oow',
+        'erp_quote_ref'      => strtoupper($data['erp_quote_ref']),
+        'quote_path'         => $request->file('quote_pdf')->store('quotations', 'public'),
+        'quote_submitted_at' => now(),
+    ]);
+
+    return response()->json(['ok' => true, 'message' => 'Quote committed.']);
+}
+
+public function quoteApprove(ServiceRequest $serviceRequest)
+{
+    $serviceRequest->update([
+        'status'             => 'Approved',
+        'warranty_scope'     => 'oow',
+        'client_approved_at' => now(),
+    ]);
+
+    return response()->json(['ok' => true, 'message' => 'Client approved.']);
+}
+
 public function invoicePanel()
 {
     // Left queue: QC-passed OoW SRs awaiting invoice upload
@@ -747,5 +778,75 @@ public function invoicePanel()
     return view('invoice_panel', compact(
         'invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth'
     ));
+}
+
+public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
+{
+    $data = $request->validate([
+        'invoice_code'  => ['required', 'string', 'max:100'],
+        'invoice_total' => ['nullable', 'numeric'],
+        'invoice_pdf'   => ['required', 'file', 'mimes:pdf', 'max:25600'],
+    ]);
+
+    $path = $request->file('invoice_pdf')->store('invoices', 'public');
+
+    $serviceRequest->update([
+        'status'               => 'Invoice Submitted',
+        'invoice_code'         => strtoupper($data['invoice_code']),
+        'invoice_total'        => $data['invoice_total'] ?? 0,
+        'invoice_path'         => $path,
+        'invoice_submitted_at' => now(),
+        'invoice_uploaded_by'  => Auth::id(),
+    ]);
+
+    return response()->json(['ok' => true, 'message' => 'Invoice committed. HoP notified.']);
+}
+
+public function hopApprove(ServiceRequest $serviceRequest)
+{
+    $serviceRequest->update([
+        'status'          => 'Completed',
+        'hop_approved_at' => now(),
+        'hop_approved_by' => Auth::id(),
+    ]);
+
+    return response()->json(['ok' => true, 'message' => 'SR closed — Completed.']);
+}
+
+public function expenseLedger()
+{
+    $items = \App\Models\PunchItem::with('punch.serviceRequest.assignedUser')
+        ->latest('id')
+        ->get();
+
+    $ledger = $items->map(function ($it) {
+        $sr = $it->punch?->serviceRequest;
+
+        return [
+            'id'      => $it->id,
+            'sr'      => $sr
+                ? 'SR-' . ($sr->created_at?->year ?? now()->year)
+                    . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT)
+                : '—',
+            'tech'    => optional($sr?->assignedUser)->name ?? 'Unassigned',
+            'cat'     => $it->category ?? $it->name ?? '—',
+            'amt'     => (float) ($it->line_total ?? ($it->qty * $it->rate)),
+            'receipt' => !empty($it->punch?->receipt_number),
+            'date'    => $it->created_at?->format('d M Y') ?? '—',
+        ];
+    })->values();
+
+    $totalExpenses = $ledger->sum('amt');
+
+    $totals = [
+        'total'    => $totalExpenses,
+        'pending'  => (float) $items->where('recon_status', 'pending')->sum('line_total'),
+        'approved' => (float) $items->where('recon_status', 'approved')->sum('line_total'),
+        'disputed' => (float) $items->where('recon_status', 'disputed')->sum('line_total'),
+    ];
+
+    $lastSaved = $items->max('updated_at')?->format('d M Y · h:i A') ?? '—';
+
+    return view('expense_ledger', compact('ledger', 'totalExpenses', 'totals', 'lastSaved'));
 }
 }
