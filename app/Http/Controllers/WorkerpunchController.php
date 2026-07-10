@@ -52,9 +52,10 @@ class WorkerPunchController extends Controller
     public function punchIn(Request $request)
     {
         $data = $request->validate([
-            'sr_id' => ['required', 'integer'],
-            'lat'   => ['required', 'numeric', 'between:-90,90'],
-            'lng'   => ['required', 'numeric', 'between:-180,180'],
+            'sr_id'            => ['required', 'integer'],
+            'lat'              => ['required', 'numeric', 'between:-90,90'],
+            'lng'              => ['required', 'numeric', 'between:-180,180'],
+            'work_description' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $sr     = $this->ownedRequest($request, $data['sr_id']);
@@ -68,17 +69,17 @@ class WorkerPunchController extends Controller
         abort_if($exists, 409, 'A punch is already open for this job.');
 
         $punch = DB::transaction(function () use ($sr, $worker, $data) {
-            $p = Punch::create([
+           $p = Punch::create([
                 'service_request_id' => $sr->id,
                 'user_id'            => $worker->id,
                 'punch_in_at'        => now(),
                 'site_location'      => $data['lat'] . ',' . $data['lng'],
+                'work_description'   => $data['work_description'] ?? null,
                 'status'             => 'punched_in',
                 'materials_subtotal' => 0,
                 'labour_charge'      => 0,
                 'grand_total'        => 0,
             ]);
-
             $sr->update(['status' => 'in_progress']);
 
             return $p;
@@ -98,6 +99,8 @@ class WorkerPunchController extends Controller
             'sr_id' => ['required', 'integer'],
             'type'  => ['required', 'in:before,after,sig'],
             'file'  => ['required', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp,pdf'],
+            'notes'          => ['nullable', 'string', 'max:2000'],
+            'receipt_number' => ['nullable', 'string', 'max:120'],
         ]);
 
         $punch = $this->openPunch($request, $data['sr_id']);
@@ -106,6 +109,8 @@ class WorkerPunchController extends Controller
             'before' => 'start_photo_path',
             'after'  => 'finish_photo_path',
             'sig'    => 'customer_signature_path',
+            'notes'          => $data['notes'] ?? null,
+            'receipt_number' => $data['receipt_number'] ?? null,
         };
 
         $path = $request->file('file')->store("punches/{$punch->id}", 'public');

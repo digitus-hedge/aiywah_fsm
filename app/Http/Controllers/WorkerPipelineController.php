@@ -4,16 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Models\ExpenseCategory;
 use App\Models\Punch;
+use App\Models\PunchItem;
+use App\Models\Role;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class WorkerPipelineController extends Controller
 {
     /** Statuses a worker can act on from the pipeline. */
-    private const OPEN_STATUSES = ['assigned', 'dispatched', 'rework', 'on_hold', 'accepted'];
+    private const OPEN_STATUSES = [
+        'assigned', 'dispatched', 'rework', 'on_hold', 'accepted', 'in_progress',
+    ];
 
     /*
     |--------------------------------------------------------------------------
@@ -39,12 +42,93 @@ class WorkerPipelineController extends Controller
 
         return view('worker.pipeline', [
             'jobs'              => $requests->map(fn (ServiceRequest $sr) => $this->transform($sr))->values(),
+            'activeJob'         => $this->activeJob($user),
             'routes'            => $this->routes(),
             'expenseCategories' => $this->expenseCategories(),
             'userName'          => $user->name,
             'userRole'          => optional($user->role)->name ?? 'Maintenance Lead',
             'userCode'          => optional($user->role)->code,
             'userInitials'      => $this->initials($user->name),
+        ]);
+    }
+
+    public function history(Request $request)
+    {
+        $user = $this->worker($request);
+
+        $punches = Punch::with([
+                'serviceRequest.client',
+                'serviceRequest.project',
+                'serviceRequest.domain',
+                'items',
+            ])
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['submitted', 'approved', 'rejected'])
+            ->whereNotNull('punch_out_at')
+            ->orderByDesc('punch_out_at')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'ok'    => true,
+            'stats' => [
+                'jobs'  => $punches->count(),
+                'hours' => round(
+                    $punches->sum(fn (Punch $p) => $p->punch_in_at->floatDiffInHours($p->punch_out_at)),
+                    1
+                ),
+                // Scoped to the 50 punches above, not lifetime.
+                'expenses' => number_format((float) $punches->sum('materials_subtotal'), 2, '.', ''),
+            ],
+            'items' => $punches->map(fn (Punch $p) => [
+                'ref'       => optional($p->serviceRequest)->ref ?? '—',
+                'client'    => optional(optional($p->serviceRequest)->client)->company_name ?? '—',
+                'domain'    => optional(optional($p->serviceRequest)->domain)->domain_name ?? '—',
+                'site'      => optional(optional($p->serviceRequest)->project)->site_address ?? '—',
+                'date'      => $p->punch_out_at->format('d M Y'),
+                'in'        => $p->punch_in_at->format('H:i'),
+                'out'       => $p->punch_out_at->format('H:i'),
+                'duration'  => $p->duration_label ?? '—',
+                'materials' => number_format((float) $p->materials_subtotal, 2, '.', ''),
+                'total'     => number_format((float) $p->grand_total, 2, '.', ''),
+                'itemCount' => $p->items->count(),
+                'status'    => $p->status,
+            ])->values(),
+        ]);
+    }
+
+    public function profile(Request $request)
+    {
+        $user = $this->worker($request);
+        $user->loadMissing('role');
+
+        $open = ServiceRequest::where('assigned_user_id', $user->id)
+            ->whereIn('status', self::OPEN_STATUSES)
+            ->count();
+
+        $finished = Punch::where('user_id', $user->id)
+            ->whereNotNull('punch_out_at')
+            ->get();
+
+        return response()->json([
+            'ok'   => true,
+            'user' => [
+                'name'     => $user->name,
+                'initials' => $this->initials($user->name),
+                'role'     => optional($user->role)->name ?? 'Maintenance Lead',
+                'code'     => optional($user->role)->code,
+                'email'    => $user->email,
+                'phone'    => $user->phone ?? '—',
+                'joined'   => optional($user->created_at)->format('M Y') ?? '—',
+            ],
+            'stats' => [
+                'open'      => $open,
+                'completed' => $finished->count(),
+                'hours'     => round(
+                    $finished->sum(fn (Punch $p) => $p->punch_in_at->floatDiffInHours($p->punch_out_at)),
+                    1
+                ),
+            ],
         ]);
     }
 
@@ -64,7 +148,11 @@ class WorkerPipelineController extends Controller
 
         $sr = $this->ownedRequest($request, $data['sr_id']);
 
-        abort_if($sr->accepted_at, 409, 'This job has already been accepted.');
+        // Rework re-enters the pipeline with accepted_at still set from the first
+        // pass, so the gate is on status, not on the timestamp.
+        $isRework = strtolower((string) $sr->status) === 'rework';
+
+        abort_if($sr->accepted_at && !$isRework, 409, 'This job has already been accepted.');
 
         $sr->update([
             'eta_at'      => $data['eta_date'] . ' ' . $data['eta_time'] . ':00',
@@ -138,30 +226,29 @@ class WorkerPipelineController extends Controller
      * The worker whose pipeline we are acting on.
      *
      * TODO: restore auth. Until then, resolution order is:
-     *   1. authenticated user, if any
-     *   2. ?worker=N on the current request
-     *   3. the worker whose pipeline was last rendered (session)
-     *   4. the first Maintenance Lead in the table
+     *   1. ?worker=N on the current request
+     *   2. the worker whose pipeline was last rendered (session)
+     *   3. the first Maintenance Lead in the table
      *
      * index() and the POST handlers MUST agree on this, or ownedRequest()
      * fails its firstOrFail() with "No query results".
      */
- private function worker(Request $request): User
-{
-    // TODO: restore auth. Explicit override wins, then session, then first ML.
-    $id = $request->input('worker') ?? session('dev_worker_id');
-    if ($id) {
-        return User::findOrFail((int) $id);
+    private function worker(Request $request): User
+    {
+        $id = $request->input('worker') ?? session('dev_worker_id');
+
+        if ($id) {
+            return User::findOrFail((int) $id);
+        }
+
+        $mlRoleId = Role::where('code', 'ML')->value('id');
+        abort_unless($mlRoleId, 500, 'ML role missing — run RoleSeeder.');
+
+        $worker = User::where('role_id', $mlRoleId)->first();
+        abort_unless($worker, 500, 'No Maintenance Lead user exists.');
+
+        return $worker;
     }
-
-    $mlRoleId = \App\Models\Role::where('code', 'ML')->value('id');
-    abort_unless($mlRoleId, 500, 'ML role missing — run RoleSeeder.');
-
-    $worker = User::where('role_id', $mlRoleId)->first();
-    abort_unless($worker, 500, 'No Maintenance Lead user exists.');
-
-    return $worker;
-}
 
     /** Fetch an SR, 404ing unless this worker is the assignee. */
     private function ownedRequest(Request $request, int $srId): ServiceRequest
@@ -176,6 +263,53 @@ class WorkerPipelineController extends Controller
     | Presentation
     |--------------------------------------------------------------------------
     */
+
+    /**
+     * The job the worker is mid-punch on, if any. Rehydrates the terminal
+     * across a page reload — otherwise an open punch is invisible to the UI.
+     */
+    private function activeJob(User $user): ?array
+    {
+        $punch = Punch::with([
+                'serviceRequest.client',
+                'serviceRequest.project',
+                'serviceRequest.category',
+                'serviceRequest.domain',
+                'serviceRequest.punches',
+                'items',
+            ])
+            ->where('user_id', $user->id)
+            ->whereIn('status', ['draft', 'punched_in'])
+            ->latest('id')
+            ->first();
+
+        if (!$punch || !$punch->serviceRequest) {
+            return null;
+        }
+
+        $sr = $punch->serviceRequest;
+
+        return [
+            'job'          => $this->transform($sr),
+            'etaDate'      => optional($sr->eta_at)->format('Y-m-d'),
+            'etaTime'      => optional($sr->eta_at)->format('H:i'),
+            'punchInAt'    => optional($punch->punch_in_at)->toIso8601String(),
+            'siteLocation' => $punch->site_location,
+            'workDesc'     => $punch->work_description,
+            'uploads'      => [
+                'before' => filled($punch->start_photo_path),
+                'after'  => filled($punch->finish_photo_path),
+                'sig'    => filled($punch->customer_signature_path),
+            ],
+            'expenses' => $punch->items->map(fn (PunchItem $i) => [
+                'category'   => $i->category,
+                'name'       => $i->name,
+                'amount'     => number_format((float) $i->line_total, 2, '.', ''),
+                'time'       => optional($i->created_at)->format('H:i') ?? '—',
+                'receiptUrl' => $i->receipt_url,
+            ])->values(),
+        ];
+    }
 
     private function transform(ServiceRequest $sr): array
     {
@@ -199,11 +333,11 @@ class WorkerPipelineController extends Controller
             'eta'         => optional($sr->eta_at)->format('Y-m-d H:i'),
             'accepted'    => (bool) $sr->accepted_at,
             'attachments' => collect($sr->attachments ?? [])->values()->all(),
-            'history'     => $this->history($sr),
+            'history'     => $this->srHistory($sr),
         ];
     }
 
-    private function history(ServiceRequest $sr): array
+    private function srHistory(ServiceRequest $sr): array
     {
         $log = [];
 
@@ -250,6 +384,8 @@ class WorkerPipelineController extends Controller
             'expense'    => route('worker.punch.expense'),
             'reschedule' => route('worker.job.reschedule'),
             'hold'       => route('worker.job.hold'),
+            'history'    => route('worker.history'),
+            'profile'    => route('worker.profile'),
         ];
     }
 

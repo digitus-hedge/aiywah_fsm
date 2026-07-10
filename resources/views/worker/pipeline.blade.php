@@ -42,14 +42,12 @@
 *,*::before,*::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body { height:100%; margin:0; padding:0; }
 body {
-  font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
   font-size:.875rem; background:var(--app-bg); color:var(--text-primary);
   transition:background .3s,color .3s; overflow-x:hidden;
 }
 .hidden { display:none !important; }
 
-/* Headings use the serif face */
-.pg-title, .ajb-client, .tw-time { font-family:'Cormorant Garamond',Georgia,serif; letter-spacing:-.01em; }
+.pg-title, .ajb-client, .tw-time { letter-spacing:-.01em; }
 
 /* ═══════════════════════════════════════ SHELL ═══ */
 .app-shell {
@@ -338,8 +336,10 @@ body {
 .exp-item { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--card-border); font-size:.75rem; }
 .exp-item:last-child { border-bottom:none; }
 .exp-item .ea { font-weight:700; color:var(--text-heading); }
-.exp-item .ec { color:var(--text-muted); }
-.exp-item .er { font-size:.68rem; color:var(--text-light); margin-left:auto; }
+.exp-item .en { font-weight:500; color:var(--text-heading); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.exp-item .ec { font-size:.66rem; color:var(--text-muted); }
+.exp-item .er { font-size:.68rem; color:var(--text-light); }
+.exp-item .body { min-width:0; flex:1; }
 .exp-receipt {
   width:28px; height:28px; border-radius:5px; object-fit:cover;
   border:1px solid var(--card-border); cursor:pointer; flex-shrink:0;
@@ -392,7 +392,7 @@ body {
 .d-input, .d-select, .d-remark {
   width:100%; font-size:.84rem; border:1.5px solid var(--border-color); border-radius:8px;
   padding:.48rem .75rem; color:var(--text-primary); background:var(--input-bg);
-  -webkit-appearance:none; transition:border-color .15s,box-shadow .15s; font-family:inherit;
+  -webkit-appearance:none; transition:border-color .15s,box-shadow .15s; 
 }
 .d-remark { resize:none; min-height:72px; }
 .d-input:focus, .d-select:focus, .d-remark:focus {
@@ -489,13 +489,70 @@ body {
   display:inline-flex; align-items:center; gap:6px;
 }
 
-/* Spinner used on busy buttons */
 .spin {
   display:inline-block; width:14px; height:14px;
   border:2px solid rgba(255,255,255,.4); border-top-color:#fff;
   border-radius:50%; animation:spin .7s linear infinite;
 }
 @keyframes spin { to { transform:rotate(360deg); } }
+
+/* ═══════════════════════════════════════ HISTORY ═══ */
+.stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+.stat-box {
+  background:var(--card-bg); border:1px solid var(--card-border); border-radius:11px;
+  padding:11px 8px; text-align:center; box-shadow:var(--card-shadow);
+}
+.stat-val { font-size:1.35rem; font-weight:700; color:var(--text-heading); line-height:1.1; }
+.stat-lbl { font-size:.62rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-top:3px; }
+
+.hist-card {
+  background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
+  padding:12px 14px; margin-bottom:10px; box-shadow:var(--card-shadow);
+}
+.hist-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; gap:8px; }
+.hist-ref { font-size:.78rem; font-weight:700; color:#9a8053; }
+.hist-date { font-size:.68rem; color:var(--text-muted); }
+.hist-client { font-size:.82rem; font-weight:600; color:var(--text-heading); margin-bottom:2px; }
+.hist-site { font-size:.68rem; color:var(--text-muted); margin-bottom:8px; }
+.hist-grid { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.hist-chip {
+  font-size:.68rem; color:var(--text-muted); display:flex; align-items:center;
+  gap:4px; background:var(--surface-2); border-radius:7px; padding:3px 8px;
+}
+.hist-total { margin-left:auto; font-size:.76rem; font-weight:700; color:var(--text-heading); }
+.badge-submitted { background:rgba(154,128,83,.12); color:#9a8053; }
+.badge-approved  { background:rgba(5,163,74,.12);  color:#05a34a; }
+.badge-rejected  { background:rgba(255,51,102,.12); color:#ff3366; }
+
+/* ═══════════════════════════════════════ PROFILE ═══ */
+.prof-hero {
+  background:linear-gradient(135deg,#8A6E47,#9a8053); border-radius:14px;
+  padding:22px 16px; text-align:center; color:#fff; margin-bottom:14px;
+  position:relative; overflow:hidden;
+}
+.prof-hero::before {
+  content:''; position:absolute; right:-30px; top:-30px; width:120px; height:120px;
+  border-radius:50%; background:rgba(255,255,255,.08);
+}
+.prof-avatar {
+  width:72px; height:72px; border-radius:50%; margin:0 auto 10px;
+  background:rgba(255,255,255,.22); border:3px solid rgba(255,255,255,.45);
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.5rem; font-weight:700; position:relative;
+}
+.prof-name {font-size:1.4rem; font-weight:700; }
+.prof-role { font-size:.72rem; opacity:.85; margin-top:2px; }
+
+.info-row { display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid var(--card-border); }
+.info-row:last-child { border-bottom:none; padding-bottom:0; }
+.info-ico {
+  width:36px; height:36px; border-radius:9px; background:rgba(154,128,83,.1);
+  display:flex; align-items:center; justify-content:center; color:#9a8053; flex-shrink:0;
+}
+.info-lbl { font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
+.info-val { font-size:.82rem; font-weight:500; color:var(--text-heading); word-break:break-word; }
+
+.skel { background:var(--surface-2); border-radius:8px; height:70px; margin-bottom:10px; animation:statusPulse 1.4s ease-in-out infinite; }
 
 @media (min-width:481px) {
   body { background:#e8ecf8; }
@@ -506,7 +563,6 @@ body {
 </head>
 <body>
 
-<!-- ══════════ TOAST ══════════ -->
 <div class="toast-wrap" id="toastWrap"></div>
 
 <!-- ══════════ LIGHTBOX ══════════ -->
@@ -597,6 +653,11 @@ body {
       @endforeach
     </select>
 
+    <div id="expNameWrap" class="hidden">
+      <label class="d-label" for="expName">Item Name <span class="req">*</span></label>
+      <input type="text" class="d-input" id="expName" placeholder="e.g. 20mm PVC elbow"/>
+    </div>
+
     <label class="d-label" for="expAmount">Amount (AED) <span class="req">*</span></label>
     <input type="number" class="d-input" id="expAmount" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
 
@@ -613,6 +674,44 @@ body {
     <div class="drawer-actions">
       <button class="btn-cancel" data-close="exp">Cancel</button>
       <button class="btn-save" id="expSaveBtn">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ FINISH JOB DRAWER ══════════ -->
+<div class="overlay" id="finOverlay"></div>
+<div class="drawer" id="finishDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-hdr">
+    <h6><i class="bi bi-check2-square" style="color:#05a34a;"></i>Finish Job</h6>
+    <button class="drawer-close" data-close="fin"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-sr">
+      <i class="bi bi-link-45deg"></i>Job: <strong id="finSrRef">&mdash;</strong>
+    </div>
+
+    <label class="d-label" for="finSummary">Completion Summary</label>
+    <textarea class="d-remark" id="finSummary" rows="3"
+              placeholder="What was done, parts replaced, outcome&hellip;"></textarea>
+
+    <label class="d-label" for="finCustName">Customer Name</label>
+    <input type="text" class="d-input" id="finCustName" placeholder="Name on the acceptance form"/>
+
+    <label class="d-label" for="finCustPhone">Customer Phone</label>
+    <input type="tel" class="d-input" id="finCustPhone" placeholder="+971 &hellip;" inputmode="tel"/>
+
+    <label class="d-label" for="finLabour">Labour Charge (AED)</label>
+    <input type="number" class="d-input" id="finLabour" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
+
+    <label class="d-label" for="finNotes">Internal Notes</label>
+    <textarea class="d-remark" id="finNotes" rows="2" placeholder="Anything QC should know&hellip;"></textarea>
+
+    <div class="drawer-actions">
+      <button class="btn-cancel" data-close="fin">Cancel</button>
+      <button class="btn-save" id="finConfirmBtn">
+        <i class="bi bi-check2-square"></i> Finish Job
+      </button>
     </div>
   </div>
 </div>
@@ -689,6 +788,16 @@ body {
           <div class="tw-lbl" id="timerLabel">Not started</div>
         </div>
         <div class="tw-status status-idle" id="timerStatus">Idle</div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-card-hdr">
+          <i class="bi bi-card-text" style="color:#9a8053;"></i>Work Description
+        </div>
+        <div class="section-card-body">
+          <textarea class="d-remark" id="workDesc" rows="3"
+                    placeholder="What work is being carried out&hellip;"></textarea>
+        </div>
       </div>
 
       <div class="punch-row">
@@ -776,6 +885,47 @@ body {
     </div>
   </section>
 
+  <!-- ── HISTORY ── -->
+  <section id="pageHistory" class="hidden">
+    <div class="page-band">
+      <div>
+        <div class="pg-title"><i class="bi bi-clock-history" style="color:#9a8053;"></i>Work History</div>
+        <div class="pg-sub" id="histSub">Loading&hellip;</div>
+      </div>
+      <span class="pg-count" id="histCount">0 jobs</span>
+    </div>
+
+    <div class="page-content">
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val" id="statJobs">&mdash;</div><div class="stat-lbl">Jobs</div></div>
+        <div class="stat-box"><div class="stat-val" id="statHours">&mdash;</div><div class="stat-lbl">Hours</div></div>
+        <div class="stat-box"><div class="stat-val" id="statExp">&mdash;</div><div class="stat-lbl">AED Mat.</div></div>
+      </div>
+      <div id="histList">
+        <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── PROFILE ── -->
+  <section id="pageProfile" class="hidden">
+    <div class="page-band">
+      <div>
+        <div class="pg-title"><i class="bi bi-person-circle" style="color:#9a8053;"></i>My Profile</div>
+        <div class="pg-sub">Account &amp; performance</div>
+      </div>
+      <button class="th-btn" id="profRefresh" style="background:var(--surface-2);color:var(--text-muted);"
+              title="Refresh" aria-label="Refresh">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
+    </div>
+
+    <div class="page-content" id="profBody">
+      <div class="skel" style="height:170px;"></div>
+      <div class="skel" style="height:120px;"></div>
+    </div>
+  </section>
+
   <nav class="bottom-nav" id="bottomNav">
     <button class="bn-item active" data-nav="pipeline">
       <i class="bi bi-list-task"></i>Pipeline
@@ -796,14 +946,16 @@ body {
   </nav>
 
 </div><!-- /app-shell -->
+
 <script>
 'use strict';
 
 /* ══════════════════════════════════════════════════════
    BACKEND DATA
 ══════════════════════════════════════════════════════ */
-const JOBS  = @json($jobs ?? []);
-const CSRF  = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+const JOBS      = @json($jobs ?? []);
+const ACTIVE    = @json($activeJob ?? null);
+const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 const ROUTES = {
   accept:     @json($routes['accept']     ?? ''),
   punchIn:    @json($routes['punchIn']    ?? ''),
@@ -812,26 +964,30 @@ const ROUTES = {
   expense:    @json($routes['expense']    ?? ''),
   reschedule: @json($routes['reschedule'] ?? ''),
   hold:       @json($routes['hold']       ?? ''),
+  history:    @json($routes['history']    ?? ''),
+  profile:    @json($routes['profile']    ?? ''),
 };
 
 /* ══════════════════════════════════════════════════════
    STATE
-   activeRef = display ref ("SR-2026-000123") -> DOM ids
-   activeSrId = numeric primary key           -> API calls
+   activeRef  = display ref ("SR-2026-000123") -> DOM ids
+   activeSrId = numeric primary key            -> API calls
 ══════════════════════════════════════════════════════ */
-let activeRef     = null;
-let activeSrId    = null;
-let punchInTime   = null;
-let timerInterval = null;
-let expandedRef   = null;
-let currentFilter = 'all';
-let uploads       = { before:false, after:false, sig:false };
-let expenses      = [];
+let activeRef      = null;
+let activeSrId     = null;
+let punchInTime    = null;
+let timerInterval  = null;
+let expandedRef    = null;
+let currentFilter  = 'all';
+let uploads        = { before:false, after:false, sig:false };
+let expenses       = [];
+let historyLoaded  = false;
+let profileLoaded  = false;
 
 /* ══════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════ */
-const $  = (id) => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
 /** Escape for HTML text and quoted attribute contexts. */
 function esc(value) {
@@ -877,6 +1033,13 @@ async function apiPost(url, payload, isForm = false) {
     } catch { /* non-JSON error body; keep the status message */ }
     throw new Error(msg);
   }
+  return res.json();
+}
+
+async function apiGet(url) {
+  if (!url) throw new Error('Endpoint not configured.');
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return res.json();
 }
 
@@ -932,6 +1095,81 @@ $('themeBtn').addEventListener('click', () => {
   tick();
   setInterval(tick, 1000);
 })();
+
+/* ══════════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════════ */
+const PAGES = {
+  pipeline: 'pagePipeline',
+  terminal: 'pageTerminal',
+  history:  'pageHistory',
+  profile:  'pageProfile',
+};
+
+function setNav(target) {
+  document.querySelectorAll('.bn-item').forEach((b) => {
+    b.classList.toggle('active', b.dataset.nav === target);
+  });
+}
+
+function showPage(target) {
+  Object.values(PAGES).forEach((id) => $(id).classList.add('hidden'));
+  $(PAGES[target]).classList.remove('hidden');
+  setNav(target);
+}
+
+function goToPipeline() {
+  showPage('pipeline');
+  renderPipeline();
+}
+
+$('backBtn').addEventListener('click', goToPipeline);
+
+$('bottomNav').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-nav]');
+  if (!btn) return;
+  const target = btn.dataset.nav;
+
+  if (target === 'pipeline') { goToPipeline(); return; }
+
+  if (target === 'terminal') {
+    if (!activeSrId) { showToast('warning', 'No Active Job', 'Accept a job first.'); return; }
+    showPage('terminal');
+    return;
+  }
+
+  if (target === 'history') { showPage('history'); loadHistory(); return; }
+  if (target === 'profile') { showPage('profile'); loadProfile(); }
+});
+
+/* ══════════════════════════════════════════════════════
+   DRAWERS
+══════════════════════════════════════════════════════ */
+const DRAWERS = {
+  exp: { drawer: 'expenseDrawer', overlay: 'expOverlay' },
+  rs:  { drawer: 'rsDrawer',      overlay: 'rsOverlay'  },
+  fin: { drawer: 'finishDrawer',  overlay: 'finOverlay' },
+};
+
+function openDrawer(name) {
+  $(DRAWERS[name].drawer).classList.add('open');
+  $(DRAWERS[name].overlay).classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer(name) {
+  $(DRAWERS[name].drawer).classList.remove('open');
+  $(DRAWERS[name].overlay).classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+Object.entries(DRAWERS).forEach(([name, { overlay }]) => {
+  $(overlay).addEventListener('click', () => closeDrawer(name));
+});
+
+document.querySelectorAll('[data-close]').forEach((btn) => {
+  btn.addEventListener('click', () => closeDrawer(btn.dataset.close));
+});
 
 /* ══════════════════════════════════════════════════════
    PIPELINE RENDER
@@ -1143,6 +1381,8 @@ async function acceptJob(ref, srId, btn) {
     buildBanner(job, date, time);
     $('activeDot').classList.remove('hidden');
     showToast('success', 'Job Accepted', `ETA set to ${date} at ${time}.`);
+
+    renderPipeline();   // repaint the card so it shows the "active" footer
     openTerminal();
   } catch (err) {
     restore();
@@ -1168,23 +1408,22 @@ function buildBanner(job, etaDate, etaTime) {
 
   $('termTitle').innerHTML =
     `<i class="bi bi-broadcast" style="color:#8A6E47;"></i>${esc(job.id)}`;
-  $('termSub').textContent = job.client;
+  $('termSub').textContent  = job.client;
   $('expSrRef').textContent = job.id;
   $('rsSrRef').textContent  = job.id;
+  $('finSrRef').textContent = job.id;
 }
 
 /* ══════════════════════════════════════════════════════
-   NAVIGATION
+   TERMINAL
 ══════════════════════════════════════════════════════ */
 function openTerminal() {
-  $('pagePipeline').classList.add('hidden');
-  $('pageTerminal').classList.remove('hidden');
-  setNav('terminal');
+  showPage('terminal');
 
   // Fresh terminal: nothing punched, nothing uploaded.
-  $('punchInBtn').disabled = false;
+  $('punchInBtn').disabled  = false;
   $('punchInBtn').innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
-  $('punchOutBtn').disabled = true;
+  $('punchOutBtn').disabled  = true;
   $('punchOutBtn').innerHTML = '<i class="bi bi-check2-square"></i>Finish Job';
   $('expenseBtn').disabled = true;
   $('rsBtn').classList.add('hidden');
@@ -1192,53 +1431,24 @@ function openTerminal() {
   $('locationBadge').classList.add('hidden');
 
   $('timerDisplay').textContent = '00:00:00';
-  $('timerLabel').textContent = 'Not started';
-  $('timerStatus').textContent = 'Idle';
-  $('timerStatus').className = 'tw-status status-idle';
+  $('timerLabel').textContent   = 'Not started';
+  $('timerStatus').textContent  = 'Idle';
+  $('timerStatus').className    = 'tw-status status-idle';
   $('timerIcon').innerHTML = '<i class="bi bi-clock" style="color:#aeb7c5;"></i>';
   $('timerIcon').style.background = 'rgba(174,183,197,.12)';
 
   ['before', 'after', 'sig'].forEach((type) => {
     $(`${type}Status`).textContent = 'Pending';
-    $(`${type}Status`).className = 'comp-status cs-pending';
+    $(`${type}Status`).className   = 'comp-status cs-pending';
     document.querySelector(`[data-upload="${type}"]`).disabled = true;
   });
 
+  $('workDesc').value = '';
+  ['finSummary', 'finCustName', 'finCustPhone', 'finLabour', 'finNotes']
+    .forEach((id) => { $(id).value = ''; });
+
   renderExpenses();
 }
-
-function goToPipeline() {
-  $('pageTerminal').classList.add('hidden');
-  $('pagePipeline').classList.remove('hidden');
-  setNav('pipeline');
-  renderPipeline();
-}
-
-function setNav(target) {
-  document.querySelectorAll('.bn-item').forEach((b) => {
-    b.classList.toggle('active', b.dataset.nav === target);
-  });
-}
-
-$('backBtn').addEventListener('click', goToPipeline);
-
-$('bottomNav').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-nav]');
-  if (!btn) return;
-  const target = btn.dataset.nav;
-
-  if (target === 'pipeline') { goToPipeline(); return; }
-
-  if (target === 'terminal') {
-    if (!activeSrId) { showToast('warning', 'No Active Job', 'Accept a job first.'); return; }
-    $('pagePipeline').classList.add('hidden');
-    $('pageTerminal').classList.remove('hidden');
-    setNav('terminal');
-    return;
-  }
-
-  showToast('primary', target[0].toUpperCase() + target.slice(1), 'Section not available yet.');
-});
 
 /* ══════════════════════════════════════════════════════
    PUNCH IN
@@ -1279,11 +1489,17 @@ $('punchInBtn').addEventListener('click', () => {
   );
   */
 });
+
 async function punchIn(lat, lng) {
   const btn = $('punchInBtn');
 
   try {
-    const res = await apiPost(ROUTES.punchIn, { sr_id: activeSrId, lat, lng });
+    const res = await apiPost(ROUTES.punchIn, {
+      sr_id: activeSrId,
+      lat,
+      lng,
+      work_description: $('workDesc').value.trim() || null,
+    });
 
     punchInTime = new Date(res.punch_in_at);
     $('coordsText').textContent = `${lat}, ${lng}`;
@@ -1296,8 +1512,8 @@ async function punchIn(lat, lng) {
     $('timerIcon').innerHTML = '<i class="bi bi-stopwatch-fill" style="color:#05a34a;"></i>';
     $('timerIcon').style.background = 'rgba(5,163,74,.1)';
     $('timerStatus').textContent = 'Live';
-    $('timerStatus').className = 'tw-status status-live';
-    $('timerLabel').textContent = 'Time on site';
+    $('timerStatus').className   = 'tw-status status-live';
+    $('timerLabel').textContent  = 'Time on site';
 
     document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
     $('expenseBtn').disabled = false;
@@ -1354,7 +1570,7 @@ async function uploadFile(type, input) {
 
     uploads[type] = true;
     $(`${type}Status`).textContent = '\u2713 Done';
-    $(`${type}Status`).className = 'comp-status cs-done';
+    $(`${type}Status`).className   = 'comp-status cs-done';
     $(`${type}Icon`).style.background = tints[type];
     restore();
     showToast('success', `${labels[type]} Uploaded`, file.name);
@@ -1378,23 +1594,41 @@ function refreshLock() {
 /* ══════════════════════════════════════════════════════
    PUNCH OUT
 ══════════════════════════════════════════════════════ */
-$('punchOutBtn').addEventListener('click', async () => {
+$('punchOutBtn').addEventListener('click', () => {
   if (!(uploads.before && uploads.after && uploads.sig)) {
     showToast('error', 'Locked', 'Upload all compliance files first.');
     return;
   }
+  $('finSrRef').textContent = activeRef ?? '\u2014';
+  openDrawer('fin');
+});
 
-  const btn = $('punchOutBtn');
+$('finConfirmBtn').addEventListener('click', async () => {
+  const btn = $('finConfirmBtn');
   const restore = busy(btn, 'Processing\u2026');
 
-  try {
-    const res = await apiPost(ROUTES.punchOut, { sr_id: activeSrId });
+  const labour = $('finLabour').value;
 
+  const payload = {
+    sr_id:          activeSrId,
+    summary:        $('finSummary').value.trim()   || null,
+    customer_name:  $('finCustName').value.trim()  || null,
+    customer_phone: $('finCustPhone').value.trim() || null,
+    labour_charge:  labour === '' ? null : labour,
+    notes:          $('finNotes').value.trim()     || null,
+  };
+
+  try {
+    const res = await apiPost(ROUTES.punchOut, payload);
+
+    closeDrawer('fin');
     clearInterval(timerInterval);
+
     $('timerStatus').textContent = 'Completed';
-    $('timerStatus').className = 'tw-status status-done';
-    $('timerLabel').textContent = `Total: ${res.duration ?? '\u2014'}`;
-    btn.innerHTML = '<i class="bi bi-check2"></i>Job Finished';
+    $('timerStatus').className   = 'tw-status status-done';
+    $('timerLabel').textContent  = `Total: ${res.duration ?? '\u2014'}`;
+    $('punchOutBtn').innerHTML = '<i class="bi bi-check2"></i>Job Finished';
+    $('punchOutBtn').disabled  = true;
 
     showToast('success', 'Job Finished',
       `Duration ${res.duration ?? '\u2014'} \u00b7 AED ${res.grand_total ?? '0.00'} \u00b7 Sent for review.`);
@@ -1404,8 +1638,10 @@ $('punchOutBtn').addEventListener('click', async () => {
     if (index > -1) JOBS.splice(index, 1);
 
     activeRef = activeSrId = punchInTime = null;
-    uploads = { before:false, after:false, sig:false };
+    uploads  = { before:false, after:false, sig:false };
     expenses = [];
+    historyLoaded = false;
+    profileLoaded = false;
 
     $('activeDot').classList.add('hidden');
     $('punchInBtn').disabled = true;
@@ -1420,30 +1656,14 @@ $('punchOutBtn').addEventListener('click', async () => {
 });
 
 /* ══════════════════════════════════════════════════════
-   DRAWERS — open / close
-══════════════════════════════════════════════════════ */
-function openDrawer(name) {
-  $(name === 'exp' ? 'expenseDrawer' : 'rsDrawer').classList.add('open');
-  $(name === 'exp' ? 'expOverlay' : 'rsOverlay').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeDrawer(name) {
-  $(name === 'exp' ? 'expenseDrawer' : 'rsDrawer').classList.remove('open');
-  $(name === 'exp' ? 'expOverlay' : 'rsOverlay').classList.remove('show');
-  document.body.style.overflow = '';
-}
-
-document.querySelectorAll('[data-close]').forEach((btn) => {
-  btn.addEventListener('click', () => closeDrawer(btn.dataset.close));
-});
-$('expOverlay').addEventListener('click', () => closeDrawer('exp'));
-$('rsOverlay').addEventListener('click', () => closeDrawer('rs'));
-
-/* ══════════════════════════════════════════════════════
    EXPENSE DRAWER
 ══════════════════════════════════════════════════════ */
 $('expenseBtn').addEventListener('click', () => openDrawer('exp'));
+
+$('expCategory').addEventListener('change', (e) => {
+  $('expNameWrap').classList.toggle('hidden', !e.target.value);
+  if (e.target.value) $('expName').focus();
+});
 
 $('expReceipt').addEventListener('change', (e) => {
   if (!e.target.files.length) return;
@@ -1453,9 +1673,11 @@ $('expReceipt').addEventListener('change', (e) => {
 
 $('expSaveBtn').addEventListener('click', async () => {
   const category = $('expCategory').value;
+  const name     = $('expName').value.trim();
   const amount   = $('expAmount').value;
 
   if (!category) { showToast('warning', 'Missing', 'Select an expense category.'); return; }
+  if (!name)     { showToast('warning', 'Missing', 'Enter an item name.'); return; }
   if (!amount || parseFloat(amount) <= 0) { showToast('warning', 'Missing', 'Enter a valid amount.'); return; }
 
   const btn = $('expSaveBtn');
@@ -1464,32 +1686,36 @@ $('expSaveBtn').addEventListener('click', async () => {
   const form = new FormData();
   form.append('sr_id', activeSrId);
   form.append('category', category);
+  form.append('name', name);
   form.append('amount', amount);
   if ($('expReceipt').files.length) form.append('receipt', $('expReceipt').files[0]);
 
- try {
-  const res = await apiPost(ROUTES.expense, form, true);
+  try {
+    const res = await apiPost(ROUTES.expense, form, true);
 
-  expenses.push({
-    category,
-    amount: parseFloat(amount).toFixed(2),
-    time: hhmm(new Date()),
-    receiptUrl: res.receipt_url ?? null,
-  });
+    expenses.push({
+      category,
+      name,
+      amount: parseFloat(amount).toFixed(2),
+      time: hhmm(new Date()),
+      receiptUrl: res.receipt_url ?? null,
+    });
 
-  restore();
-  resetExpenseForm();
-  closeDrawer('exp');
-  renderExpenses();
-  showToast('success', 'Expense Saved', `AED ${parseFloat(amount).toFixed(2)} \u2014 ${category}`);
-} catch (err) {
-  restore();
-  showToast('error', 'Could not save expense', err.message);
-}
+    restore();
+    resetExpenseForm();
+    closeDrawer('exp');
+    renderExpenses();
+    showToast('success', 'Expense Saved', `AED ${parseFloat(amount).toFixed(2)} \u2014 ${name}`);
+  } catch (err) {
+    restore();
+    showToast('error', 'Could not save expense', err.message);
+  }
 });
 
 function resetExpenseForm() {
   $('expCategory').value = '';
+  $('expName').value = '';
+  $('expNameWrap').classList.add('hidden');
   $('expAmount').value = '';
   $('expReceipt').value = '';
   $('receiptPreview').classList.remove('show');
@@ -1504,19 +1730,32 @@ function renderExpenses() {
   }
 
   const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0).toFixed(2);
+
   wrap.innerHTML =
-  expenses.map((e) => `
-    <div class="exp-item">
-      ${e.receiptUrl
-        ? `<img src="${esc(e.receiptUrl)}" class="exp-receipt" alt="Receipt"
-                data-receipt="${esc(e.receiptUrl)}"/>`
-        : '<i class="bi bi-receipt" style="color:#fbbc06;"></i>'}
-      <span class="ec">${esc(e.category)}</span>
-      <span class="ea">AED ${esc(e.amount)}</span>
-      <span class="er">${esc(e.time)}</span>
-    </div>`).join('') +
-  `<div class="exp-total">Total: AED ${total}</div>`;
+    expenses.map((e) => `
+      <div class="exp-item">
+        ${e.receiptUrl
+          ? `<img src="${esc(e.receiptUrl)}" class="exp-receipt" alt="Receipt"
+                  data-receipt="${esc(e.receiptUrl)}"/>`
+          : '<i class="bi bi-receipt" style="color:#fbbc06;"></i>'}
+        <div class="body">
+          <div class="en">${esc(e.name ?? e.category)}</div>
+          <div class="ec">${esc(e.category)}</div>
+        </div>
+        <span class="ea">AED ${esc(e.amount)}</span>
+        <span class="er">${esc(e.time)}</span>
+      </div>`).join('') +
+    `<div class="exp-total">Total: AED ${total}</div>`;
 }
+
+/* Tap a receipt thumbnail in the expense list to enlarge it. */
+$('expenseListWrap').addEventListener('click', (e) => {
+  const img = e.target.closest('[data-receipt]');
+  if (!img) return;
+  $('lbContent').innerHTML =
+    `<img src="${esc(img.dataset.receipt)}" class="lb-img" alt="Receipt"/>`;
+  $('lbOverlay').classList.add('show');
+});
 
 /* ══════════════════════════════════════════════════════
    RESCHEDULE / HOLD DRAWER
@@ -1587,7 +1826,7 @@ $('holdConfirmBtn').addEventListener('click', async () => {
     if (index > -1) JOBS[index].status = 'Assigned';
 
     activeRef = activeSrId = punchInTime = null;
-    uploads = { before:false, after:false, sig:false };
+    uploads  = { before:false, after:false, sig:false };
     expenses = [];
     $('activeDot').classList.add('hidden');
 
@@ -1622,27 +1861,192 @@ $('lbOverlay').addEventListener('click', (e) => {
   if (e.target === $('lbOverlay')) closeLightbox();
 });
 
-/* Tap a receipt thumbnail in the expense list to enlarge it. */
-$('expenseListWrap').addEventListener('click', (e) => {
-  const img = e.target.closest('[data-receipt]');
-  if (!img) return;
-  $('lbContent').innerHTML =
-    `<img src="${esc(img.dataset.receipt)}" class="lb-img" alt="Receipt"/>`;
-  $('lbOverlay').classList.add('show');
-});
-
 /* Escape closes whatever is on top. */
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  if ($('lbOverlay').classList.contains('show')) { closeLightbox(); return; }
-  if ($('expenseDrawer').classList.contains('open')) { closeDrawer('exp'); return; }
-  if ($('rsDrawer').classList.contains('open')) closeDrawer('rs');
+  if ($('lbOverlay').classList.contains('show'))    { closeLightbox(); return; }
+  if ($('finishDrawer').classList.contains('open')) { closeDrawer('fin'); return; }
+  if ($('expenseDrawer').classList.contains('open')){ closeDrawer('exp'); return; }
+  if ($('rsDrawer').classList.contains('open'))     { closeDrawer('rs'); }
 });
+
+/* ══════════════════════════════════════════════════════
+   HISTORY
+══════════════════════════════════════════════════════ */
+async function loadHistory(force = false) {
+  if (historyLoaded && !force) return;
+
+  try {
+    const res = await apiGet(ROUTES.history);
+    historyLoaded = true;
+
+    $('statJobs').textContent  = res.stats.jobs;
+    $('statHours').textContent = res.stats.hours;
+    $('statExp').textContent   = res.stats.expenses;
+
+    $('histCount').textContent = `${res.items.length} job${res.items.length === 1 ? '' : 's'}`;
+    $('histSub').textContent   = `${res.stats.hours}h logged \u00b7 last 50 jobs`;
+
+    const list = $('histList');
+    if (!res.items.length) {
+      list.innerHTML =
+        '<div class="empty-state"><i class="bi bi-inbox"></i>' +
+        '<h6>Nothing yet</h6><p>Finished jobs will appear here.</p></div>';
+      return;
+    }
+
+    list.innerHTML = res.items.map((h) => `
+      <article class="hist-card">
+        <div class="hist-top">
+          <span class="hist-ref">${esc(h.ref)}</span>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="jc-badge badge-${esc(h.status)}">${esc(h.status)}</span>
+            <span class="hist-date">${esc(h.date)}</span>
+          </div>
+        </div>
+        <div class="hist-client">${esc(h.client)}</div>
+        <div class="hist-site"><i class="bi bi-geo-alt"></i> ${esc(String(h.site).split(',')[0])}</div>
+        <div class="hist-grid">
+          <span class="hist-chip"><i class="bi bi-stopwatch"></i>${esc(h.duration)}</span>
+          <span class="hist-chip"><i class="bi bi-clock"></i>${esc(h.in)}\u2013${esc(h.out)}</span>
+          <span class="hist-chip"><i class="bi bi-receipt"></i>${Number(h.itemCount)}</span>
+          <span class="hist-total">AED ${esc(h.total)}</span>
+        </div>
+      </article>`).join('');
+  } catch (err) {
+    $('histList').innerHTML =
+      '<div class="empty-state"><i class="bi bi-wifi-off"></i>' +
+      `<h6>Could not load</h6><p>${esc(err.message)}</p></div>`;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   PROFILE
+══════════════════════════════════════════════════════ */
+async function loadProfile(force = false) {
+  if (profileLoaded && !force) return;
+
+  try {
+    const res = await apiGet(ROUTES.profile);
+    profileLoaded = true;
+    const u = res.user, s = res.stats;
+
+    $('profBody').innerHTML = `
+      <div class="prof-hero">
+        <div class="prof-avatar">${esc(u.initials)}</div>
+        <div class="prof-name">${esc(u.name)}</div>
+        <div class="prof-role">
+          ${esc(u.role)}${u.code ? ' \u00b7 ' + esc(u.code) : ''}
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-box"><div class="stat-val">${Number(s.open)}</div><div class="stat-lbl">Open</div></div>
+        <div class="stat-box"><div class="stat-val">${Number(s.completed)}</div><div class="stat-lbl">Done</div></div>
+        <div class="stat-box"><div class="stat-val">${Number(s.hours)}</div><div class="stat-lbl">Hours</div></div>
+      </div>
+
+      <div class="compliance-card">
+        <div class="comp-title"><i class="bi bi-person-vcard"></i>Account Details</div>
+        <div class="info-row">
+          <div class="info-ico"><i class="bi bi-envelope-fill"></i></div>
+          <div><div class="info-lbl">Email</div><div class="info-val">${esc(u.email)}</div></div>
+        </div>
+        <div class="info-row">
+          <div class="info-ico"><i class="bi bi-telephone-fill"></i></div>
+          <div><div class="info-lbl">Phone</div><div class="info-val">${esc(u.phone)}</div></div>
+        </div>
+        <div class="info-row">
+          <div class="info-ico"><i class="bi bi-calendar-event-fill"></i></div>
+          <div><div class="info-lbl">Member since</div><div class="info-val">${esc(u.joined)}</div></div>
+        </div>
+      </div>
+
+      <button class="btn-outline brand" id="profThemeBtn">
+        <i class="bi bi-circle-half"></i>Toggle Theme
+      </button>`;
+
+    $('profThemeBtn').addEventListener('click', () => {
+      applyTheme(document.documentElement.getAttribute('data-bs-theme') !== 'dark');
+    });
+  } catch (err) {
+    $('profBody').innerHTML =
+      '<div class="empty-state"><i class="bi bi-wifi-off"></i>' +
+      `<h6>Could not load</h6><p>${esc(err.message)}</p></div>`;
+  }
+}
+
+$('profRefresh').addEventListener('click', () => loadProfile(true));
 
 /* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
-renderPipeline();
+if (ACTIVE) {
+  restoreTerminal(ACTIVE);
+} else {
+  renderPipeline();
+}
+
+/**
+ * Rebuild the terminal from a server-supplied open punch. Runs instead of
+ * the normal pipeline render so a reload mid-job doesn't lose the timer,
+ * the uploads, or the logged expenses.
+ */
+function restoreTerminal(state) {
+  const job = state.job;
+
+  activeRef  = job.id;
+  activeSrId = Number(job.sr_id);
+  uploads    = { ...state.uploads };
+  expenses   = state.expenses.map((e) => ({ ...e }));
+
+  buildBanner(job, state.etaDate ?? '\u2014', state.etaTime ?? '\u2014');
+  renderPipeline();
+  showPage('terminal');
+
+  $('activeDot').classList.remove('hidden');
+  $('workDesc').value = state.workDesc ?? '';
+
+  // Punch already open: the timer is running, uploads are unlocked.
+  if (state.punchInAt) {
+    punchInTime = new Date(state.punchInAt);
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+
+    $('timerIcon').innerHTML = '<i class="bi bi-stopwatch-fill" style="color:#05a34a;"></i>';
+    $('timerIcon').style.background = 'rgba(5,163,74,.1)';
+    $('timerStatus').textContent = 'Live';
+    $('timerStatus').className   = 'tw-status status-live';
+    $('timerLabel').textContent  = 'Time on site';
+
+    $('punchInBtn').disabled  = true;
+    $('punchInBtn').innerHTML = '<i class="bi bi-check2"></i>Job Started';
+
+    document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
+    $('expenseBtn').disabled = false;
+    $('rsBtn').classList.remove('hidden');
+  }
+
+  if (state.siteLocation) {
+    $('coordsText').textContent = state.siteLocation;
+    $('locationBadge').classList.remove('hidden');
+  }
+
+  const tints = {
+    before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)', sig:'rgba(5,163,74,.15)',
+  };
+  ['before', 'after', 'sig'].forEach((type) => {
+    if (!uploads[type]) return;
+    $(`${type}Status`).textContent = '\u2713 Done';
+    $(`${type}Status`).className   = 'comp-status cs-done';
+    $(`${type}Icon`).style.background = tints[type];
+  });
+
+  renderExpenses();
+  refreshLock();
+}
 </script>
 </body>
 </html>

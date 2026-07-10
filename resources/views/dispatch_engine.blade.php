@@ -1371,6 +1371,11 @@ function openDispatchModal(){
   const tech=TECHS.find(x=>String(x.id)===String(selTechId));
   if(!tech){ showToast('error','No technician','Please select a technician first.'); return; }
 
+  const catSel = document.getElementById('dispCategory');
+  const domSel = document.getElementById('dispDomain');
+  const categoryName = catSel.value ? catSel.options[catSel.selectedIndex].text : (t.domain || '—');
+  const domainName   = domSel.value ? domSel.options[domSel.selectedIndex].text : '—';
+
   const code='ML-'+String(tech.id).padStart(3,'0');
   const initials=(tech.name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
 
@@ -1380,7 +1385,8 @@ function openDispatchModal(){
     <div class="ms-row"><div class="ml">Priority</div><div class="mv">${t.priority}</div></div>
     <div class="ms-row full"><div class="ml">Client</div><div class="mv">${t.client}</div></div>
     <div class="ms-row full"><div class="ml">Site</div><div class="mv">${t.site}</div></div>
-    <div class="ms-row"><div class="ml">Category</div><div class="mv">${t.domain}</div></div>
+    <div class="ms-row"><div class="ml">Category</div><div class="mv">${categoryName}</div></div>
+    <div class="ms-row"><div class="ml">Domain</div><div class="mv">${domainName}</div></div>
     <div class="ms-row"><div class="ml">SLA Elapsed</div><div class="mv" style="color:${t.hrsAgo>24?'#ff3366':t.hrsAgo>8?'#fbbc06':'#05a34a'}">${t.hrsAgo}h</div></div>
     <div class="ms-row full" style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:4px;">
       <div class="ml">Assigned Technician</div>
@@ -1400,7 +1406,12 @@ function executeDispatch(){
   const tech=TECHS.find(x=>String(x.id)===String(selTechId));
   if(!t||!tech){ showToast('error','Error','Missing ticket or technician.'); return; }
 
-  const domainId = document.getElementById('dispDomain')?.value || null;
+  const categorySelect = document.getElementById('dispCategory');
+const domainSelect   = document.getElementById('dispDomain');
+
+const categoryName = categorySelect.value ? categorySelect.options[categorySelect.selectedIndex].text : '-';
+const domainName   = domainSelect.value   ? domainSelect.options[domainSelect.selectedIndex].text   : '-';
+const domainId     = domainSelect.value || null;
 
   btn.disabled=true;
   btn.innerHTML='<span class="spinner-border" style="width:13px;height:13px;border-width:2px;"></span> Dispatching…';
@@ -1423,7 +1434,17 @@ function executeDispatch(){
       const code='ML-'+String(tech.id).padStart(3,'0');
 
       // toast in the requested style
-      showToast('success','Dispatched!',`${t.id} → ${tech.name}. Push notification fired. Status: Assigned.`);
+      showToast(
+    'success',
+    'Dispatch Successful!',
+    `
+    SR: ${t.id}
+    Technician: ${tech.name}
+    Category: ${categoryName}
+    Domain: ${domainName}
+    Status: Assigned
+    `
+);
 
       tickets=tickets.filter(x=>x.id!==selTkId);
       dispatchedToday++;

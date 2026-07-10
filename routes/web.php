@@ -208,4 +208,7 @@ Route::prefix('worker')->name('worker.')->group(function () {
     Route::post('/punch/out',      [WorkerPunchController::class, 'punchOut'])->name('punch.out');
     Route::post('/punch/upload',   [WorkerPunchController::class, 'upload'])->name('punch.upload');
     Route::post('/punch/expense',  [WorkerPunchController::class, 'expense'])->name('punch.expense');
+
+  Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
+    Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
 });
