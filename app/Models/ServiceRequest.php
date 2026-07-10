@@ -125,6 +125,8 @@ class ServiceRequest extends Model
             ->first();
     }
 
+    
+
     public function punch(): HasOne
 {
     return $this->hasOne(Punch::class)->latestOfMany();
