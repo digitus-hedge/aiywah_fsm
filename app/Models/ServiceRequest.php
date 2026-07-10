@@ -43,10 +43,19 @@ class ServiceRequest extends Model
         'held_at',
     ];
 
-    protected $casts = [
+     protected $casts = [
         'attachments' => 'array',
+        'invoice_total' => 'decimal:2',
+        'invoice_submitted_at' => 'datetime',
+        'hop_approved_at' => 'datetime',
+        'quote_submitted_at' => 'datetime',
+        'client_approved_at' => 'datetime',
+
         'dispatched_at'  => 'datetime',
         'qc_reviewed_at' => 'datetime',
+        'eta_at'         => 'datetime',
+        'accepted_at'    => 'datetime',
+        'held_at'        => 'datetime',
     ];
 
     public function assignedUser(): BelongsTo
@@ -84,6 +93,12 @@ class ServiceRequest extends Model
             ->latest()
             ->first();
     }
+
+    public function domain(): BelongsTo
+{
+    return $this->belongsTo(ServiceDomain::class, 'service_domain_id');
+}
+   
 
     public function punches()
     {
