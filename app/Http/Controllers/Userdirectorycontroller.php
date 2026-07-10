@@ -14,12 +14,10 @@ class UserDirectoryController extends Controller
     public function index(Request $request)
     {
         $roles = Role::orderBy('sort_order')->get();
-
         // Aggregate stats (single grouped query)
         $counts = User::selectRaw('status, COUNT(*) as c')
             ->groupBy('status')
             ->pluck('c', 'status');
-
         $stats = [
             'total'    => (int) $counts->sum(),
             'active'   => (int) ($counts['active']   ?? 0),
