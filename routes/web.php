@@ -7,7 +7,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ServiceRequestController;
 use App\Http\Controllers\MasterController;
 use App\Http\Controllers\UserProvisioningController;
-use App\Http\Controllers\UserDirectoryController;
+use App\Http\Controllers\UserdirectoryController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\WorkerPipelineController;
 use App\Http\Controllers\WorkerPunchController;
@@ -67,9 +67,9 @@ Route::middleware('auth')->group(function () {
     Route::put('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])->name('user_provisioning.update');
 
     //user-directory
-    Route::get('/user-directory', [UserDirectoryController::class, 'index'])->name('user_directory');
-    Route::post('/user-directory/{user}/toggle-status', [UserDirectoryController::class, 'toggleStatus'])->name('user_directory.toggle');
-    Route::post('/user-directory/{user}/reset-password', [UserDirectoryController::class, 'resetPassword'])->name('user_directory.reset');
+    Route::get('/user-directory', [UserdirectoryController::class, 'index'])->name('user_directory');
+    Route::post('/user-directory/{user}/toggle-status', [UserdirectoryController::class, 'toggleStatus'])->name('user_directory.toggle');
+    Route::post('/user-directory/{user}/reset-password', [UserdirectoryController::class, 'resetPassword'])->name('user_directory.reset');
 
 
     /* ---- Inquiry Approval ---- */
