@@ -72,9 +72,10 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(ServiceCategory::class, 'service_type_id');
     }
-    public function project(): BelongsTo
+   
+    public function project()
     {
-        return $this->belongsTo(Project::class);
+        return $this->belongsTo(Project::class, 'project_id');
     }
     public function creator(): BelongsTo
     {

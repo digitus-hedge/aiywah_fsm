@@ -14,7 +14,6 @@ return new class extends Migration
 
             $table->foreignId('client_id')->constrained('clients')->cascadeOnDelete();
 
-            $table->string('project_site');
             $table->unsignedTinyInteger('service_type_id'); 
 
             $table->string('reported_by');
