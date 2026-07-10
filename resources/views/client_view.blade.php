@@ -42,7 +42,7 @@
     color: #fff;
     font-size: .85rem;
     font-weight: 700;
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
     letter-spacing: -.5px;
     line-height: 1;
   }
@@ -52,7 +52,7 @@
     font-weight: 700;
     color: var(--text-heading);
     line-height: 1.2;
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
   }
 
   .sb-brand-sub {
@@ -226,7 +226,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
   }
 
   .breadcrumb {
@@ -460,12 +460,12 @@
     align-items: center;
     gap: 6px;
     margin-bottom: 8px;
-    font-family: monospace;
+    /* font-family: monospace; */
     letter-spacing: .03em;
   }
 
   .hero-name {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
     font-size: 1.55rem;
     font-weight: 700;
     line-height: 1.15;
@@ -531,7 +531,7 @@
     cursor: pointer;
     transition: background .15s;
     white-space: nowrap;
-    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    /* font-family: 'SF Pro Display', -apple-system, sans-serif; */
   }
 
   .btn-hero-out:hover {
@@ -552,7 +552,7 @@
     cursor: pointer;
     transition: opacity .15s;
     white-space: nowrap;
-    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    /* font-family: 'SF Pro Display', -apple-system, sans-serif; */
   }
 
   .btn-hero-solid:hover {
@@ -594,7 +594,7 @@
     font-weight: 700;
     line-height: 1;
     color: var(--text-heading);
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
   }
 
   .stat-lbl {
@@ -669,7 +669,7 @@
     font-size: .9rem;
     font-weight: 600;
     color: var(--text-heading);
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
   }
 
   .result-count {
@@ -715,7 +715,7 @@
     background: var(--input-bg);
     color: var(--text-primary);
     font-size: .78rem;
-    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    /* font-family: 'SF Pro Display', -apple-system, sans-serif; */
     min-width: 120px;
     transition: border-color .15s;
   }
@@ -782,7 +782,7 @@
   }
 
   table.listing td.mono {
-    font-family: monospace;
+    /* font-family: monospace; */
     font-size: .78rem;
     font-weight: 600;
     color: #9a8053;
@@ -895,7 +895,7 @@
     cursor: pointer;
     white-space: nowrap;
     transition: opacity .15s;
-    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    /* font-family: 'SF Pro Display', -apple-system, sans-serif; */
   }
 
   .btn-gold:hover {
@@ -914,7 +914,7 @@
     font-size: .8rem;
     cursor: pointer;
     white-space: nowrap;
-    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    /* font-family: 'SF Pro Display', -apple-system, sans-serif; */
   }
 
   .btn-ghost:hover {
@@ -930,7 +930,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    /* font-family: 'SF Pro Display', -apple-system, sans-serif; */
     transition: background .12s;
   }
 
@@ -990,7 +990,7 @@
     font-size: .82rem;
     font-weight: 600;
     color: var(--text-heading);
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
   }
 
   .info-row {
@@ -1027,7 +1027,7 @@
   }
 
   .info-val.mono {
-    font-family: monospace;
+    /* font-family: monospace; */
     color: #9a8053;
     word-break: break-all;
   }
@@ -1078,7 +1078,7 @@
   .stk-phone {
     font-size: .72rem;
     color: #9a8053;
-    font-family: monospace;
+    /* font-family: monospace; */
     margin-left: auto;
     flex-shrink: 0;
   }
@@ -1225,7 +1225,7 @@
     font-weight: 600;
     color: var(--text-heading);
     margin: 0;
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
   }
 
   .modal-hdr-sub {
@@ -1370,7 +1370,7 @@
     padding: 8px 11px;
     width: 100%;
     transition: border-color .15s, box-shadow .15s;
-    font-family: 'SF Pro Display', -apple-system, sans-serif;
+    /* font-family: 'SF Pro Display', -apple-system, sans-serif; */
   }
 
   .form-control:focus,
@@ -1412,7 +1412,7 @@
   }
 
   .auto-code-field {
-    font-family: monospace;
+    /* font-family: monospace; */
     font-size: .82rem;
     font-weight: 600;
     color: #9a8053;
@@ -1498,7 +1498,7 @@
   }
 
   .empty-st h6 {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    /* font-family: 'Cormorant Garamond', Georgia, serif; */
     font-size: 1.05rem;
     color: var(--text-heading);
     margin-bottom: 5px;

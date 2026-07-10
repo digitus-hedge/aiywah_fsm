@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Warranty;
 use App\Models\Client;
+use App\Models\Project;
+use App\Models\ServiceRequest;
+use App\Models\ClientMobile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -107,42 +110,41 @@ class ClientController extends Controller
 
     public function show($id)
     {
-        $client = \App\Models\Client::findOrFail($id);
+        $client = Client::findOrFail($id);
 
-        $projects = \App\Models\Project::where('client_id', $client->id)
+        $projects = Project::where('client_id', $client->id)
             ->whereNull('deleted_at')
             ->orderByDesc('created_at')
             ->get();
 
         // Count service requests per project for this client
-        $srCounts = \App\Models\ServiceRequest::where('client_id', $client->id)
+        $srCounts = ServiceRequest::where('client_id', $client->id)
             ->selectRaw('project_id, COUNT(*) as total')
             ->groupBy('project_id')
             ->pluck('total', 'project_id');   // [project_id => count]
 
-        $mobiles = \App\Models\ClientMobile::where('client_id', $client->id)
+        $mobiles = ClientMobile::where('client_id', $client->id)
             ->orderBy('id')
             ->get();
 
-       $projectsJs = $projects->map(function ($p) use ($srCounts) {
-    return [
-        'id'             => $p->id,
-        'code'           => $p->project_code,
-        'name'           => $p->project_name,
-        'siteName'       => $p->site_name,
-        'siteAddress'    => $p->site_address,
-        'contract'       => $p->contract_type ?? '—',
-        'startDate'      => optional($p->created_at)->format('d M Y'),
-        'completionDate' => optional($p->completion_date)->format('Y-m-d'),  // <-- add
-        'warrantyId'     => $p->warranty_id,                                  // <-- add
-        'srCount'        => $srCounts[$p->id] ?? 0,
-        'active'         => in_array(strtolower($p->status ?? ''), ['active', '1']),
-    ];
-})->values();
+        $projectsJs = $projects->map(function ($p) use ($srCounts) {
+            return [
+                'id'             => $p->id,
+                'code'           => $p->project_code,
+                'name'           => $p->project_name,
+                'siteName'       => $p->site_name,
+                'siteAddress'    => $p->site_address,
+                'contract'       => $p->contract_type ?? '—',
+                'startDate'      => optional($p->created_at)->format('d M Y'),
+                'completionDate' => optional($p->completion_date)->format('Y-m-d'),  // <-- add
+                'warrantyId'     => $p->warranty_id,                                  // <-- add
+                'srCount'        => $srCounts[$p->id] ?? 0,
+                'active'         => in_array(strtolower($p->status ?? ''), ['active', '1']),
+            ];
+        })->values();
 
         // Project-created events — one per project_code, newest kept
-        $projectActivity = $projects
-            ->sortByDesc('created_at')
+        $projectActivity = $projects->sortByDesc('created_at')
             ->unique('project_code')
             ->map(fn($p) => [
                 'type'   => 'project',
@@ -153,7 +155,7 @@ class ClientController extends Controller
             ]);
 
         // Recent service requests for this client
-        $recentSrs = \App\Models\ServiceRequest::where('client_id', $client->id)
+        $recentSrs = ServiceRequest::where('client_id', $client->id)
             ->orderByDesc('created_at')
             ->limit(6)
             ->get()
@@ -188,7 +190,7 @@ class ClientController extends Controller
             ->values();
 
 
-     $warranties = Warranty::where('status', 1)->orderBy('name')->get();
+        $warranties = Warranty::where('status', 1)->orderBy('name')->get();
 
 
         $lifetimeSrs = 0;
@@ -208,21 +210,23 @@ class ClientController extends Controller
         ));
     }
 
-      public function edit(Client $client)
+    public function edit(Client $client)
     {
         $client->load(['mobiles', 'projects']);
 
         $recentClients  = Client::latest()->take(5)->get();
         $existingTokens = Client::pluck('unique_code');
+        $warranties     = Warranty::where('status', 1)->orderBy('name')->get();
 
         return view('client_accounts', [
             'recentClients'  => $recentClients,
             'existingTokens' => $existingTokens,
+            'warranties'     =>  $warranties,
             'suggestedCode'  => $client->unique_code,
             'client'         => $client,
         ]);
     }
-    
+
 
     public function store(Request $request)
     {

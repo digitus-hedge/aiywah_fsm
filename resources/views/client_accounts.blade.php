@@ -63,7 +63,7 @@
 .form-control,.form-select,.form-textarea{
   width:100%;font-size:.8125rem;border:1.5px solid var(--border-color);border-radius:7px;
   padding:.469rem .8rem;color:var(--text-primary);background:var(--input-bg);
-  transition:border-color .15s,box-shadow .15s,background .3s;font-family:inherit;
+  transition:border-color .15s,box-shadow .15s,background .3s;
 }
 .form-control:focus,.form-select:focus,.form-textarea:focus{border-color:#9A7B4F;box-shadow:var(--input-focus-shadow);outline:none;}
 .form-control::placeholder,.form-textarea::placeholder{color:var(--text-light);}
@@ -131,7 +131,7 @@
 .ps-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 @media(max-width:575.98px){.ps-fields{grid-template-columns:1fr;}}
 .ps-label{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:block;margin-bottom:4px;}
-.ps-input,.ps-textarea{width:100%;font-size:.8rem;border:1px solid var(--border-color);border-radius:6px;padding:.4rem .7rem;color:var(--text-primary);background:var(--input-bg);font-family:inherit;transition:border-color .15s,box-shadow .15s;}
+.ps-input,.ps-textarea{width:100%;font-size:.8rem;border:1px solid var(--border-color);border-radius:6px;padding:.4rem .7rem;color:var(--text-primary);background:var(--input-bg);transition:border-color .15s,box-shadow .15s;}
 .ps-input:focus,.ps-textarea:focus{border-color:#9A7B4F;box-shadow:0 0 0 2px rgba(154,123,79,.1);outline:none;}
 .ps-input::placeholder,.ps-textarea::placeholder{color:var(--text-light);}
 .ps-input[readonly]{background:var(--surface-3);cursor:not-allowed;color:var(--text-muted);}
@@ -186,7 +186,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 .clients-tbl tbody tr:hover{background:var(--table-row-hover);}
 .clients-tbl tbody td{padding:10px 12px;font-size:.78rem;vertical-align:middle;}
 .tbl-client-name{font-weight:500;color:var(--text-heading);}
-.tbl-token{font-size:.72rem;color:#9A7B4F;font-weight:600;font-family:monospace;}
+.tbl-token{font-size:.72rem;color:#9A7B4F;font-weight:600;}
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;}
 .dot-active{background:#05a34a;}
@@ -242,7 +242,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="modal-token-box">{{ session('saved_token', 'CUST-——') }}</div>
     </div>
     <div class="modal-ftr">
-      <a href="{{ route('clients.create') }}" class="btn-modal-close">Close</a>
+      <a href="{{ route('clients.directory') }}" class="btn-modal-close">Close</a>
       <a href="{{ route('clients.create') }}" class="btn-modal-ok"><i class="bi bi-plus-lg"></i>Add Another</a>
     </div>
   </div>
@@ -297,7 +297,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
               <div style="flex:1;position:relative;">
                 <input type="text" class="form-control" id="clientToken" name="unique_code"
                        value="{{ old('unique_code', $suggestedCode ?? '') }}" placeholder="CUST-XXXX-000" maxlength="20"
-                       style="font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-family:monospace;font-size:.82rem;padding-right:40px;"
+                       style="font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.82rem;padding-right:40px;"
                        {{ $isEdit ? 'readonly' : '' }}/>
                 <span class="input-right-icon">
                 <div class="check-spinner" id="tokenSpinner"><div class="spinner-border" style="width:14px;height:14px;border-width:2px;color:#fbbc06;" role="status"></div></div>
@@ -528,9 +528,10 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 const IS_EDIT = @json($isEdit);
 const CLIENT_DATA = @json($clientData);
 const EXISTING_TOKENS = @json($existingTokens ?? []);
+
 let matchedClientId = null;
 let companyLookupTimer = null;
-
+window.warrantiesData = @json(($warranties ?? collect())->map(fn($w) => ['id' => $w->id, 'name' => $w->name])->values());
 function onFirmNameInput() {
   syncSummary();
   updateChecklist();
@@ -814,7 +815,7 @@ function addProject(prefill, existing) {
         <span class="ps-label">Project Code <span style="color:#ff3366;">*</span> <span style="font-size:.6rem;background:rgba(154,123,79,.1);color:#9A7B4F;padding:1px 5px;border-radius:3px;font-weight:700;">AUTO</span></span>
         <div class="ps-code-row">
           <input type="text" class="ps-input" name="projects[${idx}][project_code]" value="${pc}" placeholder="PRJ-XXXXXX" id="pscode-${idx}"
-                 style="font-family:monospace;font-size:.78rem;text-transform:uppercase;"
+                 style="font-size:.78rem;text-transform:uppercase;"
                  readonly/>
         </div>
       </div>
