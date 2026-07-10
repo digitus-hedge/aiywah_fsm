@@ -6,7 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 
-class UserDirectoryController extends Controller
+class UserdirectoryController extends Controller
 {
     /**
      * Render the user directory listing (dynamic, filterable, paginated).
