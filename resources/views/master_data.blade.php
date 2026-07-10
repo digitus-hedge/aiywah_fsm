@@ -223,7 +223,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
 .tmpl-body{display:none;padding:16px;}
 .tmpl-item.open .tmpl-body{display:block;animation:panelIn .15s ease;}
 .var-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
-.var-chip{font-size:.68rem;background:rgba(37,99,235,.09);color:#2563eb;padding:2px 8px;border-radius:4px;font-family:monospace;cursor:pointer;border:1px solid rgba(37,99,235,.18);transition:background .12s;}
+.var-chip{font-size:.68rem;background:rgba(37,99,235,.09);color:#2563eb;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid rgba(37,99,235,.18);transition:background .12s;}
 .var-chip:hover{background:rgba(37,99,235,.18);}
 [data-bs-theme="dark"] .var-chip{background:rgba(37,99,235,.18);color:#93c5fd;border-color:rgba(37,99,235,.3);}
 .char-hint{font-size:.7rem;color:var(--text-muted);text-align:right;margin-top:4px;}

@@ -171,7 +171,7 @@
     background: var(--input-bg);
     color: var(--text-primary);
     font-size: .8rem;
-    font-family: var(--font-body);
+    /* font-family: var(--font-body); */
     width: 100%;
     transition: border-color .15s, box-shadow .15s;
   }
@@ -257,7 +257,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-family: var(--font-body);
+    /* font-family: var(--font-body); */
     text-decoration: none;
     transition: background .12s;
   }
@@ -558,7 +558,7 @@
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-family: 'Roboto', sans-serif;
+    /* font-family: 'Roboto', sans-serif; */
     transition: background .12s;
   }
 

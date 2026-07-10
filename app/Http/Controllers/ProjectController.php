@@ -54,7 +54,7 @@ class ProjectController extends Controller
         $project->load(['client', 'warranty']);
 
         $srs = $project->serviceRequests()
-            ->with(['assignedUser', 'category', 'punch.user'])
+            ->with(['assignedUser', 'category', 'punch.user', 'punch.items'])
             ->latest()
             ->get();
 
@@ -130,6 +130,17 @@ class ProjectController extends Controller
                 'materials'   => $p?->materials_subtotal,
                 'labour'      => $p?->labour_charge,
                 'total'       => $p?->grand_total,
+
+
+                // ---- punch line items ----
+                'items' => collect($p?->items ?? [])->map(fn($i) => [
+                    'name'     => $i->name,
+                    'category' => $i->category,
+                    'qty'      => (float) $i->qty,
+                    'rate'     => number_format((float) $i->rate, 2),
+                    'total'    => number_format((float) $i->line_total, 2),
+                    'receipt'  => $i->receipt_path ? asset('storage/' . $i->receipt_path) : null,
+                ])->values(),
 
                 'attachments' => collect($s->attachments ?? [])->map(fn($a) => [
                     'url'  => asset('storage/' . (is_array($a) ? $a['path'] : $a)),

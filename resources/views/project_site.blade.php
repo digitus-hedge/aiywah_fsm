@@ -89,7 +89,7 @@
 .filter-bar{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:14px 16px;margin-bottom:16px;box-shadow:var(--card-shadow);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
 .filter-group{display:flex;flex-direction:column;gap:4px;min-width: 0;flex: 1 1 auto;}
 .filter-label{font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;}
-.filter-control{height:34px;padding:0 10px;border:1px solid var(--border-color);border-radius:7px;background:var(--input-bg);color:var(--text-primary);font-size:.8rem;font-family:'Roboto',sans-serif;min-width:140px;transition:border-color .15s;}
+.filter-control{height:34px;padding:0 10px;border:1px solid var(--border-color);border-radius:7px;background:var(--input-bg);color:var(--text-primary);font-size:.8rem;min-width:140px;transition:border-color .15s;}
 .filter-control:focus{outline:none;border-color:#9A7B4F;box-shadow:var(--input-focus-shadow);}
 .filter-actions{margin-left:auto;display:flex;gap:8px;align-items:flex-end;}
 
@@ -109,7 +109,7 @@ table.listing tbody tr:last-child{border-bottom:none;}
 table.listing tbody tr:hover{background:var(--table-hover);}
 table.listing td{padding:12px 16px;font-size:.8125rem;color:var(--text-primary);vertical-align:middle;}
 table.listing td.muted{color:var(--text-muted);font-size:.78rem;}
-table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;color:#9A7B4F;}
+table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .row-actions{display:flex;gap:5px;transition:opacity .12s;}
 table.listing tr:hover .row-actions{opacity:1;}
 
@@ -123,7 +123,7 @@ table.listing tr:hover .row-actions{opacity:1;}
 .btn-gold:hover{opacity:.87;}
 .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-color);border-radius:7px;font-size:.8rem;cursor:pointer;white-space:nowrap;}
 .btn-ghost:hover{background:var(--surface-3);}
-.btn-xs{padding:4px 9px;border-radius:5px;font-size:.75rem;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:'Roboto',sans-serif;transition:background .12s;}
+.btn-xs{padding:4px 9px;border-radius:5px;font-size:.75rem;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;transition:background .12s;}
 .btn-xs-edit{background:rgba(154,123,79,.1);color:#9A7B4F;}.btn-xs-edit:hover{background:rgba(154,123,79,.2);}
 .btn-xs-view{background:rgba(37,99,235,.1);color:#3b82f6;}.btn-xs-view:hover{background:rgba(37,99,235,.2);}
 .btn-xs-del{background:rgba(239,68,68,.08);color:#ef4444;}.btn-xs-del:hover{background:rgba(239,68,68,.15);}
@@ -162,7 +162,7 @@ table.listing tr:hover .row-actions{opacity:1;}
 .form-label{font-size:.78rem;font-weight:500;color:var(--text-heading);margin-bottom:5px;display:block;}
 .form-label .req{color:#ef4444;margin-left:2px;}
 .form-label .auto-tag{font-size:.65rem;background:rgba(154,123,79,.12);color:#9A7B4F;padding:1px 6px;border-radius:4px;font-weight:600;margin-left:6px;}
-.form-control,.form-select{background:var(--input-bg);border:1px solid var(--border-color);color:var(--text-primary);border-radius:7px;font-size:.8125rem;padding:7px 11px;width:100%;transition:border-color .15s,box-shadow .15s;font-family:'Roboto',sans-serif;}
+.form-control,.form-select{background:var(--input-bg);border:1px solid var(--border-color);color:var(--text-primary);border-radius:7px;font-size:.8125rem;padding:7px 11px;width:100%;transition:border-color .15s,box-shadow .15s;}
 .form-control:focus,.form-select:focus{outline:none;border-color:#9A7B4F;box-shadow:var(--input-focus-shadow);}
 [data-bs-theme="dark"] .form-control,[data-bs-theme="dark"] .form-select{background:var(--input-bg);color:var(--text-primary);}
 textarea.form-control{resize:vertical;min-height:70px;}
@@ -187,14 +187,14 @@ textarea.form-control{resize:vertical;min-height:70px;}
 .cust-option.selected{background:rgba(154,123,79,.08);}
 .cust-av{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff;flex-shrink:0;}
 .cust-option-name{font-size:.8125rem;font-weight:500;color:var(--text-heading);}
-.cust-option-token{font-size:.7rem;color:var(--text-muted);font-family:monospace;}
+.cust-option-token{font-size:.7rem;color:var(--text-muted);}
 .cust-no-results{padding:16px;text-align:center;font-size:.8rem;color:var(--text-muted);}
 
 /* Selected customer card */
 .selected-cust-card{display:none;align-items:center;gap:10px;padding:10px 13px;background:rgba(154,123,79,.07);border:1px solid rgba(154,123,79,.25);border-radius:8px;margin-top:8px;}
 .selected-cust-card.show{display:flex;}
 .selected-cust-card-name{font-size:.8125rem;font-weight:600;color:var(--text-heading);}
-.selected-cust-card-token{font-size:.72rem;color:var(--text-muted);font-family:monospace;}
+.selected-cust-card-token{font-size:.72rem;color:var(--text-muted);}
 .selected-cust-change{margin-left:auto;background:none;border:none;color:#9A7B4F;font-size:.75rem;cursor:pointer;padding:3px 7px;border-radius:5px;transition:background .12s;white-space:nowrap;}
 .selected-cust-change:hover{background:rgba(154,123,79,.12);}
 
@@ -215,7 +215,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
 
 /* Auto code display */
 .auto-code-row{display:flex;gap:8px;align-items:center;}
-.auto-code-field{font-family:monospace;font-size:.82rem;font-weight:600;color:#9A7B4F;letter-spacing:.04em;}
+.auto-code-field{font-size:.82rem;font-weight:600;color:#9A7B4F;letter-spacing:.04em;}
 
 /* Delete confirm modal */
 .del-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:1000;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
@@ -353,7 +353,7 @@ textarea.form-control{resize:vertical;min-height:70px;}
                 <div style="width:22px;height:22px;border-radius:5px;background:#9A7B4F;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff;">{{ strtoupper(substr(optional($cl)->company_name ?? '?',0,1)) }}</div>
                 <div>
                   <div style="font-size:.8rem;font-weight:500;">{{ optional($cl)->company_name ?? '—' }}</div>
-                  <div style="font-size:.7rem;color:var(--text-muted);font-family:monospace;">{{ optional($cl)->unique_code }}</div>
+                  <div style="font-size:.7rem;color:var(--text-muted);">{{ optional($cl)->unique_code }}</div>
                 </div>
               </div>
             </td>
