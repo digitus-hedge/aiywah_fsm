@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
         // Roles MUST seed before permissions (pivot references role ids).
         $this->call([
             RoleSeeder::class,
-            PermissionSeeder::class,
+            Permissionseeder::class,
             DemoUserSeeder::class,
         ]);
 
