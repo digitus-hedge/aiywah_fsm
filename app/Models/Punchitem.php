@@ -21,6 +21,7 @@ class PunchItem extends Model
     {
         return $this->belongsTo(Punch::class);
     }
+    // 
     public function getReceiptUrlAttribute(): ?string
 {
     return $this->receipt_path
