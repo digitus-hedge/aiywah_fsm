@@ -177,7 +177,8 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
   <form method="GET" action="{{ route('user_directory') }}" class="ud-filter">
     <div class="ud-search">
       <i class="bi bi-search"></i>
-      <input type="text" class="form-control-sm" name="q" value="{{ request('q') }}" placeholder="Search name or email…">
+      <input type="text" class="form-control-sm" name="q" value="{{ request('q') }}" placeholder="Search name or email…" 
+      style="padding: .35rem 2.12rem;">
     </div>
     <select class="form-select-sm" name="role" style="width:150px;">
       <option value="">All Roles</option>
