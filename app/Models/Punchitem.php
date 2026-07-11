@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Punchitem extends Model
 {
+
+    protected $table = 'punch_items';   // point to the real table
+
     protected $fillable = [ 'punch_id', 'name', 'category', 'qty', 'rate', 'line_total', 'receipt_path',
     'recon_status', 'reconciled_by', 'reconciled_at',];
 
