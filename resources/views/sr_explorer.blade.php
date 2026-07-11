@@ -455,9 +455,9 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
     </div>
     <div class="sr-modal-foot">
       <button class="btn-ghost" onclick="closeSrModal()"><i class="bi bi-x-circle"></i>Close</button>
-      <button class="btn-gold" id="sr-m-open" onclick="goToDetail(document.getElementById('sr-m-id').textContent)">
+      <!-- <button class="btn-gold" id="sr-m-open" onclick="goToDetail(document.getElementById('sr-m-id').textContent)">
         <i class="bi bi-box-arrow-up-right"></i>Open Full Timeline
-      </button>
+      </button> -->
     </div>
   </div>
 </div>

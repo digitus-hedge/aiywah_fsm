@@ -58,7 +58,7 @@
 .stats-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
 .stat-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:12px 10px;text-align:center;box-shadow:var(--card-shadow);transition:transform .2s;}
 .stat-card:hover{transform:translateY(-2px);}
-.stat-num{font-size:1.3rem;font-weight:700;line-height:1;margin-bottom:2px;color:var(--text-heading);}
+.stat-num{font-size:1.3rem;font-weight:700;margin-right: 10px;margin-left: 10px;line-height:1;margin-bottom:2px;color:var(--text-heading);}
 .stat-lbl{font-size:.64rem;color:var(--text-muted);font-weight:500;line-height:1.25;}
 @media(max-width:1199.98px){.stats-strip{grid-template-columns:repeat(4,1fr);}}
 @media(max-width:767.98px){.stats-strip{grid-template-columns:repeat(3,1fr);}}
@@ -177,7 +177,7 @@
 <div class="filter-bar">
   <div class="filter-search">
     <i class="bi bi-search"></i>
-    <input type="text" class="form-control" id="searchInput"
+    <input type="text" class="form-control" id="searchInput"style="padding: .38rem 1.8rem;"
            placeholder="Search SR ID, client, site…" oninput="applyFilter()"/>
   </div>
   <div style="display:flex;align-items:center;gap:6px;">
