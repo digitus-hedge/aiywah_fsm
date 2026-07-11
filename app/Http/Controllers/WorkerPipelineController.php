@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ExpenseCategory;
 use App\Models\Punch;
-use App\Models\PunchItem;
+use App\Models\Punchitem;
 use App\Models\Role;
 use App\Models\ServiceRequest;
 use App\Models\User;
@@ -301,7 +301,7 @@ class WorkerPipelineController extends Controller
                 'after'  => filled($punch->finish_photo_path),
                 'sig'    => filled($punch->customer_signature_path),
             ],
-            'expenses' => $punch->items->map(fn (PunchItem $i) => [
+            'expenses' => $punch->items->map(fn (Punchitem $i) => [
                 'category'   => $i->category,
                 'name'       => $i->name,
                 'amount'     => number_format((float) $i->line_total, 2, '.', ''),

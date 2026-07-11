@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Punch;
-use App\Models\PunchItem;
+use App\Models\Punchitem;
 use App\Models\ServiceRequest;
 use App\Models\Role;
 use App\Models\User;
@@ -143,7 +143,7 @@ class WorkerPunchController extends Controller
 
     try {
         $item = DB::transaction(function () use ($punch, $data, $qty, $receiptPath) {
-            $item = PunchItem::create([
+            $item = Punchitem::create([
                 'punch_id'     => $punch->id,
                 'name'         => $data['name'] ?? $data['category'],
                 'category'     => $data['category'],
@@ -228,7 +228,7 @@ class WorkerPunchController extends Controller
 
     private function recalcTotals(Punch $punch): void
     {
-        $subtotal = PunchItem::where('punch_id', $punch->id)->sum('line_total');
+        $subtotal = Punchitem::where('punch_id', $punch->id)->sum('line_total');
 
         $punch->forceFill([
             'materials_subtotal' => $subtotal,
