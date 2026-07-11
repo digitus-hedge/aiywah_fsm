@@ -597,7 +597,9 @@
 
   /* Dispatch button */
   .btn-dispatch {
-    width: 100%;
+    /* width: 100%; */
+    width: 90%;
+    margin:0 auto;
     border: none;
     border-radius: 7px;
     padding: .65rem 1rem;
@@ -1060,7 +1062,7 @@
         <div style="flex:1;min-width:0;">
           <h6 style="margin:0;display:flex;align-items:center;">
             <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:#05a34a;border-radius:50%;font-size:.65rem;font-weight:700;color:#fff;margin-right:6px;flex:0 0 auto;">2</span>
-            Assign Technician
+            Assign Technician and Dispatch
           </h6>
           <span class="csub">Matched by service category &amp; domain</span>
         </div>
@@ -1096,10 +1098,29 @@
           <span>Select a ticket above, then pick a category, domain and technician.</span>
         </div>
       </div>
+
+
+
+      <button class="btn-dispatch" id="dispatchBtn" onclick="openDispatchModal()" disabled>
+        <i class="bi bi-send-fill" style="font-size:1rem;"></i>
+             <div>
+              Confirm Assignment Dispatch
+              <span class="dsub" id="dispatchBtnSub">Select ticket and technician</span>
+            </div>
+        </button>
+        <div class="notify-note" style="width: 90%;margin: 20px auto;">
+          <i class="bi bi-bell-fill"></i>
+<span>Upon confirmation, a <strong>push notification</strong> is fired to the technician's mobile pipeline app and ticket status shifts to <strong>Assigned</strong>.</span>        </div>
+      </div>
+
+
+
+
+
     </div>
 
     {{-- Step 3 · Dispatch Summary --}}
-    <div class="card">
+    <!-- <div class="card">
       <div class="chdr">
         <div class="chdr-ico" style="background:rgba(101,113,255,.1);">
           <i class="bi bi-send-fill" style="color:#6571ff;"></i>
@@ -1111,16 +1132,19 @@
           </h6>
           <span class="csub">Review and confirm assignment</span>
         </div>
-      </div>
-      <div class="cbody">
+      </div> -->
+
+      <!-- <div class="cbody">
         <div class="assign-summary" id="assignSummary">
           <div class="as-row"><span class="as-k">Ticket</span><span class="as-v" id="asSrId" style="color:#6571ff;">—</span></div>
           <div class="as-row"><span class="as-k">Client</span><span class="as-v" id="asClient">—</span></div>
           <div class="as-row"><span class="as-k">Category</span><span class="as-v" id="asDomain">—</span></div>
           <div class="as-row"><span class="as-k">Technician</span><span class="as-v" id="asTech">—</span></div>
           <div class="as-row" style="margin-bottom:0;"><span class="as-k">Priority</span><span class="as-v" id="asPriority">—</span></div>
-        </div>
-        <button class="btn-dispatch" id="dispatchBtn" onclick="openDispatchModal()" disabled>
+        </div> -->
+
+
+        <!-- <button class="btn-dispatch" id="dispatchBtn" onclick="openDispatchModal()" disabled>
         <i class="bi bi-send-fill" style="font-size:1rem;"></i>
              <div>
               Confirm Assignment Dispatch
@@ -1130,10 +1154,12 @@
         <div class="notify-note" style="margin-top:10px;">
           <i class="bi bi-bell-fill"></i>
 <span>Upon confirmation, a <strong>push notification</strong> is fired to the technician's mobile pipeline app and ticket status shifts to <strong>Assigned</strong>.</span>        </div>
-      </div>
-    </div>
+      </div> -->
 
-  </div>{{-- /right-panel --}}
+      
+    <!-- </div> -->
+
+  <!-- </div>{{-- /right-panel --}} -->
 </div>{{-- /workspace --}}
 
 @endsection
@@ -1164,7 +1190,7 @@
   let selTechId = null;
   let dispatchedToday = 0;
   let currentPage = 1;
-  const PER = 7;
+  const PER = 10;
 
   function updateStats() {
     document.getElementById('stat-approved').textContent   = tickets.length;
@@ -1326,12 +1352,13 @@ function renderSnapshot(t) {
     updateDispatchBtn();
   }
 
-  function updateDispatchBtn() {
+ function updateDispatchBtn() {
   const btn = document.getElementById('dispatchBtn');
   const sub = document.getElementById('dispatchBtnSub');
   const summary = document.getElementById('assignSummary');
   const ready = selTkId && selTechId;
-  btn.disabled = !ready;
+
+  if (btn) btn.disabled = !ready;
 
   // sub-label guidance
   if (sub) {
@@ -1347,18 +1374,25 @@ function renderSnapshot(t) {
   }
 
   // assignment summary
-  if (ready) {
-    const t = tickets.find(x => x.id === selTkId);
-    const tech = TECHS.find(x => String(x.id) === String(selTechId));
-    const code = tech ? 'ML-' + String(tech.id).padStart(3, '0') : '';
-    summary.classList.add('show');
-    document.getElementById('asSrId').textContent     = t.id;
-    document.getElementById('asClient').textContent   = t.client;
-    document.getElementById('asDomain').textContent   = t.domain;
-    document.getElementById('asTech').textContent     = tech ? `${tech.name} (${code})` : '';
-    document.getElementById('asPriority').textContent = t.priority;
-  } else {
-    summary.classList.remove('show');
+  if (summary) {
+    if (ready) {
+      const t = tickets.find(x => x.id === selTkId);
+      const tech = TECHS.find(x => String(x.id) === String(selTechId));
+      const code = tech ? 'ML-' + String(tech.id).padStart(3, '0') : '';
+      summary.classList.add('show');
+
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+      set('asSrId', t ? t.id : '');
+      set('asClient', t ? t.client : '');
+      set('asDomain', t ? t.domain : '');
+      set('asTech', tech ? `${tech.name} (${code})` : '');
+      set('asPriority', t ? t.priority : '');
+    } else {
+      summary.classList.remove('show');
+    }
   }
 }
 

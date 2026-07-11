@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\ServiceRequest;
 use App\Models\Client;
+use App\Models\Punchitem;
+use App\Models\Punch;
 use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -590,7 +592,7 @@ private function initials(?string $name): string
      * Build the expense summary from the punch's line items + labour.
      * Your billing model is PunchItem rows (materials) + a labour_charge.
      */
-    private function srExpenses(\App\Models\Punch $punch): array
+    private function srExpenses(Punch $punch): array
     {
         $rows  = [];
         $total = 0;
@@ -815,7 +817,7 @@ public function hopApprove(ServiceRequest $serviceRequest)
 
 public function expenseLedger()
 {
-    $items = \App\Models\PunchItem::with('punch.serviceRequest.assignedUser')
+    $items = Punchitem::with('punch.serviceRequest.assignedUser')
         ->latest('id')
         ->get();
 

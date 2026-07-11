@@ -621,7 +621,8 @@ function updateStats(){
 /* ════════════════════════════════
     FILTER & RENDER
 ════════════════════════════════ */
-let currentPage=1;const PER_PAGE=8;
+let currentPage=1;
+const PER_PAGE=10;
 
 function applyFilter(){
   const q=document.getElementById('searchInput').value.toLowerCase();

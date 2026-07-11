@@ -32,7 +32,8 @@
 
 /* FILTER BAR */
 .inv-wrap .filter-bar{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:12px 16px;margin-bottom:16px;box-shadow:var(--card-shadow);display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
-.inv-wrap .filter-group{display:flex;flex-direction:column;gap:4px;}
+.inv-wrap .filter-group{display:flex;flex-direction:column;gap:4px;min-width: 0;
+    flex: 1 1 auto;}
 .inv-wrap .filter-label{font-size:.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;}
 .inv-wrap .filter-control{height:34px;padding:0 10px;border:1px solid var(--border-color);border-radius:7px;background:var(--input-bg);color:var(--text-primary);font-size:.8rem;min-width:140px;transition:border-color .15s;}
 .inv-wrap .filter-control:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(154,128,83,.12);}

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class PunchItem extends Model
+class Punchitem extends Model
 {
     protected $fillable = [ 'punch_id', 'name', 'category', 'qty', 'rate', 'line_total', 'receipt_path',
     'recon_status', 'reconciled_by', 'reconciled_at',];

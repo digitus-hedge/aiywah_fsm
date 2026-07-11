@@ -37,7 +37,7 @@ class Punch extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(PunchItem::class);
+        return $this->hasMany(Punchitem::class);
     }
 
     /** Human duration between punch in and out, e.g. "2h 05m". */
