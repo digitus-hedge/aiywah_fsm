@@ -935,6 +935,7 @@ if (items.length) {
   expRows = '<div style="font-size:.78rem;color:var(--text-muted);padding:4px 0;">No material expenses logged.</div>';
 }
   /* ── rating ── */
+ /* ── rating ── */
   var stars = '';
   for (var s = 1; s <= 5; s++) {
     stars += (sr.rating && s <= sr.rating)
@@ -942,24 +943,16 @@ if (items.length) {
       : '<i class="bi bi-star" style="color:var(--text-light);font-size:.85rem;"></i>';
   }
   var ratingHtml = sr.rating
-    ? '<div style="display:flex;gap:3px;margin-top:3px;">' + stars + '</div>'
+    ? '<div style="display:flex;align-items:center;gap:6px;margin-top:3px;">' +
+        '<div style="display:flex;gap:3px;">' + stars + '</div>' +
+        '<span style="font-size:.75rem;font-weight:600;color:var(--text-heading);">' + sr.rating + '/5</span>' +
+      '</div>'
     : '<span style="font-size:.75rem;color:var(--text-light);">Not yet rated</span>';
 
   /* ── conditional assignment rows ── */
   var extraRows = '';
  
-  if (sr.qc_at) {
-    // extraRows += '<div class="det-cell"><div class="det-key">QC Reviewed</div><div class="det-val">' + sr.qc_at + '</div></div>';
-  }
-  if (sr.work_desc) {
-    // extraRows += '<div class="det-cell full"><div class="det-key">Work Performed</div><div class="det-val" style="font-size:.79rem;line-height:1.5;">' + sr.work_desc + '</div></div>';
-  }
-  if (sr.rework) {
-    // extraRows += '<div class="det-cell full"><div class="det-key">Rework Notes</div><div class="det-val" style="font-size:.79rem;line-height:1.5;">' + sr.rework + '</div></div>';
-  }
-
-
-
+  
   /* ── customer block (only if punch captured it) ── */
   var customerRows = '';
   if (sr.customer) {
@@ -1013,17 +1006,40 @@ if (items.length) {
     /* Expenses */
     '<div class="d-section">' +
       '<div class="d-sec-title"><i class="bi bi-cash-stack"></i>Material Expenses</div>' +
-      expRows +
+       expRows +
+    '</div>' +
+    /* Feedback */
+
+
+    '<div class="d-section">' +
+      '<div class="d-sec-title"><i class="bi bi-star-half"></i>Client Feedback</div>' +
+      '<div class="det-cell" style="display:block;">' +
+        '<div class="det-key">Technician Rating</div>' +
+        ratingHtml +
+        (sr.rating_comment
+          ? '<div class="det-key" style="margin-top:12px;">Evaluation Comment</div>' +
+            '<div class="det-val" style="font-size:.79rem;line-height:1.5;margin-top:3px;">' + escapeHtml(sr.rating_comment) + '</div>'
+          : '') +
+        (sr.rating
+          ? '<div style="font-size:.71rem;color:var(--text-muted);margin-top:8px;"><i class="bi bi-lock-fill" style="font-size:.65rem;"></i> Feedback locked — submitted ' + (sr.rated_at || 'by client') + '</div>'
+          : '') +
+      '</div>' +
     '</div>';
     /* Feedback */
    
-
- 
 
   document.getElementById('drawerOverlay').classList.add('show');
   document.getElementById('srDrawer').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
+
+
+function escapeHtml(str){
+  var d = document.createElement('div');
+  d.textContent = str == null ? '' : str;
+  return d.innerHTML;
+}
+
 
 function closeDrawer() {
   document.getElementById('drawerOverlay').classList.remove('show');
