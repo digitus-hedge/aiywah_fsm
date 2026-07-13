@@ -920,7 +920,7 @@ if (items.length) {
     return '<div class="exp-row">' +
       '<span class="exp-cat">' + (i.category || i.name) + '</span>' +
       '<span class="exp-desc" id="cds">' +
-        (i.receipt ? ' <a href="' + i.receipt + '" target="_blank" style="color:#9a8053;font-weight:600;">Receipt</a>' : '') +
+        i.name +
       '</span>' +
       '<span class="exp-amt">AED ' + i.total + '</span>' +
     '</div>';

@@ -4,9 +4,13 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Field Pipeline | Matter Mind</title>
+  <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
+
   <meta name="csrf-token" content="{{ csrf_token() }}"/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+
+
   <style>
 /* ═══════════════════════════════════════
    THEME TOKENS
