@@ -10,15 +10,12 @@ class ServiceCategory extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = [
-        'category_name', 'description', 'color_code',
-        'icon', 'sort_order', 'status', 'created_by', 'updated_by',
-    ];
+    protected $table = 'service_categories';
 
-    protected $casts = [
-        'status'     => 'boolean',
-        'sort_order' => 'integer',
-    ];
+    protected $fillable = ['category_name', 'description', 'color_code','icon', 'sort_order', 'status',
+                             'created_by', 'updated_by',];
+
+    protected $casts = ['status'     => 'boolean','sort_order' => 'integer',];
 
     public function domains(): HasMany
     {

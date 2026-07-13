@@ -26,24 +26,29 @@ class ServiceRequest extends Model
         'qc_reviewed_by',
         'rework_notes',
         'warranty_scope',
-        'invoice_code', 
-        'invoice_total', 
-        'invoice_path', 
+        'invoice_code',
+        'invoice_total',
+        'invoice_path',
         'invoice_submitted_at',
-        'invoice_uploaded_by', 
-        'hop_approved_at', 
+        'invoice_uploaded_by',
+        'hop_approved_at',
         'hop_approved_by',
         'erp_quote_ref',
-        'quote_path', 
+        'quote_path',
         'quote_submitted_at',
-        'client_approved_at', 
+        'client_approved_at',
         'eta_at',
         'accepted_at',
         'hold_reason',
         'held_at',
+
+        'performance_score',
+        'evaluation_comment',
+        'feedback_submitted_at',
+
     ];
 
-     protected $casts = [
+    protected $casts = [
         'attachments' => 'array',
         'invoice_total' => 'decimal:2',
         'invoice_submitted_at' => 'datetime',
@@ -56,6 +61,9 @@ class ServiceRequest extends Model
         'eta_at'         => 'datetime',
         'accepted_at'    => 'datetime',
         'held_at'        => 'datetime',
+
+        'performance_score'     => 'integer',
+        'feedback_submitted_at' => 'datetime',
     ];
 
     public function assignedUser(): BelongsTo
@@ -72,7 +80,7 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(ServiceCategory::class, 'service_type_id');
     }
-   
+
     public function project()
     {
         return $this->belongsTo(Project::class, 'project_id');
@@ -82,6 +90,8 @@ class ServiceRequest extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+
+
     public function domains()
     {
         return $this->hasMany(ServiceDomain::class, 'service_category_id');
@@ -89,17 +99,17 @@ class ServiceRequest extends Model
 
     public function activePunch()
     {
-        return $this->hasMany(\App\Models\Punch::class)
+        return $this->hasMany(Punch::class)
             ->whereIn('status', ['draft', 'punched_in'])
             ->latest()
             ->first();
     }
 
     public function domain(): BelongsTo
-{
-    return $this->belongsTo(ServiceDomain::class, 'service_domain_id');
-}
-   
+    {
+        return $this->belongsTo(ServiceDomain::class, 'service_domain_id');
+    }
+
 
     public function punches()
     {
@@ -126,10 +136,10 @@ class ServiceRequest extends Model
             ->first();
     }
 
-    
+
 
     public function punch(): HasOne
-{
-    return $this->hasOne(Punch::class)->latestOfMany();
-}
+    {
+        return $this->hasOne(Punch::class)->latestOfMany();
+    }
 }

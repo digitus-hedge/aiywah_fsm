@@ -101,6 +101,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/directory', [ClientController::class, 'directory'])->name('clients.directory');
     Route::get('/clients/{id}', [ClientController::class, 'show'])->name('clients.show');
     Route::post('/clients-directory/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle');
+    
 
 
     Route::get('project_site_directory',   [ProjectController::class, 'index'])->name('project_site_directory');
@@ -110,19 +111,21 @@ Route::middleware('auth')->group(function () {
     Route::get('projects/{project}',       [ProjectController::class, 'show'])->name('projects.show');
     Route::post('projects/{project}/inquiries', [InquiryController::class, 'store'])->name('inquiries.store');
 
+    // Clients Feedback
+    Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])->name('clients.feedback.show');
+    Route::post('/client_feedback/{id}', [ClientController::class, 'storeFeedback'])->name('clients.feedback.store');
+
     
     Route::controller(ServiceRequestController::class)->group(function () {
     Route::get('/qc-review', 'qcReview')->name('qc_review');
     Route::post('/qc-review/{serviceRequest}/pass', 'qcPass')->name('qc.pass');
     Route::post('/qc-review/{serviceRequest}/fail', 'qcFail')->name('qc.fail');
 
-    Route::get('/quotation_desk', [ServiceRequestController::class, 'quotationDesk'])
-    ->name('quotation_desk');
+    Route::get('/quotation_desk', [ServiceRequestController::class, 'quotationDesk'])->name('quotation_desk');
     Route::post('/quotation_desk/{serviceRequest}/quote',   [ServiceRequestController::class, 'quoteSubmit'])->name('quote.submit');
     Route::post('/quotation_desk/{serviceRequest}/approve', [ServiceRequestController::class, 'quoteApprove'])->name('quote.approve');
 
-    Route::get('/invoice_panel', [ServiceRequestController::class, 'invoicePanel'])
-    ->name('invoice_panel');
+    Route::get('/invoice_panel', [ServiceRequestController::class, 'invoicePanel'])->name('invoice_panel');
     Route::post('/invoice_panel/{serviceRequest}/submit', [ServiceRequestController::class, 'invoiceSubmit'])->name('invoice.submit');
     Route::post('/invoice_panel/{serviceRequest}/hop-approve', [ServiceRequestController::class, 'hopApprove'])->name('invoice.hop');
 
@@ -209,6 +212,6 @@ Route::prefix('worker')->name('worker.')->group(function () {
     Route::post('/punch/upload',   [WorkerPunchController::class, 'upload'])->name('punch.upload');
     Route::post('/punch/expense',  [WorkerPunchController::class, 'expense'])->name('punch.expense');
 
-  Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
+    Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
     Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
 });

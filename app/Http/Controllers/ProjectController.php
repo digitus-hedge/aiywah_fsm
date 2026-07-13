@@ -116,6 +116,13 @@ class ProjectController extends Controller
                 'rework'      => $s->rework_notes,
                 'elapsed'     => $s->created_at ? (int) $s->created_at->diffInHours(now()) : 0,
 
+                
+                // ---- client feedback ----
+                'rating'          => $s->performance_score,
+                'rating_comment'  => $s->evaluation_comment,
+                'rated_at'        => $s->feedback_submitted_at?->format('d M Y, h:i A'),
+
+
                 // ---- punch data ----
                 'punch_in'    => $p?->punch_in_at?->format('h:i A'),
                 'punch_out'   => $p?->punch_out_at?->format('h:i A'),
