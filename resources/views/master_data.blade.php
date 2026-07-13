@@ -410,8 +410,8 @@ textarea.form-control{resize:vertical;min-height:72px;}
                 </td>
                 <td style="text-align:center;">
                   <div class="row-actions" style="justify-content:center;">
-                    <button class="btn-icon-status" title="Toggle status"
-                      onclick="toggleStatus('expense',{{ $exp->id }})"><i class="bi bi-toggle-on"></i></button>
+                    <!-- <button class="btn-icon-status" title="Toggle status"
+                      onclick="toggleStatus('expense',{{ $exp->id }})"><i class="bi bi-toggle-on"></i></button> -->
                     <button class="btn-icon-edit" title="Edit"
                       data-id="{{ $exp->id }}"
                       data-name="{{ $exp->name }}"
@@ -793,9 +793,11 @@ textarea.form-control{resize:vertical;min-height:72px;}
         <input type="text" class="form-control" id="warranty-name" placeholder="e.g. Spare Parts"/>
       </div>
       <div class="form-group">
-        <label class="form-label">Value</label>
-        <input type="text" class="form-control" id="warranty-value" placeholder="Warranty Value"/>
-      </div>
+  <label class="form-label">Value <span class="req">*</span></label>
+  <input type="text" class="form-control" id="warranty-value"
+         inputmode="numeric" placeholder="Warranty Value (days)"
+         oninput="this.value=this.value.replace(/[^0-9]/g,'')"/>
+</div>
       <div class="form-group" style="margin-bottom:0;">
         <div class="tog-wrap" onclick="toggleTog('warranty-tog-track',this)">
           <div class="tog-track on" id="warranty-tog-track"><div class="tog-thumb"></div></div>
@@ -1302,13 +1304,19 @@ async function saveExpense(){
 
 
 async function saveWarranty(){
-  const name=document.getElementById('warranty-name').value.trim();
-  if(!name){showToast('err','Missing Field','Please enter name.');return;}
+  const name  = document.getElementById('warranty-name').value.trim();
+  const value = document.getElementById('warranty-value').value.trim();
+
+  if(!name){ showToast('err','Missing Field','Please enter name.'); return; }
+  if(!value){ showToast('err','Missing Field','Please enter the warranty value.'); return; }
+  if(!/^\d+$/.test(value)){ showToast('err','Invalid Value','Warranty value must be digits only.'); return; }
+
   const payload = {
-  name,
-  value: document.getElementById('warranty-value').value.trim(),
-  status: document.getElementById('warranty-tog-track').classList.contains('on') ? 1 : 0,
-};
+    name,
+    value,
+    status: document.getElementById('warranty-tog-track').classList.contains('on') ? 1 : 0,
+  };
+
   try{
     if(editMode.warranty){
       await api(window.M_ROUTES.warrantyUpdate(editMode.warranty),'PUT',payload);
@@ -1319,8 +1327,9 @@ async function saveWarranty(){
     }
     closeModal('modal-warranty');
     setTimeout(()=>location.reload(),700);
-  }catch(e){showToast('err','Error',e.message);}
+  }catch(e){ showToast('err','Error', e.message || 'Could not save.'); }
 }
+
 
  
 /* ─── SAVE PRIORITY (create OR update) ─── */
