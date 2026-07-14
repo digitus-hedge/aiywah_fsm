@@ -277,8 +277,9 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
     <div class="filter-label">Status</div>
     <select class="filter-control" id="filter-status" name="status" onchange="applyFilters()">
       <option value="">All Statuses</option>
-      @foreach($statuses as $st)
-        <option value="{{ $st }}">{{ $st }}</option>
+      @foreach($statuses as $status)
+           <option value="{{ $status }}">{{ \Illuminate\Support\Str::headline($status) }}</option>
+
       @endforeach
     </select>
   </div>
@@ -357,7 +358,9 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
             </td>
             <td>
               <span class="sbadge {{ $badge }}">
-                <i class="bi bi-circle-fill" style="font-size:.4rem;"></i> {{ $sr->status }}
+                <i class="bi bi-circle-fill" style="font-size:.4rem;"></i> 
+                 {{ $statusLabels[$sr->status] ?? \Illuminate\Support\Str::headline($sr->status) }}
+
               </span>
             </td>
             <td class="muted">{{ \Carbon\Carbon::parse($sr->created_at)->diffForHumans() }}</td>
