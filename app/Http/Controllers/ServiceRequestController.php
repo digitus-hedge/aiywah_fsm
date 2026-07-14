@@ -6,6 +6,7 @@ use App\Models\ServiceRequest;
 use App\Models\Client;
 use App\Models\Punchitem;
 use App\Models\Punch;
+use App\Models\User;
 use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -305,7 +306,7 @@ class ServiceRequestController extends Controller
         $ref = 'SR-' . ($serviceRequest->created_at?->year ?? now()->year)
             . '-' . str_pad($serviceRequest->id, 5, '0', STR_PAD_LEFT);
 
-        $tech = \App\Models\User::find($data['assigned_user_id']);
+        $tech = User::find($data['assigned_user_id']);
 
         return response()->json([
             'ok'      => true,
@@ -568,7 +569,7 @@ private function initials(?string $name): string
         return $sr->status === 'Forwarded' ? 'oow' : 'iw';
     }
 
-    private function srSla(ServiceRequest $sr, \App\Models\Punch $punch): array
+    private function srSla(ServiceRequest $sr, Punch $punch): array
     {
         $target  = 48 * 60; // 48h in minutes — tune to your SLA rule
         $elapsed = $punch->punch_out_at

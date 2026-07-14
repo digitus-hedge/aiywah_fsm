@@ -495,8 +495,8 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
       </div>
 
     
-
-      <div class="dp-card">
+      
+    <div class="dp-card">
   <div class="dp-hdr" onclick="toggleDescCard(this)" style="cursor:pointer;">
     <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
     <div style="flex:1;"><h6>Inquiry Description and Attachments</h6><span class="sub">Client-submitted details</span></div>
