@@ -7,6 +7,7 @@ use App\Models\Warranty;
 use App\Models\Client;
 use App\Models\ServiceCategory;
 use App\Models\ServiceRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -116,6 +117,13 @@ class ProjectController extends Controller
                 'rework'      => $s->rework_notes,
                 'elapsed'     => $s->created_at ? (int) $s->created_at->diffInHours(now()) : 0,
 
+
+                // ---- client feedback ----
+                'rating'          => $s->performance_score,
+                'rating_comment'  => $s->evaluation_comment,
+                'rated_at'        => $s->feedback_submitted_at?->format('d M Y, h:i A'),
+
+
                 // ---- punch data ----
                 'punch_in'    => $p?->punch_in_at?->format('h:i A'),
                 'punch_out'   => $p?->punch_out_at?->format('h:i A'),
@@ -177,7 +185,7 @@ class ProjectController extends Controller
                 $isRework = ! empty($s->rework_notes);
                 $activities->push([
                     'title' => $s->code . ($isRework ? ' — Returned for Rework' : ' — QC Passed & Closed'),
-                    'by'    => optional(\App\Models\User::find($s->qc_reviewed_by))->name ?? 'QC Team',
+                    'by'    => optional(User::find($s->qc_reviewed_by))->name ?? 'QC Team',
                     'icon'  => $isRework ? 'bi-arrow-repeat' : 'bi-check-lg',
                     'color' => $isRework ? '#d97706' : '#10b981',
                     'bg'    => $isRework ? 'rgba(245,158,11,.1)' : 'rgba(16,185,129,.12)',
@@ -215,10 +223,16 @@ class ProjectController extends Controller
             'project_name'    => 'required|string|max:255',
             'project_code'    => 'nullable|string|max:50',
             'site_name'       => 'required|string|max:255',
-            'completion_date' => 'nullable|date',
+            // 'completion_date' => 'nullable|date',
+            'completion_date' => 'required|date',
             'site_address'    => 'required|string',
             'status'          => 'required|in:Active,Inactive',
-            'warranty_id' => 'nullable|exists:warranties,id',
+            // 'warranty_id' => 'nullable|exists:warranties,id',
+            'warranty_id'     => 'required|exists:warranties,id',
+
+        ], [
+            'completion_date.required' => 'Please select a completion date.',
+            'warranty_id.required'     => 'Please select a warranty.',
         ]);
 
         // Warranty runs one year (365 days) from the completion date.

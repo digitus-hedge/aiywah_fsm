@@ -6,6 +6,7 @@ use App\Models\ServiceRequest;
 use App\Models\Client;
 use App\Models\Punchitem;
 use App\Models\Punch;
+use App\Models\User;
 use App\Models\ServiceCategory;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
@@ -113,11 +114,19 @@ class ServiceRequestController extends Controller
     public function sr_explorer(Request $request)
     {
         $statusMap = [
-            'Pending'   => 'sb-pending',
-            'Approved'  => 'sb-approved',
-            'Forwarded' => 'sb-forwarded',
-            'Rejected'  => 'sb-cancelled',
-            'Assigned'  => 'sb-assigned',
+            'Pending'          => 'sb-pending',
+            'Approved'         => 'sb-approved',
+            'Forwarded'        => 'sb-forwarded',
+            'Rejected'         => 'sb-cancelled',
+            'Assigned'         => 'sb-assigned',
+            'Quoted'           => 'sb-quoted',
+            'in_progress'      => 'sb-progress',
+            'Quote Rejected'   => 'sb-cancelled',
+            'qc_review'        => 'sb-review',
+            'Rework'           => 'sb-rework',
+            'Pending Invoice'  => 'sb-pending',
+            'Invoice Submitted' => 'sb-forwarded',
+            'Completed'        => 'sb-approved',
         ];
         $statuses = array_keys($statusMap);
 
@@ -270,10 +279,16 @@ class ServiceRequestController extends Controller
 
     public function dispatch_engine()
     {
+
+
+
         $inquiries = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
             ->where('status', 'Approved')
             ->latest()
             ->get();
+
+
+
 
         $tickets = $inquiries->map(function ($sr) {
             return [

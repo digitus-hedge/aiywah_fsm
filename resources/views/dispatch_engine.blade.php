@@ -854,7 +854,11 @@
 
     .btn-dispatch { padding: .75rem 1rem; font-size: .9rem; }
     .dtbl tbody td { font-size: .74rem; }
+
   }
+
+  .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-color);border-radius:7px;font-size:.8rem;cursor:pointer;white-space:nowrap;}
+.btn-ghost:hover{background:var(--surface-3);}
 </style>
 @endpush
 
@@ -994,6 +998,11 @@
 
 
           <span style="font-size:.7rem;color:var(--text-muted);" id="filterLbl"></span>
+
+          <div class="filter-actions">
+            <button type="button" class="btn-ghost" onclick="resetFilters()"><i class="bi bi-x-circle"></i>Reset</button>
+          </div>
+
         </div>
       </div>
 
@@ -1351,6 +1360,15 @@ function renderSnapshot(t) {
     selTechId = userId || null;
     updateDispatchBtn();
   }
+
+
+  function resetFilters(){
+  document.getElementById('srSearch').value = '';
+  document.getElementById('domainFilter').value = '';
+  document.getElementById('slaFilter').value = '';
+  applyFilter();
+}
+
 
  function updateDispatchBtn() {
   const btn = document.getElementById('dispatchBtn');

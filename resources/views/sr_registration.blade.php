@@ -1043,7 +1043,7 @@
                 <div class="client-reveal" id="clientReveal">
                   <div><span class="ci-lbl">Client Name</span><span class="ci-val" id="cName">—</span></div>
                   <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">—</span></div>
-                  <div><span class="ci-lbl">Account Flag</span><span class="ci-val" id="cFlag">—</span></div>
+                  <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">—</span></div>
                   <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">—</span></div>
                 </div>
               </div>
@@ -1316,32 +1316,53 @@
   }
 
   /* ── Lookup (debounced) ── */
-  function onCode(val) {
-    clearTimeout(vTimer);
-    const w = document.getElementById('lkWrap');
-    w.classList.remove('verifying', 'verified');
-    document.getElementById('clientReveal').classList.remove('show');
-    document.getElementById('customerId').value = '';
-    document.getElementById('customerName').value = '';
-    resetSel('projSel', 'project');
-    document.getElementById('siteField').value = '';
-    pv('pvCode', '—');
-    pv('pvProject', '—');
-    pv('pvSite', '—');
-    setAlert('warning', '⏳ Search by client name, code or mobile.');
-    // fire after 2 chars so short codes / names trigger the search
-    if (val.trim().length >= 2) {
-      w.classList.add('verifying');
-      vTimer = setTimeout(() => verify(val), 500);
-    }
+
+  let lastVerifiedTerm = null;
+
+ function onCode(val) {
+  clearTimeout(vTimer);
+  const term = val.trim();
+
+  if (term && term === lastVerifiedTerm) return;
+
+  const w = document.getElementById('lkWrap');
+  w.classList.remove('verifying', 'verified');
+  document.getElementById('clientReveal').classList.remove('show');
+  document.getElementById('customerId').value = '';
+  document.getElementById('customerName').value = '';
+  resetSel('projSel', 'project');
+  document.getElementById('siteField').value = '';
+  pv('pvCode', '—');
+  pv('pvProject', '—');
+  pv('pvSite', '—');
+  setAlert('warning', '⏳ Search by client name, code or mobile.');
+
+  lastVerifiedTerm = null;
+
+  if (term.length >= 2) {
+    w.classList.add('verifying');
+    vTimer = setTimeout(() => verify(val), 500);
   }
+}
 
   // Expected JSON from LOOKUP_URL/{term}:
   // { found:true, client:{ id, name, status, flag, contact,
   //   projects:{ "Project Name":["Site 1","Site 2"] } } }
-  async function verify(val) {
+
+
+async function verify(val) {
     const w = document.getElementById('lkWrap');
     const term = val.trim();
+
+    if (!term) {
+      w.classList.remove('verifying', 'verified');
+      lastVerifiedTerm = null;
+      return;
+    }
+
+    // Already verified this exact value — don't re-run or re-toast
+    if (term === lastVerifiedTerm) return;
+
     try {
       const res = await fetch(`${LOOKUP_URL}/${encodeURIComponent(term)}`, {
         headers: {
@@ -1355,6 +1376,7 @@
 
       if (data.found && data.client) {
         const c = data.client;
+        lastVerifiedTerm = term;   // remember this so we don't toast again
         w.classList.add('verified');
         document.getElementById('cName').textContent = c.name ?? '—';
         document.getElementById('cStatus').textContent = c.status ?? '—';
@@ -1371,7 +1393,6 @@
         // Normalize to an array of { id, name, sites }
         let raw = c.projects || [];
         if (!Array.isArray(raw)) {
-          // Old object shape: { "Project Name": ["Site 1", ...] } — no ids available
           raw = Object.keys(raw).map(name => ({
             id: name,
             name,
@@ -1388,7 +1409,6 @@
         });
         ps.disabled = false;
 
-        // reset site
         document.getElementById('siteField').value = '';
         pv('pvSite', '—');
 
@@ -1396,15 +1416,18 @@
         setAlert('success', `✅ Verified: <strong>${c.name}</strong> — select a project to continue.`);
         toast('success', 'Customer Verified', c.name);
       } else {
+        lastVerifiedTerm = null;
         setAlert('danger', '❌ No client found. Check the name, code or mobile.');
         toast('error', 'Not Found', 'No active client for this search.');
       }
     } catch (e) {
+      lastVerifiedTerm = null;
       w.classList.remove('verifying');
       setAlert('danger', '❌ Lookup failed. Please try again.');
       toast('error', 'Error', e.message || 'Lookup request failed.');
     }
   }
+
   /* ── Project → auto-fill first site ── */
   function onProject(val) {
   const projects = window.__projects || [];

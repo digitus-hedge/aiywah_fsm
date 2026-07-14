@@ -513,6 +513,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
         'mobile'  => $m->mobile,
     ])->values(),
     'projects' => $client->projects->map(fn($p) => [
+        'id'              => $p->id,
         'project_name'    => $p->project_name,
         'project_code'    => $p->project_code,
         'site_name'       => $p->site_name,
@@ -763,7 +764,7 @@ function addStakeholder(prefill) {
               `<option value="${c}" ${prefill && prefill.country === c ? 'selected' : ''}>${c}</option>`
             ).join('')}
           </select>
-          <input type="tel" class="sh-input" name="stakeholders[${idx}][mobile]" value="${num}" placeholder="50 123 4567" oninput="syncSummary()" style="flex:1;"/>
+          <input type="tel" class="sh-input" name="stakeholders[${idx}][mobile]" value="${num}" placeholder="50 123 4567"inputmode="numeric" pattern="[0-9]*" maxlength="15" oninput="this.value=this.value.replace(/[^0-9]/g,'');syncSummary()" style="flex:1;"/>
         </div>
       </div>
     </div>
@@ -794,6 +795,7 @@ function addProject(prefill, existing) {
   const sa = prefill && prefill.site_address ? prefill.site_address : '';
   const cd = prefill && prefill.completion_date ? prefill.completion_date : '';
   const wid = prefill && prefill.warranty_id ? String(prefill.warranty_id) : '';
+  const pid = prefill && prefill.id ? String(prefill.id) : '';
 
   const warrantyOptions = (window.warrantiesData || [])
     .map(w => `<option value="${w.id}" ${String(w.id) === wid ? 'selected' : ''}>${w.name}</option>`)
@@ -807,6 +809,7 @@ function addProject(prefill, existing) {
       ${idx > 1 || existing ? `<button type="button" class="ps-remove" onclick="removePS('ps-${idx}')" title="Remove entry"><i class="bi bi-trash3"></i></button>` : ''}
     </div>
     <div class="ps-fields">
+        <input type="hidden" name="projects[${idx}][id]" value="${pid}"/>
       <div>
         <span class="ps-label">Project Name <span style="color:#ff3366;">*</span></span>
         <input type="text" class="ps-input" name="projects[${idx}][project_name]" value="${pn}" placeholder="e.g. HQ Maintenance Contract" oninput="syncSummary()"/>

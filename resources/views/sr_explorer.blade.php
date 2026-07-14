@@ -277,8 +277,9 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
     <div class="filter-label">Status</div>
     <select class="filter-control" id="filter-status" name="status" onchange="applyFilters()">
       <option value="">All Statuses</option>
-      @foreach($statuses as $st)
-        <option value="{{ $st }}">{{ $st }}</option>
+      @foreach($statuses as $status)
+           <option value="{{ $status }}">{{ \Illuminate\Support\Str::headline($status) }}</option>
+
       @endforeach
     </select>
   </div>
@@ -338,7 +339,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
               'assigned'  => $sr->assignedUser->name ?? 'Unassigned',
               'issue'     => $sr->issue ?? $sr->description ?? '—',
               'warranty'  => $sr->warranty_status ?? (($sr->is_oow ?? false) ? 'Out of Warranty' : '—'),
-              'contact'   => optional($sr->client)->phone ?? optional($sr->client)->contact_number ?? '—',
+              'contact'   => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
               'created'   => \Carbon\Carbon::parse($sr->created_at)->format('d M Y · h:i A'),
               'created_h' => \Carbon\Carbon::parse($sr->created_at)->diffForHumans(),
               'updated'   => $sr->updated_at ? \Carbon\Carbon::parse($sr->updated_at)->diffForHumans() : '—',
@@ -357,7 +358,9 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
             </td>
             <td>
               <span class="sbadge {{ $badge }}">
-                <i class="bi bi-circle-fill" style="font-size:.4rem;"></i> {{ $sr->status }}
+                <i class="bi bi-circle-fill" style="font-size:.4rem;"></i> 
+                 {{ $statusLabels[$sr->status] ?? \Illuminate\Support\Str::headline($sr->status) }}
+
               </span>
             </td>
             <td class="muted">{{ \Carbon\Carbon::parse($sr->created_at)->diffForHumans() }}</td>
@@ -429,7 +432,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-telephone"></i>Client Contact</span>
-          <span class="sr-detail-value muted" id="sr-m-contact">—</span>
+          <span class="sr-detail-value" id="sr-m-contact">—</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-clock-history"></i>Last Updated</span>

@@ -331,7 +331,9 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
     line-height: 1.5;
   }
 }
-  
+
+.btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-color);border-radius:7px;font-size:.8rem;cursor:pointer;white-space:nowrap;}
+.btn-ghost:hover{background:var(--surface-3);}
   </style>
   @endpush
 
@@ -413,6 +415,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
     <!-- LEFT: Selection Grid -->
     <div>
       <!-- Filter Bar -->
+       
       <div class="filter-bar">
         <div class="filter-search">
           <i class="bi bi-search"></i>
@@ -420,17 +423,28 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
         </div>
         <select class="form-select-sm" style="width:130px;" id="priorityFilter" onchange="applyFilter()">
           <option value="">All Priorities</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
           <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+          <option value="Critical">Critical</option>
         </select>
+
         <select class="form-select-sm" style="width:140px;" id="warrantyFilter" onchange="applyFilter()">
           <option value="">All Warranty</option>
           <option value="In Warranty">In Warranty</option>
           <option value="Out of Warranty">Out of Warranty</option>
         </select>
         <span style="font-size:.72rem;color:var(--text-muted);white-space:nowrap;" id="filterCount"></span>
+
+
+         <div class="filter-actions">
+    <button type="button" class="btn-ghost" onclick="resetFilters()"><i class="bi bi-x-circle"></i>Reset</button>
+
+  </div>
       </div>
+
+     
+
 
       <!-- Table Card -->
       <div class="grid-card">
@@ -480,19 +494,9 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
         </div>
       </div>
 
-      <!-- Inquiry Description -->
-      <!-- <div class="dp-card">
-        <div class="dp-hdr">
-          <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
-          <div><h6>Inquiry Description</h6><span class="sub">Client-submitted details</span></div>
-        </div>
-        <div class="dp-body" id="descBody">
-          <div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>
-        </div>
-      </div> -->
-
-
-      <div class="dp-card">
+    
+      
+    <div class="dp-card">
   <div class="dp-hdr" onclick="toggleDescCard(this)" style="cursor:pointer;">
     <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
     <div style="flex:1;"><h6>Inquiry Description and Attachments</h6><span class="sub">Client-submitted details</span></div>
@@ -790,6 +794,16 @@ function enableActionButtons(){
 /* ════════════════════════════════
     REJECTION FLOW
 ════════════════════════════════ */
+
+
+function resetFilters(){
+  document.getElementById('searchInput').value = '';
+  document.getElementById('priorityFilter').value = '';
+  document.getElementById('warrantyFilter').value = '';
+  applyFilter();
+}
+
+
 function enableRejection(){
   if(!selectedId)return;
   document.getElementById('rejectionWrap').style.display='block';

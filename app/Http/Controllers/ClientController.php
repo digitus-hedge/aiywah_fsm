@@ -310,6 +310,7 @@ class ClientController extends Controller
         DB::transaction(function () use ($request, $validated, $client) {
 
             $client->update([
+                'company_name'    => $validated['company_name'],
                 'contact_name'    => $validated['contact_name'],
                 'designation'     => $validated['designation'] ?? null,
                 'primary_country' => $validated['primary_country'] ?? null,
@@ -322,8 +323,8 @@ class ClientController extends Controller
             // $client->projects()->delete();
 
 
-            $client->mobiles()->forceDelete();   // <-- changed
-            $client->projects()->forceDelete();  // <-- changed
+            $client->mobiles()->forceDelete();
+            // $client->projects()->forceDelete();
 
             $this->syncMobiles($client, $request, $validated);
             $this->syncProjects($client, $validated);
@@ -375,6 +376,7 @@ class ClientController extends Controller
             'stakeholders.*.mobile'    => ['nullable', 'string', 'max:15'],
 
             'projects'                 => ['required', 'array', 'min:1'],
+            'projects.*.id'            => ['nullable', 'integer', 'exists:projects,id'],
             'projects.*.project_name'  => ['required', 'string', 'max:255'],
             'projects.*.project_code'  => ['required', 'string', 'max:50'],
             'projects.*.site_name'     => ['required', 'string', 'max:255'],
@@ -422,11 +424,36 @@ class ClientController extends Controller
 
     private function syncProjects(Client $client, array $validated): void
     {
+        // foreach ($validated['projects'] as $project) {
+
+        //     $warrantyDays = 0;
+
+        //     if (!empty($project['warranty_id'])) {
+        //         $warranty = Warranty::find($project['warranty_id']);
+        //         $warrantyDays = (int) ($warranty->value ?? 0);
+        //     }
+
+        //     $warrantyEndDate = !empty($project['completion_date'])
+        //         ? Carbon::parse($project['completion_date'])->addDays($warrantyDays)->toDateString()
+        //         : null;
+
+
+        //     $client->projects()->create([
+        //         'project_name'      => $project['project_name'],
+        //         'project_code'      => $project['project_code'],
+        //         'site_name'         => $project['site_name'] ?? null,
+        //         'site_address'      => $project['site_address'] ?? null,
+        //         'completion_date'   => $project['completion_date'] ?? null,
+        //         'warranty_id'       => $project['warranty_id'] ?? null,
+        //         'warranty_end_date' => $warrantyEndDate,
+        //     ]);
+        // }
+
+        $incomingIds = [];
+
         foreach ($validated['projects'] as $project) {
 
-
             $warrantyDays = 0;
-
             if (!empty($project['warranty_id'])) {
                 $warranty = Warranty::find($project['warranty_id']);
                 $warrantyDays = (int) ($warranty->value ?? 0);
@@ -436,8 +463,7 @@ class ClientController extends Controller
                 ? Carbon::parse($project['completion_date'])->addDays($warrantyDays)->toDateString()
                 : null;
 
-
-            $client->projects()->create([
+            $data = [
                 'project_name'      => $project['project_name'],
                 'project_code'      => $project['project_code'],
                 'site_name'         => $project['site_name'] ?? null,
@@ -445,16 +471,77 @@ class ClientController extends Controller
                 'completion_date'   => $project['completion_date'] ?? null,
                 'warranty_id'       => $project['warranty_id'] ?? null,
                 'warranty_end_date' => $warrantyEndDate,
-            ]);
+            ];
+
+            if (!empty($project['id'])) {
+                // existing row → update in place, keep the same id
+                $model = $client->projects()->find($project['id']);
+                if ($model) {
+                    $model->update($data);
+                    $incomingIds[] = $model->id;
+                    continue;
+                }
+            }
+
+            // no id (or id not found) → create new
+            $new = $client->projects()->create($data);
+            $incomingIds[] = $new->id;
         }
+
+        // delete rows the user removed from the form (present in DB, absent from submission)
+        $client->projects()
+            ->whereNotIn('id', $incomingIds)
+            ->forceDelete();
     }
 
-    // Soft-delete any projects the user removed from the form.
-    // Safe because SoftDeletes preserves rows referenced by service requests.
-    // $client->projects()
-    //     ->whereNotIn('project_code', $keepCodes)
-    //     ->delete();
 
+
+    public function showFeedback($id)
+    {
+        $serviceRequest = ServiceRequest::with('category')
+            ->where('id', $id)
+            ->where('status', 'Completed')
+            ->firstOrFail();
+
+        return view('client_feedback', compact('serviceRequest'));
+    }
+
+
+    public function storeFeedback(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'performance_score' => 'required|integer|min:1|max:5',
+            'evaluation_comment' => 'nullable|string|max:500',
+        ]);
+
+        \Log::info('Incoming', [
+            'raw' => $request->all(),
+            'validated' => $validated,
+        ]);
+
+        $serviceRequest = ServiceRequest::where('id', $id)
+            ->where('status', 'Completed')
+            ->firstOrFail();
+
+        // Prevent double submission
+        if ($serviceRequest->feedback_submitted_at) {
+            return response()->json(['message' => 'Feedback already submitted.'], 409);
+        }
+
+        $serviceRequest->update([
+            'performance_score'     => $validated['performance_score'],
+            'evaluation_comment'    => $validated['evaluation_comment'] ?? null,
+            'feedback_submitted_at' => now(),
+        ]);
+
+        \Log::info('Feedback saved', [
+            'id' => $serviceRequest->id,
+            'score' => $serviceRequest->performance_score,
+            'fresh' => $serviceRequest->fresh()->only(['performance_score', 'evaluation_comment', 'feedback_submitted_at']),
+        ]);
+
+        return response()->json(['message' => 'Feedback recorded successfully.']);
+    }
 
     public function lookupByName(Request $request)
     {
