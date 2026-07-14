@@ -116,7 +116,7 @@ class ProjectController extends Controller
                 'rework'      => $s->rework_notes,
                 'elapsed'     => $s->created_at ? (int) $s->created_at->diffInHours(now()) : 0,
 
-                
+
                 // ---- client feedback ----
                 'rating'          => $s->performance_score,
                 'rating_comment'  => $s->evaluation_comment,
@@ -222,10 +222,16 @@ class ProjectController extends Controller
             'project_name'    => 'required|string|max:255',
             'project_code'    => 'nullable|string|max:50',
             'site_name'       => 'required|string|max:255',
-            'completion_date' => 'nullable|date',
+            // 'completion_date' => 'nullable|date',
+            'completion_date' => 'required|date',
             'site_address'    => 'required|string',
             'status'          => 'required|in:Active,Inactive',
-            'warranty_id' => 'nullable|exists:warranties,id',
+            // 'warranty_id' => 'nullable|exists:warranties,id',
+            'warranty_id'     => 'required|exists:warranties,id',
+
+        ], [
+            'completion_date.required' => 'Please select a completion date.',
+            'warranty_id.required'     => 'Please select a warranty.',
         ]);
 
         // Warranty runs one year (365 days) from the completion date.

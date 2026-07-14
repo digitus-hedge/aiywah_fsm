@@ -790,7 +790,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
     <div class="modal-body">
       <div class="form-group">
         <label class="form-label">Warranty Name <span class="req">*</span></label>
-        <input type="text" class="form-control" id="warranty-name" placeholder="e.g. Spare Parts"/>
+        <input type="text" class="form-control" id="warranty-name" placeholder="Enter warranty name"/>
       </div>
       <div class="form-group">
   <label class="form-label">Value <span class="req">*</span></label>
