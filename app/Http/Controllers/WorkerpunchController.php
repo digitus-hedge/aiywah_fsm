@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-class WorkerPunchController extends Controller
+class WorkerpunchController extends Controller
 {
     private function worker(Request $request): User
 {

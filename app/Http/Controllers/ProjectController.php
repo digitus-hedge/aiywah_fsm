@@ -7,6 +7,7 @@ use App\Models\Warranty;
 use App\Models\Client;
 use App\Models\ServiceCategory;
 use App\Models\ServiceRequest;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -184,7 +185,7 @@ class ProjectController extends Controller
                 $isRework = ! empty($s->rework_notes);
                 $activities->push([
                     'title' => $s->code . ($isRework ? ' — Returned for Rework' : ' — QC Passed & Closed'),
-                    'by'    => optional(\App\Models\User::find($s->qc_reviewed_by))->name ?? 'QC Team',
+                    'by'    => optional(User::find($s->qc_reviewed_by))->name ?? 'QC Team',
                     'icon'  => $isRework ? 'bi-arrow-repeat' : 'bi-check-lg',
                     'color' => $isRework ? '#d97706' : '#10b981',
                     'bg'    => $isRework ? 'rgba(245,158,11,.1)' : 'rgba(16,185,129,.12)',

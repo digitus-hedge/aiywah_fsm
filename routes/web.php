@@ -10,7 +10,7 @@ use App\Http\Controllers\UserProvisioningController;
 use App\Http\Controllers\Userdirectorycontroller;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\WorkerPipelineController;
-use App\Http\Controllers\WorkerPunchController;
+use App\Http\Controllers\WorkerpunchController;
 use App\Http\Controllers\InquiryController;
 /*
 |--------------------------------------------------------------------------
@@ -207,10 +207,10 @@ Route::prefix('worker')->name('worker.')->group(function () {
     Route::post('/job/accept',     [WorkerPipelineController::class, 'accept'])->name('job.accept');
     Route::post('/job/reschedule', [WorkerPipelineController::class, 'reschedule'])->name('job.reschedule');
     Route::post('/job/hold',       [WorkerPipelineController::class, 'hold'])->name('job.hold');
-    Route::post('/punch/in',       [WorkerPunchController::class, 'punchIn'])->name('punch.in');
-    Route::post('/punch/out',      [WorkerPunchController::class, 'punchOut'])->name('punch.out');
-    Route::post('/punch/upload',   [WorkerPunchController::class, 'upload'])->name('punch.upload');
-    Route::post('/punch/expense',  [WorkerPunchController::class, 'expense'])->name('punch.expense');
+    Route::post('/punch/in',       [WorkerpunchController::class, 'punchIn'])->name('punch.in');
+    Route::post('/punch/out',      [WorkerpunchController::class, 'punchOut'])->name('punch.out');
+    Route::post('/punch/upload',   [WorkerpunchController::class, 'upload'])->name('punch.upload');
+    Route::post('/punch/expense',  [WorkerpunchController::class, 'expense'])->name('punch.expense');
 
     Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
     Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
