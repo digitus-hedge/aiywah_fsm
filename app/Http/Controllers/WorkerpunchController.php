@@ -84,7 +84,7 @@ class WorkerPunchController extends Controller
 
             return $p;
         });
-
+            app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Work in progress');
         return response()->json([
             'ok'          => true,
             'punch_id'    => $punch->id,
@@ -218,7 +218,7 @@ class WorkerPunchController extends Controller
         });
 
         $punch->refresh();
-
+        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'QC Review');
         return response()->json([
             'ok'          => true,
             'duration'    => $punch->duration_label,

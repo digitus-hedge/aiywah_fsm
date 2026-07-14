@@ -3,10 +3,20 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Client extends Model
 {
-    protected $fillable = ['company_name', 'unique_code', 'contact_name', 'designation','primary_country','primary_mobile'];
+    use SoftDeletes;
+
+    protected $fillable = [
+        'company_name',
+        'unique_code',
+        'contact_name',
+        'designation',
+        'primary_country',
+        'primary_mobile',
+    ];
 
     public function mobiles()
     {
@@ -18,4 +28,3 @@ class Client extends Model
         return $this->hasMany(Project::class);
     }
 }
-
