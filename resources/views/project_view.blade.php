@@ -465,7 +465,7 @@ span#cds
           data-desc="{{ strtolower($sr->issue_description) }}"
           data-category="{{ strtolower($catName) }}"
           data-status="{{ $sr->status }}"
-          data-warranty="{{ $sr->warranty_scope }}"
+          data-warranty="{{ $sr->warranty_scope === 'iw' ? 'iw' : 'oow' }}"
           data-date="{{ $sr->created_at?->toDateString() }}">
 
         <td class="mono">{{ $sr->code }}</td>
@@ -514,7 +514,7 @@ span#cds
         <td>
  <span class="sbadge {{ $cfg['cls'] }}">
     <i class="bi bi-circle-fill" style="font-size:.32rem;"></i>{{ Str::headline($sr->status) }}
-  </span>        
+  </span>
 </td>
 
         <td>
@@ -529,7 +529,6 @@ span#cds
           <div class="empty-st">
             <i class="bi bi-inbox"></i><h6>No Records Found</h6>
             <p>No service requests raised against this project yet.</p>
-            <!-- <button class="btn-gold" onclick="openInquiry()"><i class="bi bi-plus-lg"></i>New Inquiry</button> -->
           </div>
         </td>
       </tr>

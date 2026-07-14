@@ -1698,23 +1698,21 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
               <div class="field-hint">Auto-generated from client token. You can edit it.</div>
             </div>
 
-            <div class="form-group" style="margin-bottom:0;flex:1;min-width:200px;">
-              <label class="form-label">Completion Date</label>
+            <div class="form-group" style="margin-bottom:0;flex:1;">
+              <label class="form-label">Completion Date <span class="req">*</span></label>
               <div class="auto-code-row">
-                <input type="date" class="form-control" id="proj-completion" style="max-width:200px;">
+                <input type="date" class="form-control" id="proj-completion">
               </div>
               <div class="field-hint">Expected or actual completion date.</div>
             </div>
-
           </div>
 
 
 
-
-          <div class="form-group" style="margin-top:10px;flex:1;min-width:200px;">
-            <label class="form-label">Warranty Name</label>
+          <div class="form-group" style="margin-top:14px;flex:1;">
+            <label class="form-label">Warranty Name <span class="req">*</span></label>
             <div class="auto-code-row">
-              <select class="form-control" id="proj-warranty" style="max-width:200px;">
+              <select class="form-control" id="proj-warranty">
                 <option value="">Select Warranty</option>
                 @foreach($warranties as $warranty)
                 <option value="{{ $warranty->id }}">{{ $warranty->name }}</option>
@@ -1723,8 +1721,6 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
             </div>
             <div class="field-hint">Select a warranty.</div>
           </div>
-
-
         </div>
 
 
@@ -2028,6 +2024,16 @@ $clientsJs = $clients->map(fn($c) => [
       showToast('err', 'Missing', 'Please enter a project name.');
       return;
     }
+
+     if (!payload.completion_date) {
+  showToast('err', 'Missing', 'Please select a completion date.');
+  return;
+}
+if (!payload.warranty_id) {
+  showToast('err', 'Missing', 'Please select a warranty.');
+  return;
+}
+
     if (!payload.site_name) {
       showToast('err', 'Missing', 'Please enter the site name.');
       return;
@@ -2036,6 +2042,8 @@ $clientsJs = $clients->map(fn($c) => [
       showToast('err', 'Missing', 'Please enter the site address.');
       return;
     }
+
+   
 
     const url = editingProjectId ? ROUTES.update(editingProjectId) : ROUTES.store;
     const method = editingProjectId ? 'PUT' : 'POST';

@@ -764,7 +764,7 @@ function addStakeholder(prefill) {
               `<option value="${c}" ${prefill && prefill.country === c ? 'selected' : ''}>${c}</option>`
             ).join('')}
           </select>
-          <input type="tel" class="sh-input" name="stakeholders[${idx}][mobile]" value="${num}" placeholder="50 123 4567" oninput="syncSummary()" style="flex:1;"/>
+          <input type="tel" class="sh-input" name="stakeholders[${idx}][mobile]" value="${num}" placeholder="50 123 4567"inputmode="numeric" pattern="[0-9]*" maxlength="15" oninput="this.value=this.value.replace(/[^0-9]/g,'');syncSummary()" style="flex:1;"/>
         </div>
       </div>
     </div>

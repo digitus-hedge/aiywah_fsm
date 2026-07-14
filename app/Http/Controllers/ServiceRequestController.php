@@ -228,10 +228,16 @@ class ServiceRequestController extends Controller
 
     public function dispatch_engine()
     {
+
+
+ 
         $inquiries = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
             ->where('status', 'Approved')
             ->latest()
             ->get();
+
+
+            
 
         $tickets = $inquiries->map(function ($sr) {
             return [

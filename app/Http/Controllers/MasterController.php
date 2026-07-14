@@ -299,7 +299,8 @@ class MasterController extends Controller
 {
     $validator = Validator::make($request->all(), [
         'name'   => 'required|string|max:255',
-        'value'  => 'nullable|string|max:500',
+        // 'value'  => 'nullable|string|max:500',
+        'value'  => 'required|integer|min:1',
         'status' => 'required|in:0,1',
     ]);
 
@@ -325,7 +326,8 @@ public function updateWarrantyCategory(Request $request, $id)
 
     $validator = Validator::make($request->all(), [
         'name'   => 'required|string|max:255',
-        'value'  => 'nullable|string|max:500',
+        // 'value'  => 'nullable|string|max:500',
+        'value'  => 'required|integer|min:1',
         'status' => 'required|in:0,1',
     ]);
 

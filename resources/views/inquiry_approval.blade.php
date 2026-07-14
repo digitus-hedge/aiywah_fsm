@@ -494,17 +494,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
         </div>
       </div>
 
-      <!-- Inquiry Description -->
-      <!-- <div class="dp-card">
-        <div class="dp-hdr">
-          <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
-          <div><h6>Inquiry Description</h6><span class="sub">Client-submitted details</span></div>
-        </div>
-        <div class="dp-body" id="descBody">
-          <div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>
-        </div>
-      </div> -->
-
+    
 
       <div class="dp-card">
   <div class="dp-hdr" onclick="toggleDescCard(this)" style="cursor:pointer;">
