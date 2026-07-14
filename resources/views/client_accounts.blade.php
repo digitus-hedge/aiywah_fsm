@@ -823,18 +823,18 @@ function addProject(prefill, existing) {
         </div>
       </div>
       <div>
-        <span class="ps-label">Completion Date</span>
+        <span class="ps-label">Completion Date <span style="color:#ff3366;">*</span></span>
         <input type="date" class="ps-input" name="projects[${idx}][completion_date]" value="${cd}" oninput="syncSummary()"/>
       </div>
        <div>
-        <span class="ps-label">Warranty</span>
+        <span class="ps-label">Warranty <span style="color:#ff3366;">*</span></span>
         <select class="ps-input" name="projects[${idx}][warranty_id]" onchange="syncSummary()">
           <option value="">Select Warranty</option>
           ${warrantyOptions}
         </select>
       </div>
       <div class="ps-full">
-        <span class="ps-label">Site Name / Header</span>
+        <span class="ps-label">Site Name / Header <span style="color:#ff3366;">*</span></span>
         <input type="text" class="ps-input" name="projects[${idx}][site_name]" value="${sn}" placeholder="e.g. Main Building, Warehouse Block A" oninput="syncSummary()"/>
       </div>
       <div class="ps-full">

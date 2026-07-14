@@ -227,6 +227,51 @@ class ClientController extends Controller
         ]);
     }
 
+  private function sendRegistrationMessage(Client $client): void
+{
+    try {
+        $phone = $this->formatWhatsAppNumber(
+            $client->primary_country,
+            $client->primary_mobile
+        );
+
+        if (!$phone) {
+            return;
+        }
+
+        $result = (new \App\Services\WhatsAppService())->sendOrderTest(
+            $phone,
+            $client->contact_name,    // {{1}} name
+            $client->unique_code,     // {{2}} used as "order number"
+            'in 3-5 business days'    // {{3}} any placeholder text
+        );
+
+        \Log::info('WhatsApp registration sent', [
+            'client_id' => $client->id,
+            'phone'     => $phone,
+            'result'    => $result,
+        ]);
+
+    } catch (\Throwable $e) {
+        \Log::error('WhatsApp registration message failed', [
+            'client_id' => $client->id,
+            'error'     => $e->getMessage(),
+        ]);
+    }
+}
+
+    private function formatWhatsAppNumber(?string $country, ?string $mobile): ?string
+    {
+        if (!$mobile) {
+            return null;
+        }
+
+        // Strip everything except digits from both parts and join
+        $country = preg_replace('/\D/', '', (string) $country); // "+91" -> "91"
+        $mobile  = preg_replace('/\D/', '', $mobile);           // "80 8677 2507" -> "8086772507"
+
+        return $country . $mobile; // "918086772507"
+    }
 
     public function store(Request $request)
     {
@@ -249,6 +294,8 @@ class ClientController extends Controller
             return $client;
         });
 
+        // Send WhatsApp registration confirmation (outside transaction)
+        $this->sendRegistrationMessage($client);
         return redirect()
             ->route('clients.create')
             ->with('success', true)
@@ -332,10 +379,10 @@ class ClientController extends Controller
             'projects.*.id'            => ['nullable', 'integer', 'exists:projects,id'],
             'projects.*.project_name'  => ['required', 'string', 'max:255'],
             'projects.*.project_code'  => ['required', 'string', 'max:50'],
-            'projects.*.site_name'     => ['nullable', 'string', 'max:255'],
+            'projects.*.site_name'     => ['required', 'string', 'max:255'],
             'projects.*.site_address'  => ['nullable', 'string', 'max:1000'],
-            'projects.*.completion_date'    => ['nullable', 'date'],
-            'projects.*.warranty_id' => 'nullable|exists:warranties,id',
+            'projects.*.completion_date'    => ['required', 'date'],
+            'projects.*.warranty_id' => 'required|exists:warranties,id',
             'projects.*.warranty_end_date'  => ['nullable', 'date'],
         ];
 

@@ -161,6 +161,7 @@ class WorkerPipelineController extends Controller
             'hold_reason' => null,
             'held_at'     => null,
         ]);
+        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Accepted');
 
         return response()->json([
             'ok'     => true,

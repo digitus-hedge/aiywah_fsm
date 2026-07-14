@@ -12,6 +12,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\WorkerPipelineController;
 use App\Http\Controllers\WorkerpunchController;
 use App\Http\Controllers\InquiryController;
+use App\Services\WhatsAppService;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -19,6 +20,7 @@ use App\Http\Controllers\InquiryController;
 */
 // usercontroller
 /* ---- Auth ---- */
+
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -130,7 +132,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/invoice_panel/{serviceRequest}/hop-approve', [ServiceRequestController::class, 'hopApprove'])->name('invoice.hop');
 
     Route::get('/expense_ledger', [ServiceRequestController::class, 'expenseLedger'])->name('expense_ledger');
-});
+
+    Route::patch('/service-requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])
+    ->name('service-requests.updateStatus');
+    });
 
     /*
     |--------------------------------------------------------------------------
