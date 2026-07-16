@@ -142,4 +142,6 @@ class ServiceRequest extends Model
     {
         return $this->hasOne(Punch::class)->latestOfMany();
     }
+    public function createdBy()    { return $this->belongsTo(User::class, 'created_by'); }
+    public function qcReviewedBy() { return $this->belongsTo(User::class, 'qc_reviewed_by'); }
 }

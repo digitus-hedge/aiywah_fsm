@@ -159,7 +159,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 .rejection-wrap{margin-top:10px;}
 .rejection-label{font-size:.75rem;font-weight:500;color:#ff3366;margin-bottom:5px;display:flex;align-items:center;gap:5px;}
 .rejection-label i{font-size:.8rem;}
-.rejection-ta{width:100%;font-size:.78rem;border:1px solid rgba(255,51,102,.4);border-radius:6px;padding:.45rem .7rem;color:var(--text-primary);background:rgba(255,51,102,.04);resize:vertical;min-height:80px;transition:border-color .15s,box-shadow .15s,background .3s,color .3s;font-family:inherit;}
+.rejection-ta{width:100%;font-size:.78rem;border:1px solid rgba(255,51,102,.4);border-radius:6px;padding:.45rem .7rem;color:var(--text-primary);background:rgba(255,51,102,.04);resize:vertical;min-height:80px;transition:border-color .15s,box-shadow .15s,background .3s,color .3s;}
 .rejection-ta:focus{border-color:#ff3366;box-shadow:0 0 0 3px rgba(255,51,102,.12);outline:none;}
 .rejection-ta::placeholder{color:var(--text-light);}
 .rejection-ta:disabled{opacity:.45;cursor:not-allowed;background:var(--surface-2);}

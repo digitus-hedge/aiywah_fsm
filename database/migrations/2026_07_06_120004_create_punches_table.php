@@ -36,7 +36,6 @@ return new class extends Migration
             $table->decimal('materials_subtotal', 12, 2)->default(0);
             $table->decimal('labour_charge', 12, 2)->default(0);
             $table->decimal('grand_total', 12, 2)->default(0);
-            $table->string('receipt_number')->nullable();
             $table->text('notes')->nullable();
 
             // Sign-off

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\ServiceCategory;
 
 class Userdirectorycontroller extends Controller
 {
@@ -66,4 +67,26 @@ class Userdirectorycontroller extends Controller
         // Password::sendResetLink(['email' => $user->email]);  // when ready
         return response()->json(['ok' => true]);
     }
+    
+    public function show(User $user)
+{
+    $user->load('role', 'serviceDomains');
+
+    return response()->json([
+        'user' => [
+            'id'      => $user->id,
+            'name'    => $user->name,
+            'email'   => $user->email,
+            'roleId'  => optional($user->role)->code ?? '',
+            'domains' => $user->serviceDomains->pluck('id')->all(),
+        ],
+        'roles' => Role::orderBy('sort_order')->get(['name', 'code']),
+        'domainCats' => ServiceCategory::with(['domains' => fn ($q) => $q->where('status', true)->orderBy('sort_order')])
+            ->where('status', true)->orderBy('sort_order')->get()
+            ->map(fn ($c) => [
+                'label'  => $c->category_name,
+                'skills' => $c->domains->map(fn ($d) => ['id' => $d->id, 'label' => $d->domain_name])->values(),
+            ])->values(),
+    ]);
+}
 }

@@ -294,15 +294,18 @@
       </div>
     </div>
 
-    <div class="filter-group cat">
-      <label class="filter-label" for="led-cat">Category</label>
-      <select class="filter-control" id="led-cat">
+   <div class="filter-group cat">
+    <label class="filter-label" for="led-cat">Category</label>
+    <select class="filter-control" id="led-cat">
         <option value="">All Categories</option>
-        @foreach (($categories ?? ['Spare Parts','Local Hardware Purchase','Emergency Valve Fittings','Consumables']) as $cat)
-          <option value="{{ $cat }}">{{ $cat }}</option>
+
+        @foreach ($categories as $category)
+            <option value="{{ $category }}">
+                {{ $category }}
+            </option>
         @endforeach
-      </select>
-    </div>
+    </select>
+</div>
 
     <div class="filter-actions">
       <button class="btn-ghost" type="button" id="led-reset">

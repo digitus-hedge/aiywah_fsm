@@ -53,8 +53,6 @@ class WorkerpunchController extends Controller
     {
         $data = $request->validate([
             'sr_id'            => ['required', 'integer'],
-            'lat'              => ['required', 'numeric', 'between:-90,90'],
-            'lng'              => ['required', 'numeric', 'between:-180,180'],
             'work_description' => ['nullable', 'string', 'max:2000'],
         ]);
 
@@ -73,14 +71,17 @@ class WorkerpunchController extends Controller
                 'service_request_id' => $sr->id,
                 'user_id'            => $worker->id,
                 'punch_in_at'        => now(),
-                'site_location'      => $data['lat'] . ',' . $data['lng'],
                 'work_description'   => $data['work_description'] ?? null,
                 'status'             => 'punched_in',
                 'materials_subtotal' => 0,
                 'labour_charge'      => 0,
                 'grand_total'        => 0,
             ]);
-            $sr->update(['status' => 'in_progress']);
+            $sr->update([
+                'status'      => 'in_progress',
+                'hold_reason' => null,
+                'held_at'     => null,
+            ]);
 
             return $p;
         });
@@ -90,6 +91,7 @@ class WorkerpunchController extends Controller
             'punch_id'    => $punch->id,
             'punch_in_at' => $punch->punch_in_at->toIso8601String(),
         ]);
+        
     }
 
     /** Compliance photo / signature upload. */
@@ -97,10 +99,8 @@ class WorkerpunchController extends Controller
     {
         $data = $request->validate([
             'sr_id' => ['required', 'integer'],
-            'type'  => ['required', 'in:before,after,sig'],
-            'file'  => ['required', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp,pdf'],
-            'notes'          => ['nullable', 'string', 'max:2000'],
-            'receipt_number' => ['nullable', 'string', 'max:120'],
+            'type'  => ['required', 'in:before,after'],
+            'file'  => ['required', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp'],
         ]);
 
         $punch = $this->openPunch($request, $data['sr_id']);
@@ -108,13 +108,9 @@ class WorkerpunchController extends Controller
         $column = match ($data['type']) {
             'before' => 'start_photo_path',
             'after'  => 'finish_photo_path',
-            'sig'    => 'customer_signature_path',
-            'notes'          => $data['notes'] ?? null,
-            'receipt_number' => $data['receipt_number'] ?? null,
         };
 
         $path = $request->file('file')->store("punches/{$punch->id}", 'public');
-
         $punch->update([$column => $path]);
 
         return response()->json(['ok' => true, 'path' => $path, 'type' => $data['type']]);
@@ -181,9 +177,6 @@ class WorkerpunchController extends Controller
         $data = $request->validate([
             'sr_id'         => ['required', 'integer'],
             'summary'       => ['nullable', 'string', 'max:2000'],
-            'customer_name' => ['nullable', 'string', 'max:190'],
-            'customer_phone'=> ['nullable', 'string', 'max:40'],
-            'labour_charge' => ['nullable', 'numeric', 'min:0'],
         ]);
 
         $sr    = $this->ownedRequest($request, $data['sr_id']);
@@ -193,7 +186,7 @@ class WorkerpunchController extends Controller
         foreach ([
             'start_photo_path'        => 'Before photo',
             'finish_photo_path'       => 'After photo',
-            'customer_signature_path' => 'Customer signature',
+            // 'customer_signature_path' => 'Customer signature',
         ] as $col => $label) {
             abort_if(blank($punch->$col), 422, "{$label} is required before finishing.");
         }
@@ -202,9 +195,6 @@ class WorkerpunchController extends Controller
             $punch->fill([
                 'punch_out_at'       => now(),
                 'completion_summary' => $data['summary'] ?? null,
-                'customer_name'      => $data['customer_name'] ?? null,
-                'customer_phone'     => $data['customer_phone'] ?? null,
-                'labour_charge'      => $data['labour_charge'] ?? $punch->labour_charge ?? 0,
                 'status'             => 'submitted',
             ])->save();
 
