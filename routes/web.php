@@ -98,7 +98,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/directory', [ClientController::class, 'directory'])->name('clients.directory');
     Route::get('/clients/{id}', [ClientController::class, 'show'])->name('clients.show');
     Route::post('/clients-directory/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle');
-    
+   
+    // Job Tracking
+    Route::get('/job-tracking/{id}', [ClientController::class, 'job_tracking'])->name('clients.job_tracking');
+    Route::get('/job-tracking/{id}/data', [ClientController::class, 'job_tracking_data'])->name('clients.job_tracking.data');
 
 
     Route::get('project_site_directory',   [ProjectController::class, 'index'])->name('project_site_directory');

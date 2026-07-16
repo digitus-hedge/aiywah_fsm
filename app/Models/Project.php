@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
 {
+        protected $table = 'projects';   // ← add this explicitly
+
     use SoftDeletes; // <-- Use the Trait inside your class
     protected $fillable = [
         'client_id',
