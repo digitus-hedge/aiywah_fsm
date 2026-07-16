@@ -112,6 +112,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])->name('clients.feedback.show');
     Route::post('/client_feedback/{id}', [ClientController::class, 'storeFeedback'])->name('clients.feedback.store');
 
+    // Whatapp notifcation
+
+
     
     Route::controller(ServiceRequestController::class)->group(function () {
     Route::get('/qc-review', 'qcReview')->name('qc_review');

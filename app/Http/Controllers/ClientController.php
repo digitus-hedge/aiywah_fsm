@@ -227,38 +227,37 @@ class ClientController extends Controller
         ]);
     }
 
-  private function sendRegistrationMessage(Client $client): void
-{
-    try {
-        $phone = $this->formatWhatsAppNumber(
-            $client->primary_country,
-            $client->primary_mobile
-        );
+    private function sendRegistrationMessage(Client $client): void
+    {
+        try {
+            $phone = $this->formatWhatsAppNumber(
+                $client->primary_country,
+                $client->primary_mobile
+            );
 
-        if (!$phone) {
-            return;
+            if (!$phone) {
+                return;
+            }
+
+            $result = (new \App\Services\WhatsAppService())->sendOrderTest(
+                $phone,
+                $client->contact_name,    // {{1}} name
+                $client->unique_code,     // {{2}} used as "order number"
+                'in 3-5 business days'    // {{3}} any placeholder text
+            );
+
+            \Log::info('WhatsApp registration sent', [
+                'client_id' => $client->id,
+                'phone'     => $phone,
+                'result'    => $result,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::error('WhatsApp registration message failed', [
+                'client_id' => $client->id,
+                'error'     => $e->getMessage(),
+            ]);
         }
-
-        $result = (new \App\Services\WhatsAppService())->sendOrderTest(
-            $phone,
-            $client->contact_name,    // {{1}} name
-            $client->unique_code,     // {{2}} used as "order number"
-            'in 3-5 business days'    // {{3}} any placeholder text
-        );
-
-        \Log::info('WhatsApp registration sent', [
-            'client_id' => $client->id,
-            'phone'     => $phone,
-            'result'    => $result,
-        ]);
-
-    } catch (\Throwable $e) {
-        \Log::error('WhatsApp registration message failed', [
-            'client_id' => $client->id,
-            'error'     => $e->getMessage(),
-        ]);
     }
-}
 
     private function formatWhatsAppNumber(?string $country, ?string $mobile): ?string
     {
@@ -506,6 +505,7 @@ class ClientController extends Controller
         return view('client_feedback', compact('serviceRequest'));
     }
 
+   
 
     public function storeFeedback(Request $request, $id)
     {

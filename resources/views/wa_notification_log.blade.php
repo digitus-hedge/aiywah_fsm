@@ -202,7 +202,7 @@
             <th>Delivery</th>
             <th style="max-width:260px;">Message Preview</th>
             <th>Timestamp</th>
-            <th style="width:100px;">Actions</th>
+            <!-- <th style="width:100px;">Actions</th> -->
           </tr>
         </thead>
         <tbody id="wa-tbody"></tbody>
