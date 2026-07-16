@@ -36,7 +36,7 @@ class LoginController extends Controller
             $request->session()->regenerate();
 
             // Redirect to dashboard (or the intended URL if they were sent to login)
-            return redirect()->intended(route('dashboard'))
+            return redirect()->intended(route('sr_explorer'))
                 ->with('success', 'Welcome back, ' . Auth::user()->name . '!');
         }
 

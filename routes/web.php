@@ -36,9 +36,9 @@ Route::post('/logout', function (Illuminate\Http\Request $request) {
 })->name('logout')->middleware('auth');
 
 /* ---- Root: redirect to dashboard (or login) ---- */
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-});
+// Route::get('/', function () {
+//     return redirect()->route('dashboard');
+// });
 
 /*
 |--------------------------------------------------------------------------
@@ -48,9 +48,9 @@ Route::get('/', function () {
 Route::middleware('auth')->group(function () {
 
     /* ---- Dashboard ---- */
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+    // Route::get('/dashboard', function () {
+    //     return view('dashboard');
+    // })->name('dashboard');
      Route::get('/analytics', function () {
         return view('analytics_dashboard');
     })->name('analytics');
@@ -80,7 +80,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/sr-registration', [ServiceRequestController::class, 'create'])->name('sr_registration');
     Route::get('/service-requests/lookup/{code}', [ServiceRequestController::class, 'lookup'])->name('service-requests.lookup');
     Route::post('/service-requests', [ServiceRequestController::class, 'store'])->name('service-requests.store');
-    Route::get('/sr-explorer', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
+    Route::get('/', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
     Route::get('/ticket-summary', [ServiceRequestController::class, 'ticketSummary'])->name('kanban_view');
 
 

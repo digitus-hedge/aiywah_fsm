@@ -17,7 +17,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
 @endphp
 
 <aside class="sidebar" id="sidebar">
-    <a href="{{ route('dashboard') }}" class="sidebar-brand">
+    <a href="#" class="sidebar-brand">
         <div class="brand-mark">
             <img src="{{ asset('assets/images/logo-icon.webp') }}"
                 alt="MatterMind Logo"
@@ -35,13 +35,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @php $showMain = $can('dashboard') || $can('kanban_view') || $can('sr_registration'); @endphp
         @if ($showMain)
         <li class="sidebar-heading">Main</li>
-        @if ($can('dashboard'))
-        <li>
-            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                <i data-feather="layout"></i>Dashboard
-            </a>
-        </li>
-        @endif
+        
         @if ($can('sr_registration'))
         <li>
             <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">

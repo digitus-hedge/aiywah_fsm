@@ -15,7 +15,7 @@
                 <strong>@yield('page_title', 'Dashboard')</strong>
             </div>
             <nav class="topbar-breadcrumb" aria-label="breadcrumb">
-                <a href="{{ route('dashboard') }}">Home</a>
+                <a href="">Home</a>
                 @hasSection('page_title')
                     <span class="bc-sep">/</span>
                     <span class="bc-current">@yield('page_title')</span>
