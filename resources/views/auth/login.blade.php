@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sign In · MatterMind Portal</title>
 
-    {{-- Self-hosted brand fonts: SF Pro Display (headers) + SF Pro Display (body) --}}
+    {{-- Self-hosted brand fonts: Cormorant Garamond (display) + SF Pro Display (body) --}}
     <link rel="stylesheet" href="{{ asset('assets/fonts/fonts.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.1/dist/feather.min.js"></script>
 
@@ -28,88 +28,146 @@
             --success:#0f8f6a;
             --success-bg:rgba(15,143,106,.08);
             --page:#f2ede6;
+
+            /* ── Type stacks (mirrors theme.css) ── */
+            --font-head:'Cormorant Garamond',Georgia,'Times New Roman',serif;
+            --font-body:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         }
 
         *{box-sizing:border-box;margin:0;padding:0;}
 
         body{
-            font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+            font-family:var(--font-body);
             min-height:100vh;
             display:grid;
             grid-template-columns:1.05fr .95fr;
             background:var(--page);
             color:var(--ink);
             -webkit-font-smoothing:antialiased;
+            text-rendering:optimizeLegibility;
         }
 
-        /* ═══ LEFT: brand panel ═══ */
+        /* ═══ LEFT: brand panel ═══
+           3-row grid: mark / centred story / footer.
+           The story row takes all free space and centres its own
+           content, so it stays optically middle regardless of
+           viewport height while mark + footer stay pinned. */
         .brand-panel{
             position:relative;
             overflow:hidden;
+            isolation:isolate;
             background:
-                radial-gradient(120% 120% at 15% 10%, #a98c5c 0%, transparent 55%),
-                radial-gradient(130% 130% at 90% 85%, #6f5a37 0%, transparent 60%),
-                linear-gradient(150deg, var(--brand-700) 0%, var(--brand-500) 100%);
+                radial-gradient(120% 130% at 12% 6%, #b1936180 0%, transparent 58%),
+                radial-gradient(140% 140% at 92% 92%, #5e4c2e99 0%, transparent 62%),
+                linear-gradient(155deg, var(--brand-700) 0%, var(--brand-500) 62%, #a5885a 100%);
             color:#fff;
-            padding:56px 60px;
-            display:flex;
-            flex-direction:column;
-            justify-content:space-between;
-        }
-        .brand-panel::before{
-            content:'';
-            position:absolute;
-            right:-220px; bottom:-220px;
-            width:640px; height:640px;
-            border-radius:50%;
-            border:1px solid rgba(255,255,255,.10);
-            box-shadow:
-                0 0 0 60px rgba(255,255,255,.04),
-                0 0 0 130px rgba(255,255,255,.03),
-                0 0 0 210px rgba(255,255,255,.02);
-        }
-        .brand-panel::after{
-            content:'';
-            position:absolute;
-            left:-140px; top:-140px;
-            width:360px; height:360px;
-            border-radius:50%;
-            background:radial-gradient(circle, rgba(255,255,255,.08), transparent 70%);
+            padding:52px 64px;
+            display:grid;
+            grid-template-rows:auto 1fr auto;
+            gap:32px;
         }
 
-        .bp-top{position:relative;z-index:1;display:flex;align-items:center;gap:13px;}
+        /* Fine grain — keeps the large gold field from banding */
+        .brand-panel::before{
+            content:'';
+            position:absolute;inset:0;z-index:-1;
+            background-image:radial-gradient(rgba(255,255,255,.5) .5px, transparent .5px);
+            background-size:3px 3px;
+            opacity:.05;
+        }
+
+        /* Concentric rings — recentred, softer falloff */
+        .bp-rings{
+            position:absolute;
+            right:-260px; bottom:-260px;
+            width:720px; height:720px;
+            border-radius:50%;
+            border:1px solid rgba(255,255,255,.14);
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,.05) inset,
+                0 0 0 70px rgba(255,255,255,.035),
+                0 0 0 150px rgba(255,255,255,.025),
+                0 0 0 240px rgba(255,255,255,.015);
+            z-index:-1;
+            pointer-events:none;
+        }
+        .bp-glow{
+            position:absolute;
+            left:-160px; top:-160px;
+            width:420px; height:420px;
+            border-radius:50%;
+            background:radial-gradient(circle, rgba(255,255,255,.10), transparent 70%);
+            z-index:-1;
+            pointer-events:none;
+        }
+
+        .bp-top{
+            display:flex;
+            align-items:center;
+            gap:14px;
+        }
         .bp-mark{
-            width:46px;height:46px;flex-shrink:0;
+            width:52px;height:52px;flex-shrink:0;
             display:flex;align-items:center;justify-content:center;
         }
         .bp-mark img{
-            width:100px;
-            height:100px;
+            width:52px;
+            height:52px;
             object-fit:contain;
             display:block;
             filter:brightness(0) invert(1);
+            opacity:.96;
         }
-        .bp-name{font-family:'SF Pro Display',Georgia,serif;font-size:1.08rem;font-weight:600;letter-spacing:.04em;line-height:1.2;}
-        .bp-name small{font-family:'SF Pro Display',-apple-system,sans-serif;display:block;font-size:.66rem;font-weight:400;letter-spacing:.16em;opacity:.72;margin-top:3px;text-transform:uppercase;}
 
-        .bp-mid{position:relative;z-index:1;max-width:400px;}
+        /* Centred story block */
+        .bp-mid{
+            align-self:center;
+            max-width:430px;
+        }
         .bp-eyebrow{
-            font-size:.7rem;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
-            opacity:.7;margin-bottom:20px;
-            display:flex;align-items:center;gap:10px;
+            font-family:var(--font-body);
+            font-size:.68rem;font-weight:600;letter-spacing:.24em;text-transform:uppercase;
+            opacity:.72;margin-bottom:22px;
+            display:flex;align-items:center;gap:12px;
         }
-        .bp-eyebrow::before{content:'';width:26px;height:1px;background:rgba(255,255,255,.5);}
+        .bp-eyebrow::before{
+            content:'';
+            width:30px;height:1px;
+            background:linear-gradient(90deg, rgba(255,255,255,.7), rgba(255,255,255,.15));
+        }
         .bp-head{
-            font-family:'SF Pro Display',Georgia,serif;
+            font-family:var(--font-head);
             font-weight:600;
-            font-size:2.55rem;
-            line-height:1.14;
+            font-size:3.5rem;
+            line-height:1.06;
             letter-spacing:.005em;
-            margin-bottom:16px;
+            margin-bottom:20px;
+            text-wrap:balance;
         }
-        .bp-sub{font-size:.92rem;line-height:1.6;opacity:.82;font-weight:400;}
+        .bp-head em{
+            font-style:italic;
+            font-weight:500;
+            color:#f3e4cb;
+        }
+        .bp-rule{
+            width:52px;height:2px;
+            background:linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.1));
+            border-radius:2px;
+            margin-bottom:20px;
+        }
+        .bp-sub{
+            font-size:.93rem;
+            line-height:1.68;
+            opacity:.84;
+            font-weight:400;
+            max-width:390px;
+        }
 
-        .bp-foot{position:relative;z-index:1;font-size:.72rem;opacity:.6;letter-spacing:.02em;}
+        .bp-foot{
+            font-size:.71rem;
+            opacity:.55;
+            letter-spacing:.03em;
+        }
 
         /* ═══ RIGHT: form ═══ */
         .form-panel{
@@ -123,12 +181,13 @@
 
         .fp-kicker{
             font-size:.7rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
-            color:var(--brand-500);margin-bottom:14px;
+            color:var(--brand-500);margin-bottom:12px;
         }
         .fp-title{
-            font-family:'SF Pro Display',Georgia,serif;
-            font-size:1.95rem;font-weight:600;letter-spacing:.01em;
-            margin-bottom:7px;color:var(--ink);
+            font-family:var(--font-head);
+            font-size:2.6rem;font-weight:600;letter-spacing:.01em;
+            line-height:1.1;
+            margin-bottom:8px;color:var(--ink);
         }
         .fp-lead{font-size:.86rem;color:var(--ink-soft);margin-bottom:30px;}
 
@@ -145,7 +204,7 @@
         }
         .field-input{
             width:100%;
-            font-family:'SF Pro Display',inherit;font-size:.9rem;
+            font-family:var(--font-body);font-size:.9rem;
             color:var(--ink);
             background:var(--field-bg);
             border:1.5px solid var(--line);
@@ -178,7 +237,7 @@
 
         .btn-signin{
             width:100%;
-            font-family:'SF Pro Display',inherit;font-size:.9rem;font-weight:600;letter-spacing:.01em;
+            font-family:var(--font-body);font-size:.9rem;font-weight:600;letter-spacing:.01em;
             color:#fff;
             background:linear-gradient(135deg, var(--brand-600), var(--brand-500));
             border:none;border-radius:9px;
@@ -210,16 +269,21 @@
         /* ═══ Responsive ═══ */
         @media (max-width:900px){
             body{grid-template-columns:1fr;}
-            .brand-panel{padding:40px 40px 34px;}
-            .brand-panel::before{width:420px;height:420px;right:-180px;bottom:-180px;}
-            .bp-mid{max-width:none;margin:26px 0;}
-            .bp-head{font-size:2rem;}
+            .brand-panel{
+                padding:40px 40px 34px;
+                grid-template-rows:auto auto auto;
+                gap:26px;
+            }
+            .bp-rings{width:460px;height:460px;right:-200px;bottom:-200px;}
+            .bp-mid{max-width:none;align-self:start;}
+            .bp-head{font-size:2.5rem;}
             .bp-foot{display:none;}
         }
         @media (max-width:520px){
             .brand-panel{padding:30px 26px 26px;}
             .form-panel{padding:34px 26px;}
-            .bp-head{font-size:1.7rem;}
+            .bp-head{font-size:2.1rem;}
+            .fp-title{font-size:2.1rem;}
         }
     </style>
 </head>
@@ -227,16 +291,19 @@
 
     {{-- ═══ LEFT: brand story ═══ --}}
     <aside class="brand-panel">
+        <span class="bp-rings" aria-hidden="true"></span>
+        <span class="bp-glow" aria-hidden="true"></span>
+
         <div class="bp-top">
             <div class="bp-mark">
                 <img src="{{ asset('assets/images/logo-main.webp') }}" alt="MatterMind">
             </div>
-            
         </div>
 
         <div class="bp-mid">
             <div class="bp-eyebrow">MATTER MIND</div>
-            <h1 class="bp-head">Service That Matters. Always.</h1>
+            <h1 class="bp-head">Service that <em>matters</em>. Always.</h1>
+            <div class="bp-rule"></div>
             <p class="bp-sub">Provision users, route service requests, and keep every operation moving — all from one considered workspace.</p>
         </div>
 
