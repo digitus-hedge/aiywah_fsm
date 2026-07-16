@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
+use Illuminate\Support\Facades\Storage;
 class Punchitem extends Model
 {
 
@@ -30,5 +30,11 @@ class Punchitem extends Model
     return $this->receipt_path
         ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->receipt_path)
         : null;
+}
+protected function receiptUrl(): Attribute
+{
+    return Attribute::get(fn () => $this->receipt_path
+        ? Storage::disk('public')->url($this->receipt_path)
+        : null);
 }
 }

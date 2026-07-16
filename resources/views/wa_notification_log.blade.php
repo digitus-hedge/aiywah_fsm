@@ -15,7 +15,7 @@
 [data-bs-theme="dark"] .wa-wrap{--table-header:#2a2928;
   --row-ok:rgba(16,185,129,.1);--row-warn:rgba(245,158,11,.1);--row-breach:rgba(239,68,68,.1);}
 .wa-wrap h4,.wa-wrap h5,.wa-wrap h6,.wa-wrap .pg-header h4,.wa-wrap .tbl-card-title,.wa-wrap .stat-num{
-  font-family:'Cormorant Garamond', Georgia, serif;letter-spacing:-.01em;}
+  letter-spacing:-.01em;}
 
 /* PAGE HEADER */
 .wa-wrap .pg-header{background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden;}
@@ -63,7 +63,7 @@
 .wa-wrap table.listing tbody tr:hover{background:var(--table-hover);}
 .wa-wrap table.listing td{padding:11px 16px;font-size:.8125rem;color:var(--text-primary);vertical-align:middle;}
 .wa-wrap table.listing td.muted{color:var(--text-muted);font-size:.78rem;}
-.wa-wrap table.listing td.mono{font-family:monospace;font-size:.78rem;font-weight:600;color:var(--gold);}
+.wa-wrap table.listing td.mono{font-size:.78rem;font-weight:600;color:var(--gold);}
 
 /* BUTTONS */
 .wa-wrap .btn-gold{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:linear-gradient(135deg,var(--gold),var(--gold-2));color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:500;cursor:pointer;white-space:nowrap;}
@@ -150,15 +150,12 @@
     </div>
     <div class="filter-group">
       <div class="filter-label">Trigger Event</div>
+      {{-- Trigger Event select: make options dynamic --}}
       <select class="filter-control" id="wa-event" onchange="waFilter()">
         <option value="">All Events</option>
-        <option>Inquiry Logged</option>
-        <option>ETA Confirmed</option>
-        <option>Punch In — Work Started</option>
-        <option>SR Completed</option>
-        <option>SR Cancelled / Rejected</option>
-        <option>Invoice Finalized</option>
-        <option>Feedback Request</option>
+        @foreach($events as $ev)
+          <option value="{{ $ev }}">{{ $ev }}</option>
+        @endforeach
       </select>
     </div>
     <div class="filter-group">
@@ -175,10 +172,11 @@
       <div class="filter-label">Date From</div>
       <input class="filter-control" type="date" id="wa-date"/>
     </div>
+    {{-- Filter actions --}}
     <div class="filter-actions">
       <button class="btn-ghost" onclick="waReset()"><i class="bi bi-x-circle"></i>Reset</button>
-      <button class="btn-xs btn-xs-retry" style="padding:7px 13px;border-radius:7px;font-size:.8rem;" onclick="showToast('ok','Retry All','All failed messages queued for retry.')"><i class="bi bi-arrow-clockwise"></i>Retry All Failed</button>
-      <button class="btn-gold" onclick="showToast('ok','Export','Generating notification log CSV…')"><i class="bi bi-download"></i>Export</button>
+      <button class="btn-xs btn-xs-retry" style="padding:7px 13px;border-radius:7px;font-size:.8rem;" onclick="waRetryAll()"><i class="bi bi-arrow-clockwise"></i>Retry All Failed</button>
+      <a class="btn-gold" id="wa-export" href="{{ route('wa_notification_log.export') }}"><i class="bi bi-download"></i>Export</a>
     </div>
   </div>
 
@@ -211,13 +209,18 @@
       </table>
     </div>
     <div class="pagination-bar">
-      <div class="page-info" id="wa-page-info">Page 1 of 1</div>
+      <div class="page-info">Page {{ $paginator->currentPage() }} of {{ $paginator->lastPage() }} · {{ $paginator->total() }} total</div>
       <div class="page-btns">
-        <button class="page-btn"><i class="bi bi-chevron-left"></i></button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn"><i class="bi bi-chevron-right"></i></button>
+        @foreach($paginator->linkCollection() as $link)
+          <a class="page-btn {{ $link['active'] ? 'active' : '' }}"
+            href="{{ $link['url'] ?? '#' }}"
+            style="{{ $link['url'] ? '' : 'opacity:.4;pointer-events:none;' }}text-decoration:none;">
+            {!! $link['label'] !!}
+          </a>
+        @endforeach
       </div>
     </div>
+
   </div>
 
   <div class="wa-toast-wrap" id="waToastWrap"></div>
@@ -226,24 +229,20 @@
 
 @push('scripts')
 <script>
-/* =========================================================
-   WA Notification Log — page scripts
-   NOTE: LOGS is empty. Connect to DB later, e.g.:
-   var LOGS = @json($logs ?? []);
+var LOGS      = @json($logs);
+var WA_TOTAL  = {{ $totalThisMonth }};
+var WA_ROUTES = {
+  retry:    "{{ url('wa_notification_log') }}",
+  retryAll: "{{ route('wa_notification_log.retryAll') }}",
+  show:     "{{ url('wa_notification_log') }}",
+  index:    "{{ route('wa_notification_log') }}",
+  export:   "{{ route('wa_notification_log.export') }}"
+};
+var CSRF = "{{ csrf_token() }}";
 
-   Row shape expected:
-   { sr, recipient, client, event, status('Delivered'|'Sent'|'Failed'|'Pending'),
-     message, time }
-   ========================================================= */
-var LOGS = @json($logs ?? []);
-var WA_TOTAL = {{ $totalThisMonth ?? 0 }};
-
-/* map status text -> css class */
 var WA_STATUS_CLS = {
-  'Delivered':'wa-status-delivered',
-  'Sent':'wa-status-sent',
-  'Failed':'wa-status-failed',
-  'Pending':'wa-status-pending'
+  'Delivered':'wa-status-delivered','Sent':'wa-status-sent',
+  'Failed':'wa-status-failed','Pending':'wa-status-pending'
 };
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
@@ -258,7 +257,7 @@ function waRenderRows(list){
   tbody.innerHTML = list.map(function(m){
     var cls = WA_STATUS_CLS[m.status] || 'wa-status-pending';
     var retryBtn = (m.status === 'Failed')
-      ? '<button class="btn-xs btn-xs-retry" onclick="event.stopPropagation();showToast(\'ok\',\'Retry Queued\',\'Message re-queued for '+esc(m.sr)+'\')"><i class="bi bi-arrow-clockwise"></i>Retry</button>'
+      ? '<button class="btn-xs btn-xs-retry" onclick="event.stopPropagation();waRetry('+m.id+')"><i class="bi bi-arrow-clockwise"></i>Retry</button>'
       : '';
     return '<tr>'+
       '<td class="mono">'+esc(m.sr)+'</td>'+
@@ -268,29 +267,72 @@ function waRenderRows(list){
       '<td><span class="sbadge '+cls+'"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>'+esc(m.status)+'</span></td>'+
       '<td><div class="msg-preview">'+esc(m.message)+'</div></td>'+
       '<td class="muted" style="font-size:.75rem;white-space:nowrap;">'+esc(m.time)+'</td>'+
+      '<td><div style="display:flex;gap:5px;">'+retryBtn+
+        '<button class="btn-xs btn-xs-view" onclick="event.stopPropagation();waView('+m.id+')"><i class="bi bi-eye"></i></button>'+
+      '</div></td>'+
     '</tr>';
   }).join('');
 }
 
+function waParams(){
+  var p = new URLSearchParams();
+  var sr = document.getElementById('wa-sr').value;
+  var ev = document.getElementById('wa-event').value;
+  var st = document.getElementById('wa-status').value;
+  var dt = document.getElementById('wa-date').value;
+  if(sr) p.set('sr', sr);
+  if(ev) p.set('event', ev);
+  if(st) p.set('status', st);
+  if(dt) p.set('date_from', dt);
+  return p;
+}
+
+var waTimer = null;
 function waFilter(){
-  var sr     = (document.getElementById('wa-sr').value || '').toLowerCase();
-  var event  = document.getElementById('wa-event').value;
-  var status = document.getElementById('wa-status').value;
-  var list = LOGS.filter(function(m){
-    var ms = !sr || (m.sr||'').toLowerCase().includes(sr) || (m.client||'').toLowerCase().includes(sr);
-    var me = !event  || m.event === event;
-    var mt = !status || m.status === status;
-    return ms && me && mt;
-  });
-  waRenderRows(list);
+  clearTimeout(waTimer);
+  waTimer = setTimeout(function(){
+    var p = waParams();
+    document.getElementById('wa-export').href = WA_ROUTES.export + '?' + p.toString();
+    fetch(WA_ROUTES.index + '?' + p.toString(), {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        LOGS = d.logs; WA_TOTAL = d.stats.total;
+        waRenderRows(LOGS);
+      })
+      .catch(function(){ showToast('err','Error','Could not load logs.'); });
+  }, 250);
 }
 
 function waReset(){
-  document.getElementById('wa-sr').value = '';
-  document.getElementById('wa-event').value = '';
-  document.getElementById('wa-status').value = '';
-  document.getElementById('wa-date').value = '';
-  waRenderRows(LOGS);
+  ['wa-sr','wa-event','wa-status','wa-date'].forEach(function(id){document.getElementById(id).value='';});
+  waFilter();
+}
+
+function waRetry(id){
+  fetch(WA_ROUTES.retry + '/' + id + '/retry', {
+    method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'}
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){ showToast(d.ok?'ok':'err','Retry',d.message); waFilter(); })
+  .catch(function(){ showToast('err','Retry','Request failed.'); });
+}
+
+function waRetryAll(){
+  fetch(WA_ROUTES.retryAll, {
+    method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'X-Requested-With':'XMLHttpRequest'}
+  })
+  .then(function(r){return r.json();})
+  .then(function(d){ showToast('ok','Retry All',d.message); waFilter(); })
+  .catch(function(){ showToast('err','Retry All','Request failed.'); });
+}
+
+function waView(id){
+  fetch(WA_ROUTES.show + '/' + id, {headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      showToast('info', d.sr + ' · ' + d.status, d.message || d.error || 'No preview available.');
+    })
+    .catch(function(){ showToast('err','Preview','Could not load message.'); });
 }
 
 function showToast(type,title,body){
@@ -298,13 +340,15 @@ function showToast(type,title,body){
   var icons = {ok:'bi-check-circle-fill',err:'bi-x-circle-fill',info:'bi-info-circle-fill'};
   var t = document.createElement('div');
   t.className = 'toast-item';
-  t.innerHTML = '<i class="bi '+(icons[type]||icons.info)+' t-ico '+type+'"></i><div><p class="t-title">'+title+'</p><p class="t-body">'+body+'</p></div>';
+  t.innerHTML = '<i class="bi '+(icons[type]||icons.info)+' t-ico '+type+'"></i><div><p class="t-title">'+esc(title)+'</p><p class="t-body">'+esc(body)+'</p></div>';
   w.appendChild(t);
   setTimeout(function(){t.style.transition='opacity .3s';t.style.opacity='0';setTimeout(function(){t.remove();},300);},3500);
 }
 
+document.getElementById('wa-date').addEventListener('change', waFilter);
 document.addEventListener('DOMContentLoaded', function(){
   waRenderRows(LOGS);
+  setInterval(waFilter, 60000);
 });
 </script>
 @endpush

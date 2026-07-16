@@ -2,11 +2,17 @@
 
 namespace App\Services;
 
+use App\Models\WhatsappLog;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class WhatsAppService
 {
-    private function endpoint()
+    /* =========================================================
+       Low-level transport
+       ========================================================= */
+
+    private function endpoint(): string
     {
         return "https://graph.facebook.com/" .
             config('services.whatsapp.version') . "/" .
@@ -18,10 +24,10 @@ class WhatsAppService
     {
         $payload = [
             "messaging_product" => "whatsapp",
-            "to" => $phone,
-            "type" => "template",
-            "template" => [
-                "name" => $template,
+            "to"                => $phone,
+            "type"              => "template",
+            "template"          => [
+                "name"     => $template,
                 "language" => ["code" => $lang],
             ],
         ];
@@ -37,143 +43,301 @@ class WhatsAppService
     }
 
     public function formatWhatsAppNumber(?string $country, ?string $mobile): ?string
-{
-    if (!$mobile) {
-        return null;
-    }
-
-    $country = preg_replace('/\D/', '', (string) $country);
-    $mobile  = preg_replace('/\D/', '', $mobile);
-
-    return $country . $mobile;
-}
-
-    public function sendRegistration($phone, $contactName, $token, $lang = 'en_US')
     {
-        return $this->sendTemplate($phone, 'client_registration', $lang, [
-            [
-                "type" => "body",
-                "parameters" => [
-                    ["type" => "text", "text" => $contactName],
-                    ["type" => "text", "text" => $token],
-                ],
-            ],
-        ]);
+        if (!$mobile) {
+            return null;
+        }
+
+        $country = preg_replace('/\D/', '', (string) $country);
+        $mobile  = preg_replace('/\D/', '', $mobile);
+
+        return $country . $mobile;
     }
-    public function sendOrderTest($phone, $contactName, $uniqueCode, $delivery, $lang = 'en_US')
-{
-    return $this->sendTemplate($phone, 'jaspers_market_order_confirmation_v1', $lang, [
-        [
-            "type" => "body",
-            "parameters" => [
-                ["type" => "text", "text" => $contactName],  // {{1}}
-                ["type" => "text", "text" => $uniqueCode],   // {{2}} order number
-                ["type" => "text", "text" => $delivery],     // {{3}} delivery estimate
-            ],
-        ],
-    ]);
-}
 
-public function sendServiceRequest($phone, $contactName, $srReference, $status, $lang = 'en_US')
-{
-    return $this->sendTemplate($phone, 'jaspers_market_order_confirmation_v1', $lang, [
-        [
-            "type" => "body",
-            "parameters" => [
-                ["type" => "text", "text" => $contactName],  // {{1}}
-                ["type" => "text", "text" => $srReference],  // {{2}} SR reference
-                ["type" => "text", "text" => $status],       // {{3}} status
-            ],
-        ],
-    ]);
-}
+    public function buildRef(\App\Models\ServiceRequest $sr): string
+    {
+        return $sr->erp_quote_ref
+            ?: 'SR-' . ($sr->created_at?->year ?? now()->year)
+            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
+    }
 
-public function notifyServiceStatus(\App\Models\ServiceRequest $sr, string $status): void
-{
-    try {
+    /* =========================================================
+       Core logged sender — ONE definition only.
+       $refOverride lets callers supply an SR reference string
+       when they don't have the ServiceRequest model itself.
+       ========================================================= */
+
+    public function sendLogged(
+        ?\App\Models\ServiceRequest $sr,
+        $client,
+        string $phone,
+        string $event,
+        string $template,
+        array $components,
+        string $preview,
+        string $lang = 'en_US',
+        ?string $refOverride = null
+    ): ?WhatsappLog {
+        $log = null;
+
+        try {
+            $log = WhatsappLog::create([
+                'service_request_id' => $sr?->id,
+                'client_id'          => $client->id ?? null,
+                'sr_reference'       => $sr ? $this->buildRef($sr) : $refOverride,
+                'recipient'          => $phone,
+                'client_name'        => $client->contact_name ?? null,
+                'event'              => $event,
+                'status'             => WhatsappLog::STATUS_PENDING,
+                'template'           => $template,
+                'message'            => $preview,
+                'payload'            => $components,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('WhatsApp log row create failed', ['error' => $e->getMessage()]);
+        }
+
+        try {
+            $result = $this->sendTemplate($phone, $template, $lang, $components);
+
+            $wamid = $result['messages'][0]['id'] ?? null;
+
+            $log?->update([
+                'status'   => $wamid ? WhatsappLog::STATUS_SENT : WhatsappLog::STATUS_FAILED,
+                'wamid'    => $wamid,
+                'response' => $result,
+                'error'    => $result['error']['message'] ?? null,
+                'sent_at'  => $wamid ? now() : null,
+            ]);
+
+            Log::info('WhatsApp sent', [
+                'log_id' => $log?->id,
+                'event'  => $event,
+                'phone'  => $phone,
+                'wamid'  => $wamid,
+            ]);
+        } catch (\Throwable $e) {
+            $log?->update([
+                'status' => WhatsappLog::STATUS_FAILED,
+                'error'  => $e->getMessage(),
+            ]);
+            Log::error('WhatsApp send failed', ['log_id' => $log?->id, 'error' => $e->getMessage()]);
+        }
+
+        return $log?->fresh();
+    }
+
+    /* =========================================================
+       Public senders — prefer these; they populate the log fully.
+       ========================================================= */
+
+    public function notifyServiceStatus(
+        \App\Models\ServiceRequest $sr,
+        string $status,
+        string $event = 'SR Status Update'
+    ): void {
         $client = $sr->client;
         if (!$client) {
-            \Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+            Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
             return;
         }
-
-        $phone = $this->formatWhatsAppNumber(
-            $client->primary_country,
-            $client->primary_mobile
-        );
-        if (!$phone) {
-            \Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-            return;
-        }
-
-        $ref = 'SR-' . ($sr->created_at?->year ?? now()->year)
-            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
-
-        $result = $this->sendServiceRequest($phone, $client->contact_name, $ref, $status);
-
-        \Log::info('WhatsApp service status sent', [
-            'sr_id'  => $sr->id,
-            'status' => $status,
-            'phone'  => $phone,
-            'result' => $result,
-        ]);
-    } catch (\Throwable $e) {
-        \Log::error('WhatsApp service status message failed', [
-            'sr_id' => $sr->id,
-            'error' => $e->getMessage(),
-        ]);
-    }
-}
-public function sendDocumentTemplate(
-    $phone, $template, array $bodyParams, string $docLink,
-    ?string $filename = null, $lang = 'en_US'
-) {
-    $components = [
-        [
-            "type" => "header",
-            "parameters" => [[
-                "type" => "document",
-                "document" => array_filter([
-                    "link"     => $docLink,
-                    "filename" => $filename ?? 'quotation.pdf',
-                ]),
-            ]],
-        ],
-        [
-            "type" => "body",
-            "parameters" => array_map(
-                fn ($t) => ["type" => "text", "text" => (string) $t],
-                $bodyParams
-            ),
-        ],
-    ];
-
-    return $this->sendTemplate($phone, $template, $lang, $components);
-}
-public function sendQuotation(\App\Models\ServiceRequest $sr, string $docLink = ''): void
-{
-    try {
-        $client = $sr->client;
-        if (!$client) { \Log::warning('Quote WA skipped — no client', ['sr_id' => $sr->id]); return; }
 
         $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-        if (!$phone) { \Log::warning('Quote WA skipped — no phone', ['sr_id' => $sr->id]); return; }
+        if (!$phone) {
+            Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
+            return;
+        }
 
-        $ref = $sr->erp_quote_ref ?? ('SR-' . ($sr->created_at?->year ?? now()->year)
-            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT));
+        $ref = $this->buildRef($sr);
 
-        // Reuses the working jaspers_market_order_confirmation_v1 template.
-        // {{1}} name · {{2}} ref · {{3}} status
-        $result = $this->sendServiceRequest(
+        $this->sendLogged(
+            $sr,
+            $client,
             $phone,
-            $client->contact_name,
-            $ref,
-            'Waiting for quotation approval'
+            $event,
+            'jaspers_market_order_confirmation_v1',
+            [[
+                "type"       => "body",
+                "parameters" => [
+                    ["type" => "text", "text" => (string) $client->contact_name],
+                    ["type" => "text", "text" => (string) $ref],
+                    ["type" => "text", "text" => (string) $status],
+                ],
+            ]],
+            "Hi {$client->contact_name}, your request {$ref} status: {$status}"
         );
-
-        \Log::info('Quotation WA sent', ['sr_id' => $sr->id, 'result' => $result]);
-    } catch (\Throwable $e) {
-        \Log::error('Quotation WA failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
     }
-}
+
+    /** Alias kept for existing call sites. */
+    public function notifyServiceStatusLogged(
+        \App\Models\ServiceRequest $sr,
+        string $status,
+        string $event = 'SR Status Update'
+    ): void {
+        $this->notifyServiceStatus($sr, $status, $event);
+    }
+
+    public function sendQuotation(\App\Models\ServiceRequest $sr, string $docLink = ''): void
+    {
+        $this->notifyServiceStatus($sr, 'Waiting for quotation approval', 'Invoice Finalized');
+    }
+
+    /**
+     * Registration. Pass $sr / $client where available so the log row
+     * gets service_request_id and client_id instead of NULL.
+     */
+    public function sendRegistration(
+        $phone,
+        $contactName,
+        $token,
+        $lang = 'en_US',
+        ?\App\Models\ServiceRequest $sr = null,
+        $client = null
+    ) {
+        return $this->sendLogged(
+            $sr,
+            $client ?? (object) ['contact_name' => $contactName],
+            $phone,
+            'Client Registration',
+            'client_registration',
+            [[
+                "type"       => "body",
+                "parameters" => [
+                    ["type" => "text", "text" => (string) $contactName],
+                    ["type" => "text", "text" => (string) $token],
+                ],
+            ]],
+            "Registration link sent to {$contactName}",
+            $lang
+        );
+    }
+
+    public function sendOrderTest(
+        $phone,
+        $contactName,
+        $uniqueCode,
+        $delivery,
+        $lang = 'en_US',
+        ?\App\Models\ServiceRequest $sr = null,
+        $client = null
+    ) {
+        return $this->sendLogged(
+            $sr,
+            $client ?? (object) ['contact_name' => $contactName],
+            $phone,
+            'Order Confirmation',
+            'jaspers_market_order_confirmation_v1',
+            [[
+                "type"       => "body",
+                "parameters" => [
+                    ["type" => "text", "text" => (string) $contactName],
+                    ["type" => "text", "text" => (string) $uniqueCode],
+                    ["type" => "text", "text" => (string) $delivery],
+                ],
+            ]],
+            "Hi {$contactName}, order {$uniqueCode} — {$delivery}",
+            $lang,
+            $uniqueCode
+        );
+    }
+
+    /**
+     * Legacy signature. Pass $sr and $client from the call site,
+     * otherwise service_request_id / client_id will be NULL.
+     */
+    public function sendServiceRequest(
+        $phone,
+        $contactName,
+        $srReference,
+        $status,
+        $lang = 'en_US',
+        ?\App\Models\ServiceRequest $sr = null,
+        $client = null
+    ) {
+        return $this->sendLogged(
+            $sr,
+            $client ?? (object) ['contact_name' => $contactName],
+            $phone,
+            'SR Status Update',
+            'jaspers_market_order_confirmation_v1',
+            [[
+                "type"       => "body",
+                "parameters" => [
+                    ["type" => "text", "text" => (string) $contactName],
+                    ["type" => "text", "text" => (string) $srReference],
+                    ["type" => "text", "text" => (string) $status],
+                ],
+            ]],
+            "Hi {$contactName}, your request {$srReference} status: {$status}",
+            $lang,
+            $srReference
+        );
+    }
+
+    /** Raw (unlogged) template send with a document header. */
+    public function sendDocumentTemplate(
+        $phone,
+        $template,
+        array $bodyParams,
+        string $docLink,
+        ?string $filename = null,
+        $lang = 'en_US'
+    ) {
+        $components = [
+            [
+                "type"       => "header",
+                "parameters" => [[
+                    "type"     => "document",
+                    "document" => array_filter([
+                        "link"     => $docLink,
+                        "filename" => $filename ?? 'quotation.pdf',
+                    ]),
+                ]],
+            ],
+            [
+                "type"       => "body",
+                "parameters" => array_map(
+                    fn ($t) => ["type" => "text", "text" => (string) $t],
+                    $bodyParams
+                ),
+            ],
+        ];
+
+        return $this->sendTemplate($phone, $template, $lang, $components);
+    }
+
+    /* =========================================================
+       Retry
+       ========================================================= */
+
+    public function retryLog(WhatsappLog $log): WhatsappLog
+    {
+        try {
+            $result = $this->sendTemplate(
+                $log->recipient,
+                $log->template,
+                'en_US',
+                $log->payload ?? []
+            );
+
+            $wamid = $result['messages'][0]['id'] ?? null;
+
+            $log->update([
+                'status'      => $wamid ? WhatsappLog::STATUS_SENT : WhatsappLog::STATUS_FAILED,
+                'wamid'       => $wamid,
+                'response'    => $result,
+                'error'       => $result['error']['message'] ?? null,
+                'sent_at'     => $wamid ? now() : null,
+                'retry_count' => $log->retry_count + 1,
+            ]);
+        } catch (\Throwable $e) {
+            $log->update([
+                'status'      => WhatsappLog::STATUS_FAILED,
+                'error'       => $e->getMessage(),
+                'retry_count' => $log->retry_count + 1,
+            ]);
+        }
+
+        return $log->fresh();
+    }
 }

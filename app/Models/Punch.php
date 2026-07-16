@@ -12,7 +12,7 @@ class Punch extends Model
         'service_request_id', 'user_id',
         'punch_in_at', 'site_location', 'work_description', 'start_photo_path', 
         'punch_out_at', 'finish_photo_path', 'completion_summary',
-        'materials_subtotal', 'labour_charge', 'grand_total', 'receipt_number', 'notes',
+        'materials_subtotal', 'labour_charge', 'grand_total', 'notes',
         'customer_name', 'customer_phone','customer_signature_path', 'status',
     ];
 

@@ -160,7 +160,7 @@
 /* APPROVE BUTTON */
 .qd-wrap .btn-mark{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;font-size:.76rem;font-weight:600;cursor:pointer;border:1px solid;transition:opacity .15s;white-space:nowrap;}
 .qd-wrap .btn-mark:hover{opacity:.82;}
-.qd-wrap .btn-mark-green{background:rgba(21,128,61,.1);color:#15803d;border-color:rgba(21,128,61,.25);}
+.qd-wrap .btn-mark-green{background:rgba(154,128,83,.1);color:var(--gold);border-color:rgba(154,128,83,.28);}
 
 /* BADGES */
 .qd-wrap .sbadge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;}
@@ -336,27 +336,27 @@
     <div class="modal-box">
       <div class="modal-hdr">
         <div class="modal-hdr-left">
-          <div class="modal-hdr-icon" style="background:rgba(21,128,61,.1);"><i class="bi bi-check-circle-fill" style="color:#15803d;"></i></div>
+          <div class="modal-hdr-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-check-circle-fill" style="color:#9a8053;"></i></div>
           <h6>Mark Quote as Client Approved</h6>
         </div>
         <button class="modal-close" onclick="document.getElementById('qa-modal').classList.remove('show')"><i class="bi bi-x-lg"></i></button>
       </div>
       <div class="modal-body">
         <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:14px;">Confirm client has approved the quote for <strong id="qa-sr" style="color:var(--text-heading);"></strong>.</p>
-        <div style="padding:12px 14px;border-radius:8px;background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.2);display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
-          <i class="bi bi-arrow-right-circle-fill" style="color:#15803d;flex-shrink:0;margin-top:2px;"></i>
-          <div style="font-size:.8rem;color:#15803d;">
+       <div style="padding:12px 14px;border-radius:8px;background:rgba(154,128,83,.07);border:1px solid rgba(154,128,83,.2);display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
+          <i class="bi bi-arrow-right-circle-fill" style="color:#9a8053;flex-shrink:0;margin-top:2px;"></i>
+          <div style="font-size:.8rem;color:#9a8053;">
             <strong>Status: Quoted → Approved</strong><br/>
             <span style="opacity:.8;font-size:.76rem;">SR becomes available in Head of Projects dispatch queue for technician assignment.</span>
           </div>
         </div>
-        <div style="padding:9px 12px;background:rgba(37,211,102,.07);border:1px solid rgba(37,211,102,.2);border-radius:7px;font-size:.78rem;color:#059669;display:flex;align-items:center;gap:8px;">
-          <i class="bi bi-whatsapp" style="color:#25d366;"></i>WhatsApp confirmation dispatched to client stakeholders.
+        <div style="padding:9px 12px;background:rgba(154,128,83,.07);border:1px solid rgba(154,128,83,.2);border-radius:7px;font-size:.78rem;color:#9a8053;display:flex;align-items:center;gap:8px;">
+          <i class="bi bi-whatsapp" style="color:#9a8053;"></i>WhatsApp confirmation dispatched to client stakeholders.
         </div>
       </div>
       <div class="modal-foot">
         <button class="btn-cancel" onclick="document.getElementById('qa-modal').classList.remove('show')">Cancel</button>
-        <button class="btn-confirm" style="background:linear-gradient(135deg,#15803d,#16a34a);" onclick="execQApproval()"><i class="bi bi-check-lg"></i> Confirm Approval</button>
+        <button class="btn-confirm" style="background:linear-gradient(135deg,#9A7B4F,#7A6140);" onclick="execQApproval()"><i class="bi bi-check-lg"></i> Confirm Approval</button>
       </div>
     </div>
   </div>

@@ -159,16 +159,16 @@
 }
 
 .push-note {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    font-size: .72rem;
-    padding: 8px 11px;
-    background: rgba(101, 113, 255, .07);
-    border: 1px solid rgba(101, 113, 255, .18);
-    border-radius: 6px;
-    color: var(--text-primary);
-    margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .72rem;
+  padding: 8px 11px;
+  background: rgba(154, 113, 83, .07);
+  border: 1px solid rgba(154, 128, 83, .18);
+  border-radius: 6px;
+  color: var(--text-primary);
+  margin-top: 2px;
 }
 .m-ftr {
     padding: 13px 18px;
@@ -190,18 +190,18 @@
 }
 
 .btn-confirm-m {
-    border: none;
-    border-radius: 6px;
-    padding: .42rem 1.2rem;
-    font-size: .8rem;
-    font-weight: 600;
-    cursor: pointer;
-    color: #fff;
-    background: linear-gradient(135deg, #6571ff, #8b5cf6);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: all .15s;
+  border: none;
+  border-radius: 6px;
+  padding: .42rem 1.2rem;
+  font-size: .8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+  background: linear-gradient(135deg, #9A7B4F, #C4A882);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .15s;
 }
 
   .mbadge {
@@ -332,11 +332,10 @@
   }
 
   .cbody .form-select:focus {
-    border-color: rgba(101,113,255,.5);
-    box-shadow: 0 0 0 3px rgba(101,113,255,.12);
-    outline: none;
-  }
-
+  border-color: rgba(154, 128, 83, .5);
+  box-shadow: 0 0 0 3px rgba(154, 128, 83, .12);
+  outline: none;
+}
   .cbody .form-select:disabled {
     background: var(--surface-2);
     color: var(--text-muted);
@@ -594,30 +593,26 @@
 
   .as-k { color: var(--text-muted); }
   .as-v { font-weight: 600; color: var(--text-heading); }
-
-  /* Dispatch button */
   .btn-dispatch {
-    /* width: 100%; */
-    width: 90%;
-    margin:0 auto;
-    border: none;
-    border-radius: 7px;
-    padding: .65rem 1rem;
-    font-size: .875rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background: linear-gradient(135deg, #6571ff, #8b5cf6);
-    color: #fff;
-    transition: all .2s;
-  }
-
-  .btn-dispatch:hover:not(:disabled) {
-    box-shadow: 0 4px 18px rgba(101, 113, 255, .38);
-  }
+  width: 90%;
+  margin: 0 auto;
+  border: none;
+  border-radius: 7px;
+  padding: .65rem 1rem;
+  font-size: .875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #9A7B4F, #C4A882);
+  color: #fff;
+  transition: all .2s;
+}
+.btn-dispatch:hover:not(:disabled) {
+  box-shadow: 0 4px 18px rgba(154, 128, 83, .38);
+}
 
   .btn-dispatch:active:not(:disabled) {
     transform: scale(.98);
@@ -631,22 +626,21 @@
   }
 
   .notify-note {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: .7rem;
-    color: var(--text-muted);
-    margin-top: 8px;
-    padding: 7px 10px;
-    background: rgba(101, 113, 255, .06);
-    border-radius: 6px;
-    border: 1px solid rgba(101, 113, 255, .15);
-  }
-
-  .notify-note i {
-    color: #6571ff;
-    flex-shrink: 0;
-  }
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .7rem;
+  color: var(--text-muted);
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: rgba(154, 128, 83, .06);
+  border-radius: 6px;
+  border: 1px solid rgba(154, 128, 83, .15);
+}
+.notify-note i {
+  color: #9a8053;
+  flex-shrink: 0;
+}
 
   /* ── Toast ── */
   .toast-wrap {
@@ -887,7 +881,7 @@
       <button class="m-close" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="m-body">
-      <div class="m-icon-ring" style="background:rgba(101,113,255,.1);"><i class="bi bi-send-fill" style="color:#6571ff;"></i></div>
+      <div class="m-icon-ring" style="background:rgba(154,128,83,.1);"><i class="bi bi-send-fill" style="color:#9a8053;"></i></div>
       <div class="m-title">Confirm Technician Dispatch</div>
       <div class="m-sub">The following assignment will be committed. Ticket status will shift to <strong>Assigned</strong> and a push notification will be sent to the technician's mobile app.</div>
       <div class="m-summary" id="modalSummary"></div>
@@ -1065,12 +1059,12 @@
     {{-- Step 2 · Assign technician --}}
     <div class="card">
       <div class="chdr">
-        <div class="chdr-ico" style="background:rgba(5,163,74,.1);flex:0 0 auto;">
-          <i class="bi bi-people-fill" style="color:#05a34a;"></i>
+       <div class="chdr-ico" style="background:rgba(154,128,83,.1);flex:0 0 auto;">
+          <i class="bi bi-people-fill" style="color:#9a8053;"></i>
         </div>
         <div style="flex:1;min-width:0;">
           <h6 style="margin:0;display:flex;align-items:center;">
-            <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:#05a34a;border-radius:50%;font-size:.65rem;font-weight:700;color:#fff;margin-right:6px;flex:0 0 auto;">2</span>
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:#9a8053;border-radius:50%;font-size:.65rem;font-weight:700;color:#fff;margin-right:6px;flex:0 0 auto;">2</span>
             Assign Technician and Dispatch
           </h6>
           <span class="csub">Matched by service category &amp; domain</span>
@@ -1443,7 +1437,7 @@ function openDispatchModal(){
     <div class="ms-row full" style="border-top:1px solid var(--border-color);padding-top:8px;margin-top:4px;">
       <div class="ml">Assigned Technician</div>
       <div class="mv" style="display:flex;align-items:center;gap:7px;margin-top:3px;">
-        <div style="width:24px;height:24px;border-radius:50%;background:#6571ff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.6rem;font-weight:700;flex-shrink:0;">${initials}</div>
+        <div style="width:24px;height:24px;border-radius:50%;background:#9a8053;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.6rem;font-weight:700;flex-shrink:0;">${initials}</div>
         ${tech.name} · ${code}
       </div>
     </div>`;

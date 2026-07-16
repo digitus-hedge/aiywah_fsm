@@ -133,6 +133,7 @@ body {
   border:none; background:none; border-radius:8px; cursor:pointer;
   color:var(--text-muted); transition:all .2s;
 }
+.badge-hold { background:rgba(251,188,6,.12); color:#a8802a; }
 .tf-btn.active { background:var(--card-bg); color:#9a8053; box-shadow:0 1px 6px rgba(0,0,0,.1); }
 
 .job-card {
@@ -696,21 +697,7 @@ body {
     </div>
 
     <label class="d-label" for="finSummary">Completion Summary</label>
-    <textarea class="d-remark" id="finSummary" rows="3"
-              placeholder="What was done, parts replaced, outcome&hellip;"></textarea>
-
-    <label class="d-label" for="finCustName">Customer Name</label>
-    <input type="text" class="d-input" id="finCustName" placeholder="Name on the acceptance form"/>
-
-    <label class="d-label" for="finCustPhone">Customer Phone</label>
-    <input type="tel" class="d-input" id="finCustPhone" placeholder="+971 &hellip;" inputmode="tel"/>
-
-    <label class="d-label" for="finLabour">Labour Charge (AED)</label>
-    <input type="number" class="d-input" id="finLabour" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
-
-    <label class="d-label" for="finNotes">Internal Notes</label>
-    <textarea class="d-remark" id="finNotes" rows="2" placeholder="Anything QC should know&hellip;"></textarea>
-
+    <textarea class="d-remark" id="finSummary" rows="3" placeholder="What was done, parts replaced, outcome&hellip;"></textarea>
     <div class="drawer-actions">
       <button class="btn-cancel" data-close="fin">Cancel</button>
       <button class="btn-save" id="finConfirmBtn">
@@ -756,6 +743,7 @@ body {
         <button class="tf-btn active" data-filter="all">All</button>
         <button class="tf-btn" data-filter="Assigned">Assigned</button>
         <button class="tf-btn" data-filter="Rework">Rework</button>
+        <button class="tf-btn" data-filter="On Hold">On Hold</button>
       </div>
       <div id="jobList"></div>
     </div>
@@ -776,14 +764,6 @@ body {
 
     <div class="page-content">
       <div class="ajb" id="jobBanner"></div>
-
-      <div class="location-badge hidden" id="locationBadge">
-        <i class="bi bi-geo-alt-fill"></i>
-        <div>
-          <div style="font-size:.7rem;color:var(--text-muted);">Job start location captured</div>
-          <div class="coords" id="coordsText">&mdash;</div>
-        </div>
-      </div>
 
       <div class="timer-widget">
         <div class="tw-icon" id="timerIcon"><i class="bi bi-clock" style="color:#aeb7c5;"></i></div>
@@ -824,8 +804,8 @@ body {
       <div class="lock-info hidden" id="lockInfo">
         <i class="bi bi-lock-fill"></i>
         <span>
-          Finish Job is locked. Upload <strong>Before Photo</strong>,
-          <strong>After Photo</strong>, and <strong>Customer Signature</strong> to unlock.
+          Finish Job is locked. Upload <strong>Before Photo</strong> and
+          <strong>After Photo</strong> to unlock.
         </span>
       </div>
 
@@ -860,21 +840,6 @@ body {
             <i class="bi bi-camera"></i>Capture
           </button>
           <input type="file" id="afterInput" class="upload-input" accept="image/*" capture="environment"/>
-        </div>
-
-        <div class="comp-item">
-          <div class="comp-icon-wrap" id="sigIcon" style="background:rgba(5,163,74,.1);">
-            <i class="bi bi-pen-fill" style="color:#05a34a;"></i>
-          </div>
-          <div class="comp-info">
-            <div class="comp-lbl">Customer Signature</div>
-            <div class="comp-hint">Acceptance form scan</div>
-          </div>
-          <span class="comp-status cs-pending" id="sigStatus">Pending</span>
-          <button class="comp-upload-btn" data-upload="sig" disabled>
-            <i class="bi bi-upload"></i>Upload
-          </button>
-          <input type="file" id="sigInput" class="upload-input" accept="image/*,application/pdf"/>
         </div>
       </div>
 
@@ -968,6 +933,7 @@ const ROUTES = {
   expense:    @json($routes['expense']    ?? ''),
   reschedule: @json($routes['reschedule'] ?? ''),
   hold:       @json($routes['hold']       ?? ''),
+  resume:     @json($routes['resume']     ?? ''),
   history:    @json($routes['history']    ?? ''),
   profile:    @json($routes['profile']    ?? ''),
 };
@@ -983,7 +949,7 @@ let punchInTime    = null;
 let timerInterval  = null;
 let expandedRef    = null;
 let currentFilter  = 'all';
-let uploads        = { before:false, after:false, sig:false };
+let uploads        = { before:false, after:false};
 let expenses       = [];
 let historyLoaded  = false;
 let profileLoaded  = false;
@@ -1197,7 +1163,9 @@ function renderPipeline() {
 
 function buildJobCard(job) {
   const slaClass = job.hrsAgo > 24 ? 'sla-c' : job.hrsAgo > 8 ? 'sla-w' : 'sla-ok';
-  const badgeClass = job.status === 'Rework' ? 'badge-rework' : 'badge-assigned';
+  const badgeClass = job.status === 'Rework' ? 'badge-rework'
+                 : job.status === 'On Hold' ? 'badge-hold'
+                 : 'badge-assigned';
   const isExpanded = expandedRef === job.id;
   const isActive   = activeRef === job.id;
   const ref = esc(job.id);
@@ -1233,10 +1201,18 @@ function buildJobCard(job) {
          </div>
        </div>`
     : '';
+  const onHold = job.status === 'On Hold';
 
-  const footer = isActive
+   const footer = isActive
     ? `<div class="jc-active-note">
          <i class="bi bi-check2-circle"></i> This job is currently active in the terminal
+       </div>`
+    : onHold
+    ? `<div class="eta-form">
+         <div class="eta-title"><i class="bi bi-pause-circle"></i>Job On Hold</div>
+         <button class="accept-btn" data-resume="${ref}" data-srid="${Number(job.sr_id)}">
+           <i class="bi bi-play-circle"></i>Resume Job
+         </button>
        </div>`
     : `<div class="eta-form">
          <div class="eta-title"><i class="bi bi-calendar-check"></i>Set Expected Attendance (ETA)</div>
@@ -1330,6 +1306,9 @@ $('jobList').addEventListener('click', (e) => {
   const photo = e.target.closest('[data-photo]');
   if (photo) { openLightbox(photo.dataset.photo, photo.dataset.ref); return; }
 
+  const resume = e.target.closest('[data-resume]');
+  if (resume) { resumeJob(resume.dataset.resume, Number(resume.dataset.srid), resume); return; }
+
   const accept = e.target.closest('[data-accept]');
   if (accept) { acceptJob(accept.dataset.accept, Number(accept.dataset.srid), accept); }
 });
@@ -1358,6 +1337,7 @@ $('tabFilter').addEventListener('click', (e) => {
   renderPipeline();
 });
 
+
 /* ══════════════════════════════════════════════════════
    ACCEPT JOB
 ══════════════════════════════════════════════════════ */
@@ -1377,7 +1357,7 @@ async function acceptJob(ref, srId, btn) {
     activeRef   = ref;
     activeSrId  = srId;
     punchInTime = null;
-    uploads     = { before:false, after:false, sig:false };
+    uploads     = { before:false, after:false };
     expenses    = [];
     clearInterval(timerInterval);
 
@@ -1391,6 +1371,36 @@ async function acceptJob(ref, srId, btn) {
   } catch (err) {
     restore();
     showToast('error', 'Could not accept job', err.message);
+  }
+}
+
+async function resumeJob(ref, srId, btn) {
+  const restore = busy(btn, 'Resuming\u2026');
+
+  try {
+    await apiPost(ROUTES.resume, { sr_id: srId });
+
+    activeRef   = ref;
+    activeSrId  = srId;
+    punchInTime = null;
+    uploads     = { before:false, after:false };
+    expenses    = [];
+    clearInterval(timerInterval);
+
+    const job = JOBS.find((j) => j.id === ref);
+    job.status = 'Assigned';
+
+    const [etaDate, etaTime] = String(job.eta ?? '').split(' ');
+    buildBanner(job, etaDate || '\u2014', etaTime || '\u2014');
+
+    $('activeDot').classList.remove('hidden');
+    showToast('success', 'Job Resumed', 'Back in the terminal.');
+
+    renderPipeline();
+    openTerminal();
+  } catch (err) {
+    restore();
+    showToast('error', 'Could not resume', err.message);
   }
 }
 
@@ -1432,7 +1442,6 @@ function openTerminal() {
   $('expenseBtn').disabled = true;
   $('rsBtn').classList.add('hidden');
   $('lockInfo').classList.add('hidden');
-  $('locationBadge').classList.add('hidden');
 
   $('timerDisplay').textContent = '00:00:00';
   $('timerLabel').textContent   = 'Not started';
@@ -1441,17 +1450,14 @@ function openTerminal() {
   $('timerIcon').innerHTML = '<i class="bi bi-clock" style="color:#aeb7c5;"></i>';
   $('timerIcon').style.background = 'rgba(174,183,197,.12)';
 
-  ['before', 'after', 'sig'].forEach((type) => {
+  ['before', 'after'].forEach((type) => {
     $(`${type}Status`).textContent = 'Pending';
     $(`${type}Status`).className   = 'comp-status cs-pending';
     document.querySelector(`[data-upload="${type}"]`).disabled = true;
   });
 
   $('workDesc').value = '';
-  ['finSummary', 'finCustName', 'finCustPhone', 'finLabour', 'finNotes']
-    .forEach((id) => { $(id).value = ''; });
-
-  renderExpenses();
+  $('finSummary').value = '';
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1460,54 +1466,20 @@ function openTerminal() {
 $('punchInBtn').addEventListener('click', () => {
   const btn = $('punchInBtn');
   btn.disabled = true;
-  btn.innerHTML = '<i class="bi bi-geo-alt-fill"></i>Locating\u2026';
-
-  // ─── TODO: RESTORE BEFORE SHIPPING ────────────────────────────────
-  // GPS is bypassed for local development. `site_location` is a
-  // compliance artifact — a punch record with fabricated coordinates is
-  // worse than no punch record. Delete this block and uncomment the
-  // real geolocation call below once serving over HTTPS.
-  punchIn('25.20450', '55.27021');
-  return;
-  // ──────────────────────────────────────────────────────────────────
-
-  /*
-  if (!navigator.geolocation) {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
-    showToast('error', 'Location unavailable', 'This device cannot provide GPS coordinates.');
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    (pos) => punchIn(pos.coords.latitude.toFixed(5), pos.coords.longitude.toFixed(5)),
-    (err) => {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
-      showToast('error', 'Location required',
-        err.code === err.PERMISSION_DENIED
-          ? 'Grant location access to start the job.'
-          : 'Could not get your location. Try again.');
-    },
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-  );
-  */
+  btn.innerHTML = '<span class="spin"></span> Starting\u2026';
+  punchIn();
 });
 
-async function punchIn(lat, lng) {
+async function punchIn() {
   const btn = $('punchInBtn');
 
   try {
     const res = await apiPost(ROUTES.punchIn, {
       sr_id: activeSrId,
-      lat,
-      lng,
       work_description: $('workDesc').value.trim() || null,
     });
 
     punchInTime = new Date(res.punch_in_at);
-    $('coordsText').textContent = `${lat}, ${lng}`;
-    $('locationBadge').classList.remove('hidden');
 
     clearInterval(timerInterval);
     timerInterval = setInterval(updateTimer, 1000);
@@ -1524,7 +1496,7 @@ async function punchIn(lat, lng) {
     $('rsBtn').classList.remove('hidden');
     btn.innerHTML = '<i class="bi bi-check2"></i>Job Started';
 
-    showToast('success', 'Punched In', `Location captured: ${lat}, ${lng}`);
+    showToast('success', 'Punched In', 'Job started.');
     refreshLock();
   } catch (err) {
     btn.disabled = false;
@@ -1548,7 +1520,7 @@ document.querySelectorAll('[data-upload]').forEach((btn) => {
   btn.addEventListener('click', () => $(`${btn.dataset.upload}Input`).click());
 });
 
-['before', 'after', 'sig'].forEach((type) => {
+['before', 'after'].forEach((type) => {
   $(`${type}Input`).addEventListener('change', (e) => uploadFile(type, e.target));
 });
 
@@ -1564,9 +1536,9 @@ async function uploadFile(type, input) {
   form.append('type', type);
   form.append('file', file);
 
-  const labels = { before:'Before Photo', after:'After Photo', sig:'Customer Signature' };
+  const labels = { before:'Before Photo', after:'After Photo' };
   const tints  = {
-    before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)', sig:'rgba(5,163,74,.15)',
+    before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)',
   };
 
   try {
@@ -1588,7 +1560,7 @@ async function uploadFile(type, input) {
 }
 
 function refreshLock() {
-  const allUploaded = uploads.before && uploads.after && uploads.sig;
+  const allUploaded = uploads.before && uploads.after;
   const punched = Boolean(punchInTime);
 
   $('punchOutBtn').disabled = !(allUploaded && punched);
@@ -1599,7 +1571,7 @@ function refreshLock() {
    PUNCH OUT
 ══════════════════════════════════════════════════════ */
 $('punchOutBtn').addEventListener('click', () => {
-  if (!(uploads.before && uploads.after && uploads.sig)) {
+  if (!(uploads.before && uploads.after)) {
     showToast('error', 'Locked', 'Upload all compliance files first.');
     return;
   }
@@ -1611,16 +1583,10 @@ $('finConfirmBtn').addEventListener('click', async () => {
   const btn = $('finConfirmBtn');
   const restore = busy(btn, 'Processing\u2026');
 
-  const labour = $('finLabour').value;
-
   const payload = {
-    sr_id:          activeSrId,
-    summary:        $('finSummary').value.trim()   || null,
-    customer_name:  $('finCustName').value.trim()  || null,
-    customer_phone: $('finCustPhone').value.trim() || null,
-    labour_charge:  labour === '' ? null : labour,
-    notes:          $('finNotes').value.trim()     || null,
-  };
+  sr_id:   activeSrId,
+  summary: $('finSummary').value.trim() || null,
+};
 
   try {
     const res = await apiPost(ROUTES.punchOut, payload);
@@ -1642,7 +1608,7 @@ $('finConfirmBtn').addEventListener('click', async () => {
     if (index > -1) JOBS.splice(index, 1);
 
     activeRef = activeSrId = punchInTime = null;
-    uploads  = { before:false, after:false, sig:false };
+    uploads  = { before:false, after:false };
     expenses = [];
     historyLoaded = false;
     profileLoaded = false;
@@ -1827,10 +1793,12 @@ $('holdConfirmBtn').addEventListener('click', async () => {
 
     // Holding cancels the open punch server-side, so clear the terminal too.
     const index = JOBS.findIndex((j) => j.id === activeRef);
-    if (index > -1) JOBS[index].status = 'Assigned';
-
+    if (index > -1) {
+      JOBS[index].status = 'On Hold';
+      JOBS[index].accepted = false;
+    }
     activeRef = activeSrId = punchInTime = null;
-    uploads  = { before:false, after:false, sig:false };
+    uploads  = { before:false, after:false };
     expenses = [];
     $('activeDot').classList.add('hidden');
 
@@ -1985,11 +1953,16 @@ $('profRefresh').addEventListener('click', () => loadProfile(true));
 /* ══════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════ */
-if (ACTIVE) {
-  restoreTerminal(ACTIVE);
-} else {
-  renderPipeline();
-}
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    renderPipeline();          // always paint the list first
+    if (ACTIVE) restoreTerminal(ACTIVE);
+    else showPage('pipeline');
+  } catch (err) {
+    console.error('Init failed:', err);
+    showToast('error', 'Load error', err.message);
+  }
+});
 
 /**
  * Rebuild the terminal from a server-supplied open punch. Runs instead of
@@ -2033,15 +2006,10 @@ function restoreTerminal(state) {
     $('rsBtn').classList.remove('hidden');
   }
 
-  if (state.siteLocation) {
-    $('coordsText').textContent = state.siteLocation;
-    $('locationBadge').classList.remove('hidden');
-  }
-
   const tints = {
-    before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)', sig:'rgba(5,163,74,.15)',
+    before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)',
   };
-  ['before', 'after', 'sig'].forEach((type) => {
+  ['before', 'after'].forEach((type) => {
     if (!uploads[type]) return;
     $(`${type}Status`).textContent = '\u2713 Done';
     $(`${type}Status`).className   = 'comp-status cs-done';
