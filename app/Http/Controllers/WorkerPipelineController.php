@@ -33,7 +33,10 @@ class WorkerPipelineController extends Controller
         // which worker the pipeline was rendered for.
         session(['dev_worker_id' => $user->id]);
 
-        $requests = ServiceRequest::with(['client', 'project', 'category', 'domain', 'punches'])
+            $requests = ServiceRequest::with([
+                'client', 'project', 'category', 'domain', 'punches.user.role',
+                'createdBy.role', 'qcReviewedBy.role', 'assignedUser',
+            ])
             ->where('assigned_user_id', $user->id)
             ->whereIn('status', self::OPEN_STATUSES)
             ->orderByDesc('dispatched_at')
@@ -151,7 +154,6 @@ class WorkerPipelineController extends Controller
         // Rework re-enters the pipeline with accepted_at still set from the first
         // pass, so the gate is on status, not on the timestamp.
         $isRework = strtolower((string) $sr->status) === 'rework';
-
         abort_if($sr->accepted_at && !$isRework, 409, 'This job has already been accepted.');
 
         $sr->update([
@@ -206,6 +208,7 @@ class WorkerPipelineController extends Controller
                 'status'      => 'on_hold',
                 'hold_reason' => $data['remark'],
                 'held_at'     => now(),
+                'internal_remark' => $this->appendRemark($sr->internal_remark, 'On Hold', $data['remark']),
             ]);
 
             // An in-progress punch is abandoned when the job goes on hold.
@@ -216,6 +219,22 @@ class WorkerPipelineController extends Controller
 
         return response()->json(['ok' => true]);
     }
+
+    public function resume(Request $request)
+{
+    $data = $request->validate(['sr_id' => ['required', 'integer']]);
+    $sr = $this->ownedRequest($request, $data['sr_id']);
+
+    abort_unless(strtolower((string) $sr->status) === 'on_hold', 422, 'Job is not on hold.');
+
+    $sr->update([
+        'status'      => 'accepted',
+        'hold_reason' => null,
+        'held_at'     => null,
+    ]);
+
+    return response()->json(['ok' => true, 'sr_id' => $sr->id]);
+}
 
     /*
     |--------------------------------------------------------------------------
@@ -270,47 +289,65 @@ class WorkerPipelineController extends Controller
      * across a page reload — otherwise an open punch is invisible to the UI.
      */
     private function activeJob(User $user): ?array
-    {
-        $punch = Punch::with([
-                'serviceRequest.client',
-                'serviceRequest.project',
-                'serviceRequest.category',
-                'serviceRequest.domain',
-                'serviceRequest.punches',
-                'items',
+{
+    $punch = Punch::with([
+            'serviceRequest.client',
+            'serviceRequest.project',
+            'serviceRequest.category',
+            'serviceRequest.domain',
+            'serviceRequest.punches.user.role',
+            'serviceRequest.createdBy.role',
+            'serviceRequest.qcReviewedBy.role',
+            'serviceRequest.assignedUser',
+            'items',
+        ])
+        ->where('user_id', $user->id)
+        ->whereIn('status', ['draft', 'punched_in'])
+        ->latest('id')
+        ->first();
+
+    if ($punch && $punch->serviceRequest) {
+        return $this->buildActive($punch->serviceRequest, $punch);
+    }
+
+    // Accepted but not yet punched in — still the worker's active job.
+        $sr = ServiceRequest::with([
+                'client', 'project', 'category', 'domain',
+                'punches.user.role', 'createdBy.role', 'qcReviewedBy.role', 'assignedUser',
             ])
-            ->where('user_id', $user->id)
-            ->whereIn('status', ['draft', 'punched_in'])
-            ->latest('id')
+            ->where('assigned_user_id', $user->id)
+            ->whereIn('status', ['accepted', 'in_progress'])
+            ->whereNotNull('accepted_at')
+            ->latest('accepted_at')
             ->first();
 
-        if (!$punch || !$punch->serviceRequest) {
-            return null;
-        }
+        return $sr ? $this->buildActive($sr, null) : null;
+}
 
-        $sr = $punch->serviceRequest;
-
-        return [
-            'job'          => $this->transform($sr),
-            'etaDate'      => optional($sr->eta_at)->format('Y-m-d'),
-            'etaTime'      => optional($sr->eta_at)->format('H:i'),
-            'punchInAt'    => optional($punch->punch_in_at)->toIso8601String(),
-            'siteLocation' => $punch->site_location,
-            'workDesc'     => $punch->work_description,
-            'uploads'      => [
-                'before' => filled($punch->start_photo_path),
-                'after'  => filled($punch->finish_photo_path),
-                'sig'    => filled($punch->customer_signature_path),
-            ],
-            'expenses' => $punch->items->map(fn (Punchitem $i) => [
+private function buildActive(ServiceRequest $sr, ?Punch $punch): array
+{
+    return [
+        'job'       => $this->transform($sr),
+        'etaDate'   => optional($sr->eta_at)->format('Y-m-d'),
+        'etaTime'   => optional($sr->eta_at)->format('H:i'),
+        'punchInAt' => $punch ? optional($punch->punch_in_at)->toIso8601String() : null,
+        'workDesc'  => $punch->work_description ?? null,
+        'uploads'   => [
+            'before' => $punch ? filled($punch->start_photo_path) : false,
+            'after'  => $punch ? filled($punch->finish_photo_path) : false,
+        ],
+        'expenses' => $punch
+            ? $punch->items->map(fn (Punchitem $i) => [
                 'category'   => $i->category,
                 'name'       => $i->name,
                 'amount'     => number_format((float) $i->line_total, 2, '.', ''),
                 'time'       => optional($i->created_at)->format('H:i') ?? '—',
                 'receiptUrl' => $i->receipt_url,
-            ])->values(),
-        ];
-    }
+              ])->values()
+            : collect(),
+        'workDesc'  => $punch ? $punch->work_description : null,
+    ];
+}
 
     private function transform(ServiceRequest $sr): array
     {
@@ -319,7 +356,11 @@ class WorkerPipelineController extends Controller
         return [
             'id'          => $sr->ref,
             'sr_id'       => $sr->id,
-            'status'      => strtolower((string) $sr->status) === 'rework' ? 'Rework' : 'Assigned',
+            'status' => match (strtolower((string) $sr->status)) {
+                            'rework'  => 'Rework',
+                            'on_hold' => 'On Hold',
+                            default   => 'Assigned',
+                        },
             'client'      => optional($sr->client)->company_name ?? '—',
             'contract'    => optional($sr->project)->project_name ?? ($sr->invoice_code ?? '—'),
             'domain'      => optional($sr->domain)->domain_name
@@ -336,45 +377,49 @@ class WorkerPipelineController extends Controller
             'attachments' => collect($sr->attachments ?? [])->values()->all(),
             'history'     => $this->srHistory($sr),
         ];
+        
     }
 
-    private function srHistory(ServiceRequest $sr): array
-    {
-        $log = [];
+private function srHistory(ServiceRequest $sr): array
+{
+    $log = [];
+    $fmt = fn ($d) => $d->format('d M Y, H:i');
 
-        if ($sr->created_at) {
-            $log[] = 'Created · ' . $sr->created_at->format('d M Y, H:i');
-        }
-        if ($sr->dispatched_at) {
-            $log[] = 'Dispatched to you · ' . $sr->dispatched_at->format('d M Y, H:i');
-        }
-        if ($sr->accepted_at) {
-            $log[] = 'Accepted · ' . $sr->accepted_at->format('d M Y, H:i');
-        }
-        if ($sr->eta_at) {
-            $log[] = 'ETA set · ' . $sr->eta_at->format('d M Y, H:i');
-        }
-        if ($sr->held_at) {
-            $log[] = 'On hold · ' . $sr->held_at->format('d M Y, H:i')
-                   . ($sr->hold_reason ? ' — ' . $sr->hold_reason : '');
-        }
-        if ($sr->qc_reviewed_at) {
-            $log[] = 'QC reviewed · ' . $sr->qc_reviewed_at->format('d M Y, H:i');
-        }
-
-        foreach ($sr->punches->sortBy('id') as $punch) {
-            if ($punch->punch_in_at) {
-                $log[] = 'Punched in · ' . $punch->punch_in_at->format('d M Y, H:i');
-            }
-            if ($punch->punch_out_at) {
-                $log[] = 'Punched out · ' . $punch->punch_out_at->format('d M Y, H:i')
-                       . ($punch->duration_label ? ' (' . $punch->duration_label . ')' : '');
-            }
-        }
-
-        return $log;
+    $raiserRole = optional(optional($sr->createdBy)->role)->name ?? 'System';
+    if ($sr->created_at) {
+        $log[] = "Ticket raised by {$raiserRole} on " . $fmt($sr->created_at);
     }
 
+    if ($sr->qc_reviewed_at) {
+        $qcRole = optional(optional($sr->qcReviewedBy)->role)->name ?? 'QC';
+        $log[] = "Approved by {$qcRole} on " . $fmt($sr->qc_reviewed_at);
+    }
+
+    if ($sr->dispatched_at && $sr->assignedUser) {
+        $log[] = "Assigned to {$sr->assignedUser->name} on " . $fmt($sr->dispatched_at);
+    }
+
+    if ($sr->accepted_at) {
+        $log[] = 'Accepted on ' . $fmt($sr->accepted_at);
+    }
+    if ($sr->held_at) {
+        $log[] = 'On hold on ' . $fmt($sr->held_at)
+               . ($sr->hold_reason ? ' — ' . $sr->hold_reason : '');
+    }
+
+    foreach ($sr->punches->sortBy('id') as $p) {
+        $who = optional($p->user)->name ?? 'Worker';
+        if ($p->punch_in_at) {
+            $log[] = "Punched in by {$who} on " . $fmt($p->punch_in_at);
+        }
+        if ($p->punch_out_at) {
+            $log[] = "Punched out by {$who} on " . $fmt($p->punch_out_at)
+                   . ($p->duration_label ? " ({$p->duration_label})" : '');
+        }
+    }
+
+    return $log;
+}
     private function routes(): array
     {
         return [
@@ -385,6 +430,7 @@ class WorkerPipelineController extends Controller
             'expense'    => route('worker.punch.expense'),
             'reschedule' => route('worker.job.reschedule'),
             'hold'       => route('worker.job.hold'),
+            'resume'     => route('worker.job.resume'),
             'history'    => route('worker.history'),
             'profile'    => route('worker.profile'),
         ];

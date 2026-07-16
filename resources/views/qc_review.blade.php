@@ -160,7 +160,7 @@
 
 /* ACTION BUTTONS */
 .qc-wrap .action-btns{display:flex;gap:10px;flex-wrap:wrap;}
-.qc-wrap .btn-qc-pass{flex:1;padding:11px 16px;background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;min-width:180px;}
+.qc-wrap .btn-qc-pass{flex:1;padding:11px 16px;background:linear-gradient(135deg,#9A7B4F,#7A6140);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;min-width:180px;}
 .qc-wrap .btn-qc-pass:hover{opacity:.88;}
 .qc-wrap .btn-qc-pass:disabled{opacity:.4;cursor:not-allowed;}
 .qc-wrap .btn-qc-fail{flex:1;padding:11px 16px;background:var(--surface-2);color:var(--text-muted);border:2px solid var(--border-color);border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;min-width:180px;}
@@ -200,15 +200,15 @@
 .qc-modal-overlay .confirm-hdr h6{font-size:.9rem;font-weight:600;color:var(--text-heading);margin:0;}
 .qc-modal-overlay .confirm-body{padding:20px;}
 .qc-wrap .branch-route,.qc-modal-overlay .branch-route{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;border:1px solid;}
-.qc-modal-overlay .branch-route.iw-route{background:rgba(21,128,61,.07);border-color:rgba(21,128,61,.25);}
-.qc-modal-overlay .branch-route.oow-route{background:rgba(37,99,235,.07);border-color:rgba(37,99,235,.2);}
+.qc-modal-overlay .branch-route.iw-route{background:rgba(154,128,83,.07);border-color:rgba(154,128,83,.25);}
+.qc-modal-overlay .branch-route.oow-route{background:rgba(154,128,83,.07);border-color:rgba(154,128,83,.2);}
+.qc-modal-overlay .branch-route.iw-route .branch-route-icon{background:rgba(154,128,83,.12);color:#9a8053;}
+.qc-modal-overlay .branch-route.oow-route .branch-route-icon{background:rgba(154,128,83,.12);color:#9a8053;}
 .qc-modal-overlay .branch-route-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
-.qc-modal-overlay .branch-route.iw-route .branch-route-icon{background:rgba(21,128,61,.12);color:#15803d;}
-.qc-modal-overlay .branch-route.oow-route .branch-route-icon{background:rgba(37,99,235,.12);color:#2563eb;}
 .qc-modal-overlay .branch-route-label{font-size:.78rem;color:var(--text-muted);margin-bottom:3px;}
 .qc-modal-overlay .branch-route-action{font-size:.85rem;font-weight:600;color:var(--text-heading);}
 .qc-modal-overlay .confirm-foot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--border-color);}
-.qc-modal-overlay .btn-confirm-pass{flex:1;padding:9px;background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;border:none;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;}
+.qc-modal-overlay .btn-confirm-pass{flex:1;padding:9px;background:linear-gradient(135deg,#9A7B4F,#7A6140);color:#fff;border:none;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;}
 .qc-modal-overlay .btn-cancel-modal{flex:1;padding:9px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-color);border-radius:7px;font-size:.82rem;cursor:pointer;}
 
 /* TOAST */
@@ -451,7 +451,7 @@
   <div class="qc-modal-overlay" id="pass-modal" onclick="if(event.target===this)closePassModal()">
     <div class="confirm-box">
       <div class="confirm-hdr">
-        <h6><i class="bi bi-patch-check-fill me-2" style="color:#15803d;"></i>Confirm QC Authorisation</h6>
+      <h6><i class="bi bi-patch-check-fill me-2" style="color:#9a8053;"></i>Confirm QC Authorisation</h6>
       </div>
       <div class="confirm-body">
         <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:14px;">You are about to authorise QC pass for <strong id="pass-sr-id" style="color:var(--text-heading);"></strong>. Based on the warranty scope, this will trigger the following action:</p>

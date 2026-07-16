@@ -131,7 +131,7 @@
 .inv-wrap .btn-submit{width:100%;padding:12px;border:none;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;margin-top:4px;}
 .inv-wrap .btn-submit:hover{opacity:.88;}
 .inv-wrap .btn-submit:disabled{opacity:.38;cursor:not-allowed;}
-.inv-wrap .btn-green{background:linear-gradient(135deg,#15803d,#16a34a);color:#fff;}
+.inv-wrap .btn-green{background:linear-gradient(135deg,#9A7B4F,#7A6140);color:#fff;}
 
 /* CLOSEOUT LOCK */
 .inv-wrap .lock-banner{display:flex;align-items:center;gap:8px;padding:10px 13px;border-radius:7px;font-size:.78rem;margin-bottom:12px;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);color:#d97706;}
@@ -176,12 +176,12 @@
 /* APPROVE BUTTON */
 .inv-wrap .btn-mark{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;font-size:.76rem;font-weight:600;cursor:pointer;border:1px solid;transition:opacity .15s;white-space:nowrap;}
 .inv-wrap .btn-mark:hover{opacity:.82;}
-.inv-wrap .btn-mark-blue{background:rgba(37,99,235,.1);color:#2563eb;border-color:rgba(37,99,235,.25);}
+.inv-wrap .btn-mark-blue{background:rgba(154,128,83,.1);color:var(--gold);border-color:rgba(154,128,83,.28);}
 
 /* BADGES */
 .inv-wrap .sbadge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600;}
 .inv-wrap .sb-oow{background:rgba(239,68,68,.1);color:#ef4444;}
-.inv-wrap .sb-pi{background:rgba(37,99,235,.1);color:#2563eb;}
+.inv-wrap .sb-pi{background:rgba(154,128,83,.12);color:var(--gold);}
 
 /* SUCCESS */
 .inv-wrap .ws-success{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;box-shadow:var(--card-shadow);padding:48px 24px;text-align:center;display:none;}
@@ -234,7 +234,7 @@
   {{-- STATS --}}
   <div class="stats-strip">
     <div class="stat-card"><div class="stat-icon" style="background:rgba(37,99,235,.1);"><i class="bi bi-hourglass-split" style="color:#2563eb;"></i></div><div><div class="stat-num" id="stat-pi">0</div><div class="stat-lbl">Pending Invoice Upload</div></div></div>
-    <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,.1);"><i class="bi bi-person-workspace" style="color:#d97706;"></i></div><div><div class="stat-num" id="stat-ph">0</div><div class="stat-lbl">Pending HoP Approval</div></div></div>
+   <div class="stat-card"><div class="stat-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-person-workspace" style="color:#9a8053;"></i></div><div><div class="stat-num" id="stat-ph">0</div><div class="stat-lbl">Pending HoP Approval</div></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:rgba(21,128,61,.1);"><i class="bi bi-check-circle" style="color:#15803d;"></i></div><div><div class="stat-num">{{ $completedThisMonth ?? 0 }}</div><div class="stat-lbl">Completed This Month</div></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-currency-exchange" style="color:#9a8053;"></i></div><div><div class="stat-num">AED {{ $invoicedThisMonth ?? '0' }}</div><div class="stat-lbl">Invoiced This Month</div></div></div>
   </div>
@@ -262,7 +262,7 @@
         <p>Choose a QC-passed OoW SR to upload its invoice and initiate the finalisation process.</p>
       </div>
       <div class="ws-success" id="inv-success">
-        <div class="s-icon" style="background:rgba(21,128,61,.08);"><i class="bi bi-receipt" style="color:#15803d;font-size:1.6rem;"></i></div>
+        <div class="s-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-receipt" style="color:#9a8053;font-size:1.6rem;"></i></div>
         <h5 style="font-size:1rem;color:var(--text-heading);margin-bottom:6px;" id="inv-success-title"></h5>
         <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:18px;" id="inv-success-body"></p>
         <button onclick="invNext()" class="btn-gold"><i class="bi bi-arrow-right"></i>Next Ticket</button>
@@ -288,7 +288,7 @@
         </div>
         <div class="ws-card">
           <div class="ws-card-hdr">
-            <div class="ws-card-icon" style="background:rgba(21,128,61,.1);"><i class="bi bi-receipt" style="color:#15803d;"></i></div>
+            <div class="ws-card-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-receipt" style="color:#9a8053;"></i></div>
             <h6>Invoice Upload</h6>
           </div>
           <div class="ws-card-body">
@@ -329,8 +329,8 @@
   <div class="section-divider">
     <div class="section-divider-line"></div>
     <div class="section-label">
-      <i class="bi bi-person-workspace" style="color:#2563eb;"></i>Pending HoP Approval
-      <span class="section-count" style="background:rgba(37,99,235,.1);color:#2563eb;" id="ph-count">0</span>
+      <i class="bi bi-person-workspace" style="color:#9a8053;"></i>Pending HoP Approval
+      <span class="section-count" style="background:rgba(154,128,83,.12);color:#9a8053;" id="ph-count">0</span>
     </div>
     <div class="section-divider-line"></div>
   </div>
@@ -338,7 +338,7 @@
   <div class="pa-card">
     <div class="pa-card-hdr">
       <div class="pa-card-hdr-left">
-        <div class="pa-card-icon" style="background:rgba(37,99,235,.1);"><i class="bi bi-person-check" style="color:#2563eb;"></i></div>
+        <div class="pa-card-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-person-check" style="color:#9a8053;"></i></div>
         <div><div class="pa-card-title">Submitted — Awaiting Head of Projects</div><div class="pa-card-sub">Invoice committed — mark when HoP confirms final closure</div></div>
       </div>
       <div style="font-size:.75rem;color:var(--text-muted);display:flex;align-items:center;gap:5px;"><i class="bi bi-bell" style="color:#9a8053;"></i>HoP notified on submission</div>
@@ -358,7 +358,7 @@
     <div class="modal-box">
       <div class="modal-hdr">
         <div class="modal-hdr-left">
-          <div class="modal-hdr-icon" style="background:rgba(21,128,61,.1);"><i class="bi bi-check-circle-fill" style="color:#15803d;"></i></div>
+          <div class="modal-hdr-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-check-circle-fill" style="color:#9a8053;"></i></div>
           <h6>Confirm Invoice Upload &amp; Submission</h6>
         </div>
         <button class="modal-close" onclick="document.getElementById('inv-conf-modal').classList.remove('show')"><i class="bi bi-x-lg"></i></button>
@@ -368,15 +368,15 @@
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
           <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><i class="bi bi-1-circle-fill" style="color:#9a8053;flex-shrink:0;"></i>Commit the Invoice PDF to the SR record.</div>
           <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><i class="bi bi-2-circle-fill" style="color:#9a8053;flex-shrink:0;"></i>Forward to <strong>Head of Projects</strong> for final approval.</div>
-          <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><i class="bi bi-3-circle-fill" style="color:#9a8053;flex-shrink:0;"></i>On HoP approval → Status: <strong>Completed</strong> + WhatsApp summary to client.</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><i class="bi bi-3-circle-fill" style="color:#9a8053;flex-shrink:0;"></i>On HoP approval → Status:<strong>Completed</strong> + WhatsApp summary to client.</div>
         </div>
-        <div style="padding:9px 12px;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.15);border-radius:7px;font-size:.78rem;color:#2563eb;display:flex;align-items:center;gap:8px;">
+        <div style="padding:9px 12px;background:rgba(154,128,83,.07);border:1px solid rgba(154,128,83,.2);border-radius:7px;font-size:.78rem;color:#9a8053;display:flex;align-items:center;gap:8px;">
           <i class="bi bi-info-circle"></i>Cannot be undone once the invoice is committed.
         </div>
       </div>
       <div class="modal-foot">
         <button class="btn-cancel" onclick="document.getElementById('inv-conf-modal').classList.remove('show')">Cancel</button>
-        <button class="btn-confirm" style="background:linear-gradient(135deg,#15803d,#16a34a);" onclick="execInvSubmit()"><i class="bi bi-check-lg"></i> Confirm &amp; Submit</button>
+        <button class="btn-confirm" style="background:linear-gradient(135deg,#9A7B4F,#7A6140);" onclick="execInvSubmit()"><i class="bi bi-check-lg"></i> Confirm &amp; Submit</button>
       </div>
     </div>
   </div>
@@ -386,21 +386,21 @@
     <div class="modal-box">
       <div class="modal-hdr">
         <div class="modal-hdr-left">
-          <div class="modal-hdr-icon" style="background:rgba(37,99,235,.1);"><i class="bi bi-patch-check-fill" style="color:#2563eb;"></i></div>
+          <div class="modal-hdr-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-patch-check-fill" style="color:#9a8053;"></i></div>
           <h6>Mark Invoice as HoP Approved</h6>
         </div>
         <button class="modal-close" onclick="document.getElementById('hop-modal').classList.remove('show')"><i class="bi bi-x-lg"></i></button>
       </div>
       <div class="modal-body">
         <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:14px;">Confirm Head of Projects has approved the invoice for <strong id="hop-sr" style="color:var(--text-heading);"></strong>.</p>
-        <div style="padding:12px 14px;border-radius:8px;background:rgba(37,99,235,.07);border:1px solid rgba(37,99,235,.2);display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
-          <i class="bi bi-arrow-right-circle-fill" style="color:#2563eb;flex-shrink:0;margin-top:2px;"></i>
-          <div style="font-size:.8rem;color:#2563eb;"><strong>Status: Pending Invoice → Completed</strong><br/><span style="opacity:.8;font-size:.76rem;">SR fully closed. Digital summary and feedback link dispatched to client via WhatsApp.</span></div>
+        <div style="padding:12px 14px;border-radius:8px;background:rgba(154,128,83,.07);border:1px solid rgba(154,128,83,.2);display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
+          <i class="bi bi-arrow-right-circle-fill" style="color:#9a8053;flex-shrink:0;margin-top:2px;"></i>
+          <div style="font-size:.8rem;color:#9a8053;"><strong>Status: Pending Invoice → Completed</strong><br/><span style="opacity:.8;font-size:.76rem;">SR fully closed. Digital summary and feedback link dispatched to client via WhatsApp.</span></div>
         </div>
       </div>
       <div class="modal-foot">
         <button class="btn-cancel" onclick="document.getElementById('hop-modal').classList.remove('show')">Cancel</button>
-        <button class="btn-confirm" style="background:linear-gradient(135deg,#1e3a5f,#2563eb);" onclick="execHopApproval()"><i class="bi bi-check-lg"></i> Confirm HoP Approval &amp; Close SR</button>
+        <button class="btn-confirm" style="background:linear-gradient(135deg,#9A7B4F,#7A6140);" onclick="execHopApproval()"><i class="bi bi-check-lg"></i> Confirm HoP Approval &amp; Close SR</button>
       </div>
     </div>
   </div>
@@ -605,9 +605,9 @@ function renderPH(){
       '<td class="mono">'+item.sr+'</td>'+
       '<td style="font-weight:500;">'+item.client+'</td>'+
       '<td class="muted">'+item.site+'</td>'+
-      '<td><span style="font-size:.77rem;font-weight:600;color:#2563eb;background:rgba(37,99,235,.08);padding:2px 7px;border-radius:4px;">'+item.code+'</span></td>'+
+      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.code+'</span></td>'+
       '<td class="muted">'+item.submitted+'</td>'+
-      '<td><span style="font-size:.75rem;color:#2563eb;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
+      '<td><span style="font-size:.75rem;color:#9a8053;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
       '<td style="text-align:center;"><button class="btn-mark btn-mark-blue" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openHopModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-patch-check-fill"></i>Mark HoP Approved &amp; Close</button></td>'+
     '</tr>';
   }).join('');

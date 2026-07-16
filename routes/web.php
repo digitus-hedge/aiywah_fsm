@@ -13,6 +13,7 @@ use App\Http\Controllers\WorkerPipelineController;
 use App\Http\Controllers\WorkerpunchController;
 use App\Http\Controllers\InquiryController;
 use App\Services\WhatsAppService;
+use App\Http\Controllers\WhatsappLogController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -50,29 +51,23 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
-
-     Route::get('/expense_ledger', function () {
-        return view('expense_ledger');
-    })->name('expense_ledger');
-
      Route::get('/analytics', function () {
         return view('analytics_dashboard');
     })->name('analytics');
-    Route::get('/wa_notification_log', function () {
-        return view('wa_notification_log');
-    })->name('wa_notification_log');
 
 
     /* ---- User Provisioning ---- */
     Route::get('/user-provisioning', [UserProvisioningController::class, 'index'])->name('user_provisioning');
     Route::post('/user-provisioning', [UserProvisioningController::class, 'store'])->name('user_provisioning.store');
-    Route::put('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])->name('user_provisioning.update');
-
+    // Route::put('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])->name('user_provisioning.update');
+    Route::post('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])
+    ->name('user_provisioning.update');
     //user-directory
     Route::get('/user-directory', [Userdirectorycontroller::class, 'index'])->name('user_directory');
     Route::post('/user-directory/{user}/toggle-status', [Userdirectorycontroller::class, 'toggleStatus'])->name('user_directory.toggle');
     Route::post('/user-directory/{user}/reset-password', [Userdirectorycontroller::class, 'resetPassword'])->name('user_directory.reset');
 
+    Route::get('/user-directory/{user}',        [UserdirectoryController::class, 'show'])->name('user_directory.show');
 
     /* ---- Inquiry Approval ---- */
     Route::get('/inquiry-approval', [ServiceRequestController::class, 'approvalIndex'])->name('inquiry-approval.index');
@@ -135,7 +130,16 @@ Route::middleware('auth')->group(function () {
 
     Route::patch('/service-requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])
     ->name('service-requests.updateStatus');
+
+    //whatsapp notification log
+    Route::get('/wa_notification_log', [WhatsappLogController::class, 'index'])->name('wa_notification_log');
+    Route::get('/wa_notification_log/export', [WhatsappLogController::class, 'export'])->name('wa_notification_log.export');
+    Route::post('/wa_notification_log/retry-all', [WhatsappLogController::class, 'retryAll'])->name('wa_notification_log.retryAll');
+    Route::get('/wa_notification_log/{log}', [WhatsappLogController::class, 'show'])->name('wa_notification_log.show');
+    Route::post('/wa_notification_log/{log}/retry', [WhatsappLogController::class, 'retry'])->name('wa_notification_log.retry');
+    
     });
+
 
     /*
     |--------------------------------------------------------------------------
@@ -219,4 +223,6 @@ Route::prefix('worker')->name('worker.')->group(function () {
 
     Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
     Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
+
+    Route::post('/job/resume', [WorkerPipelineController::class, 'resume'])->name('job.resume');
 });

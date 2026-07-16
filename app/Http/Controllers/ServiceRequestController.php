@@ -9,10 +9,12 @@ use App\Models\Punch;
 use App\Models\User;
 use App\Models\ServiceCategory;
 use App\Services\WhatsAppService;
+use App\Models\ExpenseCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ServiceRequestController extends Controller
 {
@@ -734,38 +736,51 @@ class ServiceRequestController extends Controller
      * ============================================================ */
 
     public function expenseLedger()
-    {
-        $items = Punchitem::with('punch.serviceRequest.assignedUser')
-            ->latest('id')
-            ->get();
+{
+    $items = Punchitem::with('punch.serviceRequest.assignedUser')
+        ->latest('id')
+        ->get();
 
-        $ledger = $items->map(function ($it) {
-            $sr = $it->punch?->serviceRequest;
+    $ledger = $items->map(function ($it) {
+        $sr = $it->punch?->serviceRequest;
 
-            return [
-                'id'      => $it->id,
-                'sr'      => $sr ? $this->buildSrRef($sr) : '—',
-                'tech'    => optional($sr?->assignedUser)->name ?? 'Unassigned',
-                'cat'     => $it->category ?? $it->name ?? '—',
-                'amt'     => (float) ($it->line_total ?? ($it->qty * $it->rate)),
-                'receipt' => !empty($it->punch?->receipt_number),
-                'date'    => $it->created_at?->format('d M Y') ?? '—',
-            ];
-        })->values();
-
-        $totalExpenses = $ledger->sum('amt');
-
-        $totals = [
-            'total'    => $totalExpenses,
-            'pending'  => (float) $items->where('recon_status', 'pending')->sum('line_total'),
-            'approved' => (float) $items->where('recon_status', 'approved')->sum('line_total'),
-            'disputed' => (float) $items->where('recon_status', 'disputed')->sum('line_total'),
+        return [
+            'id'         => $it->id,
+            'sr'         => $sr ? $this->buildSrRef($sr) : '—',
+            'tech'       => optional($sr?->assignedUser)->name ?? 'Unassigned',
+            'name'       => $it->name,
+            'cat'        => $it->category ?? '—',
+            'amt'        => (float) ($it->line_total ?? ($it->qty * $it->rate)),
+            'receiptUrl' => $it->receipt_path
+                ? asset('storage/' . $it->receipt_path)
+                : null,
+            'date'       => $it->created_at?->format('d M Y') ?? '—',
         ];
+    })->values();
 
-        $lastSaved = $items->max('updated_at')?->format('d M Y · h:i A') ?? '—';
+    $categories = ExpenseCategory::where('status', true)
+        ->orderBy('name')
+        ->pluck('name');
 
-        return view('expense_ledger', compact('ledger', 'totalExpenses', 'totals', 'lastSaved'));
-    }
+    $totalExpenses = $ledger->sum('amt');
+
+    $totals = [
+        'total'    => $totalExpenses,
+        'pending'  => (float) $items->where('recon_status', 'pending')->sum('line_total'),
+        'approved' => (float) $items->where('recon_status', 'approved')->sum('line_total'),
+        'disputed' => (float) $items->where('recon_status', 'disputed')->sum('line_total'),
+    ];
+
+    $lastSaved = $items->max('updated_at')?->format('d M Y · h:i A') ?? '—';
+
+    return view('expense_ledger', compact(
+        'ledger',
+        'categories',
+        'totalExpenses',
+        'totals',
+        'lastSaved'
+    ));
+}
 
     /* ============================================================
      |  PRIVATE HELPERS

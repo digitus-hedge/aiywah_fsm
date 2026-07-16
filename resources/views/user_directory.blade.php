@@ -109,6 +109,23 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 .ud-pager .active .page-link{background:rgba(154,123,79,.12);border-color:#9A7B4F;color:#9A7B4F;}
 .ud-pager .disabled .page-link{opacity:.45;pointer-events:none;}
 
+.ud-modal-overlay{display:none;position:fixed;inset:0;background:rgba(9,15,35,.6);z-index:9998;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
+.ud-modal-overlay.show{display:flex;}
+.ud-modal{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.ud-modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:15px 18px;border-bottom:1px solid var(--card-border);}
+.ud-modal-hdr h6{margin:0;font-size:.9rem;font-weight:700;color:var(--text-heading);display:flex;align-items:center;gap:8px;}
+.ud-modal-x{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:1rem;padding:4px;border-radius:6px;}
+.ud-modal-x:hover{background:var(--surface-2);color:var(--text-heading);}
+.ud-modal-body{padding:16px 18px;}
+.ud-lbl{display:block;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 5px;}
+.ud-lbl:first-child{margin-top:0;}
+.ud-inp{width:100%;font-size:.85rem;border:1px solid var(--border-color);border-radius:7px;padding:.5rem .7rem;background:var(--input-bg);color:var(--text-primary);}
+.ud-inp:focus{outline:none;border-color:#9A7B4F;box-shadow:0 0 0 3px rgba(154,123,79,.12);}
+.ud-err{font-size:.7rem;color:#ff3366;min-height:14px;margin-top:3px;}
+.ud-domains{display:flex;flex-wrap:wrap;gap:6px;}
+.ud-dom-chip{font-size:.72rem;padding:5px 10px;border-radius:16px;border:1px solid var(--border-color);background:var(--surface-2);color:var(--text-muted);cursor:pointer;user-select:none;}
+.ud-dom-chip.on{background:rgba(154,123,79,.14);border-color:#9A7B4F;color:#9A7B4F;font-weight:600;}
+.ud-modal-ftr{display:flex;justify-content:flex-end;gap:8px;padding:13px 18px;border-top:1px solid var(--card-border);}
 /* ═══════════════════════════════════════
    TOAST (matches Inquiry Approval)
 ═══════════════════════════════════════ */
@@ -252,10 +269,14 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
               <td data-label="Created" class="ud-muted">{{ optional($user->created_at)->format('d M Y') ?? '—' }}</td>
               <td data-label="Actions">
                 <div class="ud-row-actions">
-                  <a href="{{ route('user_provisioning') }}?edit={{ $user->id }}" class="ud-xs ud-xs-edit"><i class="bi bi-pencil"></i>Edit</a>
-                  <button type="button" class="ud-xs ud-xs-key"
+                  {{-- <a href="{{ route('user_provisioning') }}?edit={{ $user->id }}" class="ud-xs ud-xs-edit"><i class="bi bi-pencil"></i>Edit</a>--}} 
+                  <button type="button" class="ud-xs ud-xs-edit"
+                          onclick="udOpenEdit({{ $user->id }})">
+                    <i class="bi bi-pencil"></i>Edit
+                  </button>
+                  {{-- <button type="button" class="ud-xs ud-xs-key"
                     onclick="udPost('{{ route('user_directory.reset', $user->id) }}','primary','Reset Sent','Password reset email sent to {{ $user->email }}')">
-                    <i class="bi bi-key"></i>
+                    <i class="bi bi-key"></i>  --}}
                   </button>
                   <button type="button" class="ud-xs ud-xs-off"
                     onclick="udPost('{{ route('user_directory.toggle', $user->id) }}','warning','Status Toggled','Account status changed for {{ $user->name }}')">
@@ -282,7 +303,43 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 
   {{-- Toast --}}
   <div class="ud-toast-wrap" id="udToastWrap"></div>
+{{-- Edit User Modal --}}
+  <div class="ud-modal-overlay" id="udModalOverlay">
+    <div class="ud-modal">
+      <div class="ud-modal-hdr">
+        <h6><i class="bi bi-pencil-square" style="color:#9A7B4F;"></i>Edit User</h6>
+        <button type="button" class="ud-modal-x" onclick="udCloseEdit()"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="ud-modal-body">
+        <input type="hidden" id="edit-id">
 
+        <label class="ud-lbl">Name</label>
+        <input type="text" class="ud-inp" id="edit-name">
+        <div class="ud-err" id="err-name"></div>
+
+        <label class="ud-lbl">Email</label>
+        <input type="email" class="ud-inp" id="edit-email">
+        <div class="ud-err" id="err-email"></div>
+
+        <label class="ud-lbl">Role</label>
+        <select class="ud-inp" id="edit-role"></select>
+        <div class="ud-err" id="err-roleId"></div>
+
+        <label class="ud-lbl">Password <span style="font-weight:400;color:var(--text-muted);">— leave blank to keep current</span></label>
+        <input type="password" class="ud-inp" id="edit-password" autocomplete="new-password">
+        <div class="ud-err" id="err-password"></div>
+
+        <label class="ud-lbl">Domain Expertise</label>
+        <div class="ud-domains" id="edit-domains"></div>
+      </div>
+      <div class="ud-modal-ftr">
+        <button type="button" class="ud-btn ud-btn-ghost" onclick="udCloseEdit()">Cancel</button>
+        <button type="button" class="ud-btn ud-btn-gold" id="udSaveBtn" onclick="udSaveEdit()">
+          <i class="bi bi-check2"></i>Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
 @endsection
 
 @push('scripts')
@@ -312,5 +369,100 @@ async function udPost(url, type, title, body){
     else { udToast('error','Failed','Something went wrong (' + res.status + ').'); }
   } catch(e){ udToast('error','Network Error','Could not reach the server.'); }
 }
+
+let udRoute = "{{ url('/user-directory') }}";
+let udUpdateBase = "{{ url('/user-provisioning') }}";
+let udCsrf = document.querySelector('meta[name="csrf-token"]').content;
+let udSelectedDomains = new Set();
+
+async function udOpenEdit(id){
+  try {
+    const res = await fetch(`${udRoute}/${id}`, { headers: { 'Accept':'application/json' } });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+
+    document.getElementById('edit-id').value = data.user.id;
+    document.getElementById('edit-name').value = data.user.name;
+    document.getElementById('edit-email').value = data.user.email;
+    document.getElementById('edit-password').value = '';
+
+    // roles
+    const roleSel = document.getElementById('edit-role');
+    roleSel.innerHTML = data.roles.map(r =>
+      `<option value="${r.code}" ${r.code === data.user.roleId ? 'selected' : ''}>${r.name}</option>`
+    ).join('');
+
+    // domains
+    udSelectedDomains = new Set(data.user.domains);
+    const wrap = document.getElementById('edit-domains');
+    wrap.innerHTML = data.domainCats.flatMap(c => c.skills).map(s =>
+      `<span class="ud-dom-chip ${udSelectedDomains.has(s.id) ? 'on' : ''}" data-id="${s.id}" onclick="udToggleDomain(this)">${s.label}</span>`
+    ).join('');
+
+    udClearErrors();
+    document.getElementById('udModalOverlay').classList.add('show');
+  } catch(e){
+    udToast('error','Could not load','Failed to fetch user (' + e.message + ').');
+  }
+}
+
+function udToggleDomain(el){
+  const id = Number(el.dataset.id);
+  if (udSelectedDomains.has(id)) { udSelectedDomains.delete(id); el.classList.remove('on'); }
+  else { udSelectedDomains.add(id); el.classList.add('on'); }
+}
+
+function udCloseEdit(){ document.getElementById('udModalOverlay').classList.remove('show'); }
+
+function udClearErrors(){ document.querySelectorAll('.ud-err').forEach(e => e.textContent = ''); }
+
+async function udSaveEdit(){
+  const id = document.getElementById('edit-id').value;
+  const btn = document.getElementById('udSaveBtn');
+  const roleSel = document.getElementById('edit-role');
+  btn.disabled = true;
+  udClearErrors();
+
+  const payload = {
+    name:     document.getElementById('edit-name').value,
+    email:    document.getElementById('edit-email').value,
+    roleId:   roleSel.value,
+    role:     roleSel.options[roleSel.selectedIndex]?.text || '',
+    domains:  [...udSelectedDomains],
+    fdGrants: [],
+  };
+  const pw = document.getElementById('edit-password').value;
+  if (pw.trim() !== '') payload.password = pw;
+
+  try {
+    const res = await fetch(`${udUpdateBase}/${id}`, {
+      method: 'POST',
+      headers: { 'X-CSRF-TOKEN': udCsrf, 'Accept':'application/json', 'Content-Type':'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.status === 422){
+      const { errors } = await res.json();
+      Object.entries(errors).forEach(([field, msgs]) => {
+        const el = document.getElementById('err-' + field);
+        if (el) el.textContent = msgs[0];
+      });
+      btn.disabled = false;
+      return;
+    }
+    if (!res.ok) throw new Error(res.status);
+
+    udToast('success','Saved','User updated.');
+    udCloseEdit();
+    setTimeout(() => location.reload(), 900);
+  } catch(e){
+    udToast('error','Failed','Could not save (' + e.message + ').');
+    btn.disabled = false;
+  }
+}
+
+document.getElementById('udModalOverlay').addEventListener('click', function(e){
+  if (e.target === this) udCloseEdit();
+});
 </script>
 @endpush
