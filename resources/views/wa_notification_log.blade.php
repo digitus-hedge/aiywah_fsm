@@ -204,7 +204,7 @@
             <th>Delivery</th>
             <th style="max-width:260px;">Message Preview</th>
             <th>Timestamp</th>
-            <th style="width:100px;">Actions</th>
+            <!-- <th style="width:100px;">Actions</th> -->
           </tr>
         </thead>
         <tbody id="wa-tbody"></tbody>
@@ -268,9 +268,6 @@ function waRenderRows(list){
       '<td><span class="sbadge '+cls+'"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>'+esc(m.status)+'</span></td>'+
       '<td><div class="msg-preview">'+esc(m.message)+'</div></td>'+
       '<td class="muted" style="font-size:.75rem;white-space:nowrap;">'+esc(m.time)+'</td>'+
-      '<td><div style="display:flex;gap:5px;">'+retryBtn+
-        '<button class="btn-xs btn-xs-view" onclick="event.stopPropagation();showToast(\'info\',\'Preview\',\'Message preview for '+esc(m.sr)+'\')"><i class="bi bi-eye"></i></button>'+
-      '</div></td>'+
     '</tr>';
   }).join('');
 }

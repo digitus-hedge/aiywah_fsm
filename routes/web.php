@@ -58,9 +58,9 @@ Route::middleware('auth')->group(function () {
      Route::get('/analytics', function () {
         return view('analytics_dashboard');
     })->name('analytics');
-    Route::get('/wa_notification_log', function () {
-        return view('wa_notification_log');
-    })->name('wa_notification_log');
+    // Route::get('/wa_notification_log', function () {
+    //     return view('wa_notification_log');
+    // })->name('wa_notification_log');
 
 
     /* ---- User Provisioning ---- */
@@ -116,6 +116,9 @@ Route::middleware('auth')->group(function () {
     // Clients Feedback
     Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])->name('clients.feedback.show');
     Route::post('/client_feedback/{id}', [ClientController::class, 'storeFeedback'])->name('clients.feedback.store');
+
+    // Whatapp notifcation
+
 
     
     Route::controller(ServiceRequestController::class)->group(function () {
