@@ -485,28 +485,29 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 
       <!-- Contract Cross-Examination -->
       <div class="dp-card">
-        <div class="dp-hdr">
-          <div class="dp-hdr-icon" style="background:rgba(72,149,239,.1);"><i class="bi bi-file-earmark-check-fill" style="color:#4895ef;"></i></div>
-          <div><h6>Contract Cross-Examination</h6><span class="sub">Contract & warranty status vs inquiry</span></div>
-        </div>
-        <div class="dp-body" id="contractBody">
-          <div class="dp-empty"><i class="bi bi-mouse2"></i>Select a row to load contract data</div>
-        </div>
-      </div>
-
-    
-      
-    <div class="dp-card">
   <div class="dp-hdr" onclick="toggleDescCard(this)" style="cursor:pointer;">
-    <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
-    <div style="flex:1;"><h6>Inquiry Description and Attachments</h6><span class="sub">Client-submitted details</span></div>
-    <i class="bi bi-chevron-down dp-toggle-icon" style="transition:transform .2s;color:var(--text-muted);"></i>
+    <div class="dp-hdr-icon" style="background:rgba(72,149,239,.1);"><i class="bi bi-file-earmark-check-fill" style="color:#4895ef;"></i></div>
+    <div style="flex:1;"><h6>Contract Cross-Examination</h6><span class="sub">Contract &amp; warranty status vs inquiry</span></div>
+    <i class="bi bi-chevron-down dp-toggle-icon" style="transition:transform .2s;color:var(--text-muted);transform:rotate(-90deg);"></i>
   </div>
-  <div class="dp-body" id="descBody">
-    <div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>
+  <div class="dp-body" id="contractBody" style="display:none;">
+    <div class="dp-empty"><i class="bi bi-mouse2"></i>Select a row to load contract data</div>
   </div>
 </div>
 
+    
+      
+  <!-- Inquiry Description -->
+<div class="dp-card">
+  <div class="dp-hdr" onclick="toggleDescCard(this)" style="cursor:pointer;">
+    <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
+    <div style="flex:1;"><h6>Inquiry Description and Attachments</h6><span class="sub">Client-submitted details</span></div>
+    <i class="bi bi-chevron-down dp-toggle-icon" style="transition:transform .2s;color:var(--text-muted);transform:rotate(-90deg);"></i>
+  </div>
+  <div class="dp-body" id="descBody" style="display:none;">
+    <div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>
+  </div>
+</div>
 
 
       <!-- Action Panel -->
@@ -693,6 +694,8 @@ function selectRow(id){
   renderTable();
   loadContractPanel(t);
   loadDescPanel(t);
+    expandCard('contractBody');
+  expandCard('descBody');
   enableActionButtons();
   cancelRejection();
   if(window.innerWidth<992){
@@ -729,13 +732,21 @@ function loadContractPanel(t){
 
 
 function toggleDescCard(hdr){
-  const body = hdr.parentElement.querySelector('.dp-body');
+  const card = hdr.parentElement;
+  const body = card.querySelector('.dp-body');
   const icon = hdr.querySelector('.dp-toggle-icon');
-  const collapsed = body.style.display === 'none';
+  const collapsed = getComputedStyle(body).display === 'none';
   body.style.display = collapsed ? '' : 'none';
   if(icon) icon.style.transform = collapsed ? 'rotate(0deg)' : 'rotate(-90deg)';
 }
 
+
+function expandCard(bodyId){
+  const body = document.getElementById(bodyId);
+  const icon = body.parentElement.querySelector('.dp-toggle-icon');
+  body.style.display = '';
+  if(icon) icon.style.transform = 'rotate(0deg)';
+}
 
 
 function loadDescPanel(t){

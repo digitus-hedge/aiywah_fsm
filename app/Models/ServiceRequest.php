@@ -66,11 +66,11 @@ class ServiceRequest extends Model
         'feedback_submitted_at' => 'datetime',
     ];
 
+
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
     }
-
 
     public function client(): BelongsTo
     {
@@ -89,7 +89,6 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
-
 
 
     public function domains()
