@@ -1819,16 +1819,47 @@
   <div class="info-card-hdr"><i class="bi bi-clock-history"></i><span class="info-card-title">Recent Activity</span></div>
   <div class="timeline">
     @forelse($activity as $a)
-      @php
-        // pick icon + colors per activity type/status
-        $style = match(true) {
-          $a['type'] === 'project'                                => ['bg'=>'rgba(154,128,83,.12)','bd'=>'rgba(154,128,83,.3)','ic'=>'bi-plus','col'=>'#9a8053','fs'=>'.72rem'],
-          in_array($a['status'], ['approved','closed','completed']) => ['bg'=>'rgba(16,185,129,.12)','bd'=>'rgba(16,185,129,.3)','ic'=>'bi-check-lg','col'=>'#10b981','fs'=>'.66rem'],
-          $a['status'] === 'rejected'                             => ['bg'=>'rgba(239,68,68,.1)','bd'=>'rgba(239,68,68,.3)','ic'=>'bi-x-lg','col'=>'#ef4444','fs'=>'.62rem'],
-          $a['status'] === 'forwarded'                            => ['bg'=>'rgba(6,182,212,.1)','bd'=>'rgba(6,182,212,.3)','ic'=>'bi-arrow-right','col'=>'#0891b2','fs'=>'.62rem'],
-          default                                                 => ['bg'=>'rgba(37,99,235,.1)','bd'=>'rgba(37,99,235,.3)','ic'=>'bi-hourglass-split','col'=>'#2563eb','fs'=>'.62rem'],
-        };
-      @endphp
+    @php
+  $st = strtolower(str_replace(['_','-'], ' ', $a['status'] ?? ''));
+
+  $style = match(true) {
+    $a['type'] === 'project'
+      => ['bg'=>'rgba(154,128,83,.12)','bd'=>'rgba(154,128,83,.3)','ic'=>'bi-plus','col'=>'#9a8053','fs'=>'.72rem'],
+
+    in_array($st, ['approved','accepted','closed','completed'])
+      => ['bg'=>'rgba(16,185,129,.12)','bd'=>'rgba(16,185,129,.3)','ic'=>'bi-check-lg','col'=>'#10b981','fs'=>'.66rem'],
+
+    in_array($st, ['rejected','quote rejected'])
+      => ['bg'=>'rgba(239,68,68,.1)','bd'=>'rgba(239,68,68,.3)','ic'=>'bi-x-lg','col'=>'#ef4444','fs'=>'.62rem'],
+
+    $st === 'forwarded'
+      => ['bg'=>'rgba(6,182,212,.1)','bd'=>'rgba(6,182,212,.3)','ic'=>'bi-arrow-right','col'=>'#0891b2','fs'=>'.62rem'],
+
+    $st === 'assigned'
+      => ['bg'=>'rgba(139,92,246,.12)','bd'=>'rgba(139,92,246,.3)','ic'=>'bi-person-check','col'=>'#8b5cf6','fs'=>'.62rem'],
+
+    $st === 'quoted'
+      => ['bg'=>'rgba(180,83,9,.12)','bd'=>'rgba(180,83,9,.3)','ic'=>'bi-receipt','col'=>'#b45309','fs'=>'.62rem'],
+
+    $st === 'in progress'
+      => ['bg'=>'rgba(8,145,178,.12)','bd'=>'rgba(8,145,178,.3)','ic'=>'bi-wrench-adjustable','col'=>'#0891b2','fs'=>'.62rem'],
+
+    $st === 'qc review'
+      => ['bg'=>'rgba(217,119,6,.12)','bd'=>'rgba(217,119,6,.3)','ic'=>'bi-clipboard2-check','col'=>'#d97706','fs'=>'.62rem'],
+
+    in_array($st, ['rework','reschedule'])
+      => ['bg'=>'rgba(249,115,22,.12)','bd'=>'rgba(249,115,22,.3)','ic'=>'bi-arrow-repeat','col'=>'#f97316','fs'=>'.62rem'],
+
+    in_array($st, ['pending invoice','invoice submitted'])
+      => ['bg'=>'rgba(154,128,83,.12)','bd'=>'rgba(154,128,83,.3)','ic'=>'bi-file-earmark-text','col'=>'#9a8053','fs'=>'.62rem'],
+
+    $st === 'on hold'
+      => ['bg'=>'rgba(100,116,139,.12)','bd'=>'rgba(100,116,139,.3)','ic'=>'bi-pause-circle','col'=>'#64748b','fs'=>'.62rem'],
+
+    default
+      => ['bg'=>'rgba(37,99,235,.1)','bd'=>'rgba(37,99,235,.3)','ic'=>'bi-hourglass-split','col'=>'#2563eb','fs'=>'.62rem'],
+  };
+@endphp
       <div class="tl-item">
         <div class="tl-dot" style="background:{{ $style['bg'] }};border-color:{{ $style['bd'] }};">
           <i class="bi {{ $style['ic'] }}" style="color:{{ $style['col'] }};font-size:{{ $style['fs'] }};"></i>

@@ -342,7 +342,7 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
 
 @php
   $punchIn    = optional($sr->punch)->punch_in_at;
-  $isActive   = $sr->status === 'in_progress' && $punchIn;
+  $isActive   = $sr->status === 'In Progress' && $punchIn;
   $onSite     = $isActive ? $punchIn->diffForHumans(null, true, false, 2) : null;
   $srRef      = 'SR-'.optional($sr->created_at)->format('Y').'-'.str_pad($sr->id, 5, '0', STR_PAD_LEFT);
   $techName   = optional($sr->assignedUser)->name;

@@ -224,7 +224,8 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sr-detail-divider{grid-column:1 / -1;height:1px;background:var(--border-color);margin:2px 0;}
 .sr-modal-foot{padding:14px 22px;border-top:1px solid var(--border-color);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;}
 @media(max-width:480px){.sr-modal-foot{justify-content:stretch;}.sr-modal-foot > *{flex:1;justify-content:center;}}
-
+.sr-file-thumb{padding:0;border-radius:8px;overflow:hidden;width:75%}
+.sr-file-thumb img{width: 50%;margin: 0 auto;height:auto;object-fit:contain;border-radius:8px;display:block}
   </style>
   @endpush
 
@@ -325,25 +326,51 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
         @fragment('rows')
         @forelse($sr_explorer as $sr)
           @php
-            $hours = \Carbon\Carbon::parse($sr->created_at)->diffInHours(now());
-            $rowClass = $hours <= 8 ? 'sla-ok' : ($hours <= 24 ? 'sla-warn' : 'sla-breach');
-            $srCode = 'SR-'.\Carbon\Carbon::parse($sr->created_at)->format('Y').'-'.str_pad($sr->id,5,'0',STR_PAD_LEFT);
-            $badge  = $statusMap[$sr->status] ?? 'sb-pending';
-            // All fields the detail popup reads, packed onto the row as one JSON payload.
-            $srPayload = [
-              'code'      => $srCode,
-              'status'    => $sr->status,
-              'badge'     => $badge,
-              'client'    => optional($sr->client)->company_name ?? '—',
-              'site'      => optional($sr->project)->site_name ?? '—',
-              'assigned'  => $sr->assignedUser->name ?? 'Unassigned',
-              'issue'     => $sr->issue ?? $sr->description ?? '—',
-              'warranty'  => $sr->warranty_status ?? (($sr->is_oow ?? false) ? 'Out of Warranty' : '—'),
-              'contact'   => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
-              'created'   => \Carbon\Carbon::parse($sr->created_at)->format('d M Y · h:i A'),
-              'created_h' => \Carbon\Carbon::parse($sr->created_at)->diffForHumans(),
-              'updated'   => $sr->updated_at ? \Carbon\Carbon::parse($sr->updated_at)->diffForHumans() : '—',
-            ];
+           $hours = \Carbon\Carbon::parse($sr->created_at)->diffInHours(now());
+$rowClass = $hours <= 8 ? 'sla-ok' : ($hours <= 24 ? 'sla-warn' : 'sla-breach');
+$srCode = 'SR-'.\Carbon\Carbon::parse($sr->created_at)->format('Y').'-'.str_pad($sr->id,5,'0',STR_PAD_LEFT);
+$badge  = $statusMap[$sr->status] ?? 'sb-pending';
+
+$rawFiles = $sr->attachments ?? $sr->files ?? null;
+if (is_string($rawFiles)) { $rawFiles = json_decode($rawFiles, true); }
+$rawFiles = is_array($rawFiles) ? $rawFiles : [];
+
+$srFiles = collect($rawFiles)
+    ->flatten()                        // handles [[ '...' ]] nesting
+    ->map(function ($p) {
+        if (is_array($p))  { $p = $p['path'] ?? $p['url'] ?? $p['file'] ?? null; }
+        if (is_object($p)) { $p = $p->path ?? $p->url ?? $p->file ?? null; }
+        return is_string($p) ? $p : null;
+    })
+    ->filter()
+    ->map(function ($p) {
+        $p   = ltrim(str_replace('\\', '/', $p), '/');
+        $ext = strtolower(pathinfo($p, PATHINFO_EXTENSION));
+        return [
+            'url'   => \Illuminate\Support\Facades\Storage::url($p),
+            'name'  => basename($p),
+            'ext'   => $ext,
+            'image' => in_array($ext, ['png','jpg','jpeg','gif','webp','bmp','svg']),
+        ];
+    })
+    ->values()->all();
+// All fields the detail popup reads, packed onto the row as one JSON payload.
+$srPayload = [
+  'code'      => $srCode,
+  'status'    => $sr->status,
+  'badge'     => $badge,
+  'client'    => optional($sr->client)->company_name ?? '—',
+  'site'      => optional($sr->project)->site_name ?? '—',
+  'assigned'  => $sr->assignedUser->name ?? 'Unassigned',
+  'issue'     => $sr->issue_description ?? '—',
+  'warranty'  => $sr->warranty_status ?? (($sr->is_oow ?? false) ? 'Out of Warranty' : '—'),
+  'contact'   => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
+  'created'   => \Carbon\Carbon::parse($sr->created_at)->format('d M Y · h:i A'),
+  'created_h' => \Carbon\Carbon::parse($sr->created_at)->diffForHumans(),
+  'updated'   => $sr->updated_at ? \Carbon\Carbon::parse($sr->updated_at)->diffForHumans() : '—',
+  'files'     => $srFiles,
+  'files_n'   => count($srFiles),
+];
           @endphp
           <tr class="{{ $rowClass }}" data-status="{{ $sr->status }}"
               data-sr='@json($srPayload)'
@@ -439,10 +466,19 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
           <span class="sr-detail-value muted" id="sr-m-updated">—</span>
         </div>
 
+
+
         <div class="sr-detail-item full">
           <span class="sr-detail-label"><i class="bi bi-card-text"></i>Reported Issue</span>
           <span class="sr-detail-value muted" id="sr-m-issue">—</span>
         </div>
+
+        <div class="sr-detail-divider"></div>
+<div class="sr-detail-item full">
+  <span class="sr-detail-label"><i class="bi bi-paperclip"></i>Attachments</span>
+  <div class="sr-files" id="sr-m-files"></div>
+</div>
+
 
         <div class="sr-detail-divider"></div>
 
@@ -518,6 +554,22 @@ function openSrModal(row){
   _set('sr-m-warranty', data.warranty);
   _set('sr-m-created', data.created);
   _set('sr-m-created-h', data.created_h);
+
+
+  var box = document.getElementById('sr-m-files');
+if (box){
+  var files = Array.isArray(data.files) ? data.files : [];
+  if (!files.length){
+    box.innerHTML = '<span class="sr-files-empty">No attachments</span>';
+  } else {
+    box.innerHTML = files.map(function(f){
+      return f.image
+        ? '<a class="sr-file sr-file-thumb" href="'+f.url+'" target="_blank" title="'+f.name+'"><img src="'+f.url+'" alt=""></a>'
+        : '<a class="sr-file" href="'+f.url+'" target="_blank"><i class="bi bi-file-earmark-arrow-down"></i>'+f.name+'</a>';
+    }).join('');
+  }
+}
+
 
   // Status badge (styled pill) instead of plain text
   var statusEl = document.getElementById('sr-m-status');
