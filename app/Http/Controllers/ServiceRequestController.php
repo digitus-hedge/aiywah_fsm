@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ServiceRequest;
 use App\Models\Client;
 use App\Models\Punchitem;
+use App\Models\ClientMobile;
 use App\Models\Punch;
 use App\Models\User;
 use App\Models\ServiceCategory;
@@ -29,13 +30,13 @@ class ServiceRequestController extends Controller
         return view('sr_registration', compact('categories'));
     }
 
-   // Lookup endpoint — searches by company name, unique_code, or primary_mobile
+    // Lookup endpoint — searches by company name, unique_code, or primary_mobile
     public function lookup(string $code)
     {
         $term = trim($code);
 
         // Resolve a picked client: exact code match → full detail + projects
-        $client = Client::with('projects')
+        $client = Client::with(['projects', 'mobiles'])
             ->where('unique_code', $term)
             ->first();
 
@@ -44,6 +45,13 @@ class ServiceRequestController extends Controller
                 'id'    => $p->id,
                 'name'  => $p->project_name,
                 'sites' => array_values(array_filter([$p->site_name])),
+            ])->values();
+
+            $contacts = $client->mobiles->map(fn($m) => [
+                'id'     => $m->id,
+                'name'   => $m->name,
+                'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
+                'notify' => (bool) $m->notify,
             ])->values();
 
             return response()->json([
@@ -55,6 +63,7 @@ class ServiceRequestController extends Controller
                     'flag'     => $client->contact_name ?? '',
                     'contact'  => $client->primary_mobile ?? '',
                     'projects' => $projects,
+                    'contacts' => $contacts,
                 ],
             ]);
         }
@@ -79,7 +88,6 @@ class ServiceRequestController extends Controller
             ])->values(),
         ]);
     }
-
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -350,6 +358,36 @@ class ServiceRequestController extends Controller
 
         return view('dispatch_engine', compact('inquiries', 'tickets', 'categories', 'technicians'));
     }
+
+
+    public function storeContact(Request $request)
+    {
+        $data = $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'name'      => 'required|string|max:100',
+            'country'   => 'required|string|max:6',
+            'mobile'    => 'required|string|max:15',
+            'notify'    => 'nullable|boolean',
+        ]);
+
+        $m = ClientMobile::create([
+            'client_id' => $data['client_id'],
+            'name'      => $data['name'],
+            'country'   => $data['country'],
+            'mobile'    => $data['mobile'],
+            'notify'    => (int) ($data['notify'] ?? 0),
+        ]);
+
+        return response()->json([
+            'contact' => [
+                'id'     => $m->id,
+                'name'   => $m->name,
+                'mobile' => trim($m->country . ' ' . $m->mobile),
+                'notify' => (bool) $m->notify,
+            ],
+        ]);
+    }
+
 
     public function dispatch(Request $request, ServiceRequest $serviceRequest)
     {

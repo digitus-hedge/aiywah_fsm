@@ -962,6 +962,56 @@
   display:flex;align-items:center;justify-content:center;
   background:rgba(255,51,102,.1);color:#ff3366;font-size:1.2rem;
 }
+
+
+
+
+/* Needed */
+
+
+.btn-add-ct{width:38px;flex-shrink:0;border:1px solid rgba(154,123,79,.4);background:rgba(154,123,79,.1);color:#9A7B4F;border-radius:8px;cursor:pointer}
+.btn-add-ct:disabled{opacity:.4;cursor:not-allowed}
+.ct-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px}
+.ct-overlay.show{display:flex}
+.ct-box{background:var(--bs-body-bg,#fff);border:1px solid rgba(154,123,79,.25);border-radius:14px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.ct-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(154,123,79,.18)}
+.ct-hdr h6{margin:0;font-size:.9rem;color:#9A7B4F}
+.ct-x{background:none;border:0;cursor:pointer;color:inherit;opacity:.6}
+.ct-body{padding:16px}
+.ct-foot{
+  display:flex;justify-content:flex-end;gap:10px;
+  padding:12px 16px;border-top:1px solid rgba(154,123,79,.18);
+}
+.ct-foot .btn-ghost,
+.ct-foot .btn-gold{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:8px;
+  font-size:.78rem;font-weight:600;letter-spacing:.2px;
+  cursor:pointer;transition:all .18s ease;line-height:1;
+}
+.ct-foot .btn-ghost{
+  background:transparent;
+  border:1px solid rgba(154,123,79,.35);
+  color:var(--text-muted,#8a8a8a);
+}
+.ct-foot .btn-ghost:hover{
+  background:rgba(154,123,79,.08);
+  border-color:rgba(154,123,79,.55);
+  color:#9A7B4F;
+}
+.ct-foot .btn-gold{
+  background:linear-gradient(135deg,#9A7B4F,#c1a06a);
+  border:1px solid rgba(154,123,79,.6);
+  color:#fff;
+  box-shadow:0 2px 8px rgba(154,123,79,.28);
+}
+.ct-foot .btn-gold:hover{
+  background:linear-gradient(135deg,#8a6d45,#b0905c);
+  box-shadow:0 4px 14px rgba(154,123,79,.4);
+  transform:translateY(-1px);
+}
+.ct-foot .btn-gold:active{transform:translateY(0)}
+.ct-foot .btn-gold:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
 </style>
 @endpush
 
@@ -1121,15 +1171,63 @@
               </div>
 
               {{-- Reported By --}}
-              <div class="col-sm-6">
-                <label class="form-label">Reported By <span class="req">*</span></label>
-                <div class="iw">
-                  <span class="ii"><i class="bi bi-person"></i></span>
-                  <input type="text" class="form-control" id="reporter" name="reported_by"
-                    placeholder="Contact person name"
-                    oninput="pv('pvReporter',this.value||'—')" />
-                </div>
-              </div>
+         
+<div class="col-sm-6">
+  <label class="form-label">Contact Person <span class="req">*</span></label>
+  <div class="iw" style="display:flex;gap:6px;">
+    <span class="ii"><i class="bi bi-person"></i></span>
+    <select class="form-control" id="reporter" name="reported_by" onchange="onReporterChange(this)" style="flex:1;">
+      <option value="">Select client first…</option>
+    </select>
+    <button type="button" class="btn-add-ct" id="addCtBtn" onclick="openCtModal()" title="Add contact person" disabled>
+      <i class="bi bi-plus-lg"></i>
+    </button>
+  </div>
+  <input type="hidden" name="reported_by_mobile" id="reporterMobile">
+</div>
+
+{{-- Add Contact Modal --}}
+<div class="ct-overlay" id="ctModal" onclick="if(event.target===this)closeCtModal()">
+  <div class="ct-box" role="dialog" aria-modal="true">
+    <div class="ct-hdr">
+      <h6><i class="bi bi-person-plus"></i> Add Contact Person</h6>
+      <button type="button" class="ct-x" onclick="closeCtModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="ct-body">
+      <label class="form-label">Name <span class="req">*</span></label>
+      <input type="text" class="form-control" id="ctName" placeholder="e.g. John Facilities">
+
+      <label class="form-label" style="margin-top:10px;">WhatsApp Number <span class="req">*</span></label>
+      <div style="display:flex;gap:6px;">
+        <select class="form-control" id="ctCountry" style="width:90px;flex-shrink:0;">
+          <option value="+971">+971</option>
+          <option value="+91" selected>+91</option>
+          <option value="+1">+1</option>
+          <option value="+44">+44</option>
+          <option value="+966">+966</option>
+          <option value="+974">+974</option>
+        </select>
+        <input type="tel" class="form-control" id="ctMobile" placeholder="50 123 4567"
+               inputmode="numeric" maxlength="15"
+               oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="flex:1;">
+      </div>
+
+      <label class="ct-chk-lbl" style="margin-top:10px;display:none;">
+        <input type="checkbox" id="ctNotify" value="1">
+        <span>Send WhatsApp updates</span>
+      </label>
+    </div>
+    <div class="ct-foot">
+      <button type="button" class="btn-ghost" onclick="closeCtModal()">Cancel</button>
+      <button type="button" class="btn-gold" id="ctSaveBtn" onclick="saveContact()">
+        <i class="bi bi-check-lg"></i> Save Contact
+      </button>
+    </div>
+  </div>
+</div>
+
+
+
 
               {{-- Priority --}}
               <div class="col-12">
@@ -1327,6 +1425,89 @@
 
   /* ── Lookup (debounced) ── */
 
+
+
+  const CONTACT_STORE_URL = "{{ url('/service-requests/contacts') }}"; // POST
+
+function openCtModal() {
+  if (!window.__clientId) { toast('error','Validation','Verify a client first.'); return; }
+  document.getElementById('ctName').value = '';
+  document.getElementById('ctMobile').value = '';
+  document.getElementById('ctNotify').checked = false;
+  document.getElementById('ctModal').classList.add('show');
+}
+
+function closeCtModal() {
+  document.getElementById('ctModal').classList.remove('show');
+}
+
+async function saveContact() {
+  const name    = document.getElementById('ctName').value.trim();
+  const country = document.getElementById('ctCountry').value;
+  const mobile  = document.getElementById('ctMobile').value.trim();
+  const notify  = document.getElementById('ctNotify').checked ? 1 : 0;
+
+  if (!name)   { toast('error','Validation','Enter the contact name.'); return; }
+  if (!mobile) { toast('error','Validation','Enter the WhatsApp number.'); return; }
+
+  const btn = document.getElementById('ctSaveBtn');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(CONTACT_STORE_URL, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': CSRF_TOKEN,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ client_id: window.__clientId, name, country, mobile, notify })
+    });
+
+    if (res.status === 422) {
+      const err = await res.json();
+      toast('error','Validation', Object.values(err.errors||{})[0]?.[0] || 'Invalid data.');
+      return;
+    }
+    if (!res.ok) throw new Error('Server error ' + res.status);
+
+    const data = await res.json();          // { contact:{ id, name, mobile, notify } }
+    const sel  = document.getElementById('reporter');
+    const o    = document.createElement('option');
+    o.value = data.contact.name;
+    o.textContent = data.contact.name;
+    sel.appendChild(o);
+    sel.value = data.contact.name;
+    onReporterChange(sel);
+
+    closeCtModal();
+    toast('success','Contact Added', data.contact.name);
+  } catch (e) {
+    toast('error','Save Failed', e.message || 'Could not save the contact.');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+
+
+function fillReporters(contacts) {
+  const sel = document.getElementById('reporter');
+  sel.innerHTML = '<option value="">Select contact person…</option>';
+  (contacts || []).forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.name || '';
+    o.textContent = c.name || '';
+    sel.appendChild(o);
+  });
+  document.getElementById('addCtBtn').disabled = false;
+  pv('pvReporter', '—');
+}
+
+function onReporterChange(sel) {
+  pv('pvReporter', sel.value || '—');
+}
+
   let lastVerifiedTerm = null;
 
  function onCode(val) {
@@ -1406,6 +1587,9 @@ async function verify(val) {
         document.getElementById('customerName').value = c.name ?? '';
         window.__clientId = c.id;
         document.getElementById('clientReveal').classList.add('show');
+
+        fillReporters(c.contacts);   // ← add this
+
 
         const ps = document.getElementById('projSel');
         ps.innerHTML = '<option value="">— Select project —</option>';

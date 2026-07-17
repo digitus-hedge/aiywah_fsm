@@ -368,6 +368,7 @@ $srPayload = [
   'created'   => \Carbon\Carbon::parse($sr->created_at)->format('d M Y · h:i A'),
   'created_h' => \Carbon\Carbon::parse($sr->created_at)->diffForHumans(),
   'updated'   => $sr->updated_at ? \Carbon\Carbon::parse($sr->updated_at)->diffForHumans() : '—',
+  'contact_person'     => $sr->reported_by ?? '—',
   'files'     => $srFiles,
   'files_n'   => count($srFiles),
 ];
@@ -468,9 +469,15 @@ $srPayload = [
 
 
 
-        <div class="sr-detail-item full">
+        <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-card-text"></i>Reported Issue</span>
           <span class="sr-detail-value muted" id="sr-m-issue">—</span>
+        </div>
+
+
+          <div class="sr-detail-item">
+          <span class="sr-detail-label"><i class="bi bi-card-text"></i>Contact Person</span>
+          <span class="sr-detail-value muted" id="sr-m-person">—</span>
         </div>
 
         <div class="sr-detail-divider"></div>
@@ -551,6 +558,7 @@ function openSrModal(row){
   _set('sr-m-contact', data.contact);
   _set('sr-m-updated', data.updated);
   _set('sr-m-issue', data.issue);
+   _set('sr-m-person', data.contact_person);
   _set('sr-m-warranty', data.warranty);
   _set('sr-m-created', data.created);
   _set('sr-m-created-h', data.created_h);
