@@ -320,16 +320,22 @@ span#cds
 
 @php
     $statusCfg = [
-        'Pending'         => ['cls' => 'sb-pending',   'icon' => 'bi-hourglass'],
-        'Approved'        => ['cls' => 'sb-approved',  'icon' => 'bi-check-circle'],
-        'Forwarded'       => ['cls' => 'sb-assigned',  'icon' => 'bi-send'],
-        'Rejected'        => ['cls' => 'sb-cancelled', 'icon' => 'bi-x-circle'],
-        'Assigned'        => ['cls' => 'sb-assigned',  'icon' => 'bi-person-check'],
-        'in_progress'     => ['cls' => 'sb-inprog',    'icon' => 'bi-activity'],
-        'qc_review'       => ['cls' => 'sb-review',    'icon' => 'bi-eye'],
-        'Rework'          => ['cls' => 'sb-rework',    'icon' => 'bi-arrow-repeat'],
-        'Completed'       => ['cls' => 'sb-completed', 'icon' => 'bi-check2-all'],
-        'Pending Invoice' => ['cls' => 'sb-quoted',    'icon' => 'bi-receipt'],
+        'Pending'           => ['cls' => 'sb-pending',   'icon' => 'bi-hourglass'],
+        'Approved'          => ['cls' => 'sb-approved',  'icon' => 'bi-check-circle'],
+        'Forwarded'         => ['cls' => 'sb-assigned',  'icon' => 'bi-send'],
+        'Rejected'          => ['cls' => 'sb-cancelled', 'icon' => 'bi-x-circle'],
+        'Assigned'          => ['cls' => 'sb-assigned',  'icon' => 'bi-person-check'],
+        'Quoted'            => ['cls' => 'sb-quoted',    'icon' => 'bi-receipt'],
+        'In Progress'       => ['cls' => 'sb-inprog',    'icon' => 'bi-activity'],
+        'Quote Rejected'    => ['cls' => 'sb-cancelled', 'icon' => 'bi-x-octagon'],
+        'Qc Review'         => ['cls' => 'sb-review',    'icon' => 'bi-eye'],
+        'Rework'            => ['cls' => 'sb-rework',    'icon' => 'bi-arrow-repeat'],
+        'Reschedule'        => ['cls' => 'sb-rework',    'icon' => 'bi-calendar-event'],
+        'Accepted'          => ['cls' => 'sb-approved',  'icon' => 'bi-hand-thumbs-up'],
+        'Pending Invoice'   => ['cls' => 'sb-quoted',    'icon' => 'bi-receipt'],
+        'Invoice Submitted' => ['cls' => 'sb-assigned',  'icon' => 'bi-file-earmark-check'],
+        'Completed'         => ['cls' => 'sb-completed', 'icon' => 'bi-check2-all'],
+        'On Hold'           => ['cls' => 'sb-pending',   'icon' => 'bi-pause-circle'],
     ];
 @endphp
 
@@ -866,7 +872,7 @@ function statusBadge(st) {
 }
 
 function slaLabel(sr) {
-  if (sr.status === 'Completed' || sr.status === 'Cancelled') return '<span class="sla-ok"><i class="bi bi-check-lg"></i> Closed</span>';
+  if (sr.status === 'Completed' || sr.status === 'Accepted') return '<span class="sla-ok"><i class="bi bi-check-lg"></i> Closed</span>';
   if (sr.sla_hours < 24)  return `<span class="sla-ok"><i class="bi bi-check-circle"></i> ${sr.sla_hours}h left</span>`;
   if (sr.sla_hours < 52)  return `<span class="sla-warn"><i class="bi bi-exclamation-circle"></i> ${sr.sla_hours}h elapsed</span>`;
   return `<span class="sla-breach"><i class="bi bi-x-circle"></i> +${sr.sla_hours - 52}h breach</span>`;
