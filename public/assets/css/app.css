@@ -153,7 +153,7 @@ body {
 }
 
 /* Sidebar scrollbar */
-.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar { width: 0; }
 .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 

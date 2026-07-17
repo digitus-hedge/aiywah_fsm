@@ -29,39 +29,54 @@ class ServiceRequestController extends Controller
         return view('sr_registration', compact('categories'));
     }
 
-    // Lookup endpoint — searches by company name, unique_code, or primary_mobile
+   // Lookup endpoint — searches by company name, unique_code, or primary_mobile
     public function lookup(string $code)
     {
         $term = trim($code);
 
+        // Resolve a picked client: exact code match → full detail + projects
         $client = Client::with('projects')
-            ->where(function ($q) use ($term) {
-                $q->where('unique_code', $term)
-                    ->orWhere('primary_mobile', $term)
-                    ->orWhere('company_name', 'like', "%{$term}%");
-            })
+            ->where('unique_code', $term)
             ->first();
 
-        if (! $client) {
+        if ($client) {
+            $projects = $client->projects->map(fn($p) => [
+                'id'    => $p->id,
+                'name'  => $p->project_name,
+                'sites' => array_values(array_filter([$p->site_name])),
+            ])->values();
+
+            return response()->json([
+                'found'  => true,
+                'client' => [
+                    'id'       => $client->id,
+                    'name'     => $client->company_name,
+                    'status'   => 'Active',
+                    'flag'     => $client->contact_name ?? '',
+                    'contact'  => $client->primary_mobile ?? '',
+                    'projects' => $projects,
+                ],
+            ]);
+        }
+
+        // Otherwise → always return a list, even for a single hit
+        $matches = Client::where('company_name', 'like', "%{$term}%")
+            ->orWhere('primary_mobile', 'like', "%{$term}%")
+            ->orderBy('company_name')
+            ->limit(10)
+            ->get();
+
+        if ($matches->isEmpty()) {
             return response()->json(['found' => false], 404);
         }
 
-        $projects = $client->projects->map(fn($p) => [
-            'id'    => $p->id,
-            'name'  => $p->project_name,
-            'sites' => array_values(array_filter([$p->site_name])),
-        ])->values();
-
         return response()->json([
-            'found'  => true,
-            'client' => [
-                'id'       => $client->id,
-                'name'     => $client->company_name,
-                'status'   => 'Active',
-                'flag'     => $client->contact_name ?? '',
-                'contact'  => $client->primary_mobile ?? '',
-                'projects' => $projects,
-            ],
+            'clients' => $matches->map(fn($c) => [
+                'id'      => $c->id,
+                'name'    => $c->company_name,
+                'code'    => $c->unique_code,
+                'contact' => $c->primary_mobile ?? '',
+            ])->values(),
         ]);
     }
 

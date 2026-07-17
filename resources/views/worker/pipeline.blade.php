@@ -127,11 +127,12 @@ body {
 }
 
 /* ═══════════════════════════════════════ PIPELINE ═══ */
-.tab-filter { display:flex; background:var(--surface-2); border-radius:10px; padding:3px; margin-bottom:14px; }
+.tab-filter { display:flex; background:var(--surface-2); border-radius:10px; padding:3px; margin-bottom:14px;overflow-x:auto;  }
+.tab-filter::-webkit-scrollbar { height:0; }
 .tf-btn {
   flex:1; padding:7px 6px; font-size:.75rem; font-weight:500;
   border:none; background:none; border-radius:8px; cursor:pointer;
-  color:var(--text-muted); transition:all .2s;
+  color:var(--text-muted); transition:all .2s;flex:0 0 auto; white-space:nowrap; padding:7px 10px;
 }
 .badge-hold { background:rgba(251,188,6,.12); color:#a8802a; }
 .tf-btn.active { background:var(--card-bg); color:#9a8053; box-shadow:0 1px 6px rgba(0,0,0,.1); }
@@ -150,6 +151,10 @@ body {
 .badge-assigned { background:rgba(154,128,83,.12); color:#9a8053; }
 .badge-rework   { background:rgba(255,51,102,.12); color:#ff3366; }
 .badge-live     { background:rgba(5,163,74,.12);  color:#05a34a; }
+.badge-pending     { background:rgba(154,128,83,.12); color:#9a8053; }
+.badge-rescheduled { background:rgba(88,120,220,.12); color:#5878dc; }
+.badge-review      { background:rgba(251,188,6,.12);  color:#a8802a; }
+.badge-completed   { background:rgba(5,163,74,.12);   color:#05a34a; }
 .jc-client { font-size:.84rem; font-weight:600; color:var(--text-heading); margin-bottom:2px; }
 .jc-contract { font-size:.68rem; color:var(--text-muted); margin-bottom:8px; }
 .jc-meta { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
@@ -740,11 +745,13 @@ body {
 
     <div class="page-content">
       <div class="tab-filter" id="tabFilter">
-        <button class="tf-btn active" data-filter="all">All</button>
-        <button class="tf-btn" data-filter="Assigned">Assigned</button>
-        <button class="tf-btn" data-filter="Rework">Rework</button>
-        <button class="tf-btn" data-filter="On Hold">On Hold</button>
-      </div>
+      <button class="tf-btn active" data-filter="Pending">Pending</button>
+      <button class="tf-btn" data-filter="Rework">Rework</button>
+      <button class="tf-btn" data-filter="Rescheduled">Rescheduled</button>
+      <button class="tf-btn" data-filter="On Hold">On Hold</button>
+      <button class="tf-btn" data-filter="Review">Review</button>
+      <button class="tf-btn" data-filter="Completed">Completed</button>
+    </div>
       <div id="jobList"></div>
     </div>
   </section>
@@ -948,7 +955,7 @@ let activeSrId     = null;
 let punchInTime    = null;
 let timerInterval  = null;
 let expandedRef    = null;
-let currentFilter  = 'all';
+let currentFilter  = 'Pending';
 let uploads        = { before:false, after:false};
 let expenses       = [];
 let historyLoaded  = false;
@@ -1146,7 +1153,7 @@ document.querySelectorAll('[data-close]').forEach((btn) => {
 ══════════════════════════════════════════════════════ */
 function renderPipeline() {
   const list = $('jobList');
-  const visible = currentFilter === 'all' ? JOBS : JOBS.filter((j) => j.status === currentFilter);
+  const visible = JOBS.filter((j) => j.status === currentFilter);
   const reworkCount = JOBS.filter((j) => j.status === 'Rework').length;
 
   $('pipelineCount').textContent = `${visible.length} job${visible.length === 1 ? '' : 's'}`;
@@ -1163,9 +1170,11 @@ function renderPipeline() {
 
 function buildJobCard(job) {
   const slaClass = job.hrsAgo > 24 ? 'sla-c' : job.hrsAgo > 8 ? 'sla-w' : 'sla-ok';
-  const badgeClass = job.status === 'Rework' ? 'badge-rework'
-                 : job.status === 'On Hold' ? 'badge-hold'
-                 : 'badge-assigned';
+ const BADGE_MAP = {
+  'Pending':'badge-pending', 'Rework':'badge-rework', 'Rescheduled':'badge-rescheduled',
+  'On Hold':'badge-hold', 'Review':'badge-review', 'Completed':'badge-completed',
+};
+const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
   const isExpanded = expandedRef === job.id;
   const isActive   = activeRef === job.id;
   const ref = esc(job.id);
