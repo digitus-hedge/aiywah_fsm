@@ -111,7 +111,7 @@
 .sh-input:focus{border-color:#9A7B4F;box-shadow:0 0 0 2px rgba(154,123,79,.1);outline:none;}
 .sh-input::placeholder{color:var(--text-light);}
 .sh-primary-badge{font-size:.6rem;font-weight:700;background:rgba(154,123,79,.15);color:#9A7B4F;padding:2px 7px;border-radius:10px;white-space:nowrap;align-self:flex-start;margin-top:2px;}
-.sh-remove{background:none;border:none;color:var(--text-light);cursor:pointer;font-size:.9rem;padding:4px;border-radius:5px;flex-shrink:0;transition:all .15s;align-self:center;}
+.sh-remove{margin-top: 0px;background:none;border:none;color:var(--text-light);cursor:pointer;font-size:.9rem;padding:4px;border-radius:5px;flex-shrink:0;transition:all .15s;align-self:center;}
 .sh-remove:hover{color:#ff3366;background:rgba(255,51,102,.08);}
 .btn-add-sh{background:none;border:1.5px dashed var(--border-color);border-radius:8px;width:100%;padding:.5rem;font-size:.78rem;color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;}
 .btn-add-sh:hover{border-color:#9A7B4F;color:#9A7B4F;background:rgba(154,123,79,.04);}
@@ -389,7 +389,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
         <div class="card-body">
           <div style="font-size:.72rem;color:var(--text-muted);background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.18);border-radius:7px;padding:8px 11px;display:flex;align-items:flex-start;gap:7px;margin-bottom:14px;">
             <i class="bi bi-info-circle" style="color:#25d366;flex-shrink:0;margin-top:1px;"></i>
-            All numbers below will receive WhatsApp notifications for ticket events.
+            Check numbers below will receive WhatsApp notifications for ticket events.
           </div>
           <div class="stakeholder-list" id="stakeholderList"></div>
           <button type="button" class="btn-add-sh" onclick="addStakeholder()">
@@ -511,7 +511,9 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
         'name'    => $m->name,
         'country' => $m->country,
         'mobile'  => $m->mobile,
+        'notify'  => (bool) $m->notify,
     ])->values(),
+    
     'projects' => $client->projects->map(fn($p) => [
         'id'              => $p->id,
         'project_name'    => $p->project_name,
@@ -750,6 +752,7 @@ function addStakeholder(prefill) {
   div.id        = `sh-${idx}`;
   const name = prefill && prefill.name ? prefill.name.replace(/"/g,'&quot;') : '';
   const num  = prefill && prefill.mobile ? prefill.mobile.replace(/"/g,'&quot;') : '';
+  const on   = !!(prefill && prefill.notify);
   div.innerHTML = `
     <div class="sh-inputs">
       <div>
@@ -764,8 +767,15 @@ function addStakeholder(prefill) {
               `<option value="${c}" ${prefill && prefill.country === c ? 'selected' : ''}>${c}</option>`
             ).join('')}
           </select>
-          <input type="tel" class="sh-input" name="stakeholders[${idx}][mobile]" value="${num}" placeholder="50 123 4567"inputmode="numeric" pattern="[0-9]*" maxlength="15" oninput="this.value=this.value.replace(/[^0-9]/g,'');syncSummary()" style="flex:1;"/>
+          <input type="tel" class="sh-input" name="stakeholders[${idx}][mobile]" value="${num}" placeholder="50 123 4567" inputmode="numeric" pattern="[0-9]*" maxlength="15" oninput="this.value=this.value.replace(/[^0-9]/g,'');syncSummary()" style="flex:1;"/>
         </div>
+      </div>
+      <div class="sh-check">
+        <input type="hidden" name="stakeholders[${idx}][notify]" value="0">
+        <label class="sh-chk-lbl">
+          <input type="checkbox" class="sh-chk" name="stakeholders[${idx}][notify]" value="1" ${on ? 'checked' : ''} onchange="syncSummary()">
+          <span>Send WhatsApp updates</span>
+        </label>
       </div>
     </div>
     <button type="button" class="sh-remove" onclick="removeStakeholder('sh-${idx}')" title="Remove"><i class="bi bi-trash3"></i></button>`;

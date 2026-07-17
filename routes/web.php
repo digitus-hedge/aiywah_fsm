@@ -89,6 +89,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/service-requests/{serviceRequest}/dispatch', [ServiceRequestController::class, 'dispatch'])->name('service-requests.dispatch');
 
 
+    Route::post('/service-requests/contacts', [ServiceRequestController::class, 'storeContact']);
+    
     /* ---- Clients / Projects ---- */
     Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
     Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
