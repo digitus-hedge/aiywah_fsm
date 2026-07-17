@@ -131,19 +131,22 @@ class ServiceRequestController extends Controller
     public function sr_explorer(Request $request)
     {
         $statusMap = [
-            'Pending'          => 'sb-pending',
-            'Approved'         => 'sb-approved',
-            'Forwarded'        => 'sb-forwarded',
-            'Rejected'         => 'sb-cancelled',
-            'Assigned'         => 'sb-assigned',
-            'Quoted'           => 'sb-quoted',
-            'in_progress'      => 'sb-progress',
-            'Quote Rejected'   => 'sb-cancelled',
-            'qc_review'        => 'sb-review',
-            'Rework'           => 'sb-rework',
-            'Pending Invoice'  => 'sb-pending',
+            'Pending'           => 'sb-pending',
+            'Approved'          => 'sb-approved',
+            'Forwarded'         => 'sb-forwarded',
+            'Rejected'          => 'sb-cancelled',
+            'Assigned'          => 'sb-assigned',
+            'Quoted'            => 'sb-quoted',
+            'In Progress'       => 'sb-progress',
+            'Quote Rejected'    => 'sb-cancelled',
+            'Qc Review'         => 'sb-review',
+            'Rework'            => 'sb-rework',
+            'Reschedule'        => 'sb-rework',
+            'Accepted'          => 'sb-approved',
+            'Pending Invoice'   => 'sb-pending',
             'Invoice Submitted' => 'sb-forwarded',
-            'Completed'        => 'sb-approved',
+            'Completed'         => 'sb-approved',
+            'On Hold'           => 'sb-pending',
         ];
         $statuses = array_keys($statusMap);
 
@@ -384,16 +387,41 @@ class ServiceRequestController extends Controller
     public function ticketSummary()
     {
         $statuses = [
-            'Pending', 'Approved', 'Forwarded', 'Rejected', 'Assigned',
-            'Quoted', 'Quote Rejected', 'qc_review', 'Rework',
-            'Pending Invoice', 'Invoice Submitted', 'Completed',
+            'Pending',
+            'Approved',
+            'Forwarded',
+            'Rejected',
+            'Assigned',
+            'Quoted',
+            'In Progress',
+            'Quote Rejected',
+            'Qc Review',
+            'Rework',
+            'Reschedule',
+            'Accepted',
+            'Pending Invoice',
+            'Invoice Submitted',
+            'Completed',
+            'On Hold',
         ];
 
         $labels = [
-            'qc_review'         => 'QC Review',
+            'Pending'           => 'Pending',
+            'Approved'          => 'Approved',
+            'Forwarded'         => 'Forwarded',
+            'Rejected'          => 'Rejected',
+            'Assigned'          => 'Assigned',
+            'Quoted'            => 'Quoted',
+            'In Progress'       => 'In Progress',
+            'Quote Rejected'    => 'Quote Rejected',
+            'Qc Review'         => 'QC Review',
+            'Rework'            => 'Rework',
+            'Reschedule'        => 'Reschedule',
+            'Accepted'          => 'Accepted',
             'Pending Invoice'   => 'Pending Invoice',
             'Invoice Submitted' => 'Invoice Submitted',
-            'Quote Rejected'    => 'Quote Rejected',
+            'Completed'         => 'Completed',
+            'On Hold'           => 'On Hold',
         ];
 
         $tickets = ServiceRequest::with(['client', 'project', 'assignedUser', 'category'])
@@ -426,12 +454,14 @@ class ServiceRequestController extends Controller
     public function qcReview()
     {
         $requests = ServiceRequest::with([
-                'client', 'project', 'assignedUser',
-                'punches' => fn($q) => $q->latest('punch_out_at')
-                                         ->latest('id')
-                                         ->with('items'),
-            ])
-            ->where('status', 'qc_review')
+            'client',
+            'project',
+            'assignedUser',
+            'punches' => fn($q) => $q->latest('punch_out_at')
+                ->latest('id')
+                ->with('items'),
+        ])
+            ->where('status', 'Qc Review')
             ->latest('updated_at')
             ->get();
 
@@ -440,16 +470,16 @@ class ServiceRequestController extends Controller
 
             $scope = $this->srScope($sr);
             $sla   = $punch ? $this->srSla($sr, $punch)
-                            : ['label' => '—', 'cls' => '', 'fill' => 0, 'color' => '#9ca3af'];
+                : ['label' => '—', 'cls' => '', 'fill' => 0, 'color' => '#9ca3af'];
             $exp   = $punch ? $this->srExpenses($punch)
-                            : ['rows' => [], 'total' => 0];
+                : ['rows' => [], 'total' => 0];
 
             return [
                 'id'           => $this->buildSrRef($sr),
                 'dbId'         => $sr->id,
                 'client'       => optional($sr->client)->company_name ?? '—',
                 'site'         => $punch?->site_location
-                                    ?? optional($sr->project)->site_name ?? '—',
+                    ?? optional($sr->project)->site_name ?? '—',
                 'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
                 'scope'        => $scope,
                 'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
@@ -462,11 +492,11 @@ class ServiceRequestController extends Controller
                 'totalExpense' => 'AED ' . number_format($exp['total'], 0),
                 'proof' => [
                     'before'    => $punch?->start_photo_path
-                                    ? asset('storage/' . $punch->start_photo_path) : null,
+                        ? asset('storage/' . $punch->start_photo_path) : null,
                     'after'     => $punch?->finish_photo_path
-                                    ? asset('storage/' . $punch->finish_photo_path) : null,
+                        ? asset('storage/' . $punch->finish_photo_path) : null,
                     'signature' => $punch?->customer_signature_path
-                                    ? asset('storage/' . $punch->customer_signature_path) : null,
+                        ? asset('storage/' . $punch->customer_signature_path) : null,
                 ],
                 'completionSummary' => $punch?->completion_summary ?? '',
                 'customerName'      => $punch?->customer_name ?? '',
@@ -633,7 +663,7 @@ class ServiceRequestController extends Controller
             'client_approved_at' => now(),
         ]);
         app(\App\Services\WhatsAppService::class)
-        ->notifyServiceStatus($serviceRequest, 'Quotation approved');
+            ->notifyServiceStatus($serviceRequest, 'Quotation approved');
         return response()->json(['ok' => true, 'message' => 'Client approved.']);
     }
 
@@ -643,10 +673,13 @@ class ServiceRequestController extends Controller
 
     public function invoicePanel()
     {
-        $pending = ServiceRequest::with(['client', 'project', 'assignedUser',
-                'punches' => fn($q) => $q->whereNotNull('punch_out_at')
-                                         ->latest('punch_out_at')->with('items'),
-            ])
+        $pending = ServiceRequest::with([
+            'client',
+            'project',
+            'assignedUser',
+            'punches' => fn($q) => $q->whereNotNull('punch_out_at')
+                ->latest('punch_out_at')->with('items'),
+        ])
             ->where('status', 'Pending Invoice')
             ->latest('updated_at')
             ->get();
@@ -705,7 +738,8 @@ class ServiceRequestController extends Controller
             ServiceRequest::whereIn('status', ['Invoice Submitted', 'Completed'])
                 ->whereMonth('updated_at', now()->month)
                 ->whereYear('updated_at', now()->year)
-                ->sum('invoice_total') ?? 0, 0
+                ->sum('invoice_total') ?? 0,
+            0
         );
 
         return view('invoice_panel', compact('invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth'));
@@ -729,8 +763,8 @@ class ServiceRequestController extends Controller
             'invoice_submitted_at' => now(),
             'invoice_uploaded_by'  => Auth::id(),
         ]);
-         app(\App\Services\WhatsAppService::class)
-        ->notifyServiceStatus($serviceRequest, 'Invoice Submitted');
+        app(\App\Services\WhatsAppService::class)
+            ->notifyServiceStatus($serviceRequest, 'Invoice Submitted');
         return response()->json(['ok' => true, 'message' => 'Invoice committed. HoP notified.']);
     }
 
@@ -742,7 +776,7 @@ class ServiceRequestController extends Controller
             'hop_approved_by' => Auth::id(),
         ]);
         app(\App\Services\WhatsAppService::class)
-        ->notifyServiceStatus($serviceRequest, 'Completed');
+            ->notifyServiceStatus($serviceRequest, 'Completed');
         return response()->json(['ok' => true, 'message' => 'SR closed — Completed.']);
     }
 
@@ -751,51 +785,51 @@ class ServiceRequestController extends Controller
      * ============================================================ */
 
     public function expenseLedger()
-{
-    $items = Punchitem::with('punch.serviceRequest.assignedUser')
-        ->latest('id')
-        ->get();
+    {
+        $items = Punchitem::with('punch.serviceRequest.assignedUser')
+            ->latest('id')
+            ->get();
 
-    $ledger = $items->map(function ($it) {
-        $sr = $it->punch?->serviceRequest;
+        $ledger = $items->map(function ($it) {
+            $sr = $it->punch?->serviceRequest;
 
-        return [
-            'id'         => $it->id,
-            'sr'         => $sr ? $this->buildSrRef($sr) : '—',
-            'tech'       => optional($sr?->assignedUser)->name ?? 'Unassigned',
-            'name'       => $it->name,
-            'cat'        => $it->category ?? '—',
-            'amt'        => (float) ($it->line_total ?? ($it->qty * $it->rate)),
-            'receiptUrl' => $it->receipt_path
-                ? asset('storage/' . $it->receipt_path)
-                : null,
-            'date'       => $it->created_at?->format('d M Y') ?? '—',
+            return [
+                'id'         => $it->id,
+                'sr'         => $sr ? $this->buildSrRef($sr) : '—',
+                'tech'       => optional($sr?->assignedUser)->name ?? 'Unassigned',
+                'name'       => $it->name,
+                'cat'        => $it->category ?? '—',
+                'amt'        => (float) ($it->line_total ?? ($it->qty * $it->rate)),
+                'receiptUrl' => $it->receipt_path
+                    ? asset('storage/' . $it->receipt_path)
+                    : null,
+                'date'       => $it->created_at?->format('d M Y') ?? '—',
+            ];
+        })->values();
+
+        $categories = ExpenseCategory::where('status', true)
+            ->orderBy('name')
+            ->pluck('name');
+
+        $totalExpenses = $ledger->sum('amt');
+
+        $totals = [
+            'total'    => $totalExpenses,
+            'pending'  => (float) $items->where('recon_status', 'pending')->sum('line_total'),
+            'approved' => (float) $items->where('recon_status', 'approved')->sum('line_total'),
+            'disputed' => (float) $items->where('recon_status', 'disputed')->sum('line_total'),
         ];
-    })->values();
 
-    $categories = ExpenseCategory::where('status', true)
-        ->orderBy('name')
-        ->pluck('name');
+        $lastSaved = $items->max('updated_at')?->format('d M Y · h:i A') ?? '—';
 
-    $totalExpenses = $ledger->sum('amt');
-
-    $totals = [
-        'total'    => $totalExpenses,
-        'pending'  => (float) $items->where('recon_status', 'pending')->sum('line_total'),
-        'approved' => (float) $items->where('recon_status', 'approved')->sum('line_total'),
-        'disputed' => (float) $items->where('recon_status', 'disputed')->sum('line_total'),
-    ];
-
-    $lastSaved = $items->max('updated_at')?->format('d M Y · h:i A') ?? '—';
-
-    return view('expense_ledger', compact(
-        'ledger',
-        'categories',
-        'totalExpenses',
-        'totals',
-        'lastSaved'
-    ));
-}
+        return view('expense_ledger', compact(
+            'ledger',
+            'categories',
+            'totalExpenses',
+            'totals',
+            'lastSaved'
+        ));
+    }
 
     /* ============================================================
      |  PRIVATE HELPERS

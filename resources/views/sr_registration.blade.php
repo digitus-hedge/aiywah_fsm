@@ -952,6 +952,16 @@
     letter-spacing: .06em;
     margin-bottom: 16px;
   }
+
+  .fitem .fi-thumb{
+  width:44px;height:44px;object-fit:cover;border-radius:6px;
+  border:1px solid rgba(255,255,255,.12);flex:0 0 auto;display:block;
+}
+.fi-pdf{
+  width:44px;height:44px;border-radius:6px;flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,51,102,.1);color:#ff3366;font-size:1.2rem;
+}
 </style>
 @endpush
 
@@ -1538,23 +1548,30 @@ async function verify(val) {
     renderFiles();
   }
 
-  function renderFiles() {
-    const list = document.getElementById('fileList');
-    list.innerHTML = '';
-    uploads.forEach((f, i) => {
-      const ext = f.name.split('.').pop().toUpperCase();
-      const ic = ext === 'PDF' ? '#ff3366' : '#9A7B4F';
-      const ico = ext === 'PDF' ? 'bi-file-earmark-pdf-fill' : 'bi-file-earmark-image-fill';
-      const d = document.createElement('div');
-      d.className = 'fitem';
-      d.innerHTML = `<i class="bi ${ico} fi-ic" style="color:${ic};"></i>
-      <span class="fi-name">${f.name}</span>
+ function renderFiles() {
+  const list = document.getElementById('fileList');
+  list.innerHTML = '';
+  uploads.forEach((f, i) => {
+    const ext   = f.name.split('.').pop().toUpperCase();
+    const isImg = /^image\//.test(f.type) || ['JPG','JPEG','PNG','GIF','WEBP'].includes(ext);
+    const url   = URL.createObjectURL(f);
+
+    const d = document.createElement('div');
+    d.className = 'fitem';
+    d.innerHTML = `
+      <a href="${url}" target="_blank" rel="noopener" class="fi-link">
+        ${isImg
+          ? `<img class="fi-thumb" src="${url}" alt="">`
+          : `<span class="fi-pdf"><i class="bi bi-file-earmark-pdf-fill"></i></span>`}
+      </a>
+      <a href="${url}" target="_blank" rel="noopener" class="fi-name">${f.name}</a>
       <span class="fi-sz">${(f.size/1024).toFixed(1)} KB</span>
       <button type="button" class="fi-rm" onclick="rmFile(${i})"><i class="bi bi-x-lg"></i></button>`;
-      list.appendChild(d);
-    });
-    pv('pvFiles', `${uploads.length} file${uploads.length !== 1 ? 's' : ''}`);
-  }
+
+    list.appendChild(d);
+  });
+  pv('pvFiles', `${uploads.length} file${uploads.length !== 1 ? 's' : ''}`);
+}
 
   function rmFile(i) {
     uploads.splice(i, 1);

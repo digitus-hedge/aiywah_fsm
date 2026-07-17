@@ -60,9 +60,9 @@ class ProjectController extends Controller
             ->get();
 
         // Bucket definitions — single source of truth
-        $activeStatuses    = ['Approved', 'Forwarded', 'Assigned', 'in_progress', 'qc_review', 'Rework'];
-        $completedStatuses = ['Completed', 'Pending Invoice'];
-        $cancelledStatuses = ['Rejected'];
+        $activeStatuses    = ['Approved', 'Forwarded', 'Assigned', 'Quoted', 'Accepted', 'In Progress', 'Qc Review', 'Rework', 'Reschedule', 'On Hold'];
+        $completedStatuses = ['Completed', 'Pending Invoice', 'Invoice Submitted'];
+        $cancelledStatuses = ['Rejected', 'Quote Rejected'];
 
         $stats = [
             'total'     => $srs->count(),
@@ -74,16 +74,22 @@ class ProjectController extends Controller
         ];
 
         $statusColors = [
-            'Pending'         => '#f59e0b',
-            'Approved'        => '#10b981',
-            'Forwarded'       => '#2563eb',
-            'Rejected'        => '#ef4444',
-            'Assigned'        => '#8b5cf6',
-            'in_progress'     => '#0891b2',
-            'qc_review'       => '#d97706',
-            'Rework'          => '#f97316',
-            'Completed'       => '#059669',
-            'Pending Invoice' => '#9a8053',
+            'Pending'           => '#f59e0b',
+            'Approved'          => '#10b981',
+            'Forwarded'         => '#2563eb',
+            'Rejected'          => '#ef4444',
+            'Assigned'          => '#8b5cf6',
+            'Quoted'            => '#b45309',
+            'In Progress'       => '#0891b2',
+            'Quote Rejected'    => '#dc2626',
+            'Qc Review'         => '#d97706',
+            'Rework'            => '#f97316',
+            'Reschedule'        => '#ea580c',
+            'Accepted'          => '#15803d',
+            'Pending Invoice'   => '#9a8053',
+            'Invoice Submitted' => '#2563eb',
+            'Completed'         => '#059669',
+            'On Hold'           => '#64748b',
         ];
 
         $breakdown = $srs->groupBy('status')->map(fn($g, $status) => [

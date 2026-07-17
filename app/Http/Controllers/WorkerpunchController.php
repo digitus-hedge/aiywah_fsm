@@ -78,7 +78,7 @@ class WorkerpunchController extends Controller
                 'grand_total'        => 0,
             ]);
             $sr->update([
-                'status'      => 'in_progress',
+                'status'      => 'In Progress',
                 'hold_reason' => null,
                 'held_at'     => null,
             ]);
@@ -201,7 +201,7 @@ class WorkerpunchController extends Controller
             $this->recalcTotals($punch);
 
             $sr->update([
-                'status'         => 'qc_review',
+                'status'         => 'Qc Review',
                 'qc_reviewed_at' => null,
                 'qc_reviewed_by' => null,
             ]);

@@ -13,10 +13,10 @@ use Illuminate\Support\Facades\DB;
 
 class WorkerPipelineController extends Controller
 {
-   /** Statuses a worker can see in the pipeline. */
-private const OPEN_STATUSES = [
-    'assigned', 'dispatched', 'accepted', 'in_progress',
-    'rework', 'on_hold', 'qc_review', 'completed', 'pending invoice', 'invoice submitted',
+    /** Statuses a worker can act on from the pipeline. */
+    private const OPEN_STATUSES = [
+    'Assigned', 'Accepted', 'In Progress',
+    'Rework', 'On Hold', 'Qc Review', 'Completed', 'Pending Invoice', 'Invoice Submitted',
 ];
 
     /*
@@ -154,13 +154,13 @@ private const OPEN_STATUSES = [
 
         // Rework re-enters the pipeline with accepted_at still set from the first
         // pass, so the gate is on status, not on the timestamp.
-        $isRework = strtolower((string) $sr->status) === 'rework';
+        $isRework = strtolower((string) $sr->status) === 'Rework';
         abort_if($sr->accepted_at && !$isRework, 409, 'This job has already been accepted.');
 
         $sr->update([
             'eta_at'      => $data['eta_date'] . ' ' . $data['eta_time'] . ':00',
             'accepted_at' => now(),
-            'status'      => 'accepted',
+            'status'      => 'Accepted',
             'hold_reason' => null,
             'held_at'     => null,
         ]);
@@ -206,7 +206,7 @@ private const OPEN_STATUSES = [
 
         DB::transaction(function () use ($sr, $data) {
             $sr->update([
-                'status'      => 'on_hold',
+                'status'      => 'On Hold',
                 'hold_reason' => $data['remark'],
                 'held_at'     => now(),
                 'internal_remark' => $this->appendRemark($sr->internal_remark, 'On Hold', $data['remark']),
@@ -226,7 +226,7 @@ private const OPEN_STATUSES = [
     $data = $request->validate(['sr_id' => ['required', 'integer']]);
     $sr = $this->ownedRequest($request, $data['sr_id']);
 
-    abort_unless(strtolower((string) $sr->status) === 'on_hold', 422, 'Job is not on hold.');
+    abort_unless(strtolower((string) $sr->status) === 'On Hold', 422, 'Job is not on hold.');
 
     $sr->update([
         'status'      => 'accepted',
@@ -317,7 +317,7 @@ private const OPEN_STATUSES = [
                 'punches.user.role', 'createdBy.role', 'qcReviewedBy.role', 'assignedUser',
             ])
             ->where('assigned_user_id', $user->id)
-            ->whereIn('status', ['accepted', 'in_progress'])
+            ->whereIn('status', ['Accepted', 'In Progress'])
             ->whereNotNull('accepted_at')
             ->latest('accepted_at')
             ->first();
@@ -358,8 +358,8 @@ private function buildActive(ServiceRequest $sr, ?Punch $punch): array
             'id'          => $sr->ref,
             'sr_id'       => $sr->id,
             'status' => match (strtolower((string) $sr->status)) {
-                            'rework'  => 'Rework',
-                            'on_hold' => 'On Hold',
+                            'Rework'  => 'Rework',
+                            'On Hold' => 'On Hold',
                             default   => 'Assigned',
                         },
             'client'      => optional($sr->client)->company_name ?? '—',
