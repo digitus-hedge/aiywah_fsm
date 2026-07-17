@@ -13,10 +13,11 @@ use Illuminate\Support\Facades\DB;
 
 class WorkerPipelineController extends Controller
 {
-    /** Statuses a worker can act on from the pipeline. */
-    private const OPEN_STATUSES = [
-        'assigned', 'dispatched', 'rework', 'on_hold', 'accepted', 'in_progress',
-    ];
+   /** Statuses a worker can see in the pipeline. */
+private const OPEN_STATUSES = [
+    'assigned', 'dispatched', 'accepted', 'in_progress',
+    'rework', 'on_hold', 'qc_review', 'completed', 'pending invoice', 'invoice submitted',
+];
 
     /*
     |--------------------------------------------------------------------------

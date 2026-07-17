@@ -1341,7 +1341,7 @@
 
   if (term.length >= 2) {
     w.classList.add('verifying');
-    vTimer = setTimeout(() => verify(val), 500);
+   vTimer = setTimeout(() => verify(term), 400);
   }
 }
 
@@ -1369,15 +1369,25 @@ async function verify(val) {
           'Accept': 'application/json'
         }
       });
-      const data = res.ok ? await res.json() : {
-        found: false
-      };
+     let data = res.ok ? await res.json() : { found: false };
       w.classList.remove('verifying');
-
+      // Any matches → list them, wait for a click (even if there's only one)
+      if (Array.isArray(data.clients) && data.clients.length) {
+        lastVerifiedTerm = null;
+        renderMatches(data.clients);
+        return;
+      }
       if (data.found && data.client) {
         const c = data.client;
-        lastVerifiedTerm = term;   // remember this so we don't toast again
+       lastVerifiedTerm = document.getElementById('custCode').value.trim();
         w.classList.add('verified');
+        const box = document.getElementById('clientReveal');
+        box.style.gridTemplateColumns = '';   // back to the 4-column grid
+        box.innerHTML = `
+          <div><span class="ci-lbl">Client Name</span><span class="ci-val" id="cName">—</span></div>
+          <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">—</span></div>
+          <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">—</span></div>
+          <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">—</span></div>`;
         document.getElementById('cName').textContent = c.name ?? '—';
         document.getElementById('cStatus').textContent = c.status ?? '—';
         document.getElementById('cFlag').textContent = c.flag ?? '—';
@@ -1426,6 +1436,35 @@ async function verify(val) {
       setAlert('danger', '❌ Lookup failed. Please try again.');
       toast('error', 'Error', e.message || 'Lookup request failed.');
     }
+  }
+
+  /* ── Multiple matches → clickable list in the reveal box ── */
+  function renderMatches(list) {
+    const box = document.getElementById('clientReveal');
+    box.innerHTML = '';
+    box.style.gridTemplateColumns = '1fr';   // one row per client
+    list.forEach(c => {
+      const row = document.createElement('div');
+      row.style.cssText = 'cursor:pointer;padding:6px 4px;border-bottom:1px solid rgba(5,163,74,.15);';
+      row.innerHTML = `<span class="ci-val"></span><span class="ci-lbl" style="margin:2px 0 0;"></span>`;
+      row.querySelector('.ci-val').textContent = c.name ?? '';
+      row.querySelector('.ci-lbl').textContent =
+        [c.code, c.contact].filter(Boolean).join(' · ');
+      row.addEventListener('click', () => pickClient(c));
+      box.appendChild(row);
+    });
+    box.classList.add('show');
+    setAlert('primary', `ℹ️ ${list.length} matches — click the client you want.`);
+  }
+
+  /* Click a match → fill the input with the name, then verify it */
+  function pickClient(c) {
+    document.getElementById('custCode').value = c.name;   // ← name fills the field
+    clearTimeout(vTimer);
+    lastVerifiedTerm = null;
+    document.getElementById('clientReveal').classList.remove('show');
+    document.getElementById('lkWrap').classList.add('verifying');
+    verify(c.code || c.name);
   }
 
   /* ── Project → auto-fill first site ── */

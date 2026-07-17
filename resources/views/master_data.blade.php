@@ -106,7 +106,7 @@
 .md-list::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:2px;}
 .cat-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:background .12s;margin-bottom:2px;border:1.5px solid transparent;}
 .cat-row:hover{background:var(--surface-2);}
-.cat-row.selected{background:var(--selected-row);border-color:rgba(154,123,79,.3);}
+.cat-row.selected{border-radius:10px;border:1px solid var(--card-border);overflow:hidden;box-shadow:var(--card-shadow);background:var(--app-bg);}
 .cat-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;}
 .cat-name{font-size:.8125rem;font-weight:500;color:var(--text-heading);flex:1;}
 .cat-count-badge{font-size:.65rem;background:var(--surface-3);color:var(--text-muted);padding:1px 7px;border-radius:9px;font-weight:600;white-space:nowrap;}
