@@ -440,7 +440,7 @@
       <div class="lightbox-img" id="lb-img"></div>
       <div class="lightbox-foot">
         <span id="lb-filename">before_photo.jpg</span>
-        <button onclick="showToast('ok','Download','Downloading file…')" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(154,128,83,.1);color:#9a8053;border:1px solid rgba(154,128,83,.25);border-radius:6px;font-size:.75rem;font-weight:500;cursor:pointer;">
+        <button onclick="downloadProof()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(154,128,83,.1);color:#9a8053;border:1px solid rgba(154,128,83,.25);border-radius:6px;font-size:.75rem;font-weight:500;cursor:pointer;">
           <i class="bi bi-download"></i>Download
         </button>
       </div>
@@ -581,7 +581,24 @@ function setProof(elId, statusId, url){
 }
 setProof('proof-before', 'proof-before-status', proof.before);
 setProof('proof-after',  'proof-after-status',  proof.after);
-setProof('proof-signature', 'proof-signature-status', proof.signature);
+setProofPdf('proof-signature', 'proof-signature-status', proof.signature);
+function setProofPdf(elId, statusId, url){
+  const el = document.getElementById(elId);
+  const st = document.getElementById(statusId);
+  const icon = el.querySelector('.proof-img-icon');
+  if(url){
+    // PDF can't be a CSS background — show a PDF glyph and mark uploaded.
+    el.style.backgroundImage = 'none';
+    if(icon){ icon.className = 'bi bi-file-earmark-pdf-fill proof-img-icon'; icon.style.display=''; icon.style.opacity='.55'; icon.style.color='#c0392b'; }
+    st.innerHTML = '<i class="bi bi-check-circle-fill"></i>Uploaded';
+    st.style.color = '#15803d';
+  } else {
+    el.style.backgroundImage = 'none';
+    if(icon){ icon.style.display=''; }
+    st.innerHTML = '<i class="bi bi-x-circle"></i>Missing';
+    st.style.color = '#ef4444';
+  }
+}
   const expBody = document.getElementById('ws-expense-body');
   document.getElementById('ws-expense-total').textContent = selectedSR.totalExpense;
   const expenses = selectedSR.expenses || [];
@@ -756,30 +773,48 @@ function qcFilterQueue(q){
 
 /* ---------- LIGHTBOX ---------- */
 
+let lbCurrentUrl = null;
+
 function openLightbox(type){
   const proof = (selectedSR && selectedSR.proof) || {};
-  let url, title;
+  let url, title, isPdf = false;
   if(type === 'before'){
     url = proof.before;  title = 'Start Photo (Punch In)';
   } else if(type === 'after'){
     url = proof.after;   title = 'Finish Photo (Punch Out)';
   } else {
-    url = proof.signature; title = 'Customer Signature (Sign-off)';
+    url = proof.signature; title = 'Customer Acceptance (Signed PDF)';
+    isPdf = true;
   }
 
+  lbCurrentUrl = url || null;
   document.getElementById('lb-title').textContent = title;
-  document.getElementById('lb-filename').textContent = url ? url.split('/').pop() : 'No image';
+  document.getElementById('lb-filename').textContent = url ? url.split('/').pop() : 'No file';
+
   const box = document.getElementById('lb-img');
-  if(url){
-    box.style.background = '#fff';   // white bg suits a signature better than black
+  if(url && isPdf){
+    box.style.background = '#525659';
+    box.innerHTML = `<iframe src="${url}#toolbar=1" style="width:100%;height:70vh;border:none;border-radius:6px;" title="${title}"></iframe>`;
+  } else if(url){
+    box.style.background = '#fff';
     box.innerHTML = `<img src="${url}" style="max-width:100%;max-height:70vh;object-fit:contain;" alt="${title}">`;
   } else {
     box.style.background = 'var(--surface-2)';
-    box.innerHTML = `<i class="bi bi-image" style="font-size:3rem;opacity:.3;"></i><div style="opacity:.5;">No image uploaded</div>`;
+    box.innerHTML = `<i class="bi bi-image" style="font-size:3rem;opacity:.3;"></i><div style="opacity:.5;">No file uploaded</div>`;
   }
   document.getElementById('lightbox-modal').classList.add('show');
 }
 function closeLightbox(){document.getElementById('lightbox-modal').classList.remove('show');}
+function downloadProof(){
+  if(!lbCurrentUrl){ showToast('err','Nothing to download','No file is loaded.'); return; }
+  const a = document.createElement('a');
+  a.href = lbCurrentUrl;
+  a.download = lbCurrentUrl.split('/').pop();
+  a.target = '_blank';        // fallback if the browser opens rather than downloads
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
 
 /* ---------- TOAST ---------- */
 function showToast(type,title,body){

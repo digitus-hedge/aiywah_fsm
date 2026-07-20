@@ -94,7 +94,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @endif
 
         {{-- ══ WORKFLOW ══ --}}
-        @php $showWorkflow = $can('inquiry_approval') || $can('dispatch_engine') || $can('qc_review'); @endphp
+        @php $showWorkflow = $can('inquiry_approval') || $can('dispatch_engine') || $can('qc_review') || $can('completed'); @endphp
         @if ($showWorkflow)
         <li class="sidebar-heading">Workflow</li>
         @if ($can('inquiry_approval'))
@@ -120,6 +120,13 @@ $srExplorer = \App\Models\ServiceRequest::count();
         <li>
             <a href="{{ route('qc_review') }}" class="{{ request()->routeIs('qc_review') ? 'active' : '' }}">
                 <i data-feather="check-circle"></i>QC Review
+            </a>
+        </li>
+        @endif
+         @if ($can('completed'))
+        <li>
+            <a href="{{ route('completed') }}" class="{{ request()->routeIs('completed') ? 'active' : '' }}">
+                <i data-feather="check-circle"></i>Completed SR
             </a>
         </li>
         @endif

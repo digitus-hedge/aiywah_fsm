@@ -14,6 +14,8 @@ use App\Http\Controllers\WorkerpunchController;
 use App\Http\Controllers\InquiryController;
 use App\Services\WhatsAppService;
 use App\Http\Controllers\WhatsappLogController;
+use App\Http\Controllers\CompletedServiceRequestController;
+
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -145,6 +147,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/wa_notification_log/retry-all', [WhatsappLogController::class, 'retryAll'])->name('wa_notification_log.retryAll');
     Route::get('/wa_notification_log/{log}', [WhatsappLogController::class, 'show'])->name('wa_notification_log.show');
     Route::post('/wa_notification_log/{log}/retry', [WhatsappLogController::class, 'retry'])->name('wa_notification_log.retry');
+
+    Route::get('/completed-sr',        [CompletedServiceRequestController::class, 'index'])->name('completed');
+    Route::get('/completed-sr/{id}',   [CompletedServiceRequestController::class, 'show'])->name('completed.show');
     
     });
 
@@ -220,7 +225,7 @@ Route::middleware('auth')->group(function () {
  
 Route::prefix('worker')->name('worker.')->group(function () {
     Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
-    
+
     Route::post('/job/accept',     [WorkerPipelineController::class, 'accept'])->name('job.accept');
     Route::post('/job/reschedule', [WorkerPipelineController::class, 'reschedule'])->name('job.reschedule');
     Route::post('/job/hold',       [WorkerPipelineController::class, 'hold'])->name('job.hold');
@@ -228,6 +233,7 @@ Route::prefix('worker')->name('worker.')->group(function () {
     Route::post('/punch/out',      [WorkerpunchController::class, 'punchOut'])->name('punch.out');
     Route::post('/punch/upload',   [WorkerpunchController::class, 'upload'])->name('punch.upload');
     Route::post('/punch/expense',  [WorkerpunchController::class, 'expense'])->name('punch.expense');
+    Route::post('/punch/signature',[WorkerpunchController::class, 'signature'])->name('punch.signature');  // ← add this
 
     Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
     Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
