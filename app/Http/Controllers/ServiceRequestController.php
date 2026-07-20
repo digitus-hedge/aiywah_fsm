@@ -309,7 +309,6 @@ class ServiceRequestController extends Controller
     {
 
 
-
         $inquiries = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
             ->where('status', 'Approved')
             ->latest()
@@ -339,24 +338,33 @@ class ServiceRequestController extends Controller
             ];
         });
 
-        $categories = ServiceCategory::where('status', 1)
-            ->with(['domains' => fn($q) => $q->where('status', 1)->orderBy('sort_order')])
-            ->orderBy('sort_order')
-            ->get();
+          $categories = ServiceCategory::where('status', 1)
+        ->with(['domains' => fn($q) => $q->where('status', 1)->orderBy('sort_order')])
+        ->orderBy('sort_order')
+        ->get();
 
-        $technicians = DB::table('user_service_domain as usd')
-            ->join('users as u', 'u.id', '=', 'usd.user_id')
-            ->select('u.id', 'u.name', 'usd.service_category_id', 'usd.service_domain_id')
-            ->get()
-            ->map(fn($r) => [
-                'id'          => $r->id,
-                'name'        => $r->name,
-                'category_id' => $r->service_category_id,
-                'domain_id'   => $r->service_domain_id,
-            ])
-            ->values();
+        // --- Today's ETA workload count per technician (assigned_user_id) ---
+    $loadCounts = DB::table('service_requests')
+        ->select('assigned_user_id', DB::raw('COUNT(*) as cnt'))
+        ->whereNotNull('assigned_user_id')
+        ->whereDate('eta_at', now()->toDateString())
+        ->groupBy('assigned_user_id')
+        ->pluck('cnt', 'assigned_user_id');   // [3 => 5, 2 => 2, ...]
 
-        return view('dispatch_engine', compact('inquiries', 'tickets', 'categories', 'technicians'));
+    $technicians = DB::table('user_service_domain as usd')
+        ->join('users as u', 'u.id', '=', 'usd.user_id')
+        ->select('u.id', 'u.name', 'usd.service_category_id', 'usd.service_domain_id')
+        ->get()
+        ->map(fn($r) => [
+            'id'          => $r->id,
+            'name'        => $r->name,
+            'category_id' => $r->service_category_id,
+            'domain_id'   => $r->service_domain_id,
+            'count'       => (int) ($loadCounts[$r->id] ?? 0),   // today's ETA load
+        ])
+        ->values();
+
+    return view('dispatch_engine', compact('inquiries', 'tickets', 'categories', 'technicians'));
     }
 
 

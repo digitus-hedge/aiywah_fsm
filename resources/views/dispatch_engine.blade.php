@@ -1096,6 +1096,24 @@
           </select>
         </div>
 
+
+<div class="card" id="availCard" style="display:none;">
+  <div class="chdr">
+    <div class="chdr-ico" style="background:rgba(101,113,255,.1);flex:0 0 auto;">
+      <i class="bi bi-bar-chart-line-fill" style="color:#6571ff;"></i>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <h6 style="margin:0;">Technician Workload</h6>
+      <span class="csub" id="availSub">Requests due today — by ETA</span>
+    </div>
+  </div>
+  <div class="cbody">
+    <div id="barWrap"></div>
+  </div>
+</div>
+
+
+
         <div class="tech-hint" id="techHint" style="font-size:.75rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;margin-top:2px;">
           <i class="bi bi-arrow-up-circle"></i>
           <span>Select a ticket above, then pick a category, domain and technician.</span>
@@ -1216,6 +1234,53 @@
     renderTable();
   }
 
+
+
+
+
+
+  const TL_HOURS = ['8a','9a','10a','11a','12p','1p','2p','3p','4p'];
+const TL_NOW = 3; // "11a" column index — set from server time if you want it live
+
+const TL_CLR = {
+  free:     { bg:'#c8e6d4', bd:'#9ac9ac' },
+  busy:     { bg:'#f7d0dd', bd:'#e79bb1' },
+  proposed: { bg:'#d8c9a8', bd:'#b39a6a' },
+};
+
+
+// coming from your backend availability query. selTechId = the proposed one.
+function renderWorkloadBars(techs) {
+  const card = document.getElementById('availCard');
+  const wrap = document.getElementById('barWrap');
+  if (!techs || !techs.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const max = Math.max(1, ...techs.map(t => t.count || 0));
+
+  wrap.innerHTML = techs.map(t => {
+    const cnt    = t.count || 0;
+    const pct    = Math.round((cnt / max) * 100);
+    const code   = 'ML-' + String(t.id).padStart(3, '0');
+    const isProp = String(t.id) === String(selTechId);
+    const heavy  = cnt >= max && max > 1;
+    const barClr = isProp ? '#9a8053' : heavy ? '#e24b4a' : cnt === 0 ? '#d3d1c7' : '#6571ff';
+
+    return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+      <div style="width:130px;flex:0 0 auto;text-align:right;font-size:.78rem;">
+        ${isProp?'<i class="bi bi-arrow-right-short" style="color:#9a8053;"></i>':''}
+        <span style="font-weight:600;color:${isProp?'#9a8053':'var(--text-heading)'};">${t.name}</span>
+        <span style="color:var(--text-muted);font-size:.62rem;margin-left:4px;">${code}</span>
+      </div>
+      <div style="flex:1;background:var(--surface-1,#f1efe8);border-radius:6px;height:22px;overflow:hidden;">
+        <div style="width:${pct}%;min-width:${cnt?'2px':'0'};height:100%;background:${barClr};border-radius:6px;transition:width .3s;"></div>
+      </div>
+      <div style="width:26px;flex:0 0 auto;font-size:.78rem;font-weight:600;color:${cnt===0?'var(--text-muted)':'var(--text-heading)'};">${cnt}</div>
+    </div>`;
+  }).join('');
+}
+
+
   function renderTable() {
     const body  = document.getElementById('tableBody');
     const empty = document.getElementById('emptyState');
@@ -1330,6 +1395,12 @@ function renderSnapshot(t) {
     const seen = new Set();
     techs = techs.filter(t => (seen.has(t.id) ? false : seen.add(t.id)));
 
+    // >>> render the timeline here — fires on category & domain change <
+
+    // renderAvailabilityTimeline(techs);
+
+    renderWorkloadBars(techs);
+
     if (!catId) {
       ts.innerHTML = '<option value="">— Select Category First —</option>';
       ts.disabled = true;
@@ -1353,6 +1424,15 @@ function renderSnapshot(t) {
   function onDispTech(userId) {
     selTechId = userId || null;
     updateDispatchBtn();
+     // re-draw bars so the chosen technician turns gold
+    const catId = document.getElementById('dispCategory').value;
+    const domainId = document.getElementById('dispDomain').value;
+    let techs = TECHS.filter(t => String(t.category_id) === String(catId));
+    if (domainId) techs = techs.filter(t => String(t.domain_id) === String(domainId));
+    const seen = new Set();
+    techs = techs.filter(t => (seen.has(t.id) ? false : seen.add(t.id)));
+    renderWorkloadBars(techs);
+  
   }
 
 

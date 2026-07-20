@@ -13,7 +13,7 @@ return new class extends Migration
             $t->foreignId('service_request_id')->constrained()->cascadeOnDelete();
             $t->foreignId('user_id')->constrained();
             $t->timestamp('previous_eta_at')->nullable();
-            $t->timestamp('new_eta_at');
+            $t->timestamp('new_eta_at')->nullable();
             $t->text('reason');
             $t->string('from_status', 40)->nullable();
             $t->timestamps();
