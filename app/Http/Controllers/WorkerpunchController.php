@@ -59,12 +59,16 @@ class WorkerpunchController extends Controller
         $sr     = $this->ownedRequest($request, $data['sr_id']);
          $worker = $this->worker($request);
 
-        abort_unless($sr->accepted_at, 422, 'Accept the job before punching in.');
-
+     
+         abort_unless($sr->accepted_at, 422, 'Accept the job before punching in.');
         $exists = Punch::where('service_request_id', $sr->id)
             ->whereIn('status', ['draft', 'punched_in'])
             ->exists();
-        abort_if($exists, 409, 'A punch is already open for this job.');
+        abort_if(
+            $sr->eta_at && now()->lt($sr->eta_at),
+            422,
+            'Too early — scheduled for ' . $sr->eta_at->format('d M Y, H:i') . '. Reschedule if you need to start now.'
+        );
 
         $punch = DB::transaction(function () use ($sr, $worker, $data) {
            $p = Punch::create([
@@ -186,7 +190,7 @@ class WorkerpunchController extends Controller
         foreach ([
             'start_photo_path'        => 'Before photo',
             'finish_photo_path'       => 'After photo',
-            // 'customer_signature_path' => 'Customer signature',
+            'customer_signature_path' => 'Customer signature',
         ] as $col => $label) {
             abort_if(blank($punch->$col), 422, "{$label} is required before finishing.");
         }
@@ -215,6 +219,27 @@ class WorkerpunchController extends Controller
             'grand_total' => (string) $punch->grand_total,
         ]);
     }
+
+    /** Client-signed acceptance PDF → customer_signature_path. */
+public function signature(Request $request)
+{
+   $data = $request->validate([
+    'sr_id'       => ['required', 'integer'],
+    'client_name' => ['required', 'string', 'max:190'],
+    'signature'   => ['required', 'file', 'max:8192', 'mimetypes:application/pdf'],
+]);
+
+    $punch = $this->openPunch($request, $data['sr_id']);
+
+    $path = $request->file('signature')->store("punches/{$punch->id}/acceptance", 'public');
+
+    $punch->update([
+        'customer_signature_path' => $path,
+        'customer_name'           => $data['client_name'],
+    ]);
+
+    return response()->json(['ok' => true, 'path' => $path]);
+}
 
     private function recalcTotals(Punch $punch): void
     {

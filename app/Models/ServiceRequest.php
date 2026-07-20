@@ -143,4 +143,21 @@ class ServiceRequest extends Model
     }
     public function createdBy()    { return $this->belongsTo(User::class, 'created_by'); }
     public function qcReviewedBy() { return $this->belongsTo(User::class, 'qc_reviewed_by'); }
+
+    public function reschedules(): HasMany
+    {
+        return $this->hasMany(ServiceRequestReschedule::class)->latest('id');
+    }
+
+    /** The most recent reschedule, or null. */
+    public function getLastRescheduleAttribute(): ?ServiceRequestReschedule
+    {
+        return $this->reschedules->first();
+    }
+
+    public function getRescheduleCountAttribute(): int
+    {
+        return $this->reschedules->count();
+    }
+    
 }

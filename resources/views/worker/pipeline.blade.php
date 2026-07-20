@@ -9,7 +9,7 @@
   <meta name="csrf-token" content="{{ csrf_token() }}"/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
 /* ═══════════════════════════════════════
@@ -81,7 +81,7 @@ body {
   justify-content:center; cursor:pointer; font-size:.9rem;
 }
 .th-btn:hover { background:rgba(255,255,255,.25); }
-
+.job-card.is-accepted { border-color:rgba(5,163,74,.45); border-left:3px solid #05a34a; }
 .page-band {
   background:var(--card-bg); border-bottom:1px solid var(--card-border);
   padding:12px 16px; display:flex; align-items:center;
@@ -712,6 +712,58 @@ body {
   </div>
 </div>
 
+<!-- ══════════ CLIENT ACCEPTANCE + SIGNATURE DRAWER ══════════ -->
+<div class="overlay" id="signOverlay"></div>
+<div class="drawer" id="signDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-hdr">
+    <h6><i class="bi bi-pen" style="color:#9a8053;"></i>Client Acceptance</h6>
+    <button class="drawer-close" data-close="sign"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="drawer-sr">
+      <i class="bi bi-link-45deg"></i>Job: <strong id="signSrRef">&mdash;</strong>
+    </div>
+
+    <div id="termsBlock">
+      <label class="d-label">Terms &amp; Policy</label>
+      <div id="termsScroll" style="max-height:200px;overflow-y:auto;border:1.5px solid var(--border-color);border-radius:8px;padding:12px;font-size:.76rem;line-height:1.55;color:var(--text-primary);background:var(--surface-2);">
+        <p style="margin-top:0;"><strong>Service Completion Acceptance</strong></p>
+        <p>By signing below, the client confirms the work described has been carried out to a satisfactory standard and the site has been left in acceptable condition.</p>
+        <p>The client acknowledges the materials logged against this job and agrees these were used in the course of the work.</p>
+        <p>Signing does not waive any manufacturer or workmanship warranty applicable to the service.</p>
+        <p>Any dispute regarding the completed work must be raised within the warranty window stated in the service agreement.</p>
+        <p style="margin-bottom:0;">This acceptance is recorded electronically with a timestamp and forms part of the service record.</p>
+      </div>
+
+      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:.78rem;cursor:pointer;color:var(--text-heading);">
+        <input type="checkbox" id="policyCheck" style="margin-top:2px;width:16px;height:16px;flex-shrink:0;"/>
+        <span>I have read and accept the terms and policy above on behalf of the client.</span>
+      </label>
+    </div>
+
+    <div id="signBlock" class="hidden">
+      <label class="d-label" for="clientNameInput">Client Name <span class="req">*</span></label>
+      <input type="text" class="d-input" id="clientNameInput" placeholder="Name of person signing"/>
+
+      <span class="d-label">Signature <span class="req">*</span></span>
+      <div style="border:1.5px solid var(--border-color);border-radius:8px;background:#fff;position:relative;">
+        <canvas id="sigCanvas" style="width:100%;height:170px;display:block;touch-action:none;border-radius:8px;"></canvas>
+      </div>
+      <button type="button" id="sigClearBtn"
+              style="margin-top:6px;background:none;border:1.5px solid var(--border-color);border-radius:7px;color:var(--text-muted);font-size:.72rem;padding:5px 12px;cursor:pointer;">
+        <i class="bi bi-eraser"></i> Clear
+      </button>
+    </div>
+
+    <div class="drawer-actions">
+      <button class="btn-cancel" data-close="sign">Cancel</button>
+      <button class="btn-save" id="signSubmitBtn" disabled>
+        <i class="bi bi-check2-square"></i> Accept &amp; Sign
+      </button>
+    </div>
+  </div>
+</div>
 <!-- ══════════ APP SHELL ══════════ -->
 <div class="app-shell">
 
@@ -746,11 +798,11 @@ body {
     <div class="page-content">
       <div class="tab-filter" id="tabFilter">
       <button class="tf-btn active" data-filter="Pending">Pending</button>
+      <button class="tf-btn" data-filter="Accepted">Accepted</button>
       <button class="tf-btn" data-filter="Rework">Rework</button>
       <button class="tf-btn" data-filter="Rescheduled">Rescheduled</button>
       <button class="tf-btn" data-filter="On Hold">On Hold</button>
       <button class="tf-btn" data-filter="Review">Review</button>
-      <button class="tf-btn" data-filter="Completed">Completed</button>
     </div>
       <div id="jobList"></div>
     </div>
@@ -943,6 +995,7 @@ const ROUTES = {
   resume:     @json($routes['resume']     ?? ''),
   history:    @json($routes['history']    ?? ''),
   profile:    @json($routes['profile']    ?? ''),
+  signature:  @json($routes['signature'] ?? ''),
 };
 
 /* ══════════════════════════════════════════════════════
@@ -960,7 +1013,7 @@ let uploads        = { before:false, after:false};
 let expenses       = [];
 let historyLoaded  = false;
 let profileLoaded  = false;
-
+let signatureUploaded = false;
 /* ══════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════ */
@@ -1126,6 +1179,7 @@ const DRAWERS = {
   exp: { drawer: 'expenseDrawer', overlay: 'expOverlay' },
   rs:  { drawer: 'rsDrawer',      overlay: 'rsOverlay'  },
   fin: { drawer: 'finishDrawer',  overlay: 'finOverlay' },
+  sign: { drawer: 'signDrawer',    overlay: 'signOverlay' },
 };
 
 function openDrawer(name) {
@@ -1170,9 +1224,15 @@ function renderPipeline() {
 
 function buildJobCard(job) {
   const slaClass = job.hrsAgo > 24 ? 'sla-c' : job.hrsAgo > 8 ? 'sla-w' : 'sla-ok';
- const BADGE_MAP = {
-  'Pending':'badge-pending', 'Rework':'badge-rework', 'Rescheduled':'badge-rescheduled',
-  'On Hold':'badge-hold', 'Review':'badge-review', 'Completed':'badge-completed',
+  const isResched = job.status === 'Rescheduled';
+  const isAccepted = job.status === 'Accepted';
+const BADGE_MAP = {
+  'Pending': 'badge-assigned',
+  'Rework': 'badge-rework',
+  'Rescheduled': 'badge-rescheduled',
+  'On Hold': 'badge-hold',
+  'Review': 'badge-review',
+  'Completed': 'badge-completed',
 };
 const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
   const isExpanded = expandedRef === job.id;
@@ -1195,7 +1255,24 @@ const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
          ${job.history.map((h) => `<div class="hist-line">${esc(h)}</div>`).join('')}
        </div>`
     : '';
-
+  const rescheduleBlock = job.rescheduleReason
+  ? `<div class="jc-exp-section">
+       <div class="exp-label">
+         <i class="bi bi-calendar2-event" style="color:#5878dc;"></i>Reschedule Details
+         ${job.rescheduleCount > 1 ? `<span style="margin-left:auto;font-weight:600;">×${Number(job.rescheduleCount)}</span>` : ''}
+       </div>
+       <div class="exp-text" style="margin-bottom:6px;">
+         ${job.previousEta ? `<span style="text-decoration:line-through;opacity:.6;">${esc(job.previousEta)}</span> &rarr; ` : ''}
+         <strong>${esc(job.eta ?? '—')}</strong>
+       </div>
+       <div class="rework-note" style="background:rgba(88,120,220,.07);border-color:rgba(88,120,220,.2);">
+         ${esc(job.rescheduleReason)}
+       </div>
+       <div style="font-size:.66rem;color:var(--text-muted);margin-top:5px;">
+         Logged ${esc(job.rescheduledAt ?? '—')}
+       </div>
+     </div>`
+  : '';
   const photoBlock = (job.attachments ?? []).length
     ? `<div class="jc-exp-section">
          <div class="exp-label"><i class="bi bi-images" style="color:#fbbc06;"></i>Attached Photos</div>
@@ -1213,16 +1290,36 @@ const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
   const onHold = job.status === 'On Hold';
 
    const footer = isActive
-    ? `<div class="jc-active-note">
-         <i class="bi bi-check2-circle"></i> This job is currently active in the terminal
-       </div>`
-    : onHold
-    ? `<div class="eta-form">
-         <div class="eta-title"><i class="bi bi-pause-circle"></i>Job On Hold</div>
-         <button class="accept-btn" data-resume="${ref}" data-srid="${Number(job.sr_id)}">
-           <i class="bi bi-play-circle"></i>Resume Job
-         </button>
-       </div>`
+   ? `<div class="jc-active-note">
+       <i class="bi bi-check2-circle"></i> This job is currently active in the terminal
+     </div>`
+  : onHold
+  ? `<div class="eta-form">
+       <div class="eta-title"><i class="bi bi-pause-circle"></i>Job On Hold</div>
+       <button class="accept-btn" data-resume="${ref}" data-srid="${Number(job.sr_id)}">
+         <i class="bi bi-play-circle"></i>Resume Job
+       </button>
+     </div>`
+  : isAccepted
+  ? `<div class="eta-form">
+       <div class="eta-title"><i class="bi bi-check2-circle" style="color:#05a34a;"></i>Accepted &middot; ETA ${esc(job.eta ?? '—')}</div>
+       <button class="accept-btn" style="background:linear-gradient(135deg,#05a34a,#0abf56);"
+               data-activate="${ref}" data-srid="${Number(job.sr_id)}">
+         <i class="bi bi-broadcast"></i>Make Active
+       </button>
+     </div>`
+    : isResched
+? `<div class="eta-form">
+     <div class="eta-title"><i class="bi bi-calendar2-event" style="color:#5878dc;"></i>Rescheduled &middot; ETA ${esc(job.eta ?? '—')}</div>
+     <button class="accept-btn" style="background:linear-gradient(135deg,#5878dc,#7a95e8);"
+             data-activate="${ref}" data-srid="${Number(job.sr_id)}">
+       <i class="bi bi-broadcast"></i>Make Active
+     </button>
+     <button class="accept-btn" style="margin-top:8px;background:none;border:1.5px dashed rgba(88,120,220,.5);color:#5878dc;"
+             data-rsagain="${ref}" data-srid="${Number(job.sr_id)}">
+       <i class="bi bi-calendar2-event"></i>Reschedule Again
+     </button>
+   </div>`
     : `<div class="eta-form">
          <div class="eta-title"><i class="bi bi-calendar-check"></i>Set Expected Attendance (ETA)</div>
          <div class="eta-grid">
@@ -1248,7 +1345,7 @@ const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
        </div>`;
 
   return `
-    <article class="job-card${isActive ? ' is-active' : ''}" id="jcard-${ref}">
+    <article class="job-card${isActive ? ' is-active' : ''}${isAccepted && !isActive ? ' is-accepted' : ''}" id="jcard-${ref}">
       <div class="jc-main" data-toggle="${ref}">
         <div class="jc-top">
           <span class="jc-sr">${ref}</span>
@@ -1318,6 +1415,22 @@ $('jobList').addEventListener('click', (e) => {
   const resume = e.target.closest('[data-resume]');
   if (resume) { resumeJob(resume.dataset.resume, Number(resume.dataset.srid), resume); return; }
 
+  const rsAgain = e.target.closest('[data-rsagain]');
+  if (rsAgain) {
+    activeRef  = rsAgain.dataset.rsagain;
+    activeSrId = Number(rsAgain.dataset.srid);
+    $('rsSrRef').textContent = activeRef;
+    $('rsDate').min = todayLocal();
+    $('rsDate').value = ''; $('rsTime').value = '';
+    $('rsRemark').value = ''; $('holdRemark').value = '';
+    switchRsTab('reschedule');
+    openDrawer('rs');
+    return;
+  }
+
+  const activate = e.target.closest('[data-activate]');
+  if (activate) { activateJob(activate.dataset.activate, Number(activate.dataset.srid)); return; }
+
   const accept = e.target.closest('[data-accept]');
   if (accept) { acceptJob(accept.dataset.accept, Number(accept.dataset.srid), accept); }
 });
@@ -1371,9 +1484,10 @@ async function acceptJob(ref, srId, btn) {
     clearInterval(timerInterval);
 
     const job = JOBS.find((j) => j.id === ref);
+    job.status   = 'Accepted';
+    job.accepted = true;
+    job.eta      = `${date} ${time}`;
     buildBanner(job, date, time);
-    $('activeDot').classList.remove('hidden');
-    showToast('success', 'Job Accepted', `ETA set to ${date} at ${time}.`);
 
     renderPipeline();   // repaint the card so it shows the "active" footer
     openTerminal();
@@ -1481,6 +1595,12 @@ $('punchInBtn').addEventListener('click', () => {
 
 async function punchIn() {
   const btn = $('punchInBtn');
+  if (!activeSrId) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
+    showToast('error', 'No active job', 'Re-activate the job first.');
+    return;
+  }
 
   try {
     const res = await apiPost(ROUTES.punchIn, {
@@ -1582,6 +1702,10 @@ function refreshLock() {
 $('punchOutBtn').addEventListener('click', () => {
   if (!(uploads.before && uploads.after)) {
     showToast('error', 'Locked', 'Upload all compliance files first.');
+    return;
+  }
+  if (!signatureUploaded) {
+    openSignDrawer();
     return;
   }
   $('finSrRef').textContent = activeRef ?? '\u2014';
@@ -1766,6 +1890,7 @@ $('rsConfirmBtn').addEventListener('click', async () => {
   const date   = $('rsDate').value;
   const time   = $('rsTime').value;
   const remark = $('rsRemark').value.trim();
+  
 
   if (!date || !time) { showToast('warning', 'Required', 'Set a new date and time.'); return; }
   if (!remark)        { showToast('warning', 'Required', 'Enter a rescheduling reason.'); return; }
@@ -1774,12 +1899,36 @@ $('rsConfirmBtn').addEventListener('click', async () => {
   const restore = busy(btn, 'Saving\u2026');
 
   try {
-    await apiPost(ROUTES.reschedule, {
-      sr_id: activeSrId, eta_date: date, eta_time: time, remark,
-    });
-    restore();
+    await apiPost(ROUTES.reschedule, { sr_id: activeSrId, eta_date: date, eta_time: time, remark });
     closeDrawer('rs');
+
+    const cameFromTerminal = !$('pageTerminal').classList.contains('hidden');
+    if (cameFromTerminal) {
+      clearInterval(timerInterval);
+      $('timerStatus').textContent = 'Rescheduled';
+      $('timerStatus').className   = 'tw-status status-idle';
+      $('timerLabel').textContent  = `ETA ${date} ${time}`;
+    }
+
+    const index = JOBS.findIndex((j) => j.id === activeRef);
+    if (index > -1) {
+      JOBS[index].status           = 'Rescheduled';
+      JOBS[index].previousEta      = JOBS[index].eta;
+      JOBS[index].eta              = `${date} ${time}`;
+      JOBS[index].rescheduleReason = remark;
+      JOBS[index].rescheduleCount  = (JOBS[index].rescheduleCount ?? 0) + 1;
+      JOBS[index].rescheduledAt    = new Date().toLocaleString('en-GB', {
+        day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+      });
+    }
+
+    activeRef = activeSrId = punchInTime = null;
+    uploads  = { before:false, after:false };
+    expenses = [];
+    $('activeDot').classList.add('hidden');
+
     showToast('success', 'Job Rescheduled', `New ETA: ${date} at ${time}.`);
+    setTimeout(goToPipeline, 1400);
   } catch (err) {
     restore();
     showToast('error', 'Could not reschedule', err.message);
@@ -1817,6 +1966,168 @@ $('holdConfirmBtn').addEventListener('click', async () => {
     showToast('error', 'Could not hold job', err.message);
   }
 });
+
+/* ══════════════════════════════════════════════════════
+   CLIENT ACCEPTANCE + SIGNATURE
+══════════════════════════════════════════════════════ */
+let sigCtx = null, sigDrawing = false, sigHasInk = false;
+
+function openSignDrawer() {
+  $('signSrRef').textContent = activeRef ?? '\u2014';
+  $('policyCheck').checked = false;
+  $('clientNameInput').value = '';
+  $('signBlock').classList.add('hidden');
+  $('signSubmitBtn').disabled = true;
+  openDrawer('sign');
+  // Canvas must be sized after the drawer is visible (needs layout width).
+  requestAnimationFrame(initSigCanvas);
+}
+
+function initSigCanvas() {
+  const canvas = $('sigCanvas');
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * ratio;
+  canvas.height = rect.height * ratio;
+  sigCtx = canvas.getContext('2d');
+  sigCtx.scale(ratio, ratio);
+  sigCtx.lineWidth = 2;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+  sigCtx.strokeStyle = '#1a2236';
+  sigHasInk = false;
+}
+
+function sigPos(e) {
+  const canvas = $('sigCanvas');
+  const rect = canvas.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+}
+
+function sigStart(e) { e.preventDefault(); sigDrawing = true; const p = sigPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); }
+function sigMove(e)  { if (!sigDrawing) return; e.preventDefault(); const p = sigPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); sigHasInk = true; refreshSignSubmit(); }
+function sigEnd()    { sigDrawing = false; }
+
+(function bindSigCanvas() {
+  const canvas = $('sigCanvas');
+  canvas.addEventListener('mousedown', sigStart);
+  canvas.addEventListener('mousemove', sigMove);
+  window.addEventListener('mouseup', sigEnd);
+  canvas.addEventListener('touchstart', sigStart, { passive:false });
+  canvas.addEventListener('touchmove', sigMove, { passive:false });
+  canvas.addEventListener('touchend', sigEnd);
+})();
+
+$('sigClearBtn').addEventListener('click', () => {
+  const canvas = $('sigCanvas');
+  sigCtx.clearRect(0, 0, canvas.width, canvas.height);
+  sigHasInk = false;
+  refreshSignSubmit();
+});
+
+$('policyCheck').addEventListener('change', (e) => {
+  $('signBlock').classList.toggle('hidden', !e.target.checked);
+  if (e.target.checked) requestAnimationFrame(initSigCanvas);
+  refreshSignSubmit();
+});
+
+$('clientNameInput').addEventListener('input', refreshSignSubmit);
+
+function refreshSignSubmit() {
+  const ok = $('policyCheck').checked
+    && $('clientNameInput').value.trim().length > 1
+    && sigHasInk;
+  $('signSubmitBtn').disabled = !ok;
+}
+
+$('signSubmitBtn').addEventListener('click', async () => {
+  const clientName = $('clientNameInput').value.trim();
+  if (!$('policyCheck').checked || !sigHasInk || !clientName) {
+    showToast('warning', 'Incomplete', 'Accept the policy and sign first.');
+    return;
+  }
+
+  const btn = $('signSubmitBtn');
+  const restore = busy(btn, 'Generating\u2026');
+
+  try {
+    const pdfBlob = buildAcceptancePdf(clientName);
+
+    const form = new FormData();
+    form.append('sr_id', activeSrId);
+    form.append('client_name', clientName);
+    form.append('signature', pdfBlob, `acceptance-${activeRef}.pdf`);
+
+    const res = await apiPost(ROUTES.signature, form, true);
+
+    signatureUploaded = true;
+    restore();
+    closeDrawer('sign');
+    showToast('success', 'Acceptance Recorded', 'Signature saved. You can finish the job.');
+
+    // Now open the finish drawer.
+    $('finSrRef').textContent = activeRef ?? '\u2014';
+    openDrawer('fin');
+  } catch (err) {
+    restore();
+    showToast('error', 'Could not save signature', err.message);
+  }
+});
+
+/** Compose the terms + signature into a one-page PDF. Returns a Blob. */
+function buildAcceptancePdf(clientName) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 18;
+  let y = 20;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text('Service Completion Acceptance', margin, y);
+  y += 8;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(90);
+  doc.text(`Job Reference: ${activeRef ?? '-'}`, margin, y); y += 5;
+  doc.text(`Date: ${new Date().toLocaleString('en-GB')}`, margin, y); y += 8;
+
+  doc.setTextColor(30);
+  doc.setFontSize(10);
+  // Pull the terms text straight from the DOM so the PDF matches what was shown.
+  const termsText = $('termsScroll').innerText.replace(/\n{2,}/g, '\n\n').trim();
+  const lines = doc.splitTextToSize(termsText, pageW - margin * 2);
+  doc.text(lines, margin, y);
+  y += lines.length * 4.6 + 6;
+
+  doc.setDrawColor(200);
+  doc.line(margin, y, pageW - margin, y);
+  y += 8;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Accepted and signed by:', margin, y);
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.text(clientName, margin, y);
+  y += 6;
+
+  // Signature image from the canvas.
+  const sigData = $('sigCanvas').toDataURL('image/png');
+  doc.setFontSize(9);
+  doc.setTextColor(90);
+  doc.text('Signature:', margin, y);
+  y += 2;
+  const sigW = 70, sigH = 30;
+  doc.addImage(sigData, 'PNG', margin, y, sigW, sigH);
+  y += sigH + 2;
+  doc.setDrawColor(150);
+  doc.line(margin, y, margin + sigW, y);
+
+  return doc.output('blob');
+}
 
 /* ══════════════════════════════════════════════════════
    LIGHTBOX
@@ -1972,6 +2283,32 @@ document.addEventListener('DOMContentLoaded', () => {
     showToast('error', 'Load error', err.message);
   }
 });
+
+function activateJob(ref, srId) {
+  if (activeRef === ref) { showPage('terminal'); return; }
+
+  if (punchInTime) {
+    showToast('warning', 'Job in progress',
+      'Finish or hold the current job before switching.');
+    return;
+  }
+
+  activeRef   = ref;
+  activeSrId  = srId;
+  punchInTime = null;
+  uploads     = { before:false, after:false };
+  expenses    = [];
+  clearInterval(timerInterval);
+
+  const job = JOBS.find((j) => j.id === ref);
+  const [etaDate, etaTime] = String(job.eta ?? '').split(' ');
+  buildBanner(job, etaDate || '\u2014', etaTime || '\u2014');
+
+  $('activeDot').classList.remove('hidden');
+  renderPipeline();
+  openTerminal();
+  renderExpenses();
+}
 
 /**
  * Rebuild the terminal from a server-supplied open punch. Runs instead of

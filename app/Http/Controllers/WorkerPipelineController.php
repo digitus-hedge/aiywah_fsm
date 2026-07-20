@@ -10,12 +10,13 @@ use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\ServiceRequestReschedule;
 
 class WorkerPipelineController extends Controller
 {
     /** Statuses a worker can act on from the pipeline. */
     private const OPEN_STATUSES = [
-    'Assigned', 'Accepted', 'In Progress',
+    'Assigned', 'Accepted', 'In Progress', 'Reschedule',
     'Rework', 'On Hold', 'Qc Review', 'Completed', 'Pending Invoice', 'Invoice Submitted',
 ];
 
@@ -142,58 +143,90 @@ class WorkerPipelineController extends Controller
     |--------------------------------------------------------------------------
     */
 
-    public function accept(Request $request)
-    {
-        $data = $request->validate([
-            'sr_id'    => ['required', 'integer'],
-            'eta_date' => ['required', 'date_format:Y-m-d'],
-            'eta_time' => ['required', 'date_format:H:i'],
-        ]);
+  public function accept(Request $request)
+{
+    $data = $request->validate([
+        'sr_id'    => ['required', 'integer'],
+        'eta_date' => ['required', 'date_format:Y-m-d'],
+        'eta_time' => ['required', 'date_format:H:i'],
+    ]);
 
-        $sr = $this->ownedRequest($request, $data['sr_id']);
+    $sr     = $this->ownedRequest($request, $data['sr_id']);
+    $worker = $this->worker($request);
 
-        // Rework re-enters the pipeline with accepted_at still set from the first
-        // pass, so the gate is on status, not on the timestamp.
-        $isRework = strtolower((string) $sr->status) === 'Rework';
-        abort_if($sr->accepted_at && !$isRework, 409, 'This job has already been accepted.');
+    // Rework re-enters with accepted_at still set from the first pass,
+    // so the "already accepted" gate keys on status, not the timestamp.
+    $isRework = strtolower((string) $sr->status) === 'rework';
+    abort_if($sr->accepted_at && !$isRework, 409, 'This job has already been accepted.');
 
-        $sr->update([
-            'eta_at'      => $data['eta_date'] . ' ' . $data['eta_time'] . ':00',
-            'accepted_at' => now(),
-            'status'      => 'Accepted',
-            'hold_reason' => null,
-            'held_at'     => null,
-        ]);
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Accepted');
+    $sr->update([
+        'eta_at'      => $data['eta_date'] . ' ' . $data['eta_time'] . ':00',
+        'accepted_at' => now(),
+        'status'      => 'Accepted',
+        'hold_reason' => null,
+        'held_at'     => null,
+    ]);
 
-        return response()->json([
-            'ok'     => true,
-            'sr_id'  => $sr->id,
-            'eta_at' => $sr->eta_at->format('Y-m-d H:i'),
-        ]);
-    }
+    app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Accepted');
 
+    return response()->json([
+        'ok'     => true,
+        'sr_id'  => $sr->id,
+        'eta_at' => $sr->eta_at->format('Y-m-d H:i'),
+    ]);
+}
     public function reschedule(Request $request)
-    {
-        $data = $request->validate([
-            'sr_id'    => ['required', 'integer'],
-            'eta_date' => ['required', 'date_format:Y-m-d'],
-            'eta_time' => ['required', 'date_format:H:i'],
-            'remark'   => ['required', 'string', 'max:1000'],
+{
+    $data = $request->validate([
+        'sr_id'    => ['required', 'integer'],
+        'eta_date' => ['required', 'date_format:Y-m-d'],
+        'eta_time' => ['required', 'date_format:H:i'],
+        'remark'   => ['required', 'string', 'max:1000'],
+    ]);
+
+    $sr     = $this->ownedRequest($request, $data['sr_id']);
+    $worker = $this->worker($request);
+
+    $newEta = \Carbon\Carbon::createFromFormat(
+        'Y-m-d H:i', $data['eta_date'] . ' ' . $data['eta_time']
+    );
+
+    abort_if($newEta->isPast(), 422, 'The new ETA must be in the future.');
+
+    DB::transaction(function () use ($sr, $worker, $data, $newEta) {
+        // Log before mutating — previous_eta_at must capture the old value.
+        ServiceRequestReschedule::create([
+            'service_request_id' => $sr->id,
+            'user_id'            => $worker->id,
+            'previous_eta_at'    => $sr->eta_at,
+            'new_eta_at'         => $newEta,
+            'reason'             => $data['remark'],
+            'from_status'        => $sr->status,
         ]);
 
-        $sr = $this->ownedRequest($request, $data['sr_id']);
+        $this->pauseOpenPunch($sr);
 
         $sr->update([
-            'eta_at'          => $data['eta_date'] . ' ' . $data['eta_time'] . ':00',
+            'eta_at'          => $newEta,
+            'status'          => 'Reschedule',
+            'rescheduled_at'  => now(),
+            'sla_started_at'  => now(),
+            'paused_seconds'  => 0,
+            'held_at'         => null,
+            'hold_reason'     => null,
             'internal_remark' => $this->appendRemark($sr->internal_remark, 'Rescheduled', $data['remark']),
         ]);
+    });
 
-        return response()->json([
-            'ok'     => true,
-            'eta_at' => $sr->eta_at->format('Y-m-d H:i'),
-        ]);
-    }
+    $sr->refresh();
+
+    return response()->json([
+        'ok'         => true,
+        'eta_at'     => $sr->eta_at->format('Y-m-d H:i'),
+        'reason'     => $data['remark'],
+        'count'      => $sr->reschedules()->count(),
+    ]);
+}
 
     public function hold(Request $request)
     {
@@ -221,15 +254,22 @@ class WorkerPipelineController extends Controller
         return response()->json(['ok' => true]);
     }
 
-    public function resume(Request $request)
+    private function pauseOpenPunch(ServiceRequest $sr): void
+{
+    Punch::where('service_request_id', $sr->id)
+        ->whereIn('status', ['draft', 'punched_in'])
+        ->update(['status' => 'cancelled']);
+}
+
+   public function resume(Request $request)
 {
     $data = $request->validate(['sr_id' => ['required', 'integer']]);
     $sr = $this->ownedRequest($request, $data['sr_id']);
 
-    abort_unless(strtolower((string) $sr->status) === 'On Hold', 422, 'Job is not on hold.');
+    abort_unless(strtolower((string) $sr->status) === 'on hold', 422, 'Job is not on hold.');
 
     $sr->update([
-        'status'      => 'accepted',
+        'status'      => 'Accepted',
         'hold_reason' => null,
         'held_at'     => null,
     ]);
@@ -289,7 +329,7 @@ class WorkerPipelineController extends Controller
      * The job the worker is mid-punch on, if any. Rehydrates the terminal
      * across a page reload — otherwise an open punch is invisible to the UI.
      */
-    private function activeJob(User $user): ?array
+   private function activeJob(User $user): ?array
 {
     $punch = Punch::with([
             'serviceRequest.client',
@@ -307,22 +347,9 @@ class WorkerPipelineController extends Controller
         ->latest('id')
         ->first();
 
-    if ($punch && $punch->serviceRequest) {
-        return $this->buildActive($punch->serviceRequest, $punch);
-    }
-
-    // Accepted but not yet punched in — still the worker's active job.
-        $sr = ServiceRequest::with([
-                'client', 'project', 'category', 'domain',
-                'punches.user.role', 'createdBy.role', 'qcReviewedBy.role', 'assignedUser',
-            ])
-            ->where('assigned_user_id', $user->id)
-            ->whereIn('status', ['Accepted', 'In Progress'])
-            ->whereNotNull('accepted_at')
-            ->latest('accepted_at')
-            ->first();
-
-        return $sr ? $this->buildActive($sr, null) : null;
+    return ($punch && $punch->serviceRequest)
+        ? $this->buildActive($punch->serviceRequest, $punch)
+        : null;
 }
 
 private function buildActive(ServiceRequest $sr, ?Punch $punch): array
@@ -350,36 +377,56 @@ private function buildActive(ServiceRequest $sr, ?Punch $punch): array
     ];
 }
 
-    private function transform(ServiceRequest $sr): array
-    {
-        $created = $sr->dispatched_at ?? $sr->created_at;
+   private function transform(ServiceRequest $sr): array
+{
+    $created = $sr->dispatched_at ?? $sr->created_at;
 
-        return [
-            'id'          => $sr->ref,
-            'sr_id'       => $sr->id,
-            'status' => match (strtolower((string) $sr->status)) {
-                            'Rework'  => 'Rework',
-                            'On Hold' => 'On Hold',
-                            default   => 'Assigned',
-                        },
-            'client'      => optional($sr->client)->company_name ?? '—',
-            'contract'    => optional($sr->project)->project_name ?? ($sr->invoice_code ?? '—'),
-            'domain'      => optional($sr->domain)->domain_name
-                             ?? optional($sr->category)->name
-                             ?? '—',
-            'site'        => optional($sr->project)->site_address ?? '—',
-            'siteName'    => optional($sr->project)->site_name ?? '—',
-            'description' => $sr->issue_description ?? '—',
-            'priority'    => ucfirst($sr->priority_level ?? 'Normal'),
-            'hrsAgo'      => $created ? (int) $created->diffInHours(now()) : 0,
-            'reworkNote'  => $sr->rework_notes,
-            'eta'         => optional($sr->eta_at)->format('Y-m-d H:i'),
-            'accepted'    => (bool) $sr->accepted_at,
-            'attachments' => collect($sr->attachments ?? [])->values()->all(),
-            'history'     => $this->srHistory($sr),
-        ];
-        
-    }
+    // 1. Map real DB statuses into explicit UI Filter states
+   $uiStatus = match (strtolower((string) $sr->status)) {
+    'rework'            => 'Rework',
+    'on hold'           => 'On Hold',
+    'reschedule'        => 'Rescheduled',
+    'qc review'         => 'Review',
+    'completed',
+    'pending invoice',
+    'invoice submitted' => 'Completed',
+    default             => 'Pending',
+};
+
+if ($uiStatus === 'Pending' && ($sr->accepted_at
+    || strtolower((string) $sr->status) === 'accepted'
+    || strtolower((string) $sr->status) === 'in progress')) {
+    $uiStatus = 'Accepted';
+}
+
+    $lastReschedule = $sr->reschedules->first();
+
+    return [
+        'id'          => $sr->ref,
+        'sr_id'       => $sr->id,
+        'status'      => $uiStatus, 
+        'client'      => optional($sr->client)->company_name ?? '—',
+        'contract'    => optional($sr->project)->project_name ?? ($sr->invoice_code ?? '—'),
+        'domain'      => optional($sr->domain)->domain_name
+                         ?? optional($sr->category)->name
+                         ?? '—',
+        'site'        => optional($sr->project)->site_address ?? '—',
+        'siteName'    => optional($sr->project)->site_name ?? '—',
+        'description' => $sr->issue_description ?? '—',
+        'priority'    => ucfirst($sr->priority_level ?? 'Normal'),
+        'hrsAgo'      => $created ? (int) $created->diffInHours(now()) : 0,
+        'reworkNote'  => $sr->rework_notes,
+
+        'eta'             => optional($sr->eta_at)->format('Y-m-d H:i'),
+        'rescheduleCount' => $sr->reschedules->count(),
+        'rescheduleReason'=> $lastReschedule?->reason,
+        'rescheduledAt'   => optional($lastReschedule?->created_at)->format('d M Y, H:i'),
+        'previousEta'     => optional($lastReschedule?->previous_eta_at)->format('d M Y, H:i'),
+        'accepted'    => (bool) $sr->accepted_at,
+        'attachments' => collect($sr->attachments ?? [])->values()->all(),
+        'history'     => $this->srHistory($sr),
+    ];
+}
 
 private function srHistory(ServiceRequest $sr): array
 {
@@ -400,9 +447,13 @@ private function srHistory(ServiceRequest $sr): array
         $log[] = "Assigned to {$sr->assignedUser->name} on " . $fmt($sr->dispatched_at);
     }
 
-    if ($sr->accepted_at) {
-        $log[] = 'Accepted on ' . $fmt($sr->accepted_at);
-    }
+    foreach ($sr->reschedules->sortBy('id') as $r) {
+    $who  = optional($r->user)->name ?? 'Worker';
+    $from = $r->previous_eta_at ? $r->previous_eta_at->format('d M Y, H:i') : 'unset';
+    $log[] = "Rescheduled by {$who} on " . $fmt($r->created_at)
+           . " — ETA {$from} → " . $r->new_eta_at->format('d M Y, H:i')
+           . ' — ' . $r->reason;
+}
     if ($sr->held_at) {
         $log[] = 'On hold on ' . $fmt($sr->held_at)
                . ($sr->hold_reason ? ' — ' . $sr->hold_reason : '');
@@ -434,6 +485,7 @@ private function srHistory(ServiceRequest $sr): array
             'resume'     => route('worker.job.resume'),
             'history'    => route('worker.history'),
             'profile'    => route('worker.profile'),
+            'signature' => route('worker.punch.signature'),
         ];
     }
 
