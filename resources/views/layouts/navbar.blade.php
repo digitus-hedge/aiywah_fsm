@@ -44,6 +44,29 @@
             <span>{{ $userRole }}</span>
         </div>
 
+
+        <!-- Notifcations List -->
+        <div class="notif-wrap" style="position:relative;">
+  <button id="notifBell" onclick="toggleNotif()" style="background:none;border:none;position:relative;cursor:pointer;padding:8px;">
+    <i class="bi bi-bell-fill" style="font-size:1.15rem;color:var(--text-heading);"></i>
+    <span id="notifBadge" style="display:none;position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;background:#ff3366;color:#fff;font-size:.6rem;font-weight:700;border-radius:8px;align-items:center;justify-content:center;"></span>
+  </button>
+
+  <div id="notifPanel" style="display:none;position:absolute;right:0;top:100%;width:340px;max-height:420px;overflow-y:auto;background:#fff;border:1px solid #eee;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.12);z-index:1000;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid #f0f0f0;position:sticky;top:0;background:#fff;">
+      <strong style="font-size:.85rem;">Notifications</strong>
+      <a href="#" onclick="markAllRead();return false;" style="font-size:.72rem;color:#6571ff;text-decoration:none;">Mark all read</a>
+    </div>
+    <div id="notifList"></div>
+    <a href="/notifications/all" style="display:block;text-align:center;padding:11px;font-size:.76rem;font-weight:600;color:#6571ff;text-decoration:none;border-top:1px solid #f0f0f0;position:sticky;bottom:0;background:#fff;">
+    View all notifications
+  </a>
+
+  </div>
+</div>
+
+
+
         {{-- Live clock — filled by layout.blade.php tickClock() --}}
         <span class="topbar-clock" id="topbarClock"></span>
 
@@ -91,3 +114,81 @@
 
     </div>
 </header>
+
+<script>
+const NOTIF_ICON = { sr_created: 'bi-plus-circle-fill', status_updated: 'bi-arrow-repeat' };
+const NOTIF_CLR  = { sr_created: '#05a34a', status_updated: '#6571ff' };
+
+const STATUS_MAP = {
+  'Pending':['#fff4e0','#b7791f'], 'Approved':['#e6f6ec','#05a34a'], 'Forwarded':['#e7f0fb','#2563c9'],
+  'Rejected':['#fdeaea','#d83a3a'], 'Assigned':['#e9ebff','#6571ff'], 'Quoted':['#eef3e6','#5c8a1a'],
+  'In Progress':['#e0f2f1','#0d8f7e'], 'Quote Rejected':['#fdeaea','#d83a3a'], 'Qc Review':['#f3ebfb','#8b46d4'],
+  'Rework':['#fdeee0','#c76a12'], 'Reschedule':['#fef6e0','#b7791f'], 'Accepted':['#e6f6ec','#05a34a'],
+  'Pending Invoice':['#fff4e0','#b7791f'], 'Invoice Submitted':['#e7f0fb','#2563c9'],
+  'Completed':['#e6f6ec','#05a34a'], 'On Hold':['#fdeaea','#d83a3a'],
+};
+
+function statusChip(s) {
+  const [bg, clr] = STATUS_MAP[s] || ['#f1f1f1', '#666'];
+  return `<span style="font-size:.6rem;padding:2px 7px;border-radius:9px;background:${bg};color:${clr};white-space:nowrap;">${s}</span>`;
+}
+
+function loadNotif() {
+  fetch('/notifications')
+    .then(r => r.json())
+    .then(d => {
+      const badge = document.getElementById('notifBadge');
+      if (d.unread > 0) { badge.style.display = 'flex'; badge.textContent = d.unread > 99 ? '99+' : d.unread; }
+      else badge.style.display = 'none';
+
+      const list = document.getElementById('notifList');
+      list.innerHTML = d.logs.length ? d.logs.map(n => {
+        let chips = '';
+        if (n.to) {   // show a chip whenever a to_status exists (creation OR status change)
+          chips = `<div style="display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap;">
+            ${n.from ? statusChip(n.from) + '<i class="bi bi-arrow-right" style="font-size:.62rem;color:#bbb;"></i>' : ''}
+            ${statusChip(n.to)}
+          </div>`;
+        }
+        return `
+        <div style="display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid #d9d7d3;background:${n.read ? '#fff' : '#f7f8ff'};">
+          <i class="bi ${NOTIF_ICON[n.event] || 'bi-bell'}" style="color:${NOTIF_CLR[n.event] || '#888'};font-size:1rem;flex:0 0 auto;margin-top:2px;"></i>
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:.78rem;font-weight:600;color:var(--text-heading);">${n.title}</div>
+            <div style="font-size:.72rem;color:var(--text-muted);">${n.message}</div>
+            ${chips}
+            <div style="font-size:.62rem;color:#aaa;margin-top:3px;">${n.by ? n.by + ' · ' : ''}${n.ago}</div>
+          </div>
+        </div>`;
+      }).join('')
+        : '<div style="padding:24px;text-align:center;color:#aaa;font-size:.78rem;">No notifications</div>';
+    });
+}
+
+function toggleNotif() {
+  const p = document.getElementById('notifPanel');
+  const show = p.style.display === 'none' || p.style.display === '';
+  p.style.display = show ? 'block' : 'none';
+  if (show) loadNotif();
+}
+
+function markAllRead() {
+  fetch('/notifications/read', {
+    method: 'POST',
+    headers: {
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+      'Content-Type': 'application/json',
+    },
+  }).then(() => loadNotif());
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.notif-wrap')) {
+    const p = document.getElementById('notifPanel');
+    if (p) p.style.display = 'none';
+  }
+});
+
+loadNotif();
+setInterval(loadNotif, 30000);
+</script>
