@@ -6,6 +6,7 @@ use App\Models\ServiceRequest;
 use App\Models\Client;
 use App\Models\Punchitem;
 use App\Models\ClientMobile;
+use App\Models\NotificationLog;
 use App\Models\Punch;
 use App\Models\User;
 use App\Models\ServiceCategory;
@@ -124,6 +125,17 @@ class ServiceRequestController extends Controller
                 'attachments'       => $paths ?: null,
             ]);
         });
+
+        NotificationLog::create([
+            'service_request_id' => $sr->id,
+            'event'     => 'sr_created',
+            'title'     => 'New Service Request',
+            'message'   => $this->buildSrRef($sr) . ' created for '
+                . (optional($sr->client)->company_name ?? 'client'),
+            // e.g. 'Pending'
+            'to_status'   => 'Pending',
+            'caused_by'   => auth()->id(),
+        ]);
 
         // Send WhatsApp notification (outside transaction)
         $this->sendServiceRequestMessage($sr, $this->buildSrRef($sr), 'Pending');
@@ -256,9 +268,23 @@ class ServiceRequestController extends Controller
 
     public function approve(ServiceRequest $serviceRequest)
     {
+
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+
         $serviceRequest->update(['status' => 'Approved']);
 
         $ref = $this->buildSrRef($serviceRequest);
+
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => "{$ref} moved to Approved",
+            'from_status' => $oldStatus,               // e.g. 'Pending'
+            'to_status'   => 'Approved',
+            'caused_by'   => auth()->id(),
+        ]);
+
         $this->sendServiceRequestMessage($serviceRequest, $ref, 'Approved');
 
         return response()->json([
@@ -270,9 +296,22 @@ class ServiceRequestController extends Controller
 
     public function forward(ServiceRequest $serviceRequest)
     {
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+
         $serviceRequest->update(['status' => 'Forwarded']);
 
         $ref = $this->buildSrRef($serviceRequest);
+
+        NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => "{$ref} Forwarded to Accounts",
+        'from_status' => $oldStatus,
+        'to_status'   => 'Forwarded',
+        'caused_by'   => auth()->id(),
+    ]);
+
         $this->sendServiceRequestMessage($serviceRequest, $ref, 'Forwarded to Accounts');
 
         return response()->json([
@@ -288,6 +327,9 @@ class ServiceRequestController extends Controller
             'reason' => ['required', 'string', 'min:10', 'max:500'],
         ]);
 
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+
+
         $serviceRequest->update([
             'status'          => 'Rejected',
             'internal_remark' => trim(($serviceRequest->internal_remark ?? '')
@@ -295,6 +337,17 @@ class ServiceRequestController extends Controller
         ]);
 
         $ref = $this->buildSrRef($serviceRequest);
+         
+        NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => "{$ref} Rejected — " . $data['reason'],
+        'from_status' => $oldStatus,
+        'to_status'   => 'Rejected',
+        'caused_by'   => auth()->id(),
+    ]);
+
         $this->sendServiceRequestMessage($serviceRequest, $ref, 'Rejected');
 
         return response()->json([
@@ -310,7 +363,6 @@ class ServiceRequestController extends Controller
 
     public function dispatch_engine()
     {
-
 
 
         $inquiries = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
@@ -347,6 +399,14 @@ class ServiceRequestController extends Controller
             ->orderBy('sort_order')
             ->get();
 
+        // --- Today's ETA workload count per technician (assigned_user_id) ---
+        $loadCounts = DB::table('service_requests')
+            ->select('assigned_user_id', DB::raw('COUNT(*) as cnt'))
+            ->whereNotNull('assigned_user_id')
+            ->whereDate('eta_at', now()->toDateString())
+            ->groupBy('assigned_user_id')
+            ->pluck('cnt', 'assigned_user_id');   // [3 => 5, 2 => 2, ...]
+
         $technicians = DB::table('user_service_domain as usd')
             ->join('users as u', 'u.id', '=', 'usd.user_id')
             ->select('u.id', 'u.name', 'usd.service_category_id', 'usd.service_domain_id')
@@ -356,6 +416,7 @@ class ServiceRequestController extends Controller
                 'name'        => $r->name,
                 'category_id' => $r->service_category_id,
                 'domain_id'   => $r->service_domain_id,
+                'count'       => (int) ($loadCounts[$r->id] ?? 0),   // today's ETA load
             ])
             ->values();
 
@@ -399,6 +460,8 @@ class ServiceRequestController extends Controller
             'service_domain_id' => ['nullable', 'exists:service_domains,id'],
         ]);
 
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+
         $serviceRequest->update([
             'status'            => 'Assigned',
             'assigned_user_id'  => $data['assigned_user_id'],
@@ -407,7 +470,18 @@ class ServiceRequestController extends Controller
         ]);
 
         $ref  = $this->buildSrRef($serviceRequest);
-        $tech = \App\Models\User::find($data['assigned_user_id']);
+        $tech = User::find($data['assigned_user_id']);
+
+
+         NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => "{$ref} assigned to " . ($tech->name ?? 'a technician'),
+        'from_status' => $oldStatus,               // e.g. 'Approved'
+        'to_status'   => 'Assigned',
+        'caused_by'   => auth()->id(),
+    ]);
 
         $this->sendServiceRequestMessage(
             $serviceRequest,

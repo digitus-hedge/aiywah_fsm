@@ -12,6 +12,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\WorkerPipelineController;
 use App\Http\Controllers\WorkerpunchController;
 use App\Http\Controllers\InquiryController;
+use App\Http\Controllers\NotificationController;
 use App\Services\WhatsAppService;
 use App\Http\Controllers\WhatsappLogController;
 use App\Http\Controllers\CompletedServiceRequestController;
@@ -122,6 +123,9 @@ Route::middleware('auth')->group(function () {
 
     // Whatapp notifcation
 
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::get('/notifications/all', [NotificationController::class, 'all'])->name('notifications.all'); // full page
 
     
     Route::controller(ServiceRequestController::class)->group(function () {
