@@ -21,30 +21,37 @@ class LoginController extends Controller
      * Handle a login attempt.
      */
     public function login(Request $request)
-    {
-        // Validate input
-        $credentials = $request->validate([
-            'email'    => ['required', 'email'],
-            'password' => ['required', 'string', 'min:6'],
-        ]);
+{
+    // Validate input
+    $credentials = $request->validate([
+        'email'    => ['required', 'email'],
+        'password' => ['required', 'string', 'min:6'],
+    ]);
 
-        $remember = $request->boolean('remember');
+    $remember = $request->boolean('remember');
 
-        // Attempt login
-        if (Auth::attempt($credentials, $remember)) {
-            // Regenerate session to prevent fixation
-            $request->session()->regenerate();
+    // Attempt login
+    if (Auth::attempt($credentials, $remember)) {
+        // Regenerate session to prevent fixation
+        $request->session()->regenerate();
 
-            // Redirect to dashboard (or the intended URL if they were sent to login)
-            return redirect()->intended(route('sr_explorer'))
-                ->with('success', 'Welcome back, ' . Auth::user()->name . '!');
+        $user = Auth::user();
+
+        // Maintenance Leads land on their pipeline; everyone else on the explorer.
+        if ((int) $user->role_id === 4) {
+            return redirect()->route('worker.pipeline')
+                ->with('success', 'Welcome back, ' . $user->name . '!');
         }
 
-        // Auth failed
-        throw ValidationException::withMessages([
-            'email' => 'The provided credentials do not match our records.',
-        ]);
+        return redirect()->intended(route('sr_explorer'))
+            ->with('success', 'Welcome back, ' . $user->name . '!');
     }
+
+    // Auth failed
+    throw ValidationException::withMessages([
+        'email' => 'The provided credentials do not match our records.',
+    ]);
+}
 
     /**
      * Log the user out.

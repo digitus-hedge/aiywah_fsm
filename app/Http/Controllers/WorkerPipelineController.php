@@ -54,8 +54,30 @@ class WorkerPipelineController extends Controller
             'userRole'          => optional($user->role)->name ?? 'Maintenance Lead',
             'userCode'          => optional($user->role)->code,
             'userInitials'      => $this->initials($user->name),
+            'letterhead'        => $this->letterhead(), 
         ]);
     }
+
+private function letterhead(): array
+{
+    $dir = storage_path('app/public/letterhead');
+
+    return [
+        // swapped: the tall contact image goes on top, the thin strip on the bottom
+        'header'    => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'footer.png'),
+        'footer'    => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'header.png'),
+        'watermark' => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'watermark.png'),
+    ];
+}
+
+private function imageToBase64(string $path): ?string
+{
+    if (!is_file($path)) {
+        return null;
+    }
+
+    return 'data:image/png;base64,' . base64_encode(file_get_contents($path));
+}
 
     public function history(Request $request)
     {

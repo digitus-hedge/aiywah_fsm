@@ -74,6 +74,43 @@
 .form-textarea{resize:vertical;min-height:80px;}
 [data-theme="dark"] .form-select option{background:#101e33;color:#c8d4e8;}
 
+/* Full-width notify bar under the number */
+.sh-notify-bar{
+  grid-column:1/-1;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin-top:2px;padding:8px 12px;
+  background:rgba(37,211,102,.06);
+  border:1px solid rgba(37,211,102,.18);
+  border-radius:8px;
+}
+.sh-notify-label{
+  display:flex;align-items:center;gap:7px;
+  font-size:.74rem;font-weight:500;color:var(--text-primary);
+}
+.sh-notify-label i{color:#25d366;font-size:.95rem;}
+
+/* Premium toggle switch */
+.sh-toggle{position:relative;display:inline-flex;flex-shrink:0;cursor:pointer;}
+.sh-toggle input{position:absolute;opacity:0;width:0;height:0;}
+.sh-toggle-track{
+  width:38px;height:22px;border-radius:20px;
+  background:var(--surface-3);border:1px solid var(--border-color);
+  transition:background .2s,border-color .2s;position:relative;display:block;
+}
+.sh-toggle-thumb{
+  position:absolute;top:50%;left:2px;transform:translateY(-50%);
+  width:16px;height:16px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
+  transition:left .2s;
+}
+.sh-toggle input:checked + .sh-toggle-track{
+  background:linear-gradient(135deg,#25d366,#1eb355);
+  border-color:#1eb355;
+}
+.sh-toggle input:checked + .sh-toggle-track .sh-toggle-thumb{left:18px;}
+.sh-toggle input:focus-visible + .sh-toggle-track{box-shadow:0 0 0 3px rgba(37,211,102,.2);}
+[data-theme="dark"] .sh-toggle-thumb{background:#e4ecf8;}
+
 .input-icon-wrap{position:relative;}
 .input-icon-wrap .form-control{padding-left:34px;}
 .input-icon-wrap .ii{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.85rem;pointer-events:none;}
@@ -348,7 +385,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
             </div>
           </div>
 
-          <div class="sec-div"><hr/><span>Primary Mobile (WhatsApp)</span></div>
+         <br />
 
           <div class="form-group" style="margin-bottom:0;">
             <label class="form-label">Primary Contact Mobile <span class="req">*</span></label>
@@ -753,7 +790,7 @@ function addStakeholder(prefill) {
   const name = prefill && prefill.name ? prefill.name.replace(/"/g,'&quot;') : '';
   const num  = prefill && prefill.mobile ? prefill.mobile.replace(/"/g,'&quot;') : '';
   const on   = !!(prefill && prefill.notify);
-  div.innerHTML = `
+ div.innerHTML = `
     <div class="sh-inputs">
       <div>
         <span class="sh-label">Name / Label</span>
@@ -770,11 +807,15 @@ function addStakeholder(prefill) {
           <input type="tel" class="sh-input" name="stakeholders[${idx}][mobile]" value="${num}" placeholder="50 123 4567" inputmode="numeric" pattern="[0-9]*" maxlength="15" oninput="this.value=this.value.replace(/[^0-9]/g,'');syncSummary()" style="flex:1;"/>
         </div>
       </div>
-      <div class="sh-check">
-        <input type="hidden" name="stakeholders[${idx}][notify]" value="0">
-        <label class="sh-chk-lbl">
-          <input type="checkbox" class="sh-chk" name="stakeholders[${idx}][notify]" value="1" ${on ? 'checked' : ''} onchange="syncSummary()">
+      <div class="sh-notify-bar">
+        <div class="sh-notify-label">
+          <i class="bi bi-whatsapp"></i>
           <span>Send WhatsApp updates</span>
+        </div>
+        <input type="hidden" name="stakeholders[${idx}][notify]" value="0">
+        <label class="sh-toggle">
+          <input type="checkbox" name="stakeholders[${idx}][notify]" value="1" ${on ? 'checked' : ''} onchange="syncSummary()">
+          <span class="sh-toggle-track"><span class="sh-toggle-thumb"></span></span>
         </label>
       </div>
     </div>
