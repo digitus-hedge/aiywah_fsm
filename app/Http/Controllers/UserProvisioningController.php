@@ -54,11 +54,11 @@ class UserProvisioningController extends Controller
         'icon'   => $cat->icon,
         'color'  => $cat->color_code,
         'skills' => $cat->domains->map(fn ($d) => [
-            'id'       => $d->id,          
+            'id'       => $d->id,
             'label'    => $d->domain_name,
             'catId'    => $cat->id,
             'catLabel' => $cat->category_name,
-        ])->values(),                       
+        ])->values(),
     ]);
     return view('user_provisioning', [
         'roles'          => $roles,

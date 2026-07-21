@@ -51,12 +51,35 @@ class ServiceRequestController extends Controller
                 'sites' => array_values(array_filter([$p->site_name])),
             ])->values();
 
+            // $contacts = $client->mobiles->map(fn($m) => [
+            //     'id'     => $m->id,
+            //     'name'   => $m->name,
+            //     'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
+            //     'notify' => (bool) $m->notify,
+            // ])->values();
+
             $contacts = $client->mobiles->map(fn($m) => [
                 'id'     => $m->id,
                 'name'   => $m->name,
                 'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
                 'notify' => (bool) $m->notify,
-            ])->values();
+            ])->values()->toArray();
+
+            // prepend the client's primary contact_name if present and not already in the list
+            if (!empty($client->contact_name)) {
+                $exists = collect($contacts)->contains(
+                    fn($c) => strcasecmp($c['name'] ?? '', $client->contact_name) === 0
+                );
+                if (!$exists) {
+                    array_unshift($contacts, [
+                        'id'      => null,
+                        'name'    => $client->contact_name,
+                        'mobile'  => $client->primary_mobile ?? '',
+                        'notify'  => false,
+                        'primary' => true,
+                    ]);
+                }
+            }
 
             return response()->json([
                 'found'  => true,
@@ -303,14 +326,14 @@ class ServiceRequestController extends Controller
         $ref = $this->buildSrRef($serviceRequest);
 
         NotificationLog::create([
-        'service_request_id' => $serviceRequest->id,
-        'event'       => 'status_updated',
-        'title'       => 'Status Updated',
-        'message'     => "{$ref} Forwarded to Accounts",
-        'from_status' => $oldStatus,
-        'to_status'   => 'Forwarded',
-        'caused_by'   => auth()->id(),
-    ]);
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => "{$ref} Forwarded to Accounts",
+            'from_status' => $oldStatus,
+            'to_status'   => 'Forwarded',
+            'caused_by'   => auth()->id(),
+        ]);
 
         $this->sendServiceRequestMessage($serviceRequest, $ref, 'Forwarded to Accounts');
 
@@ -337,16 +360,16 @@ class ServiceRequestController extends Controller
         ]);
 
         $ref = $this->buildSrRef($serviceRequest);
-         
+
         NotificationLog::create([
-        'service_request_id' => $serviceRequest->id,
-        'event'       => 'status_updated',
-        'title'       => 'Status Updated',
-        'message'     => "{$ref} Rejected — " . $data['reason'],
-        'from_status' => $oldStatus,
-        'to_status'   => 'Rejected',
-        'caused_by'   => auth()->id(),
-    ]);
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => "{$ref} Rejected — " . $data['reason'],
+            'from_status' => $oldStatus,
+            'to_status'   => 'Rejected',
+            'caused_by'   => auth()->id(),
+        ]);
 
         $this->sendServiceRequestMessage($serviceRequest, $ref, 'Rejected');
 
@@ -473,15 +496,15 @@ class ServiceRequestController extends Controller
         $tech = User::find($data['assigned_user_id']);
 
 
-         NotificationLog::create([
-        'service_request_id' => $serviceRequest->id,
-        'event'       => 'status_updated',
-        'title'       => 'Status Updated',
-        'message'     => "{$ref} assigned to " . ($tech->name ?? 'a technician'),
-        'from_status' => $oldStatus,               // e.g. 'Approved'
-        'to_status'   => 'Assigned',
-        'caused_by'   => auth()->id(),
-    ]);
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => "{$ref} assigned to " . ($tech->name ?? 'a technician'),
+            'from_status' => $oldStatus,               // e.g. 'Approved'
+            'to_status'   => 'Assigned',
+            'caused_by'   => auth()->id(),
+        ]);
 
         $this->sendServiceRequestMessage(
             $serviceRequest,
@@ -649,7 +672,10 @@ class ServiceRequestController extends Controller
         $scope     = $this->srScope($serviceRequest);
         $newStatus = $scope === 'iw' ? 'Completed' : 'Pending Invoice';
 
-        DB::transaction(function () use ($serviceRequest, $newStatus) {
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Qc Review')
+
+
+        DB::transaction(function () use ($serviceRequest, $newStatus, $oldStatus, $scope) {
             $serviceRequest->update([
                 'status'         => $newStatus,
                 'qc_reviewed_at' => now(),
@@ -658,6 +684,17 @@ class ServiceRequestController extends Controller
             $serviceRequest->punches()
                 ->whereIn('status', ['submitted', 'qc_review'])
                 ->update(['status' => 'qc_passed']);
+
+            NotificationLog::create([
+                'service_request_id' => $serviceRequest->id,
+                'event'       => 'status_updated',
+                'title'       => 'Status Updated',
+                'message'     => $this->buildSrRef($serviceRequest) . ' passed QC — '
+                    . ($scope === 'iw' ? 'marked Completed' : 'forwarded to invoicing'),
+                'from_status' => $oldStatus,   // 'Qc Review'
+                'to_status'   => $newStatus,   // 'Completed' or 'Pending Invoice'
+                'caused_by'   => Auth::id(),
+            ]);
         });
         app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, $newStatus);
         $ref = $this->buildSrRef($serviceRequest);
@@ -679,7 +716,9 @@ class ServiceRequestController extends Controller
             'rework_notes' => ['required', 'string', 'min:5', 'max:1000'],
         ]);
 
-        DB::transaction(function () use ($serviceRequest, $data) {
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Qc Review')
+
+        DB::transaction(function () use ($serviceRequest, $data, $oldStatus) {
             $serviceRequest->update([
                 'status'          => 'Rework',
                 'qc_reviewed_at'  => now(),
@@ -688,10 +727,23 @@ class ServiceRequestController extends Controller
                 'internal_remark' => trim(($serviceRequest->internal_remark ?? '')
                     . "\nQC Rework: " . $data['rework_notes']),
             ]);
+
             $serviceRequest->punches()
                 ->whereIn('status', ['submitted', 'qc_review'])
                 ->update(['status' => 'rework']);
+
+            NotificationLog::create([
+                'service_request_id' => $serviceRequest->id,
+                'event'       => 'status_updated',
+                'title'       => 'Status Updated',
+                'message'     => $this->buildSrRef($serviceRequest) . ' returned for rework — '
+                    . \Illuminate\Support\Str::limit($data['rework_notes'], 60),
+                'from_status' => $oldStatus,   // 'Qc Review'
+                'to_status'   => 'Rework',
+                'caused_by'   => Auth::id(),
+            ]);
         });
+
         app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, 'Rework');
         $ref = $this->buildSrRef($serviceRequest);
 
@@ -756,6 +808,8 @@ class ServiceRequestController extends Controller
             'quote_pdf'     => ['required', 'file', 'mimes:pdf', 'max:25600'],
         ]);
 
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+
         $serviceRequest->update([
             'status'             => 'Quoted',
             'warranty_scope'     => 'oow',
@@ -763,6 +817,18 @@ class ServiceRequestController extends Controller
             'quote_path'         => $request->file('quote_pdf')->store('quotations', 'public'),
             'quote_submitted_at' => now(),
         ]);
+
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     =>  $this->buildSrRef($serviceRequest) . ' quoted — ref '
+                . strtoupper($data['erp_quote_ref']),
+            'from_status' => $oldStatus,   // e.g. 'Forwarded'
+            'to_status'   => 'Quoted',
+            'caused_by'   => auth()->id(),
+        ]);
+
         app(\App\Services\WhatsAppService::class)->sendQuotation(
             $serviceRequest,
             asset('storage/' . $serviceRequest->quote_path)
@@ -772,11 +838,25 @@ class ServiceRequestController extends Controller
 
     public function quoteApprove(ServiceRequest $serviceRequest)
     {
+
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Quoted')
+
         $serviceRequest->update([
             'status'             => 'Approved',
             'warranty_scope'     => 'oow',
             'client_approved_at' => now(),
         ]);
+
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($serviceRequest) . ' — quotation approved by client',
+            'from_status' => $oldStatus,   // 'Quoted'
+            'to_status'   => 'Approved',
+            'caused_by'   => auth()->id(),
+        ]);
+
         app(\App\Services\WhatsAppService::class)
             ->notifyServiceStatus($serviceRequest, 'Quotation approved');
         return response()->json(['ok' => true, 'message' => 'Client approved.']);
@@ -870,6 +950,8 @@ class ServiceRequestController extends Controller
 
         $path = $request->file('invoice_pdf')->store('invoices', 'public');
 
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Pending Invoice')
+
         $serviceRequest->update([
             'status'               => 'Invoice Submitted',
             'invoice_code'         => strtoupper($data['invoice_code']),
@@ -878,6 +960,21 @@ class ServiceRequestController extends Controller
             'invoice_submitted_at' => now(),
             'invoice_uploaded_by'  => Auth::id(),
         ]);
+
+
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($serviceRequest) . ' invoice submitted — '
+                . strtoupper($data['invoice_code'])
+                . (isset($data['invoice_total']) ? ' (₹' . number_format($data['invoice_total'], 2) . ')' : ''),
+            'from_status' => $oldStatus,   // 'Pending Invoice'
+            'to_status'   => 'Invoice Submitted',
+            'caused_by'   => Auth::id(),
+        ]);
+
+
         app(\App\Services\WhatsAppService::class)
             ->notifyServiceStatus($serviceRequest, 'Invoice Submitted');
         return response()->json(['ok' => true, 'message' => 'Invoice committed. HoP notified.']);
@@ -885,11 +982,26 @@ class ServiceRequestController extends Controller
 
     public function hopApprove(ServiceRequest $serviceRequest)
     {
+
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Invoice Submitted')
+
         $serviceRequest->update([
             'status'          => 'Completed',
             'hop_approved_at' => now(),
             'hop_approved_by' => Auth::id(),
         ]);
+
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($serviceRequest) . ' closed — Completed',
+            'from_status' => $oldStatus,   // 'Invoice Submitted'
+            'to_status'   => 'Completed',
+            'caused_by'   => Auth::id(),
+        ]);
+
+
         app(\App\Services\WhatsAppService::class)
             ->notifyServiceStatus($serviceRequest, 'Completed');
         return response()->json(['ok' => true, 'message' => 'SR closed — Completed.']);
