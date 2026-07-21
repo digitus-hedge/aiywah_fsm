@@ -16,6 +16,7 @@ use App\Http\Controllers\NotificationController;
 use App\Services\WhatsAppService;
 use App\Http\Controllers\WhatsappLogController;
 use App\Http\Controllers\CompletedServiceRequestController;
+use App\Http\Controllers\AssignedServiceRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -154,6 +155,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/completed-sr',        [CompletedServiceRequestController::class, 'index'])->name('completed');
     Route::get('/completed-sr/{id}',   [CompletedServiceRequestController::class, 'show'])->name('completed.show');
+
+    Route::get('/assigned-sr',      [AssignedServiceRequestController::class, 'index'])->name('assigned');
+    Route::get('/assigned-sr/{id}', [AssignedServiceRequestController::class, 'show'])->name('assigned.show');
     
     });
 

@@ -10,6 +10,7 @@ use App\Models\NotificationLog;
 use App\Models\Punch;
 use App\Models\User;
 use App\Models\ServiceCategory;
+use App\Models\Priority;
 use App\Services\WhatsAppService;
 use App\Models\ExpenseCategory;
 use Illuminate\Http\Request;
@@ -27,10 +28,12 @@ class ServiceRequestController extends Controller
     public function create()
     {
         $categories = ServiceCategory::get();
+        $priorities = Priority::where('status', true)
+            ->orderBy('display_order')
+            ->get();
 
-        return view('sr_registration', compact('categories'));
+        return view('sr_registration', compact('categories', 'priorities'));
     }
-
     // Lookup endpoint — searches by company name, unique_code, or primary_mobile
     public function lookup(string $code)
     {
@@ -96,7 +99,7 @@ class ServiceRequestController extends Controller
             'project_id'        => ['required', 'exists:projects,id'],
             'service_type_id'   => ['required', 'exists:service_categories,id'],
             'reported_by'       => ['required', 'string', 'max:255'],
-            'priority_level'    => ['required', 'in:Low,Medium,High,Critical'],
+            'priority_level'    => ['required', 'exists:priorities,name'],
             'issue_description' => ['required', 'string', 'min:20'],
             'internal_remark'   => ['nullable', 'string'],
             'attachments.*'     => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],

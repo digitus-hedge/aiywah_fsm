@@ -223,11 +223,12 @@ class WorkerpunchController extends Controller
     /** Client-signed acceptance PDF → customer_signature_path. */
 public function signature(Request $request)
 {
-   $data = $request->validate([
-    'sr_id'       => ['required', 'integer'],
-    'client_name' => ['required', 'string', 'max:190'],
-    'signature'   => ['required', 'file', 'max:8192', 'mimetypes:application/pdf'],
-]);
+    $data = $request->validate([
+        'sr_id'       => ['required', 'integer'],
+        'client_name' => ['required', 'string', 'max:190'],
+        'signature'   => ['required', 'file', 'max:8192', 'mimes:pdf'],
+    ]);   
+
 
     $punch = $this->openPunch($request, $data['sr_id']);
 

@@ -206,7 +206,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sr-modal-box{background:var(--modal-bg,var(--card-bg));border-radius:12px;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--modal-shadow,0 24px 64px rgba(0,0,0,.16));border:1px solid var(--card-border);overflow:hidden;animation:srModalIn .2s ease;}
 @keyframes srModalIn{from{opacity:0;transform:scale(.96) translateY(6px);}to{opacity:1;transform:scale(1) translateY(0);}}
 .sr-modal-hdr{border-bottom:1px solid var(--border-color);flex-shrink:0;}
-.sr-modal-hdr-banner{background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);color:#fff;padding:16px 22px;position:relative;overflow:hidden;}
+.sr-modal-hdr-banner{background: linear-gradient(135deg, #E0C79A 0%, #B99261 100%);padding:16px 22px;position:relative;overflow:hidden;}
 .sr-modal-hdr-banner::after{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);}
 .sr-modal-close{position:absolute;top:14px;right:16px;z-index:2;background:rgba(255,255,255,.18);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;}
 .sr-modal-close:hover{background:rgba(255,255,255,.32);}

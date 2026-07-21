@@ -31,10 +31,10 @@ class Punchitem extends Model
         ? \Illuminate\Support\Facades\Storage::disk('public')->url($this->receipt_path)
         : null;
 }
-protected function receiptUrl(): Attribute
-{
-    return Attribute::get(fn () => $this->receipt_path
-        ? Storage::disk('public')->url($this->receipt_path)
-        : null);
-}
+// protected function receiptUrl(): Attribute
+// {
+//     return Attribute::get(fn () => $this->receipt_path
+//         ? Storage::disk('public')->url($this->receipt_path)
+//         : null);
+// }
 }

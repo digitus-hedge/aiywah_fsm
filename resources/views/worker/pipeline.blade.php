@@ -998,6 +998,7 @@ const ROUTES = {
   signature:  @json($routes['signature'] ?? ''),
 };
 
+const LETTERHEAD = @json($letterhead ?? ['header'=>null,'footer'=>null,'watermark'=>null]);
 /* ══════════════════════════════════════════════════════
    STATE
    activeRef  = display ref ("SR-2026-000123") -> DOM ids
@@ -2052,12 +2053,16 @@ $('signSubmitBtn').addEventListener('click', async () => {
   const restore = busy(btn, 'Generating\u2026');
 
   try {
-    const pdfBlob = buildAcceptancePdf(clientName);
+  let pdfBlob = buildAcceptancePdf(clientName);
+  console.log('pdfBlob:', pdfBlob, 'size:', pdfBlob && pdfBlob.size);
+  pdfBlob = new Blob([pdfBlob], { type: 'application/pdf' });
+  console.log('typed blob size:', pdfBlob.size);
 
-    const form = new FormData();
-    form.append('sr_id', activeSrId);
-    form.append('client_name', clientName);
-    form.append('signature', pdfBlob, `acceptance-${activeRef}.pdf`);
+  const form = new FormData();
+  form.append('sr_id', activeSrId);
+  form.append('client_name', clientName);
+  form.append('signature', pdfBlob, `acceptance-${activeRef}.pdf`);
+
 
     const res = await apiPost(ROUTES.signature, form, true);
 
@@ -2076,15 +2081,48 @@ $('signSubmitBtn').addEventListener('click', async () => {
 });
 
 /** Compose the terms + signature into a one-page PDF. Returns a Blob. */
+
 function buildAcceptancePdf(clientName) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
   const margin = 18;
-  let y = 20;
+
+  // Match the source PNG aspect ratios so nothing stretches.
+  const HEADER_H = pageW * (280 / 1108);   // ~47.3mm  (tall contact block on top)
+  const FOOTER_H = pageW * (150 / 1600);   // ~17.5mm  (thin strip on bottom)
+
+function paintChrome() {
+  try {
+    if (LETTERHEAD && LETTERHEAD.watermark) {
+      const wmW = 110, wmH = 110;
+      if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.08 }));
+      doc.addImage(LETTERHEAD.watermark, 'PNG',
+        (pageW - wmW) / 2, (pageH - wmH) / 2, wmW, wmH);
+      if (doc.setGState) doc.setGState(new doc.GState({ opacity: 1 }));
+    }
+  } catch (e) { console.warn('watermark skipped:', e); }
+
+  try {
+    if (LETTERHEAD && LETTERHEAD.header) {
+      doc.addImage(LETTERHEAD.header, 'PNG', 0, 0, pageW, HEADER_H);
+    }
+  } catch (e) { console.warn('header skipped:', e); }
+
+  try {
+    if (LETTERHEAD && LETTERHEAD.footer) {
+      doc.addImage(LETTERHEAD.footer, 'PNG', 0, pageH - FOOTER_H, pageW, FOOTER_H);
+    }
+  } catch (e) { console.warn('footer skipped:', e); }
+}
+
+  paintChrome();
+  let y = HEADER_H + 10;   // start content below the header
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
+  doc.setTextColor(30);
   doc.text('Service Completion Acceptance', margin, y);
   y += 8;
 

@@ -360,7 +360,6 @@
     flex: 1;
     min-width: 72px;
     text-align: center;
-    padding: 9px 6px;
     border: 1.5px solid var(--border-color);
     border-radius: 8px;
     cursor: pointer;
@@ -373,9 +372,8 @@
   }
 
   .pr-pill .pi {
-    font-size: 1rem;
+    font-size: 30px;
     display: block;
-    margin-bottom: 3px;
   }
 
   .pr-pill:hover {
@@ -1225,21 +1223,20 @@
     </div>
   </div>
 </div>
-
-
-
-
-              {{-- Priority --}}
-              <div class="col-12">
-                <label class="form-label">Priority Level <span class="req">*</span></label>
-                <div class="priority-row" id="prGroup">
-                  <div class="pr-pill sel-low" onclick="setPriority(this,'Low')"><span class="pi">🟢</span>Low</div>
-                  <div class="pr-pill sel-med" onclick="setPriority(this,'Medium')"><span class="pi">🟡</span>Medium</div>
-                  <div class="pr-pill sel-high" onclick="setPriority(this,'High')"><span class="pi">🟠</span>High</div>
-                  <div class="pr-pill sel-crit" onclick="setPriority(this,'Critical')"><span class="pi">🔴</span>Critical</div>
-                </div>
-                <input type="hidden" id="priorityVal" name="priority_level" />
-              </div>
+             {{-- Priority --}}
+<div class="col-12">
+  <label class="form-label">Priority Level <span class="req">*</span></label>
+  <div class="priority-row" id="prGroup">
+    @foreach($priorities as $priority)
+      <div class="pr-pill"
+           style="--pr-color: {{ $priority->color }}"
+           onclick="setPriority(this, '{{ $priority->name }}')">
+        <span class="pi" style="color: {{ $priority->color }}">●</span>{{ $priority->name }}
+      </div>
+    @endforeach
+  </div>
+  <input type="hidden" id="priorityVal" name="priority_level" />
+</div>
 
             </div>
           </div>
