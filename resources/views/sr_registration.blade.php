@@ -969,7 +969,7 @@
 
 .btn-add-ct{width:38px;flex-shrink:0;border:1px solid rgba(154,123,79,.4);background:rgba(154,123,79,.1);color:#9A7B4F;border-radius:8px;cursor:pointer}
 .btn-add-ct:disabled{opacity:.4;cursor:not-allowed}
-.ct-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:9999;display:none;align-items:center;justify-content:center;padding:16px}
+.ct-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:0;display:none;align-items:center;justify-content:center;padding:16px}
 .ct-overlay.show{display:flex}
 .ct-box{background:var(--bs-body-bg,#fff);border:1px solid rgba(154,123,79,.25);border-radius:14px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
 .ct-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(154,123,79,.18)}

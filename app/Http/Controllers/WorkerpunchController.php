@@ -7,47 +7,56 @@ use App\Models\Punchitem;
 use App\Models\ServiceRequest;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\NotificationLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+
 class WorkerpunchController extends Controller
 {
     private function worker(Request $request): User
-{
-    $id = $request->input('worker') ?? session('dev_worker_id');
+    {
+        $id = $request->input('worker') ?? session('dev_worker_id');
 
-    if ($id) {
-        return User::findOrFail((int) $id);
+        if ($id) {
+            return User::findOrFail((int) $id);
+        }
+
+        $mlRoleId = Role::where('code', 'ML')->value('id');
+        abort_unless($mlRoleId, 500, 'ML role missing — run RoleSeeder.');
+
+        $worker = User::where('role_id', $mlRoleId)->first();
+        abort_unless($worker, 500, 'No Maintenance Lead user exists.');
+
+        return $worker;
     }
 
-    $mlRoleId = Role::where('code', 'ML')->value('id');
-    abort_unless($mlRoleId, 500, 'ML role missing — run RoleSeeder.');
-
-    $worker = User::where('role_id', $mlRoleId)->first();
-    abort_unless($worker, 500, 'No Maintenance Lead user exists.');
-
-    return $worker;
-}
-
     private function ownedRequest(Request $request, int $srId): ServiceRequest
-{
-    return ServiceRequest::where('id', $srId)
-        ->where('assigned_user_id', $this->worker($request)->id)
-        ->firstOrFail();
-}
+    {
+        return ServiceRequest::where('id', $srId)
+            ->where('assigned_user_id', $this->worker($request)->id)
+            ->firstOrFail();
+    }
 
     /** The one open punch for this SR, or 404. */
-  private function openPunch(Request $request, int $srId): Punch
-{
-    $this->ownedRequest($request, $srId);
+    private function openPunch(Request $request, int $srId): Punch
+    {
+        $this->ownedRequest($request, $srId);
 
-    return Punch::where('service_request_id', $srId)
-        ->where('user_id', $this->worker($request)->id)
-        ->whereIn('status', ['draft', 'punched_in'])
-        ->latest('id')
-        ->firstOrFail();
-}
+        return Punch::where('service_request_id', $srId)
+            ->where('user_id', $this->worker($request)->id)
+            ->whereIn('status', ['draft', 'punched_in'])
+            ->latest('id')
+            ->firstOrFail();
+    }
+
+
+    private function buildSrRef(ServiceRequest $sr): string
+    {
+        return 'SR-' . ($sr->created_at?->year ?? now()->year)
+            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
+    }
 
     public function punchIn(Request $request)
     {
@@ -57,10 +66,10 @@ class WorkerpunchController extends Controller
         ]);
 
         $sr     = $this->ownedRequest($request, $data['sr_id']);
-         $worker = $this->worker($request);
+        $worker = $this->worker($request);
 
-     
-         abort_unless($sr->accepted_at, 422, 'Accept the job before punching in.');
+
+        abort_unless($sr->accepted_at, 422, 'Accept the job before punching in.');
         $exists = Punch::where('service_request_id', $sr->id)
             ->whereIn('status', ['draft', 'punched_in'])
             ->exists();
@@ -70,8 +79,10 @@ class WorkerpunchController extends Controller
             'Too early — scheduled for ' . $sr->eta_at->format('d M Y, H:i') . '. Reschedule if you need to start now.'
         );
 
-        $punch = DB::transaction(function () use ($sr, $worker, $data) {
-           $p = Punch::create([
+        $oldStatus = $sr->status;          // capture BEFORE the transaction updates it
+
+        $punch = DB::transaction(function () use ($sr, $worker, $data, $oldStatus) {
+            $p = Punch::create([
                 'service_request_id' => $sr->id,
                 'user_id'            => $worker->id,
                 'punch_in_at'        => now(),
@@ -81,21 +92,33 @@ class WorkerpunchController extends Controller
                 'labour_charge'      => 0,
                 'grand_total'        => 0,
             ]);
+
             $sr->update([
                 'status'      => 'In Progress',
                 'hold_reason' => null,
                 'held_at'     => null,
             ]);
 
+            NotificationLog::create([
+                'service_request_id' => $sr->id,
+                'event'       => 'status_updated',
+                'title'       => 'Status Updated',
+                'message'     => $this->buildSrRef($sr) . ' work started'
+                    . (optional($worker)->name ? ' by ' . $worker->name : ''),
+                'from_status' => $oldStatus,   // e.g. 'Accepted'
+                'to_status'   => 'In Progress',
+                'caused_by'   => auth()->id(),
+            ]);
+
             return $p;
         });
-            app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Work in progress');
+        
+        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Work in progress');
         return response()->json([
             'ok'          => true,
             'punch_id'    => $punch->id,
             'punch_in_at' => $punch->punch_in_at->toIso8601String(),
         ]);
-        
     }
 
     /** Compliance photo / signature upload. */
@@ -121,60 +144,60 @@ class WorkerpunchController extends Controller
     }
 
     /** Log one material line against the open punch. */
-   public function expense(Request $request)
-{
-    $data = $request->validate([
-        'sr_id'    => ['required', 'integer'],
-        'category' => ['required', 'string', 'max:120'],
-        'amount'   => ['required', 'numeric', 'min:0.01'],
-        'name'     => ['nullable', 'string', 'max:190'],
-        'qty'      => ['nullable', 'numeric', 'min:0.01'],
-        'receipt'  => ['nullable', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp,pdf'],
-    ]);
+    public function expense(Request $request)
+    {
+        $data = $request->validate([
+            'sr_id'    => ['required', 'integer'],
+            'category' => ['required', 'string', 'max:120'],
+            'amount'   => ['required', 'numeric', 'min:0.01'],
+            'name'     => ['nullable', 'string', 'max:190'],
+            'qty'      => ['nullable', 'numeric', 'min:0.01'],
+            'receipt'  => ['nullable', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp,pdf'],
+        ]);
 
-    $punch = $this->openPunch($request, $data['sr_id']);
-    $qty   = $data['qty'] ?? 1;
+        $punch = $this->openPunch($request, $data['sr_id']);
+        $qty   = $data['qty'] ?? 1;
 
-    // Store outside the transaction — a rolled-back write shouldn't strand a file,
-    // and a failed upload shouldn't leave a half-committed item.
-    $receiptPath = $request->hasFile('receipt')
-        ? $request->file('receipt')->store("punches/{$punch->id}/receipts", 'public')
-        : null;
+        // Store outside the transaction — a rolled-back write shouldn't strand a file,
+        // and a failed upload shouldn't leave a half-committed item.
+        $receiptPath = $request->hasFile('receipt')
+            ? $request->file('receipt')->store("punches/{$punch->id}/receipts", 'public')
+            : null;
 
-    try {
-        $item = DB::transaction(function () use ($punch, $data, $qty, $receiptPath) {
-            $item = Punchitem::create([
-                'punch_id'     => $punch->id,
-                'name'         => $data['name'] ?? $data['category'],
-                'category'     => $data['category'],
-                'qty'          => $qty,
-                'rate'         => round($data['amount'] / $qty, 2),
-                'line_total'   => $data['amount'],
-                'receipt_path' => $receiptPath,
-                'recon_status' => 'pending',
-            ]);
+        try {
+            $item = DB::transaction(function () use ($punch, $data, $qty, $receiptPath) {
+                $item = Punchitem::create([
+                    'punch_id'     => $punch->id,
+                    'name'         => $data['name'] ?? $data['category'],
+                    'category'     => $data['category'],
+                    'qty'          => $qty,
+                    'rate'         => round($data['amount'] / $qty, 2),
+                    'line_total'   => $data['amount'],
+                    'receipt_path' => $receiptPath,
+                    'recon_status' => 'pending',
+                ]);
 
-            $this->recalcTotals($punch);
+                $this->recalcTotals($punch);
 
-            return $item;
-        });
-    } catch (\Throwable $e) {
-        if ($receiptPath) {
-            Storage::disk('public')->delete($receiptPath);
+                return $item;
+            });
+        } catch (\Throwable $e) {
+            if ($receiptPath) {
+                Storage::disk('public')->delete($receiptPath);
+            }
+            throw $e;
         }
-        throw $e;
+
+        $punch->refresh();
+
+        return response()->json([
+            'ok'                 => true,
+            'item_id'            => $item->id,
+            'receipt_url'        => $item->receipt_url,
+            'materials_subtotal' => (string) $punch->materials_subtotal,
+            'grand_total'        => (string) $punch->grand_total,
+        ]);
     }
-
-    $punch->refresh();
-
-    return response()->json([
-        'ok'                 => true,
-        'item_id'            => $item->id,
-        'receipt_url'        => $item->receipt_url,
-        'materials_subtotal' => (string) $punch->materials_subtotal,
-        'grand_total'        => (string) $punch->grand_total,
-    ]);
-}
 
     public function punchOut(Request $request)
     {
@@ -184,18 +207,23 @@ class WorkerpunchController extends Controller
         ]);
 
         $sr    = $this->ownedRequest($request, $data['sr_id']);
-    $punch = $this->openPunch($request, $sr->id);
+        $punch = $this->openPunch($request, $sr->id);
 
         // Server-side compliance gate. The JS lock is a convenience, not a control.
-        foreach ([
-            'start_photo_path'        => 'Before photo',
-            'finish_photo_path'       => 'After photo',
-            'customer_signature_path' => 'Customer signature',
-        ] as $col => $label) {
+        foreach (
+            [
+                'start_photo_path'        => 'Before photo',
+                'finish_photo_path'       => 'After photo',
+                'customer_signature_path' => 'Customer signature',
+            ] as $col => $label
+        ) {
             abort_if(blank($punch->$col), 422, "{$label} is required before finishing.");
         }
 
-        DB::transaction(function () use ($punch, $sr, $data) {
+        $oldStatus = $sr->status;          // capture BEFORE the transaction updates it
+
+
+        DB::transaction(function () use ($punch, $sr, $data, $oldStatus) {
             $punch->fill([
                 'punch_out_at'       => now(),
                 'completion_summary' => $data['summary'] ?? null,
@@ -209,6 +237,16 @@ class WorkerpunchController extends Controller
                 'qc_reviewed_at' => null,
                 'qc_reviewed_by' => null,
             ]);
+
+            NotificationLog::create([
+                'service_request_id' => $sr->id,
+                'event'       => 'status_updated',
+                'title'       => 'Status Updated',
+                'message'     => $this->buildSrRef($sr) . 'Submitted for QC Review',
+                'from_status' => $oldStatus,
+                'to_status'   => 'Qc Review',
+                'caused_by'   => auth()->id(),
+            ]);
         });
 
         $punch->refresh();
@@ -221,26 +259,26 @@ class WorkerpunchController extends Controller
     }
 
     /** Client-signed acceptance PDF → customer_signature_path. */
-public function signature(Request $request)
-{
-    $data = $request->validate([
-        'sr_id'       => ['required', 'integer'],
-        'client_name' => ['required', 'string', 'max:190'],
-        'signature'   => ['required', 'file', 'max:8192', 'mimes:pdf'],
-    ]);   
+    public function signature(Request $request)
+    {
+        $data = $request->validate([
+            'sr_id'       => ['required', 'integer'],
+            'client_name' => ['required', 'string', 'max:190'],
+            'signature'   => ['required', 'file', 'max:8192', 'mimes:pdf'],
+        ]);
 
 
-    $punch = $this->openPunch($request, $data['sr_id']);
+        $punch = $this->openPunch($request, $data['sr_id']);
 
-    $path = $request->file('signature')->store("punches/{$punch->id}/acceptance", 'public');
+        $path = $request->file('signature')->store("punches/{$punch->id}/acceptance", 'public');
 
-    $punch->update([
-        'customer_signature_path' => $path,
-        'customer_name'           => $data['client_name'],
-    ]);
+        $punch->update([
+            'customer_signature_path' => $path,
+            'customer_name'           => $data['client_name'],
+        ]);
 
-    return response()->json(['ok' => true, 'path' => $path]);
-}
+        return response()->json(['ok' => true, 'path' => $path]);
+    }
 
     private function recalcTotals(Punch $punch): void
     {

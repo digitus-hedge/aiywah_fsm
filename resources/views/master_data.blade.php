@@ -532,8 +532,8 @@ textarea.form-control{resize:vertical;min-height:72px;}
                 </td>
                 <td style="text-align:center;">
                   <div class="row-actions" style="justify-content:center;">
-                    <button class="btn-icon-status" title="Toggle status"
-                      onclick="toggleStatus('priority',{{ $p->id }})"><i class="bi bi-toggle-on"></i></button>
+                    <!-- <button class="btn-icon-status" title="Toggle status"
+                      onclick="toggleStatus('priority',{{ $p->id }})"><i class="bi bi-toggle-on"></i></button> -->
                     <button class="btn-icon-edit" title="Edit"
                       data-id="{{ $p->id }}"
                       data-name="{{ $p->name }}"

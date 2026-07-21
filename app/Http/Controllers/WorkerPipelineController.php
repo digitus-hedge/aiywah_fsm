@@ -6,6 +6,7 @@ use App\Models\ExpenseCategory;
 use App\Models\Punch;
 use App\Models\Punchitem;
 use App\Models\Role;
+use App\Models\NotificationLog;
 use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -124,6 +125,13 @@ private function imageToBase64(string $path): ?string
         ]);
     }
 
+
+    private function buildSrRef(ServiceRequest $sr): string
+    {
+        return 'SR-' . ($sr->created_at?->year ?? now()->year)
+            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
+    }
+
     public function profile(Request $request)
     {
         $user = $this->worker($request);
@@ -181,12 +189,30 @@ private function imageToBase64(string $path): ?string
     $isRework = strtolower((string) $sr->status) === 'rework';
     abort_if($sr->accepted_at && !$isRework, 409, 'This job has already been accepted.');
 
+    $oldStatus = $sr->status;          // capture BEFORE update
+
+
     $sr->update([
         'eta_at'      => $data['eta_date'] . ' ' . $data['eta_time'] . ':00',
         'accepted_at' => now(),
         'status'      => 'Accepted',
         'hold_reason' => null,
         'held_at'     => null,
+    ]);
+
+    NotificationLog::create([
+    'service_request_id' => $sr->id,
+    'event'       => 'status_updated',
+    'title'       => 'Status Updated',
+    // 'message'     => $this->buildSrRef($sr) . ' accepted — ETA '
+    //                  . $sr->eta_at->format('d M Y, h:i A')
+    //                  . ($worker->name ?? '' ? ' by ' . $worker->name : ''),
+
+    'message' => $this->buildSrRef($sr) . ' accepted'
+        . (optional($worker)->name ? ' by ' . $worker->name : ''),        
+    'from_status' => $oldStatus,   // e.g. 'Assigned' or 'Rework'
+    'to_status'   => 'Accepted',
+    'caused_by'   => auth()->id(),
     ]);
 
     app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Accepted');
@@ -215,7 +241,9 @@ private function imageToBase64(string $path): ?string
 
     abort_if($newEta->isPast(), 422, 'The new ETA must be in the future.');
 
-    DB::transaction(function () use ($sr, $worker, $data, $newEta) {
+    $oldStatus = $sr->status;          // capture BEFORE the transaction updates it
+
+    DB::transaction(function () use ($sr, $worker, $data, $newEta,$oldStatus) {
         // Log before mutating — previous_eta_at must capture the old value.
         ServiceRequestReschedule::create([
             'service_request_id' => $sr->id,
@@ -238,6 +266,18 @@ private function imageToBase64(string $path): ?string
             'hold_reason'     => null,
             'internal_remark' => $this->appendRemark($sr->internal_remark, 'Rescheduled', $data['remark']),
         ]);
+
+          NotificationLog::create([
+            'service_request_id' => $sr->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($sr) . ' Rescheduled to '
+                             . $newEta->format('d M Y, h:i A')
+                             . (optional($worker)->name ? ' by ' . $worker->name : ''),
+            'from_status' => $oldStatus,   // e.g. 'In Progress' or 'On Hold'
+            'to_status'   => 'Reschedule',
+            'caused_by'   => $worker->id ?? auth()->id(),
+        ]);
     });
 
     $sr->refresh();
@@ -258,8 +298,9 @@ private function imageToBase64(string $path): ?string
         ]);
 
         $sr = $this->ownedRequest($request, $data['sr_id']);
+       $oldStatus = $sr->status;          // capture BEFORE the transaction updates it
 
-        DB::transaction(function () use ($sr, $data) {
+        DB::transaction(function () use ($sr, $data,$oldStatus) {
             $sr->update([
                 'status'      => 'On Hold',
                 'hold_reason' => $data['remark'],
@@ -271,6 +312,17 @@ private function imageToBase64(string $path): ?string
             Punch::where('service_request_id', $sr->id)
                 ->whereIn('status', ['draft', 'punched_in'])
                 ->update(['status' => 'cancelled']);
+
+            NotificationLog::create([
+            'service_request_id' => $sr->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($sr) . ' put on hold — ' . $data['remark'],
+            'from_status' => $oldStatus,   // e.g. 'In Progress'
+            'to_status'   => 'On Hold',
+            'caused_by'   => auth()->id(),
+            ]);
+
         });
 
         return response()->json(['ok' => true]);
@@ -290,10 +342,22 @@ private function imageToBase64(string $path): ?string
 
     abort_unless(strtolower((string) $sr->status) === 'on hold', 422, 'Job is not on hold.');
 
+    $oldStatus = $sr->status;          // capture BEFORE update ('On Hold')
+
     $sr->update([
         'status'      => 'Accepted',
         'hold_reason' => null,
         'held_at'     => null,
+    ]);
+
+     NotificationLog::create([
+        'service_request_id' => $sr->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => $this->buildSrRef($sr) . ' resumed from hold',
+        'from_status' => $oldStatus,   // 'On Hold'
+        'to_status'   => 'Accepted',
+        'caused_by'   => auth()->id(),
     ]);
 
     return response()->json(['ok' => true, 'sr_id' => $sr->id]);

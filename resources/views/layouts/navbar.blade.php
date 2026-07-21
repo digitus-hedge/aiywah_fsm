@@ -154,7 +154,7 @@ function loadNotif() {
         <div style="display:flex;gap:10px;padding:11px 14px;border-bottom:1px solid #d9d7d3;background:${n.read ? '#fff' : '#f7f8ff'};">
           <i class="bi ${NOTIF_ICON[n.event] || 'bi-bell'}" style="color:${NOTIF_CLR[n.event] || '#888'};font-size:1rem;flex:0 0 auto;margin-top:2px;"></i>
           <div style="min-width:0;flex:1;">
-            <div style="font-size:.78rem;font-weight:600;color:var(--text-heading);">${n.title}</div>
+            <div style="font-size:.78rem;font-weight:600;color:#6e7177;">${n.title}</div>
             <div style="font-size:.72rem;color:var(--text-muted);">${n.message}</div>
             ${chips}
             <div style="font-size:.62rem;color:#aaa;margin-top:3px;">${n.by ? n.by + ' · ' : ''}${n.ago}</div>

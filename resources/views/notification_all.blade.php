@@ -3,10 +3,13 @@
 @section('content')
 <div class="notif-page">
 
-    <div class="notif-head">
-        <div>
-            <h4 class="notif-title">All Notifications</h4>
-            <span class="notif-sub">Service Request Activity Logs</span>
+    <div class="notif-banner">
+        <div class="notif-banner-top">
+            <div class="notif-banner-ico"><i class="bi bi-bell-fill"></i></div>
+            <div>
+                <h4 class="notif-title">All Notifications</h4>
+                <span class="notif-sub">Service Request Activity Logs</span>
+            </div>
         </div>
         <div class="notif-filters">
             @php $ev = request('event'); $st = request('state'); @endphp
@@ -87,10 +90,43 @@
         @endforelse
     </div>
 
-    <div class="notif-pager">{{ $logs->links() }}</div>
+    <div class="notif-pager">
+        {{ $logs->onEachSide(1)->links() }}
+    </div>
 </div>
 
 <style>
+    .notif-banner {
+        background: linear-gradient(135deg, #9A7B4F 0%, #7A6140 100%);
+        border-radius: 14px;
+        padding: 22px 24px;
+        margin-bottom: 22px;
+        box-shadow: 0 2px 12px rgba(122, 97, 64, .18);
+    }
+
+    .notif-banner-top {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-bottom: 16px;
+    }
+
+    .notif-banner-ico {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+    }
+
+    .notif-banner-ico i {
+        color: #fff;
+        font-size: 1.15rem;
+    }
+
     .notif-page {
         margin: 0 auto;
         padding: 28px 20px;
@@ -112,18 +148,40 @@
     .notif-title {
         margin: 0;
         font-weight: 600;
+        color: #f4eded;
         font-size: 1.35rem;
     }
 
+
+    .notif-banner::before {
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, .06);
+        left: -50px;
+        bottom: -50px;
+    }
+
+    .notif-banner::after {
+        width: 160px;
+        height: 160px;
+        background: rgba(255, 255, 255, .08);
+        right: -30px;
+        top: -30px;
+    }
+
+
     .notif-sub {
         font-size: .8rem;
-        color: var(--text-muted);
+        /* color: var(--text-muted); */
+        color: #dde5f3;
     }
 
     .notif-filters {
         display: flex;
         gap: 6px;
         flex-wrap: wrap;
+        align-items: center;
+
     }
 
     .nf-btn {
@@ -204,7 +262,7 @@
     .notif-row-title {
         font-size: .9rem;
         font-weight: 600;
-        color: var(--text-heading);
+        color: #464c55;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -263,9 +321,84 @@
         font-size: .85rem;
     }
 
+    /* ---------- PAGINATION ---------- */
     .notif-pager {
         margin-top: 18px;
+        display: flex;
+        justify-content: center;
     }
+
+    /* hide the default "Showing x to y of z results" text block */
+    .notif-pager nav>p,
+    .notif-pager nav>div:first-child:not(.pagination) {
+        display: none;
+    }
+
+    /* center the numbered list */
+    .notif-pager nav {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .notif-pager ul,
+    .notif-pager .pagination {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-wrap: wrap;
+    }
+
+    /* clamp any SVG chevrons so they don't blow up */
+    .notif-pager svg {
+        width: 16px;
+        height: 16px;
+        display: inline-block;
+    }
+
+    /* box ONLY the links/spans inside pagination list items */
+    .notif-pager li a,
+    .notif-pager li span,
+    .notif-pager .pagination a,
+    .notif-pager .pagination span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        padding: 0 10px;
+        font-size: .78rem;
+        border: 1px solid #e2e2e2;
+        border-radius: 8px;
+        color: #555;
+        text-decoration: none;
+        background: #fff;
+        line-height: 1;
+        transition: all .15s;
+    }
+
+    .notif-pager li a:hover {
+        border-color: #c9ccff;
+        color: #6571ff;
+    }
+
+    .notif-pager li.active span,
+    .notif-pager .pagination [aria-current] span {
+        background: #6571ff;
+        border-color: #6571ff;
+        color: #fff;
+    }
+
+    .notif-pager li.disabled span {
+        color: #ccc;
+        background: #fafafa;
+        cursor: not-allowed;
+    }
+
+    /* ---------- END PAGINATION ---------- */
 
     @media (max-width: 560px) {
         .notif-head {
