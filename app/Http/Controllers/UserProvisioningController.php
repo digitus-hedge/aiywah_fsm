@@ -69,6 +69,7 @@ class UserProvisioningController extends Controller
             'name'     => $u->name,
             'email'    => $u->email,
              'phone'    => $u->phone ?? '',
+            'country_code' => $u->country_code ?? '',
             'role'     => optional($u->role)->name ?? '',
             'roleId'   => optional($u->role)->code ?? '',
             'domains'  => $u->serviceDomains->pluck('id')->values()->all(),
@@ -89,6 +90,7 @@ class UserProvisioningController extends Controller
     $data = $request->validate([
         'name'       => 'required|string|max:255',
         'email'      => 'required|email:rfc,dns|max:255|unique:users,email',
+        'country_code' => 'nullable|string|max:8',
          'phone'      => 'nullable|string|max:20',
         'password'   => 'required|string|min:8',
         'role'       => 'required|string',
@@ -102,6 +104,7 @@ class UserProvisioningController extends Controller
     $user = User::create([
         'name'              => $data['name'],
         'email'             => strtolower($data['email']),
+        'country_code'      => $data['country_code'] ?? null,
         'phone'             => $data['phone'] ?? null,
         'password'          => Hash::make($data['password']),
         'role_id'           => Role::where('code', $data['roleId'])->value('id'),
@@ -117,6 +120,8 @@ class UserProvisioningController extends Controller
             'id'       => $user->id,
             'name'     => $user->name,
             'email'    => $user->email,
+            'phone'        => $user->phone,
+            'country_code' => $user->country_code,
             'role'     => $data['role'],
             'roleId'   => $data['roleId'],
             'domains'  => $user->serviceDomains()->pluck('service_domain_id')->values()->all(),
@@ -137,6 +142,8 @@ public function update(Request $request, User $user)
     $data = $request->validate([
         'name'       => 'required|string|max:255',
         'email'      => ['required', 'email:rfc,dns', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+         'country_code' => 'nullable|string|max:8',
+        'phone'        => 'nullable|string|max:20',
         'password'   => 'sometimes|nullable|string|min:8',
         'role'       => 'required|string',
         'roleId'     => 'required|string|exists:roles,code',
@@ -151,7 +158,8 @@ public function update(Request $request, User $user)
     $user->update([
         'name'              => $data['name'],
         'email'             => strtolower($data['email']),
-        'phone'             => $data['phone'] ?? null,
+        'country_code' => $data['country_code'] ?? null,
+        'phone'        => $data['phone'] ?? null,
         'role_id'           => Role::where('code', $data['roleId'])->value('id'),
         'fd_grants'         => $data['fdGrants'] ?? [],
         'email_verified_at' => $emailChanged ? now() : $user->email_verified_at,

@@ -421,7 +421,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="card">
         <div class="card-hdr">
           <div class="card-hdr-icon" style="background:rgba(37,211,102,.1);"><i class="bi bi-whatsapp" style="color:#25d366;"></i></div>
-          <div><h6>WhatsApp Contacts</h6><span class="csub">Additional contacts for ticket notifications</span></div>
+          <div><h6>Personal Contacts</h6><span class="csub">Additional contacts for ticket notifications</span></div>
         </div>
         <div class="card-body">
           <div style="font-size:.72rem;color:var(--text-muted);background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.18);border-radius:7px;padding:8px 11px;display:flex;align-items:flex-start;gap:7px;margin-bottom:14px;">

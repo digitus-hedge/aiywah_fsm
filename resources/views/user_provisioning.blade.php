@@ -11,7 +11,8 @@
             'id'       => $u['id']       ?? null,
             'name'     => $u['name']     ?? '',
             'email'    => strtolower($u['email'] ?? ''),
-            'phone'    => $u['phone']    ?? '',
+            'phone'       => $u['phone']       ?? '',
+            'countryCode' => $u['countryCode'] ?? ($u['country_code'] ?? ''),
             'role'     => $u['role']     ?? '',
             'roleId'   => $u['roleId']   ?? ($u['role_id'] ?? ''),
             'domains'  => array_values((array) ($u['domains']  ?? [])),
@@ -417,29 +418,26 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
                 <div class="fhint">Sent securely to the employee on save.</div>
               </div>
             </div>
-            <div class="col-sm-6">
-            <div class="fg">
-              <label class="fl">Phone Number <span class="req">*</span></label>
-              <div style="display:flex;gap:6px;">
-                <select class="form-select" id="empPhoneCountry" style="width:92px;flex-shrink:0;" onchange="syncAll()">
-                  <option value="+971">🇦🇪 +971</option>
-                  <option value="+91" selected>🇮🇳 +91</option>
-                  <option value="+1">🇺🇸 +1</option>
-                  <option value="+44">🇬🇧 +44</option>
-                  <option value="+966">🇸🇦 +966</option>
-                  <option value="+974">🇶🇦 +974</option>
-                </select>
-                <div class="iiwrap" style="flex:1;">
-                  <i class="bi bi-telephone ii"></i>
-                  <input type="tel" class="form-control" id="empPhone"
-                        placeholder="98765 43210" autocomplete="off" inputmode="numeric"
-                        maxlength="15"
-                        oninput="this.value=this.value.replace(/[^0-9]/g,'');validatePhone();syncAll()"
-                </div>
+          <div class="col-sm-6">
+          <div class="fg">
+            <label class="fl">Phone Number</label>
+            <div style="display:flex;gap:8px;">
+              <select class="form-select" id="empCountryCode" style="max-width:130px;" onchange="syncAll()">
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+61">🇦🇺 +61</option>
+              </select>
+              <div class="iiwrap" style="flex:1;">
+                <i class="bi bi-telephone ii"></i>
+                <input type="tel" class="form-control" id="empPhone"
+                      placeholder="98765 43210" autocomplete="off"
+                      inputmode="tel" oninput="syncAll()">
               </div>
-              <div class="ferr" id="phoneErrMsg"></div>
             </div>
           </div>
+        </div>
           </div>
         </div>
       </div>
@@ -635,7 +633,6 @@ const VALID_DOMAIN_IDS = new Set(DOMAINS_FLAT.map(d => d.id));
 let selectedRole=null;
 let selectedDomains=new Set();
 let emailValid=false;
-let phoneValid=false;
 let emailTimer=null;
 
 const EXISTING_EMAILS = @json($existingEmailsData);
@@ -870,23 +867,6 @@ function onEmailInput(el){
     syncAll();
   },800);
 }
-function validatePhone(){
-  const num = document.getElementById('empPhone').value.trim();
-  const err = document.getElementById('phoneErrMsg');
-  const inp = document.getElementById('empPhone');
-  // 7–15 digits is the practical range for national numbers
-  if(!num){ phoneValid=false; err.style.display='none'; inp.className='form-control'; return; }
-  if(!/^\d{7,15}$/.test(num)){
-    phoneValid=false;
-    inp.className='form-control is-invalid';
-    err.textContent='Enter a valid phone number (7–15 digits).';
-    err.style.display='block';
-  } else {
-    phoneValid=true;
-    inp.className='form-control is-valid';
-    err.style.display='none';
-  }
-}
 function showErrMsg(m){const e=document.getElementById('emailErrMsg');e.textContent=m;e.style.display='block';}
 function hideEmailFB(){
   document.getElementById('espinner').style.display='none';
@@ -940,17 +920,13 @@ function setChk(id,done){
 function saveUser(){
   const name=document.getElementById('empName').value.trim();
   const email=document.getElementById('empEmail').value.trim();
-  const phone = document.getElementById('empPhone').value.trim();
-  const phoneCountry = document.getElementById('empPhoneCountry').value;
+ const phone = document.getElementById('empPhone').value.trim();
+const countryCode = document.getElementById('empCountryCode').value;
   const password=document.getElementById('empPassword').value;
   const isEditing = editingUserId !== null;
 
   if(!name){showToast('error','Missing','Employee full name is required.');document.getElementById('empName').focus();return;}
   if(!emailValid){showToast('error','Email Issue','Enter a valid, unique corporate email.');document.getElementById('empEmail').focus();return;}
-  if(!phone || !/^\d{7,15}$/.test(phone)){
-  showToast('error','Phone Issue','Enter a valid phone number (7–15 digits).');
-  document.getElementById('empPhone').focus();return;
-  }
   if(!isEditing && (!password || password.length<8)){showToast('error','Password Required','Password must be at least 8 characters.');document.getElementById('empPassword').focus();return;}
   if(isEditing && password && password.length<8){showToast('error','Password Too Short','New password must be at least 8 characters.');document.getElementById('empPassword').focus();return;}
   if(!selectedRole){showToast('error','Role Required','Please select an operational role.');return;}
@@ -966,6 +942,7 @@ function saveUser(){
   const payload={
     name,
     email:email.toLowerCase(),
+     country_code:countryCode,
     phone,
     role:m.name,
     roleId:selectedRole,
@@ -1041,6 +1018,7 @@ function resetForm(){
   editingUserId=null;
   document.getElementById('empName').value='';
   document.getElementById('empEmail').value='';
+  document.getElementById('empCountryCode').value = '+91';
   document.getElementById('empPhone').value = '';
   document.getElementById('empPassword').value='';
   document.getElementById('roleSelect').value='';
@@ -1085,6 +1063,7 @@ function loadUser(u){
   document.getElementById('empName').value=u.name;
   document.getElementById('empEmail').value=u.email;
   document.getElementById('empPhone').value = u.phone || '';
+  document.getElementById('empCountryCode').value = u.countryCode || '+91';
   emailValid=true;
   document.getElementById('empEmail').className='form-control is-valid';
   document.getElementById('eok').style.display='block';
@@ -1136,6 +1115,7 @@ function clearCreateForm(){
   if(editingUserId!==null) return;
   document.getElementById('empName').value='';
   document.getElementById('empEmail').value='';
+  document.getElementById('empCountryCode').value = '+91';
   document.getElementById('empPhone').value = '';
   document.getElementById('empPassword').value='';
   emailValid=false;hideEmailFB();syncAll();

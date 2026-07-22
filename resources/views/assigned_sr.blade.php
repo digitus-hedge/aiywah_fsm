@@ -34,7 +34,7 @@
 .tbl-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;box-shadow:var(--card-shadow);overflow:hidden;}
 .tbl-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid var(--border-color);flex-wrap:wrap;gap:10px;}
 .tbl-card-hdr-left{display:flex;align-items:center;gap:10px;}
-.tbl-card-title{font-size:.875rem;font-weight:600;color:var(--text-heading);}
+.tbl-card-title{font-size:.875rem;font-weight:600;color:var(--text-heading); font-family: var(--font-header);}
 .result-count{font-size:.75rem;color:var(--text-muted);background:var(--surface-2);padding:2px 9px;border-radius:9px;}
 .tbl-wrap{overflow-x:auto;}
 table.listing{width:100%;border-collapse:collapse;}

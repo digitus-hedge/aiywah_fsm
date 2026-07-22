@@ -321,6 +321,7 @@
     font-size: .875rem;
     font-weight: 600;
     color: var(--text-heading);
+     font-family: var(--font-header);
   }
 
   .cd-result-count {
