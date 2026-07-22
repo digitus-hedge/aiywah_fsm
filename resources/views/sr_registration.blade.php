@@ -356,6 +356,12 @@
     flex-wrap: wrap;
   }
 
+  .pr-pill.on {
+    border-color: #9A7B4F;
+    color: #9A7B4F;
+    background: rgba(154, 123, 79, .05);
+}
+
   .pr-pill {
     flex: 1;
     min-width: 72px;
@@ -1375,6 +1381,10 @@
   /* ═══════════════════════════════════════════
    ENDPOINTS
 ═══════════════════════════════════════════ */
+
+
+
+
   const LOOKUP_URL = "{{ url('/service-requests/lookup') }}"; // GET + /{code}
   const STORE_URL = "{{ route('service-requests.store') }}"; // POST
   const CSRF_TOKEN = document.querySelector('#srForm input[name="_token"]').value;
@@ -1491,15 +1501,12 @@ async function saveContact() {
 function fillReporters(contacts) {
   const sel = document.getElementById('reporter');
   sel.innerHTML = '<option value="">Select contact person…</option>';
-
-  sel.innerHTML = '<option value="">Select Contact Person…</option>';
   (contacts || []).forEach(c => {
     const o = document.createElement('option');
     o.value = c.name || '';
-    o.textContent = c.primary ? `${c.name} (Primary)` : (c.name || '');
+    o.textContent = c.name || '';
     sel.appendChild(o);
   });
-
   document.getElementById('addCtBtn').disabled = false;
   pv('pvReporter', '—');
 }
@@ -1679,21 +1686,12 @@ async function verify(val) {
   }
 
   /* ── Priority ── */
-  function setPriority(el, value) {
-    // Remove selection from all pills
-    document.querySelectorAll('#prGroup .pr-pill').forEach(pill => {
-        pill.classList.remove('on');
-    });
-
-    // Add selection to clicked pill
+  function setPriority(el, val) {
+    document.querySelectorAll('#prGroup .pr-pill').forEach(p => p.classList.remove('on'));
     el.classList.add('on');
-
-    // Store selected value
-    document.getElementById('priorityVal').value = value;
-
-    // Update preview
-    pv('pvPriority', value);
-}
+    document.getElementById('priorityVal').value = val;
+    pv('pvPriority', val);
+  }
 
   /* ── Description ── */
   function onDesc(el) {
