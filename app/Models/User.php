@@ -13,7 +13,7 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasPermissions; 
-    protected $fillable = ['name', 'email', 'password', 'role_id', 'fd_grants', 'status'];
+    protected $fillable = ['name', 'email','phone', 'password', 'role_id', 'fd_grants', 'status'];
 
     protected $casts = [
         'password'  => 'hashed',

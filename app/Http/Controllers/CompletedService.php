@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class CompletedServiceRequestController extends Controller
+class CompletedService extends Controller
 {
     /**
      * Statuses that count as "completed". Adjust to match your schema.
