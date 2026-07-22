@@ -1266,14 +1266,14 @@ function renderWorkloadBars(techs) {
     const heavy  = cnt >= max && max > 1;
     const barClr = isProp ? '#9a8053' : heavy ? '#e24b4a' : cnt === 0 ? '#d3d1c7' : '#6571ff';
 
-    return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px;">
       <div style="width:130px;flex:0 0 auto;text-align:right;font-size:.78rem;">
         ${isProp?'<i class="bi bi-arrow-right-short" style="color:#9a8053;"></i>':''}
         <span style="font-weight:600;color:${isProp?'#9a8053':'var(--text-heading)'};">${t.name}</span>
         <span style="color:var(--text-muted);font-size:.62rem;margin-left:4px;">${code}</span>
       </div>
-      <div style="flex:1;background:var(--surface-1,#f1efe8);border-radius:6px;height:22px;overflow:hidden;">
-        <div style="width:${pct}%;min-width:${cnt?'2px':'0'};height:100%;background:${barClr};border-radius:6px;transition:width .3s;"></div>
+      <div style="flex:1;max-width:60%;background:var(--surface-1,#f1efe8);border-radius:4px;height:6px;overflow:hidden;">
+        <div style="width:${pct}%;min-width:${cnt?'2px':'0'};height:100%;background:${barClr};border-radius:4px;transition:width .3s;"></div>
       </div>
       <div style="width:26px;flex:0 0 auto;font-size:.78rem;font-weight:600;color:${cnt===0?'var(--text-muted)':'var(--text-heading)'};">${cnt}</div>
     </div>`;
