@@ -9,22 +9,23 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
+   public function up(): void
+{
+    Schema::table('users', function (Blueprint $table) {
+        if (!Schema::hasColumn('users', 'country_code')) {
             $table->string('country_code', 8)->nullable()->after('email');
+        }
+        if (!Schema::hasColumn('users', 'phone')) {
             $table->string('phone', 20)->nullable()->after('country_code');
-        });
-    }
+        }
+    });
+}
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('phone');
-        });
-    }
+public function down(): void
+{
+    Schema::table('users', function (Blueprint $table) {
+        $table->dropColumn(['country_code', 'phone']);
+    });
+}
 };
 
