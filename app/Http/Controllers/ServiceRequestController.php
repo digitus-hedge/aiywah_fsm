@@ -51,12 +51,12 @@ class ServiceRequestController extends Controller
                 'sites' => array_values(array_filter([$p->site_name])),
             ])->values();
 
-            // $contacts = $client->mobiles->map(fn($m) => [
-            //     'id'     => $m->id,
-            //     'name'   => $m->name,
-            //     'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
-            //     'notify' => (bool) $m->notify,
-            // ])->values();
+            $contacts = $client->mobiles->map(fn($m) => [
+                'id'     => $m->id,
+                'name'   => $m->name,
+                'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
+                'notify' => (bool) $m->notify,
+            ])->values();
 
             $contacts = $client->mobiles->map(fn($m) => [
                 'id'     => $m->id,

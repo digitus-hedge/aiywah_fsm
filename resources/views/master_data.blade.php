@@ -542,7 +542,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
                       data-active="{{ $p->status ? 1 : 0 }}"
                       onclick="editPriorityBtn(this)"><i class="bi bi-pencil"></i></button>
                     <button class="btn-icon-del" title="Delete"
-                      onclick="confirmDel('priority',{{ $p->id }},'{{ addslashes($p->name) }}')"><i class="bi bi-trash3"></i></button>
+                      onclick="confirmDel('priority',{{$p->id }},'{{ addslashes($p->name) }}')"><i class="bi bi-trash3"></i></button>
                   </div>
                 </td>
               </tr>
