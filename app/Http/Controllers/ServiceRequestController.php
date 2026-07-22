@@ -51,12 +51,28 @@ class ServiceRequestController extends Controller
                 'sites' => array_values(array_filter([$p->site_name])),
             ])->values();
 
-            $contacts = $client->mobiles->map(fn($m) => [
+             $contacts = $client->mobiles->map(fn($m) => [
                 'id'     => $m->id,
                 'name'   => $m->name,
                 'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
                 'notify' => (bool) $m->notify,
-            ])->values();
+            ])->values()->toArray();
+
+            // prepend the client's primary contact_name if present and not already in the list
+            if (!empty($client->contact_name)) {
+                $exists = collect($contacts)->contains(
+                    fn($c) => strcasecmp($c['name'] ?? '', $client->contact_name) === 0
+                );
+                if (!$exists) {
+                    array_unshift($contacts, [
+                        'id'      => null,
+                        'name'    => $client->contact_name,
+                        'mobile'  => $client->primary_mobile ?? '',
+                        'notify'  => false,
+                        'primary' => true,
+                    ]);
+                }
+            }
 
            
             // prepend the client's primary contact_name if present and not already in the list
