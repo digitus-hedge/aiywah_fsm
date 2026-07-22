@@ -56,7 +56,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
    GRID / TABLE CARD
 ═══════════════════════════════════════ */
 .ud-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;box-shadow:var(--card-shadow);overflow:hidden;}
-.ud-card-header{padding:13px 16px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ud-card-header{padding:13px 16px;border-bottom:1px solid var(--card-border);display:flex;align-items:center;justify-content:space-between;gap:10px; font-family: var(--font-header);}
 .ud-card-header h6{font-family:var(--font-body);font-weight:700;margin:0;font-size:.875rem;color:var(--text-heading);display:flex;align-items:center;gap:8px;}
 .ud-rec-badge{background:rgba(154,123,79,.12);color:#9A7B4F;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:10px;}
 .ud-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}

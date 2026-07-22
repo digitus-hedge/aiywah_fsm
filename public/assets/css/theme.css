@@ -203,7 +203,7 @@ h1, h2, h3, h4, h5, h6,
    gets weak and hard to read at these sizes. */
 .card-hdr h6, .chdr h6, .fc-head h6,
 .m-hdr h6 {
-  font-family: var(--font-body);
+  font-family: var(--font-header);
   font-weight: 600;
 }
 

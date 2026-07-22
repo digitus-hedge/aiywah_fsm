@@ -59,7 +59,7 @@
 .stat-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:12px 10px;text-align:center;box-shadow:var(--card-shadow);transition:transform .2s;}
 .stat-card:hover{transform:translateY(-2px);}
 .stat-num{font-size:1.3rem;font-weight:700;margin-right: 10px;margin-left: 10px;line-height:1;margin-bottom:2px;color:var(--text-heading);}
-.stat-lbl{font-size:.64rem;color:var(--text-muted);font-weight:500;line-height:1.25;}
+.stat-lbl{font-size:.64rem;color:var(--text-muted);font-weight:500;line-height:1.25; font-family: var(--font-header);}
 @media(max-width:1199.98px){.stats-strip{grid-template-columns:repeat(4,1fr);}}
 @media(max-width:767.98px){.stats-strip{grid-template-columns:repeat(3,1fr);}}
 @media(max-width:479.98px){.stats-strip{grid-template-columns:repeat(2,1fr);}}
@@ -71,7 +71,7 @@
 .filter-search{position:relative;flex:1;min-width:160px;}
 .filter-search i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.85rem;}
 .filter-search input{padding-left:32px;width:100%;}
-.filter-bar label{font-size:.72rem;color:var(--text-muted);font-weight:500;white-space:nowrap;}
+.filter-bar label{font-size:.72rem;color:var(--text-muted);font-weight:500;white-space:nowrap; font-family: var(--font-header);}
 [data-theme="dark"] .form-select option{background:#221f16;color:#ded8c8;}
 .filter-count{font-size:.72rem;color:var(--text-muted);white-space:nowrap;margin-left:auto;}
 @media(max-width:767.98px){.filter-search{min-width:100%;order:-1;}}
@@ -162,18 +162,6 @@
   <h4><i class="bi bi-kanban me-2"></i>Ticket Summary — Kanban View</h4>
   <p>Live pipeline view of all service requests across lifecycle stages.</p>
 </div>
-
-{{-- STATS STRIP --}}
-
-<div class="stats-strip">
-  @foreach($statuses as $s)
-    <div class="stat-card">
-      <div class="stat-num" id="cnt-{{ Str::slug($s) }}">{{ $tickets->where('status', $s)->count() }}</div>
-      <div class="stat-lbl">{{ $labels[$s] ?? $s }}</div>
-    </div>
-  @endforeach
-</div>
-
 
 {{-- FILTER BAR --}}
 <div class="filter-bar">

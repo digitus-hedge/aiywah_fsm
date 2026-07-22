@@ -598,6 +598,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
     font-size: .875rem;
     font-weight: 600;
     color: var(--text-heading);
+     font-family: var(--font-header);
   }
 
   .result-count {
