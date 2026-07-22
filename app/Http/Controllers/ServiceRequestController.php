@@ -142,8 +142,8 @@ class ServiceRequestController extends Controller
         ]);
 
         // Send WhatsApp notification (outside transaction)
-        $this->sendServiceRequestMessage($sr, $this->buildSrRef($sr), 'Pending');
-
+        // $this->sendServiceRequestMessage($sr, $this->buildSrRef($sr), 'Pending');
+        app(\App\Services\WhatsAppService::class)->notifyServiceCreated($sr, 'Pending');
         return response()->json([
             'success'      => true,
             'id'           => $sr->id,
@@ -1081,13 +1081,16 @@ class ServiceRequestController extends Controller
                 ]);
                 return;
             }
-
             $result = $whatsapp->sendServiceRequest(
                 $phone,
                 $client->contact_name,  // {{1}}
                 $srReference,           // {{2}}
-                $status                 // {{3}}
+                $status,                // {{3}}
+                'en_US',
+                $sr,                    // populates service_request_id + enables fan-out
+                $client                 // populates client_id + secondary contacts
             );
+
 
             Log::info('WhatsApp service status sent', [
                 'sr_id'  => $sr->id,

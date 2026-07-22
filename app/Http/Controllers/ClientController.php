@@ -428,11 +428,13 @@ class ClientController extends Controller
                 return;
             }
 
-            $result = (new \App\Services\WhatsAppService())->sendOrderTest(
+           $result = app(\App\Services\WhatsAppService::class)->sendRegistration(
                 $phone,
-                $client->contact_name,    // {{1}} name
-                $client->unique_code,     // {{2}} used as "order number"
-                'in 3-5 business days'    // {{3}} any placeholder text
+                $client->contact_name,   // {{1}} name
+                $client->unique_code,    // token (unused by template, kept for the log)
+                'en_US',
+                null,                    // no ServiceRequest tied to registration
+                $client                  // pass the model → enables notify=1 fan-out
             );
 
             \Log::info('WhatsApp registration sent', [
@@ -475,7 +477,6 @@ class ClientController extends Controller
                 'primary_country' => $validated['primary_country'] ?? null,
                 'primary_mobile'  => $validated['primary_mobile'],
             ]);
-
             $this->syncMobiles($client, $request, $validated);
             $this->syncProjects($client, $validated);
 
@@ -597,17 +598,15 @@ class ClientController extends Controller
 
     private function syncMobiles(Client $client, Request $request, array $validated): void
     {
-        // Stakeholders only — primary mobile now lives on the clients table itself
         foreach ($request->input('stakeholders', []) as $sh) {
             if (empty($sh['mobile'])) {
                 continue;
             }
             $client->mobiles()->create([
                 'name'    => $sh['name'] ?? null,
-                'country' => $sh['country'],
+                'country' => $sh['country'] ?? null,
                 'mobile'  => $sh['mobile'],
                 'notify'  => (int) ($sh['notify'] ?? 0),
-
             ]);
         }
     }
