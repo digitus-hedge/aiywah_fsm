@@ -164,6 +164,7 @@
 </div>
 
 {{-- STATS STRIP --}}
+
 <div class="stats-strip">
   @foreach($statuses as $s)
     <div class="stat-card">
@@ -172,6 +173,7 @@
     </div>
   @endforeach
 </div>
+
 
 {{-- FILTER BAR --}}
 <div class="filter-bar">
