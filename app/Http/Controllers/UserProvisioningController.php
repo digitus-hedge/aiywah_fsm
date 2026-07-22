@@ -68,6 +68,7 @@ class UserProvisioningController extends Controller
             'id'       => $u->id,
             'name'     => $u->name,
             'email'    => $u->email,
+             'phone'    => $u->phone ?? '',
             'role'     => optional($u->role)->name ?? '',
             'roleId'   => optional($u->role)->code ?? '',
             'domains'  => $u->serviceDomains->pluck('id')->values()->all(),
@@ -88,6 +89,7 @@ class UserProvisioningController extends Controller
     $data = $request->validate([
         'name'       => 'required|string|max:255',
         'email'      => 'required|email:rfc,dns|max:255|unique:users,email',
+         'phone'      => 'nullable|string|max:20',
         'password'   => 'required|string|min:8',
         'role'       => 'required|string',
         'roleId'     => 'required|string|exists:roles,code',
@@ -100,6 +102,7 @@ class UserProvisioningController extends Controller
     $user = User::create([
         'name'              => $data['name'],
         'email'             => strtolower($data['email']),
+        'phone'             => $data['phone'] ?? null,
         'password'          => Hash::make($data['password']),
         'role_id'           => Role::where('code', $data['roleId'])->value('id'),
         'fd_grants'         => $data['fdGrants'] ?? [],
@@ -148,6 +151,7 @@ public function update(Request $request, User $user)
     $user->update([
         'name'              => $data['name'],
         'email'             => strtolower($data['email']),
+        'phone'             => $data['phone'] ?? null,
         'role_id'           => Role::where('code', $data['roleId'])->value('id'),
         'fd_grants'         => $data['fdGrants'] ?? [],
         'email_verified_at' => $emailChanged ? now() : $user->email_verified_at,

@@ -1490,6 +1490,8 @@ async function saveContact() {
 
 function fillReporters(contacts) {
   const sel = document.getElementById('reporter');
+  sel.innerHTML = '<option value="">Select contact person…</option>';
+
   sel.innerHTML = '<option value="">Select Contact Person…</option>';
   (contacts || []).forEach(c => {
     const o = document.createElement('option');
