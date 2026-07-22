@@ -1678,12 +1678,21 @@ async function verify(val) {
   }
 
   /* ── Priority ── */
-  function setPriority(el, val) {
-    document.querySelectorAll('#prGroup .pr-pill').forEach(p => p.classList.remove('on'));
+  function setPriority(el, value) {
+    // Remove selection from all pills
+    document.querySelectorAll('#prGroup .pr-pill').forEach(pill => {
+        pill.classList.remove('on');
+    });
+
+    // Add selection to clicked pill
     el.classList.add('on');
-    document.getElementById('priorityVal').value = val;
-    pv('pvPriority', val);
-  }
+
+    // Store selected value
+    document.getElementById('priorityVal').value = value;
+
+    // Update preview
+    pv('pvPriority', value);
+}
 
   /* ── Description ── */
   function onDesc(el) {

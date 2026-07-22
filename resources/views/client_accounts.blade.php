@@ -812,7 +812,6 @@ function addStakeholder(prefill) {
           <i class="bi bi-whatsapp"></i>
           <span>Send WhatsApp updates</span>
         </div>
-        <input type="hidden" name="stakeholders[${idx}][notify]" value="0">
         <label class="sh-toggle">
           <input type="checkbox" name="stakeholders[${idx}][notify]" value="1" ${on ? 'checked' : ''} onchange="syncSummary()">
           <span class="sh-toggle-track"><span class="sh-toggle-thumb"></span></span>

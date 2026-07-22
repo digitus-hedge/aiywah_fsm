@@ -61,6 +61,33 @@ class WhatsAppService
             . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
     }
 
+    /**
+     * Return [name => ..., phone => ...] for every secondary contact
+     * of the client that has notify = 1 and a usable mobile number.
+     * The client's primary contact is handled separately by the caller.
+     */
+    private function notifiableSecondaryContacts($client): array
+    {
+        if (!$client || !method_exists($client, 'mobiles')) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach ($client->mobiles()->where('notify', 1)->get() as $m) {
+            $phone = $this->formatWhatsAppNumber($m->country, $m->mobile);
+            if (!$phone) {
+                continue;
+            }
+            $out[] = [
+                'name'  => $m->name ?: ($client->contact_name ?? ''),
+                'phone' => $phone,
+            ];
+        }
+
+        return $out;
+    }
+
     /* =========================================================
        Core logged sender — ONE definition only.
        $refOverride lets callers supply an SR reference string
@@ -116,6 +143,17 @@ class WhatsAppService
                 'phone'  => $phone,
                 'wamid'  => $wamid,
             ]);
+
+            // Surface Meta's rejection reason directly when the send didn't return a wamid.
+            if (!$wamid) {
+                Log::warning('WhatsApp NOT accepted by Meta', [
+                    'log_id'   => $log?->id,
+                    'phone'    => $phone,
+                    'template' => $template,
+                    'error'    => $result['error'] ?? null,
+                    'response' => $result,
+                ]);
+            }
         } catch (\Throwable $e) {
             $log?->update([
                 'status' => WhatsappLog::STATUS_FAILED,
@@ -131,6 +169,10 @@ class WhatsAppService
        Public senders — prefer these; they populate the log fully.
        ========================================================= */
 
+    /**
+     * SR status update → template: status_change
+     * Body vars: {{1}} name, {{2}} SR ref, {{3}} status
+     */
     public function notifyServiceStatus(
         \App\Models\ServiceRequest $sr,
         string $status,
@@ -155,7 +197,7 @@ class WhatsAppService
             $client,
             $phone,
             $event,
-            'jaspers_market_order_confirmation_v1',
+            'status_change',
             [[
                 "type"       => "body",
                 "parameters" => [
@@ -166,6 +208,85 @@ class WhatsAppService
             ]],
             "Hi {$client->contact_name}, your request {$ref} status: {$status}"
         );
+
+        // Secondary contacts with notify = 1
+        foreach ($this->notifiableSecondaryContacts($client) as $c) {
+            $this->sendLogged(
+                $sr,
+                $client,
+                $c['phone'],
+                $event,
+                'status_change',
+                [[
+                    "type"       => "body",
+                    "parameters" => [
+                        ["type" => "text", "text" => (string) $c['name']],
+                        ["type" => "text", "text" => (string) $ref],
+                        ["type" => "text", "text" => (string) $status],
+                    ],
+                ]],
+                "Hi {$c['name']}, request {$ref} status: {$status}"
+            );
+        }
+    }
+
+    /**
+     * SR creation → template: sr_creation
+     * Body vars: {{1}} name, {{2}} SR ref   (status is fixed text in the template)
+     */
+    public function notifyServiceCreated(
+        \App\Models\ServiceRequest $sr,
+        string $status = 'Pending',
+        string $event = 'SR Created'
+    ): void {
+        $client = $sr->client;
+        if (!$client) {
+            Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+            return;
+        }
+
+        $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
+        if (!$phone) {
+            Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
+            return;
+        }
+
+        $ref = $this->buildRef($sr);
+
+        $this->sendLogged(
+            $sr,
+            $client,
+            $phone,
+            $event,
+            'sr_creation',
+            [[
+                "type"       => "body",
+                "parameters" => [
+                    ["type" => "text", "text" => (string) $client->contact_name],
+                    ["type" => "text", "text" => (string) $ref],
+                ],
+            ]],
+            "Hi {$client->contact_name}, your request {$ref} was created"
+        );
+
+        // Secondary contacts with notify = 1
+        foreach ($this->notifiableSecondaryContacts($client) as $c) {
+            $this->sendLogged(
+                $sr,
+                $client,
+                $c['phone'],
+                $event,
+                'sr_creation',
+                [[
+                    "type"       => "body",
+                    "parameters" => [
+                        ["type" => "text", "text" => (string) $c['name']],
+                        ["type" => "text", "text" => (string) $ref],
+                    ],
+                ]],
+                "Hi {$c['name']}, request {$ref} was created"
+            );
+        }
     }
 
     /** Alias kept for existing call sites. */
@@ -183,8 +304,8 @@ class WhatsAppService
     }
 
     /**
-     * Registration. Pass $sr / $client where available so the log row
-     * gets service_request_id and client_id instead of NULL.
+     * Registration → template: client_registration
+     * Body vars: {{1}} name   (only one variable)
      */
     public function sendRegistration(
         $phone,
@@ -192,9 +313,10 @@ class WhatsAppService
         $token,
         $lang = 'en_US',
         ?\App\Models\ServiceRequest $sr = null,
-        $client = null
+        $client = null,
+        string $status = 'Registered'
     ) {
-        return $this->sendLogged(
+        $log = $this->sendLogged(
             $sr,
             $client ?? (object) ['contact_name' => $contactName],
             $phone,
@@ -204,14 +326,40 @@ class WhatsAppService
                 "type"       => "body",
                 "parameters" => [
                     ["type" => "text", "text" => (string) $contactName],
-                    ["type" => "text", "text" => (string) $token],
                 ],
             ]],
-            "Registration link sent to {$contactName}",
+            "Registration confirmed for {$contactName}",
             $lang
         );
+
+        // Secondary contacts with notify = 1 (only when a real client model is passed)
+        if ($client instanceof \App\Models\Client) {
+            foreach ($this->notifiableSecondaryContacts($client) as $c) {
+                $this->sendLogged(
+                    $sr,
+                    $client,
+                    $c['phone'],
+                    'Client Registration',
+                    'client_registration',
+                    [[
+                        "type"       => "body",
+                        "parameters" => [
+                            ["type" => "text", "text" => (string) $c['name']],
+                        ],
+                    ]],
+                    "Registration confirmed for {$c['name']}",
+                    $lang
+                );
+            }
+        }
+
+        return $log;
     }
 
+    /**
+     * Order confirmation test → template: sr_creation
+     * Body vars: {{1}} name, {{2}} SR ref/code   (status is fixed text)
+     */
     public function sendOrderTest(
         $phone,
         $contactName,
@@ -226,13 +374,12 @@ class WhatsAppService
             $client ?? (object) ['contact_name' => $contactName],
             $phone,
             'Order Confirmation',
-            'jaspers_market_order_confirmation_v1',
+            'sr_creation',
             [[
                 "type"       => "body",
                 "parameters" => [
                     ["type" => "text", "text" => (string) $contactName],
                     ["type" => "text", "text" => (string) $uniqueCode],
-                    ["type" => "text", "text" => (string) $delivery],
                 ],
             ]],
             "Hi {$contactName}, order {$uniqueCode} — {$delivery}",
@@ -242,8 +389,10 @@ class WhatsAppService
     }
 
     /**
-     * Legacy signature. Pass $sr and $client from the call site,
-     * otherwise service_request_id / client_id will be NULL.
+     * Legacy signature → template: status_change
+     * Body vars: {{1}} name, {{2}} SR ref, {{3}} status
+     * Pass $sr and $client from the call site, otherwise
+     * service_request_id / client_id will be NULL.
      */
     public function sendServiceRequest(
         $phone,
@@ -254,12 +403,12 @@ class WhatsAppService
         ?\App\Models\ServiceRequest $sr = null,
         $client = null
     ) {
-        return $this->sendLogged(
+        $log = $this->sendLogged(
             $sr,
             $client ?? (object) ['contact_name' => $contactName],
             $phone,
             'SR Status Update',
-            'jaspers_market_order_confirmation_v1',
+            'status_change',
             [[
                 "type"       => "body",
                 "parameters" => [
@@ -272,6 +421,32 @@ class WhatsAppService
             $lang,
             $srReference
         );
+
+        // Secondary contacts with notify = 1 (only when a real client model is passed)
+        if ($client instanceof \App\Models\Client) {
+            foreach ($this->notifiableSecondaryContacts($client) as $c) {
+                $this->sendLogged(
+                    $sr,
+                    $client,
+                    $c['phone'],
+                    'SR Status Update',
+                    'status_change',
+                    [[
+                        "type"       => "body",
+                        "parameters" => [
+                            ["type" => "text", "text" => (string) $c['name']],
+                            ["type" => "text", "text" => (string) $srReference],
+                            ["type" => "text", "text" => (string) $status],
+                        ],
+                    ]],
+                    "Hi {$c['name']}, request {$srReference} status: {$status}",
+                    $lang,
+                    $srReference
+                );
+            }
+        }
+
+        return $log;
     }
 
     /** Raw (unlogged) template send with a document header. */
