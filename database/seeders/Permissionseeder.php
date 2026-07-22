@@ -34,20 +34,22 @@ class PermissionSeeder extends Seeder
             ['inquiry_approval',  'Inquiry Approval',       'Workflow', 'clipboard',    'inquiry-approval.index', 7],
             ['client_accounts',   'Client Accounts',        'Workflow', 'users',        'clients.create',         8],
             ['dispatch_engine',   'Dispatch Engine',        'Workflow', 'user-check',   'dispatch_engine',        9],
-            ['qc_review',         'QC Review',              'Workflow', 'check-circle', null,                     10],
+            ['assigned',          'Approved SR',            'Workflow', 'clipboard',    'assigned',               10],
+            ['qc_review',         'QC Review',              'Workflow', 'check-circle', null,                     11],
+            ['completed',         'Completed SR',           'Workflow', 'clipboard',    'completed',              12],
 
             // Finance
-            ['quotation_desk',    'Quotation Desk',         'Finance',  'file-text',    null,                     11],
-            ['invoice_panel',     'Invoice Panel',          'Finance',  'file',         null,                     12],
-            ['expense_ledger',    'Expense Ledger',         'Finance',  'check-square', null,                    13],
+            ['quotation_desk',    'Quotation Desk',         'Finance',  'file-text',    null,                     13],
+            ['invoice_panel',     'Invoice Panel',          'Finance',  'file',         null,                     14],
+            ['expense_ledger',    'Expense Ledger',         'Finance',  'check-square', null,                    15],
 
             // System
-            ['analytics',         'Analytics',              'System',   'bar-chart-2',  null,                    14],
-            ['user_directory',    'User Directory',         'System',   'database',     'user_directory',        15],
-            ['user_provisioning', 'User Provisioning',      'System',   'shield',       'user_provisioning',     16],
-            ['master_data',       'Master Data',            'System',   'database',     'masters.index',         17],
-            ['wa_notification_log','WhatsApp Notifications','System',   'settings',     'wa_notification_log',   18],
-            ['system_config',     'System Config',          'System',   'settings',     null,                    19],
+            ['analytics',         'Analytics',              'System',   'bar-chart-2',  null,                    16],
+            ['user_directory',    'User Directory',         'System',   'database',     'user_directory',        17],
+            ['user_provisioning', 'User Provisioning',      'System',   'shield',       'user_provisioning',     18],
+            ['master_data',       'Master Data',            'System',   'database',     'masters.index',         19],
+            ['wa_notification_log','WhatsApp Notifications','System',   'settings',     'wa_notification_log',   20],
+            ['system_config',     'System Config',          'System',   'settings',     null,                    21],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -73,14 +75,14 @@ class PermissionSeeder extends Seeder
             // Super Admin — everything.
             'SA' => [
                 'dashboard' => 'yes', 'sr_registration' => 'yes', 'sr_explorer' => 'yes', 'kanban_view' => 'yes',
-                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
+                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes','assigned' => 'yes','completed' => 'yes',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
                 'analytics' => 'yes','user_directory' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','system_config' => 'yes',
             ],
             // Admin — everything except master System Config.
             'AD' => [
                 'dashboard' => 'yes' ,'sr_registration' => 'yes', 'sr_explorer' => 'yes', 'kanban_view' => 'yes',
-                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
+                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes','assigned' => 'yes','completed' => 'yes',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
                 'analytics' => 'yes','user_directory' => 'yes','user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','system_config' => 'no',
             ],

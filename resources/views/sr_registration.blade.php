@@ -1491,12 +1491,14 @@ async function saveContact() {
 function fillReporters(contacts) {
   const sel = document.getElementById('reporter');
   sel.innerHTML = '<option value="">Select contact person…</option>';
+
   (contacts || []).forEach(c => {
     const o = document.createElement('option');
     o.value = c.name || '';
-    o.textContent = c.name || '';
+    o.textContent = c.primary ? `${c.name} (Primary)` : (c.name || '');
     sel.appendChild(o);
   });
+
   document.getElementById('addCtBtn').disabled = false;
   pv('pvReporter', '—');
 }
