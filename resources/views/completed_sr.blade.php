@@ -137,7 +137,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 
 <div class="pg-header" style="background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);">
   <h4><i class="bi bi-check2-circle me-2"></i>Completed Service Requests</h4>
-  <p>Closed jobs with worker punch records, completion totals and signed client acceptance.</p>
+  <p>Closed jobs with worker punch records, completion totals and signed customer acceptance.</p>
   <div class="meta-row">
     <span class="meta-badge"><i class="bi bi-clock-history me-1"></i>Punch Log</span>
     <span class="meta-badge"><i class="bi bi-cash-coin me-1"></i>Completion Totals</span>
@@ -169,7 +169,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
   <div class="filter-group">
     <div class="filter-label">Search</div>
     <input class="filter-control filter-search" type="text" name="search"
-           placeholder="SR ID, client, worker…" oninput="debounceFilter()"/>
+           placeholder="SR ID, customer, worker…" oninput="debounceFilter()"/>
   </div>
   <div class="filter-group">
     <div class="filter-label">Warranty</div>
@@ -209,7 +209,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
       <thead>
         <tr>
           <th>SR ID</th>
-          <th>Client</th>
+          <th>Customer</th>
           <th>Site / Location</th>
           <th>Worker</th>
           <th>Duration</th>
@@ -234,7 +234,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
             $duration   = $punch->duration_label ?? '—';
             $worker     = optional($punch?->user)->name ?? 'Unassigned';
 
-            $isOow = ($sr->is_oow ?? false) || ($sr->warranty_status ?? '') === 'Out of Warranty';
+           $isOow = ($sr->warranty_scope ?? 'iw') === 'oow';
 
             // Proof URLs (before/after photos are images, signature is a PDF)
             $beforeUrl = $punch && $punch->start_photo_path  ? \Illuminate\Support\Facades\Storage::url($punch->start_photo_path)  : null;
@@ -344,7 +344,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
           <span class="sr-detail-value" id="sr-m-worker">—</span>
         </div>
         <div class="sr-detail-item">
-          <span class="sr-detail-label"><i class="bi bi-telephone"></i>Client Contact</span>
+          <span class="sr-detail-label"><i class="bi bi-telephone"></i>Customer Contact</span>
           <span class="sr-detail-value" id="sr-m-contact">—</span>
         </div>
         <div class="sr-detail-item">
@@ -622,5 +622,13 @@ function resetFilters(){
   currentPage = 1;
   applyFilters();
 }
+
+// Prime the export link on first paint.
+document.addEventListener('DOMContentLoaded', function(){
+  var form = document.getElementById('filterForm');
+  var params = new URLSearchParams(new FormData(form));
+  var exportBtn = document.getElementById('exportBtn');
+  if (exportBtn) exportBtn.href = window.location.pathname + "?" + params.toString() + "&export=csv";
+});
 </script>
 @endpush

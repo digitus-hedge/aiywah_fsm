@@ -241,7 +241,7 @@
 
   {{-- FILTER BAR --}}
   <div class="filter-bar">
-    <div class="filter-group"><div class="filter-label">Search</div><input class="filter-control" type="text" id="inv-search" placeholder="SR ID, client name…"/></div>
+    <div class="filter-group"><div class="filter-label">Search</div><input class="filter-control" type="text" id="inv-search" placeholder="SR ID, customer name…"/></div>
     <div class="filter-group"><div class="filter-label">Date From</div><input class="filter-control" type="date" id="inv-date"/></div>
     <div class="filter-actions"><button class="btn-ghost" onclick="invResetFilters()"><i class="bi bi-x-circle"></i>Reset</button></div>
   </div>
@@ -346,7 +346,7 @@
     <div class="pa-scroll">
       <table class="pa-tbl">
         <thead>
-          <tr><th>SR ID</th><th>Client</th><th>Site</th><th>Invoice Code</th><th>Submitted</th><th>Pending</th><th style="text-align:center;width:180px;">Action</th></tr>
+          <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>Invoice Code</th><th>Submitted</th><th>Pending</th><th style="text-align:center;width:180px;">Action</th></tr>
         </thead>
         <tbody id="ph-tbody"></tbody>
       </table>
@@ -368,7 +368,7 @@
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">
           <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><i class="bi bi-1-circle-fill" style="color:#9a8053;flex-shrink:0;"></i>Commit the Invoice PDF to the SR record.</div>
           <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><i class="bi bi-2-circle-fill" style="color:#9a8053;flex-shrink:0;"></i>Forward to <strong>Head of Projects</strong> for final approval.</div>
-          <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><i class="bi bi-3-circle-fill" style="color:#9a8053;flex-shrink:0;"></i>On HoP approval → Status:<strong>Completed</strong> + WhatsApp summary to client.</div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:.8rem;"><i class="bi bi-3-circle-fill" style="color:#9a8053;flex-shrink:0;"></i>On HoP approval → Status:<strong>Completed</strong> + WhatsApp summary to customer.</div>
         </div>
         <div style="padding:9px 12px;background:rgba(154,128,83,.07);border:1px solid rgba(154,128,83,.2);border-radius:7px;font-size:.78rem;color:#9a8053;display:flex;align-items:center;gap:8px;">
           <i class="bi bi-info-circle"></i>Cannot be undone once the invoice is committed.
@@ -395,7 +395,7 @@
         <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:14px;">Confirm Head of Projects has approved the invoice for <strong id="hop-sr" style="color:var(--text-heading);"></strong>.</p>
         <div style="padding:12px 14px;border-radius:8px;background:rgba(154,128,83,.07);border:1px solid rgba(154,128,83,.2);display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
           <i class="bi bi-arrow-right-circle-fill" style="color:#9a8053;flex-shrink:0;margin-top:2px;"></i>
-          <div style="font-size:.8rem;color:#9a8053;"><strong>Status: Pending Invoice → Completed</strong><br/><span style="opacity:.8;font-size:.76rem;">SR fully closed. Digital summary and feedback link dispatched to client via WhatsApp.</span></div>
+          <div style="font-size:.8rem;color:#9a8053;"><strong>Status: Pending Invoice → Completed</strong><br/><span style="opacity:.8;font-size:.76rem;">SR fully closed. Digital summary and feedback link dispatched to customer via WhatsApp.</span></div>
         </div>
       </div>
       <div class="modal-foot">
@@ -629,7 +629,7 @@ function execHopApproval(){
   .then(function(){
     PENDING_HOP.splice(idx,1);
     renderPH();
-    showToast('ok','SR Closed',item.sr+' — Completed. WhatsApp summary sent to client.');
+    showToast('ok','SR Closed',item.sr+' — Completed. WhatsApp summary sent to customer.');
   })
   .catch(function(e){ showToast('err','Approval Failed', e.message); });
 }

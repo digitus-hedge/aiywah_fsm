@@ -1077,7 +1077,7 @@
             </div>
             <div>
               <h6>Customer Verification</h6>
-              <span class="fc-sub">Search by client name, code or mobile — details load automatically</span>
+              <span class="fc-sub">Search by customer name, code or mobile — details load automatically</span>
             </div>
             <div class="fc-step" style="background:#9A7B4F;">1</div>
           </div>
@@ -1092,7 +1092,7 @@
                     <i class="bi bi-search"></i>
                   </span>
                   <input type="text" class="form-control" id="custCode" name="customer_code"
-                    placeholder="Client name, unique code, or mobile number"
+                    placeholder="Customer name, unique code, or mobile number"
                     maxlength="60" autocomplete="off"
                     oninput="onCode(this.value)" />
                   <div class="lk-spin">
@@ -1100,12 +1100,12 @@
                   </div>
                   <i class="bi bi-check-circle-fill lk-ok"></i>
                 </div>
-                <div class="form-hint"><i class="bi bi-search"></i>Search by Client Name, Unique Code or Primary Mobile.</div>
+                <div class="form-hint"><i class="bi bi-search"></i>Search by Customer Name, Unique Code or Primary Mobile.</div>
                 {{-- hidden fields posted to controller --}}
                 <input type="hidden" id="customerId" name="customer_id" />
                 <input type="hidden" id="customerName" name="customer_name" />
                 <div class="client-reveal" id="clientReveal">
-                  <div><span class="ci-lbl">Client Name</span><span class="ci-val" id="cName">—</span></div>
+                  <div><span class="ci-lbl">Customer Name</span><span class="ci-val" id="cName">—</span></div>
                   <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">—</span></div>
                   <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">—</span></div>
                   <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">—</span></div>
@@ -1121,7 +1121,7 @@
                     <option value="">— Select project —</option>
                   </select>
                 </div>
-                <div class="form-hint"><i class="bi bi-info-circle"></i>All projects for the client load after verification</div>
+                <div class="form-hint"><i class="bi bi-info-circle"></i>All projects for the customer load after verification</div>
               </div>
 
               {{-- Site (auto-filled, read-only) --}}
@@ -1181,7 +1181,7 @@
   <div class="iw" style="display:flex;gap:6px;">
     <span class="ii"><i class="bi bi-person"></i></span>
     <select class="form-control" id="reporter" name="reported_by" onchange="onReporterChange(this)" style="flex:1;">
-      <option value="">Select client first…</option>
+      <option value="">Select customer first…</option>
     </select>
     <button type="button" class="btn-add-ct" id="addCtBtn" onclick="openCtModal()" title="Add contact person" disabled>
       <i class="bi bi-plus-lg"></i>
@@ -1325,7 +1325,7 @@
           {{-- RIGHT CARD 2 · Tips --}}
           <div class="tips-card">
             <div class="tips-lbl">How to fill this form</div>
-            <div class="tip"><i class="bi bi-1-circle-fill"></i>Search the client by name, code or mobile — details load automatically.</div>
+            <div class="tip"><i class="bi bi-1-circle-fill"></i>Search the customer by name, code or mobile — details load automatically.</div>
             <div class="tip"><i class="bi bi-2-circle-fill"></i>Select a project — the site auto-fills.</div>
             <div class="tip"><i class="bi bi-3-circle-fill"></i>Pick a service type, add the reporter name, and set priority.</div>
             <div class="tip"><i class="bi bi-4-circle-fill"></i>Write a clear description (min 20 characters).</div>
@@ -1394,7 +1394,7 @@
 
   /* ── Init ── */
   document.addEventListener('DOMContentLoaded', () => {
-    setAlert('warning', '⏳ Search a client to begin.');
+    setAlert('warning', '⏳ Search a customer to begin.');
   });
 
   /* ── Alert bar ── */
@@ -1437,7 +1437,7 @@
   const CONTACT_STORE_URL = "{{ url('/service-requests/contacts') }}"; // POST
 
 function openCtModal() {
-  if (!window.__clientId) { toast('error','Validation','Verify a client first.'); return; }
+  if (!window.__clientId) { toast('error','Validation','Verify a customer first.'); return; }
   document.getElementById('ctName').value = '';
   document.getElementById('ctMobile').value = '';
   document.getElementById('ctNotify').checked = false;
@@ -1533,7 +1533,7 @@ function onReporterChange(sel) {
   pv('pvCode', '—');
   pv('pvProject', '—');
   pv('pvSite', '—');
-  setAlert('warning', '⏳ Search by client name, code or mobile.');
+  setAlert('warning', '⏳ Search by customer name, code or mobile.');
 
   lastVerifiedTerm = null;
 
@@ -1582,7 +1582,7 @@ async function verify(val) {
         const box = document.getElementById('clientReveal');
         box.style.gridTemplateColumns = '';   // back to the 4-column grid
         box.innerHTML = `
-          <div><span class="ci-lbl">Client Name</span><span class="ci-val" id="cName">—</span></div>
+          <div><span class="ci-lbl">Customer Name</span><span class="ci-val" id="cName">—</span></div>
           <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">—</span></div>
           <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">—</span></div>
           <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">—</span></div>`;
@@ -1628,8 +1628,8 @@ async function verify(val) {
         toast('success', 'Customer Verified', c.name);
       } else {
         lastVerifiedTerm = null;
-        setAlert('danger', '❌ No client found. Check the name, code or mobile.');
-        toast('error', 'Not Found', 'No active client for this search.');
+        setAlert('danger', '❌ No customer found. Check the name, code or mobile.');
+        toast('error', 'Not Found', 'No active customer for this search.');
       }
     } catch (e) {
       lastVerifiedTerm = null;
@@ -1655,7 +1655,7 @@ async function verify(val) {
       box.appendChild(row);
     });
     box.classList.add('show');
-    setAlert('primary', `ℹ️ ${list.length} matches — click the client you want.`);
+    setAlert('primary', `ℹ️ ${list.length} matches — click the customer you want.`);
   }
 
   /* Click a match → fill the input with the name, then verify it */
@@ -1781,7 +1781,7 @@ async function verify(val) {
     const verified = document.getElementById('lkWrap').classList.contains('verified');
 
     if (!verified || !customerId) {
-      toast('error', 'Validation', 'Please search and verify a client first.');
+      toast('error', 'Validation', 'Please search and verify a customer first.');
       return;
     }
     if (!project) {
@@ -1898,7 +1898,7 @@ async function verify(val) {
     renderFiles();
     ['pvCode', 'pvProject', 'pvSite', 'pvType', 'pvReporter', 'pvPriority', 'pvDesc'].forEach(id => pv(id, '—'));
     pv('pvFiles', '0 files');
-    setAlert('warning', '⏳ Search a client to begin.');
+    setAlert('warning', '⏳ Search a customer to begin.');
   }
 
   

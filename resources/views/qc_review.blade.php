@@ -125,6 +125,17 @@
 .qc-wrap .proof-thumb-name{font-size:.72rem;font-weight:600;color:var(--text-heading);}
 .qc-wrap .proof-status-ok{color:#15803d;font-size:.7rem;display:flex;align-items:center;gap:3px;font-weight:600;}
 
+.qc-wrap .proof-count-badge{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.65);color:#fff;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:12px;z-index:2;}
+.qc-wrap .proof-strip{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 14px;}
+.qc-wrap .proof-strip:empty{display:none;}
+.qc-wrap .proof-strip-item{width:54px;height:54px;border-radius:7px;overflow:hidden;border:1px solid var(--border-color);cursor:pointer;flex-shrink:0;transition:border-color .15s,transform .12s;}
+.qc-wrap .proof-strip-item:hover{border-color:var(--gold);transform:translateY(-2px);}
+.qc-wrap .proof-strip-item img{width:100%;height:100%;object-fit:cover;display:block;}
+.qc-wrap .proof-strip-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);padding:0 18px 6px;}
+.qc-wrap .lb-nav{display:flex;align-items:center;gap:8px;}
+.qc-wrap .lb-nav button{background:rgba(154,128,83,.1);border:1px solid rgba(154,128,83,.25);color:#9a8053;border-radius:6px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;}
+.qc-wrap .lb-nav button:disabled{opacity:.35;cursor:not-allowed;}
+
 /* EXPENSE SUMMARY */
 .qc-wrap .expense-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;box-shadow:var(--card-shadow);overflow:hidden;}
 .qc-wrap .expense-hdr{padding:13px 18px;border-bottom:1px solid var(--border-color);display:flex;align-items:center;gap:10px;}
@@ -339,12 +350,13 @@
           <div class="proof-grid">
               <div class="proof-thumb" onclick="openLightbox('before')">
                 <div class="proof-img before-photo" id="proof-before">
+                  <span class="proof-count-badge hidden" id="proof-before-count"></span>
                   <i class="bi bi-camera proof-img-icon"></i>
                   <span class="proof-img-label">Before Work</span>
                   <div class="proof-hover-overlay"><i class="bi bi-zoom-in"></i></div>
                 </div>
                 <div class="proof-thumb-foot">
-                  <span class="proof-thumb-name">Start Photo</span>
+                  <span class="proof-thumb-name">Start Photos</span>
                   <span class="proof-status-ok" id="proof-before-status"><i class="bi bi-check-circle-fill"></i>Uploaded</span>
                 </div>
               </div>
@@ -375,6 +387,11 @@
             <i class="bi bi-shield-fill-check"></i>
             All 3 required documents uploaded — Before photo, After photo, and Signed customer acceptance form.
           </div>
+          <div class="proof-strip-label" id="before-strip-label" style="display:none;">All Before Photos</div>
+          <div class="proof-strip" id="before-strip"></div>
+
+          <div class="proof-strip-label" id="after-strip-label" style="display:none;">All After Photos</div>
+          <div class="proof-strip" id="after-strip"></div>
         </div>
 
         {{-- Expense Summary --}}
@@ -439,10 +456,16 @@
       </div>
       <div class="lightbox-img" id="lb-img"></div>
       <div class="lightbox-foot">
-        <span id="lb-filename">before_photo.jpg</span>
-        <button onclick="downloadProof()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(154,128,83,.1);color:#9a8053;border:1px solid rgba(154,128,83,.25);border-radius:6px;font-size:.75rem;font-weight:500;cursor:pointer;">
-          <i class="bi bi-download"></i>Download
-        </button>
+        <span id="lb-filename">—</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="lb-nav" id="lb-nav" style="display:none;">
+            <button id="lb-prev" onclick="lbStep(-1)" title="Previous"><i class="bi bi-chevron-left"></i></button>
+            <button id="lb-next" onclick="lbStep(1)" title="Next"><i class="bi bi-chevron-right"></i></button>
+          </div>
+          <button onclick="downloadProof()" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;background:rgba(154,128,83,.1);color:#9a8053;border:1px solid rgba(154,128,83,.25);border-radius:6px;font-size:.75rem;font-weight:500;cursor:pointer;">
+            <i class="bi bi-download"></i>Download
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -562,25 +585,55 @@ function selectSR(id){
 
 // ---- Proof photos ----
 const proof = selectedSR.proof || {};
-function setProof(elId, statusId, url){
-  const el = document.getElementById(elId);
-  const st = document.getElementById(statusId);
-  if(url){
-    el.style.backgroundImage = `url('${url}')`;
-    el.style.backgroundSize = 'cover';
+
+function setProofSet(type, urls){
+  urls = Array.isArray(urls) ? urls : (urls ? [urls] : []);
+
+  const el     = document.getElementById(`proof-${type}`);
+  const st     = document.getElementById(`proof-${type}-status`);
+  const badge  = document.getElementById(`proof-${type}-count`);
+  const strip  = document.getElementById(`${type}-strip`);
+  const label  = document.getElementById(`${type}-strip-label`);
+  const icon   = el.querySelector('.proof-img-icon');
+
+  if(urls.length){
+    // Hero tile shows the first photo.
+    el.style.backgroundImage    = `url('${urls[0]}')`;
+    el.style.backgroundSize     = 'cover';
     el.style.backgroundPosition = 'center';
-    el.querySelector('.proof-img-icon').style.display = 'none';
-    st.innerHTML = '<i class="bi bi-check-circle-fill"></i>Uploaded';
+    if(icon) icon.style.display = 'none';
+    st.innerHTML   = `<i class="bi bi-check-circle-fill"></i>${urls.length} uploaded`;
     st.style.color = '#15803d';
   } else {
     el.style.backgroundImage = 'none';
-    el.querySelector('.proof-img-icon').style.display = '';
-    st.innerHTML = '<i class="bi bi-x-circle"></i>Missing';
+    if(icon) icon.style.display = '';
+    st.innerHTML   = '<i class="bi bi-x-circle"></i>Missing';
     st.style.color = '#ef4444';
   }
+
+  // Count badge only when there's more than one.
+  if(urls.length > 1){
+    badge.textContent = `1 / ${urls.length}`;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+
+  // Thumbnail strip — only when there's more than one.
+  if(urls.length > 1){
+    label.style.display = '';
+    strip.innerHTML = urls.map((u, i) => `
+      <div class="proof-strip-item" onclick="openLightbox('${type}', ${i})">
+        <img src="${u}" alt="${type} photo ${i + 1}">
+      </div>`).join('');
+  } else {
+    label.style.display = 'none';
+    strip.innerHTML = '';
+  }
 }
-setProof('proof-before', 'proof-before-status', proof.before);
-setProof('proof-after',  'proof-after-status',  proof.after);
+
+setProofSet('before', proof.before);
+setProofSet('after',  proof.after);
 setProofPdf('proof-signature', 'proof-signature-status', proof.signature);
 function setProofPdf(elId, statusId, url){
   const el = document.getElementById(elId);
@@ -773,44 +826,78 @@ function qcFilterQueue(q){
 
 /* ---------- LIGHTBOX ---------- */
 
-let lbCurrentUrl = null;
+let lbCurrentUrl  = null;
+let lbList        = [];
+let lbIndex       = 0;
+let lbTitleBase   = '';
 
-function openLightbox(type){
+function openLightbox(type, index){
   const proof = (selectedSR && selectedSR.proof) || {};
-  let url, title, isPdf = false;
+  let isPdf = false;
+
   if(type === 'before'){
-    url = proof.before;  title = 'Start Photo (Punch In)';
+    lbList = Array.isArray(proof.before) ? proof.before : (proof.before ? [proof.before] : []);
+    lbTitleBase = 'Start Photo (Punch In)';
   } else if(type === 'after'){
-    url = proof.after;   title = 'Finish Photo (Punch Out)';
+    lbList = Array.isArray(proof.after) ? proof.after : (proof.after ? [proof.after] : []);
+    lbTitleBase = 'Finish Photo (Punch Out)';
   } else {
-    url = proof.signature; title = 'Customer Acceptance (Signed PDF)';
+    lbList = proof.signature ? [proof.signature] : [];
+    lbTitleBase = 'Customer Acceptance (Signed PDF)';
     isPdf = true;
   }
 
-  lbCurrentUrl = url || null;
-  document.getElementById('lb-title').textContent = title;
+  lbIndex = Number.isInteger(index) ? index : 0;
+  lbRender(isPdf);
+  document.getElementById('lightbox-modal').classList.add('show');
+}
+
+function lbRender(isPdf){
+  const url = lbList[lbIndex] || null;
+  lbCurrentUrl = url;
+
+  const suffix = lbList.length > 1 ? ` — ${lbIndex + 1} of ${lbList.length}` : '';
+  document.getElementById('lb-title').textContent    = lbTitleBase + suffix;
   document.getElementById('lb-filename').textContent = url ? url.split('/').pop() : 'No file';
 
   const box = document.getElementById('lb-img');
   if(url && isPdf){
     box.style.background = '#525659';
-    box.innerHTML = `<iframe src="${url}#toolbar=1" style="width:100%;height:70vh;border:none;border-radius:6px;" title="${title}"></iframe>`;
+    box.innerHTML = `<iframe src="${url}#toolbar=1" style="width:100%;height:70vh;border:none;border-radius:6px;" title="${lbTitleBase}"></iframe>`;
   } else if(url){
     box.style.background = '#fff';
-    box.innerHTML = `<img src="${url}" style="max-width:100%;max-height:70vh;object-fit:contain;" alt="${title}">`;
+    box.innerHTML = `<img src="${url}" style="max-width:100%;max-height:70vh;object-fit:contain;" alt="${lbTitleBase}">`;
   } else {
     box.style.background = 'var(--surface-2)';
     box.innerHTML = `<i class="bi bi-image" style="font-size:3rem;opacity:.3;"></i><div style="opacity:.5;">No file uploaded</div>`;
   }
-  document.getElementById('lightbox-modal').classList.add('show');
+
+  // Prev/next controls
+  const nav = document.getElementById('lb-nav');
+  if(lbList.length > 1){
+    nav.style.display = 'flex';
+    document.getElementById('lb-prev').disabled = lbIndex === 0;
+    document.getElementById('lb-next').disabled = lbIndex === lbList.length - 1;
+  } else {
+    nav.style.display = 'none';
+  }
 }
+
+function lbStep(delta){
+  const next = lbIndex + delta;
+  if(next < 0 || next >= lbList.length) return;
+  lbIndex = next;
+  lbRender(false);
+}
+
 function closeLightbox(){document.getElementById('lightbox-modal').classList.remove('show');}
+
 function downloadProof(){
   if(!lbCurrentUrl){ showToast('err','Nothing to download','No file is loaded.'); return; }
   const a = document.createElement('a');
   a.href = lbCurrentUrl;
   a.download = lbCurrentUrl.split('/').pop();
-  a.target = '_blank';        // fallback if the browser opens rather than downloads
+  a.target = '_blank';
   document.body.appendChild(a);
   a.click();
   a.remove();

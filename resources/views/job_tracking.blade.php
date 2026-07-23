@@ -510,10 +510,10 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
     </div>
 
     <div class="detail-section">
-      <div class="detail-section-title"><i class="bi bi-buildings"></i>Client &amp; Site</div>
+      <div class="detail-section-title"><i class="bi bi-buildings"></i>Customer &amp; Site</div>
       <div class="detail-grid">
-        <div class="detail-cell"><div class="dc-label">Client</div><div class="dc-value">{{ optional($sr->client)->company_name ?? '—' }}</div></div>
-        <div class="detail-cell"><div class="dc-label">Client Token</div><div class="dc-value gold">{{ optional($sr->client)->unique_code ?? '—' }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Customer</div><div class="dc-value">{{ optional($sr->client)->company_name ?? '—' }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Customer Token</div><div class="dc-value gold">{{ optional($sr->client)->unique_code ?? '—' }}</div></div>
         <div class="detail-cell"><div class="dc-label">Site</div><div class="dc-value">{{ $siteName ?? '—' }}</div></div>
         <div class="detail-cell full">
           <div class="dc-label">Full Address</div>

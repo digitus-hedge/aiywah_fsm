@@ -8,6 +8,7 @@ use App\Models\ServiceRequest;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\NotificationLog;
+use App\Models\PunchPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -125,9 +126,10 @@ class WorkerpunchController extends Controller
     public function upload(Request $request)
     {
         $data = $request->validate([
-            'sr_id' => ['required', 'integer'],
-            'type'  => ['required', 'in:before,after'],
-            'file'  => ['required', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp'],
+            'sr_id'   => ['required', 'integer'],
+            'type'    => ['required', 'in:before,after'],
+            'files'   => ['required', 'array', 'min:1', 'max:10'],
+            'files.*' => ['required', 'file', 'max:8192', 'mimes:jpg,jpeg,png,webp'],
         ]);
 
         $punch = $this->openPunch($request, $data['sr_id']);
@@ -137,10 +139,38 @@ class WorkerpunchController extends Controller
             'after'  => 'finish_photo_path',
         };
 
-        $path = $request->file('file')->store("punches/{$punch->id}", 'public');
-        $punch->update([$column => $path]);
+        $existing = $punch->photos()->where('type', $data['type'])->count();
+        abort_if($existing + count($data['files']) > 10, 422, 'Maximum 10 photos per stage.');
 
-        return response()->json(['ok' => true, 'path' => $path, 'type' => $data['type']]);
+        $saved = [];
+
+        DB::transaction(function () use ($request, $punch, $data, $column, &$saved, $existing) {
+            foreach ($request->file('files') as $i => $file) {
+                $path = $file->store("punches/{$punch->id}/{$data['type']}", 'public');
+
+                $photo = PunchPhoto::create([
+                    'punch_id'   => $punch->id,
+                    'type'       => $data['type'],
+                    'path'       => $path,
+                    'sort_order' => $existing + $i,
+                ]);
+
+                $saved[] = ['id' => $photo->id, 'url' => $photo->url];
+            }
+
+            // Mirror the first photo into the legacy column so the punch-out
+            // gate and the QC/invoice views keep working.
+            if (blank($punch->$column)) {
+                $punch->update([$column => $punch->photos()->where('type', $data['type'])->first()->path]);
+            }
+        });
+
+        return response()->json([
+            'ok'     => true,
+            'type'   => $data['type'],
+            'photos' => $saved,
+            'count'  => $punch->photos()->where('type', $data['type'])->count(),
+        ]);
     }
 
     /** Log one material line against the open punch. */
@@ -288,5 +318,32 @@ class WorkerpunchController extends Controller
             'materials_subtotal' => $subtotal,
             'grand_total'        => $subtotal + (float) ($punch->labour_charge ?? 0),
         ])->save();
+    }
+    public function deletePhoto(Request $request)
+    {
+        $data = $request->validate([
+            'sr_id'    => ['required', 'integer'],
+            'photo_id' => ['required', 'integer'],
+        ]);
+
+        $punch = $this->openPunch($request, $data['sr_id']);
+        $photo = PunchPhoto::where('punch_id', $punch->id)->findOrFail($data['photo_id']);
+
+        $type   = $photo->type;
+        $column = $type === 'before' ? 'start_photo_path' : 'finish_photo_path';
+
+        DB::transaction(function () use ($photo, $punch, $type, $column) {
+            Storage::disk('public')->delete($photo->path);
+            $photo->delete();
+
+            // Re-point the legacy column at whatever is now first (or null).
+            $next = $punch->photos()->where('type', $type)->first();
+            $punch->update([$column => $next?->path]);
+        });
+
+        return response()->json([
+            'ok'    => true,
+            'count' => $punch->photos()->where('type', $type)->count(),
+        ]);
     }
 }

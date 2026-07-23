@@ -168,7 +168,7 @@
   <div class="filter-search">
     <i class="bi bi-search"></i>
     <input type="text" class="form-control" id="searchInput"style="padding: .38rem 1.8rem;"
-           placeholder="Search SR ID, client, site…" oninput="applyFilter()"/>
+           placeholder="Search SR ID, customer, site…" oninput="applyFilter()"/>
   </div>
   <div style="display:flex;align-items:center;gap:6px;">
     <label>Status</label>

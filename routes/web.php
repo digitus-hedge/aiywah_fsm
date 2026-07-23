@@ -17,7 +17,8 @@ use App\Services\WhatsAppService;
 use App\Http\Controllers\WhatsappLogController;
 use App\Http\Controllers\CompletedService;
 use App\Http\Controllers\AssignedServiceRequestController;
-
+use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\Auth\WorkerLoginController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -79,6 +80,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/service-requests/{serviceRequest}/forward', [ServiceRequestController::class, 'forward'])->name('service-requests.forward');
     Route::post('/service-requests/{serviceRequest}/reject', [ServiceRequestController::class, 'reject'])->name('service-requests.reject');
 
+    Route::post('/service-requests/{serviceRequest}/additional', [ServiceRequestController::class, 'additionalWork'])->name('service-requests.additional');
 
     /* ---- Service Request ---- */
     Route::get('/sr-registration', [ServiceRequestController::class, 'create'])->name('sr_registration');
@@ -158,6 +160,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/assigned-sr',      [AssignedServiceRequestController::class, 'index'])->name('assigned');
     Route::get('/assigned-sr/{id}', [AssignedServiceRequestController::class, 'show'])->name('assigned.show');
+
+    // Activity Logs
+    Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log');
+    Route::get('/activity-log/{activityLog}', [ActivityLogController::class, 'show'])->name('activity-log.view');
     
     });
 
@@ -210,41 +216,42 @@ Route::middleware('auth')->group(function () {
         Route::delete('/sla-matrix/delete/{id}', [MasterController::class, 'deleteSlaMatrix'])->name('sla-matrix.delete');
         Route::post('/sla-matrix/save-all', [MasterController::class, 'saveAllSla'])->name('sla-matrix.save-all');
 
-        // WhatsApp Templates
-        Route::post('/whatsapp-template/store', [MasterController::class, 'storeWhatsappTemplate'])->name('whatsapp-template.store');
-        Route::put('/whatsapp-template/update/{id}', [MasterController::class, 'updateWhatsappTemplate'])->name('whatsapp-template.update');
-        Route::delete('/whatsapp-template/delete/{id}', [MasterController::class, 'deleteWhatsappTemplate'])->name('whatsapp-template.delete');
-        Route::post('/whatsapp-template/status/{id}', [MasterController::class, 'changeWhatsappTemplateStatus'])->name('whatsapp-template.status');
-
-        // Activity Logs
-        Route::get('/activity-logs', [MasterController::class, 'activityLogs'])->name('activity-logs');
-        Route::get('/activity-log/{id}', [MasterController::class, 'viewActivityLog'])->name('activity-log.view');
-
         // AJAX read APIs
         Route::get('/ajax/categories', [MasterController::class, 'ajaxCategories'])->name('ajax.categories');
         Route::get('/ajax/domains/{category}', [MasterController::class, 'ajaxDomains'])->name('ajax.domains');
         Route::get('/ajax/expenses', [MasterController::class, 'ajaxExpenses'])->name('ajax.expenses');
         Route::get('/ajax/priorities', [MasterController::class, 'ajaxPriorities'])->name('ajax.priorities');
         Route::get('/ajax/sla', [MasterController::class, 'ajaxSla'])->name('ajax.sla');
-        Route::get('/ajax/templates', [MasterController::class, 'ajaxTemplates'])->name('ajax.templates');
     });
 });
 
  
 Route::prefix('worker')->name('worker.')->group(function () {
-    Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
 
-    Route::post('/job/accept',     [WorkerPipelineController::class, 'accept'])->name('job.accept');
-    Route::post('/job/reschedule', [WorkerPipelineController::class, 'reschedule'])->name('job.reschedule');
-    Route::post('/job/hold',       [WorkerPipelineController::class, 'hold'])->name('job.hold');
-    Route::post('/punch/in',       [WorkerpunchController::class, 'punchIn'])->name('punch.in');
-    Route::post('/punch/out',      [WorkerpunchController::class, 'punchOut'])->name('punch.out');
-    Route::post('/punch/upload',   [WorkerpunchController::class, 'upload'])->name('punch.upload');
-    Route::post('/punch/expense',  [WorkerpunchController::class, 'expense'])->name('punch.expense');
-    Route::post('/punch/signature',[WorkerpunchController::class, 'signature'])->name('punch.signature');  // ← add this
+    // Guest — login screen
+    Route::get('/login',  [WorkerLoginController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [WorkerLoginController::class, 'login'])->name('login.attempt');
 
-    Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
-    Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
+    // Authenticated worker only
+    Route::middleware('worker')->group(function () {
+        Route::post('/logout', [WorkerLoginController::class, 'logout'])->name('logout');
 
-    Route::post('/job/resume', [WorkerPipelineController::class, 'resume'])->name('job.resume');
+        Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
+
+        Route::post('/job/accept',     [WorkerPipelineController::class, 'accept'])->name('job.accept');
+        Route::post('/job/reschedule', [WorkerPipelineController::class, 'reschedule'])->name('job.reschedule');
+        Route::post('/job/hold',       [WorkerPipelineController::class, 'hold'])->name('job.hold');
+        Route::post('/job/resume',     [WorkerPipelineController::class, 'resume'])->name('job.resume');
+
+        Route::post('/punch/in',        [WorkerpunchController::class, 'punchIn'])->name('punch.in');
+        Route::post('/punch/out',       [WorkerpunchController::class, 'punchOut'])->name('punch.out');
+        Route::post('/punch/upload',    [WorkerpunchController::class, 'upload'])->name('punch.upload');
+        Route::post('/punch/expense',   [WorkerpunchController::class, 'expense'])->name('punch.expense');
+        Route::post('/punch/signature', [WorkerpunchController::class, 'signature'])->name('punch.signature');
+
+        Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
+        Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
+
+        Route::post('/punch/photo/delete', [WorkerpunchController::class, 'deletePhoto'])->name('punch.photo.delete');
+    });
 });

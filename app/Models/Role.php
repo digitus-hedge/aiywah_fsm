@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-
+use App\Traits\LogsActivity;
 class Role extends Model
 {
+     use LogsActivity;
     protected $casts = [
         'is_grantable' => 'boolean',
     ];

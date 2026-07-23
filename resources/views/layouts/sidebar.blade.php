@@ -64,11 +64,11 @@ $srExplorer = \App\Models\ServiceRequest::count();
         {{-- ══ Client management ══ --}}
         @php $showClientManagement = $can('client_accounts') || $can('client_directory'); @endphp
         @if ($showClientManagement)
-        <li class="sidebar-heading">Client project Management</li>
+        <li class="sidebar-heading">Customer </li>
         @if ($can('client_accounts'))
         <li>
             <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.create', 'clients.edit') ? 'active' : '' }}">
-                <i data-feather="users"></i>Client Accounts
+                <i data-feather="users"></i>Customer Accounts
             </a>
         </li>
         @endif
@@ -76,7 +76,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @if ($can('client_directory'))
         <li>
             <a href="{{ route('clients.directory') }}" class="{{ request()->routeIs('clients.directory') ? 'active' : '' }}">
-                <i data-feather="book-open"></i>Client Directory
+                <i data-feather="book-open"></i>Customer Directory
             </a>
         </li>
         @endif
@@ -168,7 +168,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @endif
 
         {{-- ══ SYSTEM ══ --}}
-        @php $showSystem = $can('analytics') || $can('user_provisioning') || $can('master_data') || $can('system_config'); @endphp
+        @php $showSystem = $can('analytics') || $can('user_provisioning') || $can('master_data') || $can('activity_logs'); @endphp
         @if ($showSystem)
         <li class="sidebar-heading">System</li>
         @if ($can('analytics'))
@@ -206,10 +206,10 @@ $srExplorer = \App\Models\ServiceRequest::count();
             </a>
         </li>
         @endif
-        @if ($can('system_config'))
+       @if ($can('activity_log'))
         <li>
-            <a href="#" class="{{ request()->routeIs('system_config') ? 'active' : '' }}">
-                <i data-feather="settings"></i>System Config
+            <a href="{{ route('activity-log') }}" class="{{ request()->routeIs('activity-log') ? 'active' : '' }}">
+                <i data-feather="activity"></i>Activity Log
             </a>
         </li>
         @endif

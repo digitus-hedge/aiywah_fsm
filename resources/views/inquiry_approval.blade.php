@@ -150,6 +150,8 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 .btn-approve:hover:not(:disabled){box-shadow:0 4px 16px rgba(5,163,74,.35);}
 .btn-accounts{background:linear-gradient(135deg,#fbbc06,#f59e0b);color:#1a2236;}
 .btn-accounts:hover:not(:disabled){box-shadow:0 4px 16px rgba(251,188,6,.35);}
+.btn-additional{background:linear-gradient(135deg,#4895ef,#3b7dd8);color:#fff;}
+.btn-additional:hover:not(:disabled){box-shadow:0 4px 16px rgba(72,149,239,.35);}
 .btn-reject{background:linear-gradient(135deg,#ff3366,#e02050);color:#fff;}
 .btn-reject:hover:not(:disabled){box-shadow:0 4px 16px rgba(255,51,102,.35);}
 .btn-action i{font-size:.95rem;flex-shrink:0;}
@@ -419,7 +421,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="filter-bar">
         <div class="filter-search">
           <i class="bi bi-search"></i>
-          <input type="text" class="form-control-sm" id="searchInput" placeholder="Search SR_ID, client, site, category…" oninput="applyFilter()"/>
+          <input type="text" class="form-control-sm" id="searchInput" placeholder="Search SR_ID, customer, site, category…" oninput="applyFilter()"/>
         </div>
         <select class="form-select-sm" style="width:130px;" id="priorityFilter" onchange="applyFilter()">
           <option value="">All Priorities</option>
@@ -458,7 +460,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
               <tr>
                 <th></th>
                 <th>SR_ID</th>
-                <th>Client</th>
+                <th>Customer</th>
                 <th>Category</th>
                 <th>Site</th>
                 <th>Priority</th>
@@ -501,7 +503,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 <div class="dp-card">
   <div class="dp-hdr" onclick="toggleDescCard(this)" style="cursor:pointer;">
     <div class="dp-hdr-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-card-text" style="color:#6571ff;"></i></div>
-    <div style="flex:1;"><h6>Inquiry Description and Attachments</h6><span class="sub">Client-submitted details</span></div>
+    <div style="flex:1;"><h6>Inquiry Description and Attachments</h6><span class="sub">Customer-submitted details</span></div>
     <i class="bi bi-chevron-down dp-toggle-icon" style="transition:transform .2s;color:var(--text-muted);transform:rotate(-90deg);"></i>
   </div>
   <div class="dp-body" id="descBody" style="display:none;">
@@ -524,6 +526,11 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
           <div>Forward to Accounts (OoW)<span class="btn-sub">→ Quotation Desk</span></div>
         </button>
 
+        <button class="btn-action btn-additional" id="btnAdditional" onclick="triggerAction('additional')" disabled>
+          <i class="bi bi-plus-square-fill"></i>
+          <div>Accept as Additional Work<span class="btn-sub">→ Status: Additional</span></div>
+        </button>
+
         <button class="btn-action btn-reject" id="btnReject" onclick="enableRejection()" disabled>
           <i class="bi bi-x-circle-fill"></i>
           <div>Reject Ticket<span class="btn-sub">→ WhatsApp notify + Archive</span></div>
@@ -533,7 +540,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
         <div class="rejection-wrap" id="rejectionWrap" style="display:none;">
           <div class="rejection-label"><i class="bi bi-exclamation-triangle-fill"></i>Mandatory Rejection Explanation</div>
           <textarea class="rejection-ta" id="rejectionText" rows="3"
-                    placeholder="Enter the rejection reason. This will be sent to the client via WhatsApp…"
+                    placeholder="Enter the rejection reason. This will be sent to the customer via WhatsApp…"
                     oninput="onRejectionInput(this)" maxlength="500"></textarea>
           <div class="char-hint" id="rejCharHint">0 / 500</div>
           <div style="display:flex;gap:8px;margin-top:8px;">
@@ -709,8 +716,8 @@ function loadContractPanel(t){
   const slaIcon=t.hrsAgo>24?'bi-exclamation-triangle-fill':t.hrsAgo>8?'bi-clock-history':'bi-check-circle-fill';
   document.getElementById('contractBody').innerHTML=`
     <div class="dp-row"><span>SR_ID</span><span style="color:#6571ff;font-weight:700;">${t.id}</span></div>
-    <div class="dp-row"><span>Client Code</span><span>${t.contract}</span></div>
-    <div class="dp-row"><span>Client</span><span>${t.client}</span></div>
+    <div class="dp-row"><span>Customer Code</span><span>${t.contract}</span></div>
+    <div class="dp-row"><span>Customer</span><span>${t.client}</span></div>
     <div class="dp-row"><span>Project</span><span>${t.project}</span></div>
     <div class="dp-row"><span>Category</span><span>${t.category}</span></div>
     <hr class="dp-hr"/>
@@ -725,7 +732,7 @@ function loadContractPanel(t){
     <hr class="dp-hr"/>
     <div style="font-size:.72rem;color:var(--text-muted);background:${covered?'rgba(5,163,74,.07)':'rgba(219,53,69,.07)'};border:1px solid ${covered?'rgba(5,163,74,.2)':'rgba(219,53,69,.2)'};border-radius:6px;padding:8px 10px;display:flex;align-items:flex-start;gap:7px;">
       <i class="bi ${covered?'bi-shield-check':'bi-shield-exclamation'}" style="color:${covered?'#05a34a':'#dc3545'};margin-top:1px;flex-shrink:0;"></i>
-      <span>${covered?'Contract is active and covers this category. Recommend <strong>In-Warranty Approval</strong>.':'Warranty coverage expired or unregistered. Review terms or route to <strong>Accounts</strong> for active client configuration pricing.'}</span>
+      <span>${covered?'Contract is active and covers this category. Recommend <strong>In-Warranty Approval</strong>.':'Warranty coverage expired or unregistered. Review terms or route to <strong>Accounts</strong> for active customer configuration pricing.'}</span>
     </div>`;
 }
 
@@ -798,7 +805,7 @@ function loadDescPanel(t){
 // }
 
 function enableActionButtons(){
-  ['btnApprove','btnAccounts','btnReject'].forEach(id=>{document.getElementById(id).disabled=false;});
+  ['btnApprove','btnAccounts','btnAdditional','btnReject'].forEach(id=>{document.getElementById(id).disabled=false;});
   document.getElementById('noSelectionNote').style.display='none';
 }
 
@@ -849,7 +856,8 @@ function triggerAction(type){
   const configs={
     approve:{title:'Confirm Approval',icon:'<i class="bi bi-check2-circle" style="font-size:1.6rem;color:#05a34a;"></i>',ring:'background:rgba(5,163,74,.1);',titleText:'Approve In-Warranty Ticket',subText:`This will set status to <strong>Approved</strong> and route the ticket to the <strong>Dispatch Engine</strong>.`,btnColor:'#05a34a',btnLabel:'Approve & Dispatch',waNote:null},
     accounts:{title:'Forward to Accounts',icon:'<i class="bi bi-calculator-fill" style="font-size:1.6rem;color:#fbbc06;"></i>',ring:'background:rgba(251,188,6,.1);',titleText:'Forward as Out-of-Warranty',subText:`This will set scope to <strong>Out-of-Warranty</strong> and transition the ticket to the <strong>Quotation Desk</strong>.`,btnColor:'#f59e0b',btnLabel:'Forward to Accounts',waNote:null},
-    reject:{title:'Reject & Archive Ticket',icon:'<i class="bi bi-x-circle-fill" style="font-size:1.6rem;color:#ff3366;"></i>',ring:'background:rgba(255,51,102,.1);',titleText:'Reject This Ticket',subText:`Status will be set to <strong>Cancelled</strong> and the client notified via <strong>WhatsApp</strong> with your reason.`,btnColor:'#ff3366',btnLabel:'Reject & Notify Client',waNote:'whatsapp'},
+    additional:{title:'Accept as Additional Work',icon:'<i class="bi bi-plus-square-fill" style="font-size:1.6rem;color:#4895ef;"></i>',ring:'background:rgba(72,149,239,.1);',titleText:'Accept as Additional Work',subText:`This will set status to <strong>Additional</strong> and log the ticket as additional scope.`,btnColor:'#4895ef',btnLabel:'Accept as Additional',waNote:null},
+    reject:{title:'Reject & Archive Ticket',icon:'<i class="bi bi-x-circle-fill" style="font-size:1.6rem;color:#ff3366;"></i>',ring:'background:rgba(255,51,102,.1);',titleText:'Reject This Ticket',subText:`Status will be set to <strong>Cancelled</strong> and the customer notified via <strong>WhatsApp</strong> with your reason.`,btnColor:'#ff3366',btnLabel:'Reject & Notify Customer',waNote:'whatsapp'},
   };
 
   const cfg=configs[type];
@@ -860,7 +868,7 @@ function triggerAction(type){
   document.getElementById('modalSubText').innerHTML=cfg.subText;
   document.getElementById('modalSrHighlight').innerHTML=`
     <div class="sr-row"><span class="sk">SR_ID</span><span class="sv" style="color:#6571ff;font-weight:700;">${t.id}</span></div>
-    <div class="sr-row"><span class="sk">Client</span><span class="sv">${t.client}</span></div>
+    <div class="sr-row"><span class="sk">Customer</span><span class="sv">${t.client}</span></div>
     <div class="sr-row"><span class="sk">Category</span><span class="sv">${t.category}</span></div>
     <div class="sr-row"><span class="sk">Site</span><span class="sv">${t.site}</span></div>
     ${type==='reject'?`<div class="sr-row"><span class="sk">Reason</span><span class="sv" style="color:#ff3366;">${document.getElementById('rejectionText').value.substring(0,60)}${document.getElementById('rejectionText').value.length>60?'…':''}</span></div>`:''}`;
@@ -868,7 +876,7 @@ function triggerAction(type){
   const waNote=document.getElementById('modalWaNote');
   if(cfg.waNote==='whatsapp'){
     waNote.style.display='block';
-    waNote.innerHTML=`<span class="wa-sent"><i class="bi bi-whatsapp"></i>WhatsApp notification will be sent to client with rejection reason</span>`;
+    waNote.innerHTML=`<span class="wa-sent"><i class="bi bi-whatsapp"></i>WhatsApp notification will be sent to customer with rejection reason</span>`;
   } else { waNote.style.display='none'; }
 
   const btn=document.getElementById('modalConfirmBtn');
@@ -893,6 +901,7 @@ function executeAction(){
   let url, body={};
   if(pendingAction==='approve'){ url=`${window.ROUTES.approveBase}/${t.dbId}/approve`; }
   else if(pendingAction==='accounts'){ url=`${window.ROUTES.approveBase}/${t.dbId}/forward`; }
+  else if(pendingAction==='additional'){ url=`${window.ROUTES.approveBase}/${t.dbId}/additional`; }
   else if(pendingAction==='reject'){
     url=`${window.ROUTES.approveBase}/${t.dbId}/reject`;
     body.reason=document.getElementById('rejectionText').value;
@@ -913,9 +922,11 @@ function executeAction(){
 
       const toastType  = pendingAction==='reject' ? 'error'
                        : pendingAction==='accounts' ? 'warning'
+                       : pendingAction==='additional' ? 'primary'
                        : 'success';
       const toastTitle = pendingAction==='reject' ? 'Ticket Rejected'
                        : pendingAction==='accounts' ? 'Forwarded to Accounts'
+                       : pendingAction==='additional' ? 'Accepted as Additional Work'
                        : 'Ticket Approved';
       showToast(toastType, toastTitle, j.message);
 
@@ -926,7 +937,7 @@ function executeAction(){
       updateStats();
       document.getElementById('contractBody').innerHTML='<div class="dp-empty"><i class="bi bi-mouse2"></i>Select a row to load contract data</div>';
       document.getElementById('descBody').innerHTML='<div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>';
-      ['btnApprove','btnAccounts','btnReject'].forEach(id=>{document.getElementById(id).disabled=true;});
+      ['btnApprove','btnAccounts','btnAdditional','btnReject'].forEach(id=>{document.getElementById(id).disabled=true;});
       document.getElementById('noSelectionNote').style.display='block';
       cancelRejection();
     } else if(status===422 && j.errors){
