@@ -197,7 +197,7 @@
           <tr>
             <th>SR ID</th>
             <th>Recipient</th>
-            <th>Client</th>
+            <th>Customer</th>
             <th>Trigger Event</th>
             <th>Delivery</th>
             <th style="max-width:260px;">Message Preview</th>

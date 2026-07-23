@@ -190,6 +190,15 @@ body {
   border:1px solid var(--card-border); display:flex; align-items:center;
   justify-content:center; font-size:1.4rem; cursor:pointer; overflow:hidden; flex-shrink:0;
 }
+.photo-strip { display:flex; gap:8px; flex-wrap:wrap; padding:4px 0 10px; }
+.photo-strip:empty { display:none; }
+.ps-item { position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden;
+  border:1px solid var(--card-border); flex-shrink:0; background:var(--surface-3); }
+.ps-item img { width:100%; height:100%; object-fit:cover; cursor:pointer; display:block; }
+.ps-del { position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%;
+  background:rgba(0,0,0,.6); color:#fff; border:none; cursor:pointer; font-size:.6rem;
+  display:flex; align-items:center; justify-content:center; padding:0; line-height:1; }
+.ps-del:hover { background:#ff3366; }
 
 .eta-form { padding:12px 14px; background:var(--surface-3); border-top:1px solid var(--card-border); }
 .eta-title { font-size:.72rem; font-weight:700; color:var(--text-heading); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
@@ -777,10 +786,13 @@ body {
         </div>
       </div>
     </div>
-    <div class="sb-right">
+   <div class="sb-right">
       <span class="sb-time" id="clock"></span>
       <button class="th-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
         <i class="bi bi-sun-fill" id="themeIcon"></i>
+      </button>
+      <button class="th-btn" id="logoutBtn" title="Sign out" aria-label="Sign out">
+        <i class="bi bi-box-arrow-right"></i>
       </button>
     </div>
   </div>
@@ -862,9 +874,9 @@ body {
 
       <div class="lock-info hidden" id="lockInfo">
         <i class="bi bi-lock-fill"></i>
-        <span>
-          Finish Job is locked. Upload <strong>Before Photo</strong> and
-          <strong>After Photo</strong> to unlock.
+       <span>
+          Finish Job is locked. Upload at least one <strong>Before</strong> and
+          one <strong>After</strong> photo to unlock.
         </span>
       </div>
 
@@ -876,30 +888,32 @@ body {
             <i class="bi bi-camera-fill" style="color:#fbbc06;"></i>
           </div>
           <div class="comp-info">
-            <div class="comp-lbl">Before Photo</div>
+            <div class="comp-lbl">Before Photos</div>
             <div class="comp-hint">Site condition before work</div>
           </div>
           <span class="comp-status cs-pending" id="beforeStatus">Pending</span>
           <button class="comp-upload-btn" data-upload="before" disabled>
-            <i class="bi bi-camera"></i>Capture
+            <i class="bi bi-camera"></i>Add
           </button>
-          <input type="file" id="beforeInput" class="upload-input" accept="image/*" capture="environment"/>
+          <input type="file" id="beforeInput" class="upload-input" accept="image/*" capture="environment" multiple/>
         </div>
+        <div class="photo-strip" id="beforeStrip"></div>
 
         <div class="comp-item">
           <div class="comp-icon-wrap" id="afterIcon" style="background:rgba(154,128,83,.1);">
-            <i class="bi bi-camera-video-fill" style="color:#9a8053;"></i>
+            <i class="bi bi-camera-fill" style="color:#9a8053;"></i>
           </div>
           <div class="comp-info">
-            <div class="comp-lbl">After Photo</div>
+            <div class="comp-lbl">After Photos</div>
             <div class="comp-hint">Site condition after work</div>
           </div>
           <span class="comp-status cs-pending" id="afterStatus">Pending</span>
           <button class="comp-upload-btn" data-upload="after" disabled>
-            <i class="bi bi-camera"></i>Capture
+            <i class="bi bi-camera"></i>Add
           </button>
-          <input type="file" id="afterInput" class="upload-input" accept="image/*" capture="environment"/>
+          <input type="file" id="afterInput" class="upload-input" accept="image/*" capture="environment" multiple/>
         </div>
+        <div class="photo-strip" id="afterStrip"></div>
       </div>
 
       <div class="section-card">
@@ -972,7 +986,9 @@ body {
       <i class="bi bi-person-circle"></i>Profile
     </button>
   </nav>
-
+<form method="POST" action="{{ route('worker.logout') }}" id="logoutForm" style="display:none;">
+    @csrf
+  </form>
 </div><!-- /app-shell -->
 
 <script>
@@ -996,6 +1012,7 @@ const ROUTES = {
   history:    @json($routes['history']    ?? ''),
   profile:    @json($routes['profile']    ?? ''),
   signature:  @json($routes['signature'] ?? ''),
+  photoDelete: @json($routes['photoDelete'] ?? ''),
 };
 
 const LETTERHEAD = @json($letterhead ?? ['header'=>null,'footer'=>null,'watermark'=>null]);
@@ -1010,7 +1027,7 @@ let punchInTime    = null;
 let timerInterval  = null;
 let expandedRef    = null;
 let currentFilter  = 'Pending';
-let uploads        = { before:false, after:false};
+let uploads        = { before: [], after: [] };
 let expenses       = [];
 let historyLoaded  = false;
 let profileLoaded  = false;
@@ -1119,6 +1136,17 @@ function applyTheme(dark) {
 
 $('themeBtn').addEventListener('click', () => {
   applyTheme(document.documentElement.getAttribute('data-bs-theme') !== 'dark');
+});
+
+$('logoutBtn').addEventListener('click', () => {
+  if (punchInTime) {
+    showToast('warning', 'Job in progress',
+      'Finish or hold the current job before signing out.');
+    return;
+  }
+  if (confirm('Sign out of the technician portal?')) {
+    $('logoutForm').submit();
+  }
 });
 
 (function initClock() {
@@ -1281,7 +1309,7 @@ const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
            ${job.attachments.map((a) => {
              const isBefore = a === 'before';
              return `<div class="photo-thumb" data-photo="${esc(a)}" data-ref="${ref}">
-                       <i class="bi bi-${isBefore ? 'camera-fill' : 'camera-video-fill'}"
+                       <i class="bi bi-${isBefore ? 'camera-fill' : 'image-fill'}"
                           style="color:${isBefore ? '#fbbc06' : '#9a8053'};"></i>
                      </div>`;
            }).join('')}
@@ -1480,7 +1508,7 @@ async function acceptJob(ref, srId, btn) {
     activeRef   = ref;
     activeSrId  = srId;
     punchInTime = null;
-    uploads     = { before:false, after:false };
+    uploads     = { before: [], after: [] };
     expenses    = [];
     clearInterval(timerInterval);
 
@@ -1507,7 +1535,7 @@ async function resumeJob(ref, srId, btn) {
     activeRef   = ref;
     activeSrId  = srId;
     punchInTime = null;
-    uploads     = { before:false, after:false };
+    uploads     = { before: [], after: [] };
     expenses    = [];
     clearInterval(timerInterval);
 
@@ -1574,9 +1602,9 @@ function openTerminal() {
   $('timerIcon').innerHTML = '<i class="bi bi-clock" style="color:#aeb7c5;"></i>';
   $('timerIcon').style.background = 'rgba(174,183,197,.12)';
 
+  uploads = { before: [], after: [] };
   ['before', 'after'].forEach((type) => {
-    $(`${type}Status`).textContent = 'Pending';
-    $(`${type}Status`).className   = 'comp-status cs-pending';
+    renderPhotoStrip(type);
     document.querySelector(`[data-upload="${type}"]`).disabled = true;
   });
 
@@ -1657,40 +1685,80 @@ document.querySelectorAll('[data-upload]').forEach((btn) => {
 async function uploadFile(type, input) {
   if (!input.files.length) return;
 
-  const file = input.files[0];
   const btn = document.querySelector(`[data-upload="${type}"]`);
   const restore = busy(btn, '');
 
   const form = new FormData();
   form.append('sr_id', activeSrId);
   form.append('type', type);
-  form.append('file', file);
+  for (const f of input.files) form.append('files[]', f);
 
-  const labels = { before:'Before Photo', after:'After Photo' };
-  const tints  = {
-    before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)',
-  };
+  const labels = { before:'Before Photos', after:'After Photos' };
 
   try {
-    await apiPost(ROUTES.upload, form, true);
-
-    uploads[type] = true;
-    $(`${type}Status`).textContent = '\u2713 Done';
-    $(`${type}Status`).className   = 'comp-status cs-done';
-    $(`${type}Icon`).style.background = tints[type];
+    const res = await apiPost(ROUTES.upload, form, true);
+    uploads[type].push(...res.photos);
     restore();
-    showToast('success', `${labels[type]} Uploaded`, file.name);
+    renderPhotoStrip(type);
+    showToast('success', `${labels[type]} Uploaded`,
+      `${res.photos.length} photo${res.photos.length === 1 ? '' : 's'} added.`);
     refreshLock();
   } catch (err) {
     restore();
     showToast('error', `${labels[type]} failed`, err.message);
   } finally {
-    input.value = ''; // allow re-picking the same file after a failure
+    input.value = '';
   }
 }
 
+function renderPhotoStrip(type) {
+  const strip = $(`${type}Strip`);
+  const list  = uploads[type];
+
+  strip.innerHTML = list.map((p) => `
+    <div class="ps-item">
+      <img src="${esc(p.url)}" alt="${type} photo" data-lb="${esc(p.url)}"/>
+      <button class="ps-del" data-del="${Number(p.id)}" data-type="${type}" title="Remove">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>`).join('');
+
+  const tints = { before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)' };
+  const done  = list.length > 0;
+
+  $(`${type}Status`).textContent = done ? `${list.length} \u2713` : 'Pending';
+  $(`${type}Status`).className   = `comp-status ${done ? 'cs-done' : 'cs-pending'}`;
+  $(`${type}Icon`).style.background = done ? tints[type] : '';
+}
+
+/* Strip clicks: enlarge or delete. */
+['before', 'after'].forEach((type) => {
+  $(`${type}Strip`).addEventListener('click', async (e) => {
+    const del = e.target.closest('[data-del]');
+    if (del) {
+      const id = Number(del.dataset.del);
+      const t  = del.dataset.type;
+      try {
+        await apiPost(ROUTES.photoDelete, { sr_id: activeSrId, photo_id: id });
+        uploads[t] = uploads[t].filter((p) => p.id !== id);
+        renderPhotoStrip(t);
+        refreshLock();
+      } catch (err) {
+        showToast('error', 'Could not remove photo', err.message);
+      }
+      return;
+    }
+
+    const img = e.target.closest('[data-lb]');
+    if (img) {
+      $('lbContent').innerHTML = `<img src="${esc(img.dataset.lb)}" class="lb-img" alt="Photo"/>`;
+      $('lbOverlay').classList.add('show');
+    }
+  });
+});
+
 function refreshLock() {
-  const allUploaded = uploads.before && uploads.after;
+  const allUploaded = uploads.before.length > 0 && uploads.after.length > 0;
   const punched = Boolean(punchInTime);
 
   $('punchOutBtn').disabled = !(allUploaded && punched);
@@ -1701,7 +1769,7 @@ function refreshLock() {
    PUNCH OUT
 ══════════════════════════════════════════════════════ */
 $('punchOutBtn').addEventListener('click', () => {
-  if (!(uploads.before && uploads.after)) {
+  if (!(uploads.before.length && uploads.after.length)) {
     showToast('error', 'Locked', 'Upload all compliance files first.');
     return;
   }
@@ -1742,7 +1810,7 @@ $('finConfirmBtn').addEventListener('click', async () => {
     if (index > -1) JOBS.splice(index, 1);
 
     activeRef = activeSrId = punchInTime = null;
-    uploads  = { before:false, after:false };
+    uploads  = { before: [], after: [] };
     expenses = [];
     historyLoaded = false;
     profileLoaded = false;
@@ -1924,7 +1992,7 @@ $('rsConfirmBtn').addEventListener('click', async () => {
     }
 
     activeRef = activeSrId = punchInTime = null;
-    uploads  = { before:false, after:false };
+    uploads  = { before: [], after: [] };
     expenses = [];
     $('activeDot').classList.add('hidden');
 
@@ -1957,7 +2025,7 @@ $('holdConfirmBtn').addEventListener('click', async () => {
       JOBS[index].accepted = false;
     }
     activeRef = activeSrId = punchInTime = null;
-    uploads  = { before:false, after:false };
+    uploads  = { before: [], after: [] };
     expenses = [];
     $('activeDot').classList.add('hidden');
 
@@ -2099,7 +2167,9 @@ function paintChrome() {
       const wmW = 110, wmH = 110;
       if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.08 }));
       doc.addImage(LETTERHEAD.watermark, 'PNG',
-        (pageW - wmW) / 2, (pageH - wmH) / 2, wmW, wmH);
+        (pageW - wmW) / 2,                    // still horizontally centred
+        pageH - FOOTER_H - wmH - 6,           // sits 6mm above the footer strip
+        wmW, wmH);
       if (doc.setGState) doc.setGState(new doc.GState({ opacity: 1 }));
     }
   } catch (e) { console.warn('watermark skipped:', e); }
@@ -2174,7 +2244,7 @@ function openLightbox(type, ref) {
   const isBefore = type === 'before';
   $('lbContent').innerHTML = `
     <div class="lb-ph">
-      <i class="bi bi-${isBefore ? 'camera-fill' : 'camera-video-fill'}"
+      <i class="bi bi-${isBefore ? 'camera-fill' : 'image-fill'}"
          style="color:${isBefore ? '#fbbc06' : '#9a8053'};font-size:3rem;"></i>
       <div>
         ${isBefore ? 'Before Photo' : 'After Photo'}<br/>
@@ -2294,7 +2364,18 @@ async function loadProfile(force = false) {
 
       <button class="btn-outline brand" id="profThemeBtn">
         <i class="bi bi-circle-half"></i>Toggle Theme
+      </button>
+
+      <button class="btn-outline" id="profLogoutBtn"
+              style="border-color:rgba(255,51,102,.5);color:#ff3366;background:rgba(255,51,102,.05);">
+        <i class="bi bi-box-arrow-right"></i>Sign Out
       </button>`;
+
+    $('profThemeBtn').addEventListener('click', () => {
+      applyTheme(document.documentElement.getAttribute('data-bs-theme') !== 'dark');
+    });
+
+    $('profLogoutBtn').addEventListener('click', () => $('logoutBtn').click());
 
     $('profThemeBtn').addEventListener('click', () => {
       applyTheme(document.documentElement.getAttribute('data-bs-theme') !== 'dark');
@@ -2334,7 +2415,7 @@ function activateJob(ref, srId) {
   activeRef   = ref;
   activeSrId  = srId;
   punchInTime = null;
-  uploads     = { before:false, after:false };
+  uploads     = { before: [], after: [] };
   expenses    = [];
   clearInterval(timerInterval);
 
@@ -2358,7 +2439,10 @@ function restoreTerminal(state) {
 
   activeRef  = job.id;
   activeSrId = Number(job.sr_id);
-  uploads    = { ...state.uploads };
+  uploads = {
+    before: Array.isArray(state.uploads?.before) ? state.uploads.before : [],
+    after:  Array.isArray(state.uploads?.after)  ? state.uploads.after  : [],
+  };
   expenses   = state.expenses.map((e) => ({ ...e }));
 
   buildBanner(job, state.etaDate ?? '\u2014', state.etaTime ?? '\u2014');
@@ -2390,15 +2474,7 @@ function restoreTerminal(state) {
     $('rsBtn').classList.remove('hidden');
   }
 
-  const tints = {
-    before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)',
-  };
-  ['before', 'after'].forEach((type) => {
-    if (!uploads[type]) return;
-    $(`${type}Status`).textContent = '\u2713 Done';
-    $(`${type}Status`).className   = 'comp-status cs-done';
-    $(`${type}Icon`).style.background = tints[type];
-  });
+  ['before', 'after'].forEach((type) => renderPhotoStrip(type));
 
   renderExpenses();
   refreshLock();

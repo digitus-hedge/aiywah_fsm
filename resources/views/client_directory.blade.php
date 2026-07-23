@@ -1,6 +1,6 @@
 @extends('layouts.layout')
-@section('title', 'Client Directory— Digit-Us Portal')
-@section('page_title', 'Client Directory')
+@section('title', 'Customer Directory')
+@section('page_title', 'Customer Directory')
 @section('page_icon', 'bi bi-buildings')
 
 {{-- ─────────────────────────────────────────
@@ -775,8 +775,8 @@
 
 {{-- PAGE HEADER --}}
 <div class="cd-pg-header">
-  <h4><i class="bi bi-buildings me-2"></i>Client Directory</h4>
-  <p>Browse, search and manage all registered enterprise client accounts, their contact details, project counts and access status.</p>
+  <h4><i class="bi bi-buildings me-2"></i>Customer Directory</h4>
+  <p>Browse, search and manage all registered enterprise customer accounts, their contact details, project counts and access status.</p>
   <div class="meta-row">
     <span class="cd-meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
     <span class="cd-meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
@@ -790,7 +790,7 @@
     <div class="cd-stat-icon" style="background:rgba(5,150,105,.1);"><i class="bi bi-buildings" style="color:#059669;"></i></div>
     <div>
       <div class="cd-stat-num">{{ $totalClients }}</div>
-      <div class="cd-stat-lbl">Total Clients</div>
+      <div class="cd-stat-lbl">Total Customers</div>
     </div>
   </div>
   <div class="cd-stat-card">
@@ -821,7 +821,7 @@
   <div class="cd-filter-group">
     <div class="cd-filter-label">Search</div>
     <input class="cd-filter-control cd-filter-search" type="text" name="q"
-      value="{{ request('q') }}" placeholder="Client name, token, contact…" />
+      value="{{ request('q') }}" placeholder="Customer name, token, contact…" />
   </div>
   <div class="cd-filter-group">
     <div class="cd-filter-label">Status</div>
@@ -845,7 +845,7 @@
 <div class="cd-tbl-card">
   <div class="cd-tbl-card-hdr">
     <div class="cd-tbl-card-hdr-left">
-      <span class="cd-tbl-card-title">Registered Clients</span>
+      <span class="cd-tbl-card-title">Registered Customers</span>
       <span class="cd-result-count">{{ $clients->total() }} records</span>
     </div>
   </div>
@@ -855,7 +855,7 @@
       <thead>
         <tr>
           <th style="width:36px;">#</th>
-          <th>Client Name / Token</th>
+          <th>Customer Name / Token</th>
           <th>Primary Contact</th>
           <th>Phone (WhatsApp)</th>
           <th style="text-align:center;">Projects</th>
@@ -971,8 +971,8 @@
       <div class="cd-modal-hdr-left">
         <div class="cd-modal-avatar" id="cdmAvatar">?</div>
         <div style="min-width:0;">
-          <h6 class="cd-modal-title" id="cdmTitle">Client</h6>
-          <p class="cd-modal-sub" id="cdmSub">Client account details</p>
+          <h6 class="cd-modal-title" id="cdmTitle">Customer</h6>
+          <p class="cd-modal-sub" id="cdmSub">Customer account details</p>
         </div>
       </div>
       <button class="cd-modal-close" onclick="cdCloseModal()"><i class="bi bi-x-lg"></i></button>
@@ -983,7 +983,7 @@
         <div class="cd-modal-section-title"><i class="bi bi-building"></i>Account</div>
         <div class="cd-detail-grid">
           <div class="cd-detail-item"><div class="cd-detail-lbl">Company Name</div><div class="cd-detail-val" id="cdmCompany">—</div></div>
-          <div class="cd-detail-item"><div class="cd-detail-lbl">Client Token</div><div class="cd-detail-val" id="cdmToken">—</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Customer Token</div><div class="cd-detail-val" id="cdmToken">—</div></div>
           <div class="cd-detail-item"><div class="cd-detail-lbl">Primary Contact</div><div class="cd-detail-val" id="cdmContact">—</div></div>
           <div class="cd-detail-item"><div class="cd-detail-lbl">Designation</div><div class="cd-detail-val" id="cdmDesignation">—</div></div>
           <div class="cd-detail-item"><div class="cd-detail-lbl">Primary Mobile</div><div class="cd-detail-val" id="cdmMobile">—</div></div>
@@ -1102,7 +1102,7 @@
     const initials = (c.company_name || '?').trim().charAt(0).toUpperCase();
     document.getElementById('cdmAvatar').textContent = initials;
     document.getElementById('cdmTitle').textContent  = c.company_name || '—';
-    document.getElementById('cdmSub').textContent    = c.unique_code || 'Client account details';
+    document.getElementById('cdmSub').textContent    = c.unique_code || 'Customer account details';
 
     document.getElementById('cdmCompany').textContent     = c.company_name || '—';
     document.getElementById('cdmToken').textContent       = c.unique_code || '—';

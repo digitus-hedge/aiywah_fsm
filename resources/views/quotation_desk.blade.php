@@ -207,7 +207,7 @@
   {{-- PAGE HEADER --}}
   <div class="pg-header">
     <h4 class="pg-hdr-title"><i class="bi bi-file-earmark-text me-2"></i>Out-of-Warranty Quotation Desk</h4>
-    <p class="pg-hdr-desc">Upload ERP quote references and PDF quotations for out-of-warranty SRs. Track client approval status before routing to operations.</p>
+    <p class="pg-hdr-desc">Upload ERP quote references and PDF quotations for out-of-warranty SRs. Track customer approval status before routing to operations.</p>
     <div class="pg-hdr-meta">
       <span class="meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
       <span class="meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
@@ -225,7 +225,7 @@
 
   {{-- FILTER BAR --}}
   <div class="filter-bar">
-    <div class="filter-group"><div class="filter-label">Search</div><input class="filter-control" type="text" id="q-search" placeholder="SR ID, client name…"/></div>
+    <div class="filter-group"><div class="filter-label">Search</div><input class="filter-control" type="text" id="q-search" placeholder="SR ID, customer name…"/></div>
     <div class="filter-group"><div class="filter-label">Date From</div><input class="filter-control" type="date" id="q-date-from"/></div>
     <div class="filter-group"><div class="filter-label">Date To</div><input class="filter-control" type="date" id="q-date-to"/></div>
     <div class="filter-actions"><button class="btn-ghost" onclick="qdResetFilters()"><i class="bi bi-x-circle"></i>Reset</button></div>
@@ -293,7 +293,7 @@
             </div>
             <div id="q-val-msg" style="display:none;padding:8px 12px;border-radius:7px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:.78rem;margin-bottom:10px;"></div>
             <button class="btn-submit btn-amber" id="q-btn" onclick="submitQuote()" disabled>
-              <i class="bi bi-send-check-fill"></i>Upload Quote &amp; Forward to Client
+              <i class="bi bi-send-check-fill"></i>Upload Quote &amp; Forward to Customer
             </button>
           </div>
         </div>
@@ -305,7 +305,7 @@
   <div class="section-divider">
     <div class="section-divider-line"></div>
     <div class="section-label">
-      <i class="bi bi-clock-history" style="color:#d97706;"></i>Pending Client Approval
+      <i class="bi bi-clock-history" style="color:#d97706;"></i>Pending Customer Approval
       <span class="section-count" style="background:rgba(245,158,11,.1);color:#d97706;" id="pa-count">0</span>
     </div>
     <div class="section-divider-line"></div>
@@ -315,16 +315,16 @@
     <div class="pa-card-hdr">
       <div class="pa-card-hdr-left">
         <div class="pa-card-icon" style="background:rgba(245,158,11,.1);"><i class="bi bi-hourglass-split" style="color:#d97706;"></i></div>
-        <div><div class="pa-card-title">Awaiting Client Response</div><div class="pa-card-sub">Quote sent to client — mark approved when client confirms acceptance</div></div>
+        <div><div class="pa-card-title">Awaiting Customer Response</div><div class="pa-card-sub">Quote sent to customer — mark approved when customer confirms acceptance</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-muted);">
-        <i class="bi bi-whatsapp" style="color:#25d366;"></i>Client notified via WhatsApp on submission
+        <i class="bi bi-whatsapp" style="color:#25d366;"></i>Customer notified via WhatsApp on submission
       </div>
     </div>
     <div class="pa-scroll">
       <table class="pa-tbl">
         <thead>
-          <tr><th>SR ID</th><th>Client</th><th>Site</th><th>ERP Quote Ref</th><th>Quote Submitted</th><th>Waiting</th><th style="text-align:center;width:160px;">Action</th></tr>
+          <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>ERP Quote Ref</th><th>Quote Submitted</th><th>Waiting</th><th style="text-align:center;width:160px;">Action</th></tr>
         </thead>
         <tbody id="pa-tbody"></tbody>
       </table>
@@ -337,12 +337,12 @@
       <div class="modal-hdr">
         <div class="modal-hdr-left">
           <div class="modal-hdr-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-check-circle-fill" style="color:#9a8053;"></i></div>
-          <h6>Mark Quote as Client Approved</h6>
+          <h6>Mark Quote as customer Approved</h6>
         </div>
         <button class="modal-close" onclick="document.getElementById('qa-modal').classList.remove('show')"><i class="bi bi-x-lg"></i></button>
       </div>
       <div class="modal-body">
-        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:14px;">Confirm client has approved the quote for <strong id="qa-sr" style="color:var(--text-heading);"></strong>.</p>
+        <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:14px;">Confirm customer has approved the quote for <strong id="qa-sr" style="color:var(--text-heading);"></strong>.</p>
        <div style="padding:12px 14px;border-radius:8px;background:rgba(154,128,83,.07);border:1px solid rgba(154,128,83,.2);display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
           <i class="bi bi-arrow-right-circle-fill" style="color:#9a8053;flex-shrink:0;margin-top:2px;"></i>
           <div style="font-size:.8rem;color:#9a8053;">

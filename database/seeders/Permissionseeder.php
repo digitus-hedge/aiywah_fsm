@@ -49,7 +49,7 @@ class PermissionSeeder extends Seeder
             ['user_provisioning', 'User Provisioning',      'System',   'shield',       'user_provisioning',     18],
             ['master_data',       'Master Data',            'System',   'database',     'masters.index',         19],
             ['wa_notification_log','WhatsApp Notifications','System',   'settings',     'wa_notification_log',   20],
-            ['system_config',     'System Config',          'System',   'settings',     null,                    21],
+            ['activity-log',     'Activity Log',          'System',     'activity',       'activity-log',        21],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -77,42 +77,42 @@ class PermissionSeeder extends Seeder
                 'dashboard' => 'yes', 'sr_registration' => 'yes', 'sr_explorer' => 'yes', 'kanban_view' => 'yes',
                 'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes','assigned' => 'yes','completed' => 'yes',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes','user_directory' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','system_config' => 'yes',
+                'analytics' => 'yes','user_directory' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','activity-log' => 'yes',
             ],
             // Admin — everything except master System Config.
             'AD' => [
                 'dashboard' => 'yes' ,'sr_registration' => 'yes', 'sr_explorer' => 'yes', 'kanban_view' => 'yes',
                 'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes','assigned' => 'yes','completed' => 'yes',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes','user_directory' => 'yes','user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','system_config' => 'no',
+                'analytics' => 'yes','user_directory' => 'yes','user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','activity-log' => 'yes',
             ],
             // Head of Projects — operational scope, filtered analytics, no finance panels / no user mgmt.
             'HP' => [
                 'dashboard' => 'yes', 'kanban_view' => 'yes', 'sr_registration' => 'yes',
                 'inquiry_approval' => 'yes', 'client_accounts' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
                 'quotation_desk' => 'no', 'invoice_panel' => 'no', 'expense_ledger' => 'yes',
-                'analytics' => 'rls', 'user_provisioning' => 'no', 'system_config' => 'no',
+                'analytics' => 'rls', 'user_provisioning' => 'no', 'activity-log' => 'no',
             ],
             // Maintenance Lead — own pipeline only (kanban view of assigned work).
             'ML' => [
                 'dashboard' => 'yes', 'kanban_view' => 'rls', 'sr_registration' => 'no',
                 'inquiry_approval' => 'no', 'client_accounts' => 'no', 'dispatch_engine' => 'no', 'qc_review' => 'no',
                 'quotation_desk' => 'no', 'invoice_panel' => 'no', 'expense_ledger' => 'no',
-                'analytics' => 'no', 'user_provisioning' => 'no', 'system_config' => 'no',
+                'analytics' => 'no', 'user_provisioning' => 'no', 'activity-log' => 'no',
             ],
             // Front Desk Executive — intake + client onboarding base; several grantable extensions.
             'FD' => [
                 'dashboard' => 'yes', 'kanban_view' => 'rls', 'sr_registration' => 'yes',
                 'inquiry_approval' => 'grant', 'client_accounts' => 'yes', 'dispatch_engine' => 'grant', 'qc_review' => 'grant',
                 'quotation_desk' => 'no', 'invoice_panel' => 'no', 'expense_ledger' => 'grant',
-                'analytics' => 'grant', 'user_provisioning' => 'grant', 'system_config' => 'no',
+                'analytics' => 'grant', 'user_provisioning' => 'grant', 'activity-log' => 'no',
             ],
             // Accounts / AR — out-of-warranty financial flows only, filtered ticket view.
             'AC' => [
                 'dashboard' => 'yes', 'kanban_view' => 'rls', 'sr_registration' => 'no',
                 'inquiry_approval' => 'no', 'client_accounts' => 'no', 'dispatch_engine' => 'no', 'qc_review' => 'no',
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'no', 'user_provisioning' => 'no', 'system_config' => 'no',
+                'analytics' => 'no', 'user_provisioning' => 'no', 'activity-log' => 'no',
             ],
         ];
 

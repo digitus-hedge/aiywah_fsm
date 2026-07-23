@@ -177,6 +177,7 @@ class ServiceRequestController extends Controller
             'Pending'           => 'sb-pending',
             'Approved'          => 'sb-approved',
             'Forwarded'         => 'sb-forwarded',
+            'Additional'        => 'sb-forwarded',
             'Rejected'          => 'sb-cancelled',
             'Assigned'          => 'sb-assigned',
             'Quoted'            => 'sb-quoted',
@@ -338,6 +339,33 @@ class ServiceRequestController extends Controller
             'ok'      => true,
             'success' => true,
             'message' => "Ticket {$ref} forwarded — Quotation Desk. Scope set as Out-of-Warranty.",
+        ]);
+    }
+
+    public function additionalWork(ServiceRequest $serviceRequest)
+    {
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+
+        $serviceRequest->update(['status' => 'Additional']);
+
+        $ref = $this->buildSrRef($serviceRequest);
+
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => "{$ref} accepted as Additional Work",
+            'from_status' => $oldStatus,
+            'to_status'   => 'Additional',
+            'caused_by'   => auth()->id(),
+        ]);
+
+        $this->sendServiceRequestMessage($serviceRequest, $ref, 'Additional Work');
+
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => "Ticket {$ref} accepted as Additional Work.",
         ]);
     }
 
@@ -544,6 +572,7 @@ class ServiceRequestController extends Controller
             'Pending'           => 'Pending',
             'Approved'          => 'Approved',
             'Forwarded'         => 'Forwarded',
+            'Additional'        => 'Additional Work',
             'Rejected'          => 'Rejected',
             'Assigned'          => 'Assigned',
             'Quoted'            => 'Quoted',
@@ -594,7 +623,7 @@ class ServiceRequestController extends Controller
             'assignedUser',
             'punches' => fn($q) => $q->latest('punch_out_at')
                 ->latest('id')
-                ->with('items'),
+                ->with(['items', 'photos']),      
         ])
             ->where('status', 'Qc Review')
             ->latest('updated_at')
@@ -626,10 +655,14 @@ class ServiceRequestController extends Controller
                 'expenses'     => $exp['rows'],
                 'totalExpense' => 'AED ' . number_format($exp['total'], 0),
                 'proof' => [
-                    'before'    => $punch?->start_photo_path
-                        ? asset('storage/' . $punch->start_photo_path) : null,
-                    'after'     => $punch?->finish_photo_path
-                        ? asset('storage/' . $punch->finish_photo_path) : null,
+                    'before' => $punch
+                        ? $punch->photos->where('type', 'before')
+                            ->map(fn($p) => $p->url)->values()->all()
+                        : [],
+                    'after'  => $punch
+                        ? $punch->photos->where('type', 'after')
+                            ->map(fn($p) => $p->url)->values()->all()
+                        : [],
                     'signature' => $punch?->customer_signature_path
                         ? asset('storage/' . $punch->customer_signature_path) : null,
                 ],
@@ -758,7 +791,7 @@ class ServiceRequestController extends Controller
     public function quotationDesk()
     {
         $forwarded = ServiceRequest::with(['client', 'project'])
-            ->where('status', 'Forwarded')
+            ->whereIn('status', ['Forwarded', 'Additional'])
             ->latest('updated_at')
             ->get();
 
@@ -791,7 +824,7 @@ class ServiceRequestController extends Controller
             ];
         })->values();
 
-        $clientApproved = ServiceRequest::where('status', 'Approved')
+        $clientApproved = ServiceRequest::whereNotNull('client_approved_at')  
             ->where('warranty_scope', 'oow')->count();
         $quoteRejected  = ServiceRequest::where('status', 'Quote Rejected')->count();
 
@@ -835,11 +868,10 @@ class ServiceRequestController extends Controller
 
     public function quoteApprove(ServiceRequest $serviceRequest)
     {
-
-        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Quoted')
+        $oldStatus = $serviceRequest->status;          // 'Quoted'
 
         $serviceRequest->update([
-            'status'             => 'Approved',
+            'status'             => 'Pending Invoice',   // CHANGED: was 'Approved'
             'warranty_scope'     => 'oow',
             'client_approved_at' => now(),
         ]);
@@ -848,15 +880,21 @@ class ServiceRequestController extends Controller
             'service_request_id' => $serviceRequest->id,
             'event'       => 'status_updated',
             'title'       => 'Status Updated',
-            'message'     => $this->buildSrRef($serviceRequest) . ' — quotation approved by client',
-            'from_status' => $oldStatus,   // 'Quoted'
-            'to_status'   => 'Approved',
+            'message'     => $this->buildSrRef($serviceRequest)
+                . ' — quotation approved by client, moved to invoicing',
+            'from_status' => $oldStatus,          // 'Quoted'
+            'to_status'   => 'Pending Invoice',   // CHANGED: was 'Approved'
             'caused_by'   => auth()->id(),
         ]);
 
         app(\App\Services\WhatsAppService::class)
-            ->notifyServiceStatus($serviceRequest, 'Quotation approved');
-        return response()->json(['ok' => true, 'message' => 'Client approved.']);
+            ->notifyServiceStatus($serviceRequest, 'Pending Invoice');   // CHANGED: real status, not free text
+
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => 'Client approved — SR moved to Invoice Panel.',
+        ]);
     }
 
     /* ============================================================
@@ -979,29 +1017,36 @@ class ServiceRequestController extends Controller
 
     public function hopApprove(ServiceRequest $serviceRequest)
     {
-
-        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Invoice Submitted')
+        $oldStatus = $serviceRequest->status;          // 'Invoice Submitted'
 
         $serviceRequest->update([
-            'status'          => 'Completed',
-            'hop_approved_at' => now(),
-            'hop_approved_by' => Auth::id(),
+            'status'            => 'Approved',   // CHANGED: was 'Completed' — sends SR to Dispatch Engine
+            'hop_approved_at'   => now(),
+            'hop_approved_by'   => Auth::id(),
+            'assigned_user_id'  => null,         // ADDED: release the technician so it re-queues for dispatch
+            'service_domain_id' => null,         // ADDED
+            'dispatched_at'     => null,         // ADDED
         ]);
 
         NotificationLog::create([
             'service_request_id' => $serviceRequest->id,
             'event'       => 'status_updated',
             'title'       => 'Status Updated',
-            'message'     => $this->buildSrRef($serviceRequest) . ' closed — Completed',
-            'from_status' => $oldStatus,   // 'Invoice Submitted'
-            'to_status'   => 'Completed',
+            'message'     => $this->buildSrRef($serviceRequest)
+                . ' — HoP approved, returned to Dispatch Engine',
+            'from_status' => $oldStatus,     // 'Invoice Submitted'
+            'to_status'   => 'Approved',     // CHANGED
             'caused_by'   => Auth::id(),
         ]);
 
-
         app(\App\Services\WhatsAppService::class)
-            ->notifyServiceStatus($serviceRequest, 'Completed');
-        return response()->json(['ok' => true, 'message' => 'SR closed — Completed.']);
+            ->notifyServiceStatus($serviceRequest, 'Approved');   // CHANGED: was 'Completed'
+
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => 'HoP approved — SR sent back to Dispatch Engine.',
+        ]);
     }
 
     /* ============================================================

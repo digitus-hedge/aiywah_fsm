@@ -5,9 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use App\Models\PunchPhoto;
+use App\Traits\LogsActivity;
 class Punch extends Model
 {
+    use LogsActivity;
     protected $fillable = [
         'service_request_id', 'user_id',
         'punch_in_at', 'site_location', 'work_description', 'start_photo_path', 
@@ -48,5 +50,19 @@ class Punch extends Model
         }
         $mins = $this->punch_in_at->diffInMinutes($this->punch_out_at);
         return intdiv($mins, 60) . 'h ' . str_pad($mins % 60, 2, '0', STR_PAD_LEFT) . 'm';
+    }
+    public function photos(): HasMany
+    {
+        return $this->hasMany(PunchPhoto::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function beforePhotos(): HasMany
+    {
+        return $this->photos()->where('type', 'before');
+    }
+
+    public function afterPhotos(): HasMany
+    {
+        return $this->photos()->where('type', 'after');
     }
 }

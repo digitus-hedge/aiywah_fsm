@@ -3,9 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-
+use App\Traits\LogsActivity;
 class ClientMobile extends Model
 {
+    use LogsActivity;
     protected $fillable = ['client_id','name', 'country', 'mobile','notify'];
     protected $casts    = ['notify' => 'boolean'];
 

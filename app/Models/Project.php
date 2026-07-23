@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes; // <-- Import the Trait
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use App\Traits\LogsActivity;
 class Project extends Model
 {
-        protected $table = 'projects';   // ← add this explicitly
-
-    use SoftDeletes; // <-- Use the Trait inside your class
+        use LogsActivity;
+         use SoftDeletes; 
+        protected $table = 'projects';
     protected $fillable = [
         'client_id',
         'project_name',

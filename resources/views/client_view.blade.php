@@ -1,6 +1,6 @@
 @extends('layouts.layout')
-@section('title', 'Client Directory— Digit-Us Portal')
-@section('page_title', 'Client Directory')
+@section('title', 'Customer Directory')
+@section('page_title', 'Customer Directory')
 @section('page_icon', 'bi bi-buildings')
 
 @push('styles')
@@ -1669,7 +1669,7 @@
     <div class="card">
       <div class="card-hdr">
         <div class="card-hdr-left">
-          <span class="card-hdr-title">Client Projects</span>
+          <span class="card-hdr-title">Customer Projects</span>
           <span class="result-count" id="pf-count">4 projects</span>
         </div>
         <div style="display:flex;gap:7px;">
@@ -1729,8 +1729,8 @@
 
     <!-- Client Details -->
     <div class="info-card">
-      <div class="info-card-hdr"><i class="bi bi-info-circle-fill"></i><span class="info-card-title">Client Details</span></div>
-      <div class="info-row"><span class="info-key">Client Token</span><span class="info-val mono">{{ $client->unique_code }}</span></div>
+      <div class="info-card-hdr"><i class="bi bi-info-circle-fill"></i><span class="info-card-title">Customer Details</span></div>
+      <div class="info-row"><span class="info-key">Customer Token</span><span class="info-val mono">{{ $client->unique_code }}</span></div>
       <div class="info-row"><span class="info-key">Trade Name</span><span class="info-val">{{ $client->company_name }}</span></div>
       <div class="info-row"><span class="info-key">Primary Contact</span><span class="info-val">{{ $client->contact_name ?? '—' }}</span></div>
       <div class="info-row"><span class="info-key">Phone</span><span class="info-val mono">{{ $client->primary_country }} {{ $client->primary_mobile }}</span></div>
@@ -1901,7 +1901,7 @@
 
       <!-- Locked client context -->
       <div class="m-section">
-        <div class="m-section-label"><span class="step-num">1</span>Client Context</div>
+        <div class="m-section-label"><span class="step-num">1</span>Customer Context</div>
         <div class="locked-banner">
           <i class="bi bi-building-fill"></i>
           <div style="flex:1;min-width:0;">
@@ -1929,7 +1929,7 @@
         <i class="bi bi-arrow-repeat"></i>Regenerate
       </button>
     </div>
-    <div class="field-hint">Auto-generated from client token. Editable if you need a specific format.</div>
+    <div class="field-hint">Auto-generated from customer token. Editable if you need a specific format.</div>
   </div>
 
  <div class="form-group" style="margin-bottom:0;">
@@ -2012,7 +2012,7 @@
   function renderProjects(list) {
     var tbody = document.getElementById('pf-tbody');
     if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-st"><i class="bi bi-inbox"></i><h6>No Projects Yet</h6><p>No projects match your filters, or this client has none registered.</p></div></td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8"><div class="empty-st"><i class="bi bi-inbox"></i><h6>No Projects Yet</h6><p>No projects match your filters, or this customer has none registered.</p></div></td></tr>';
       document.getElementById('pf-count').textContent = '0 projects';
       document.getElementById('pf-page-info').textContent = 'No results';
       return;

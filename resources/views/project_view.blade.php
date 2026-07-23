@@ -558,8 +558,8 @@ span#cds
 
   <div class="info-row"><span class="info-key">Project Code</span><span class="info-val mono">{{ $project->project_code }}</span></div>
   <div class="info-row"><span class="info-key">Project Name</span><span class="info-val">{{ $project->project_name }}</span></div>
-  <div class="info-row"><span class="info-key">Client</span><span class="info-val">{{ $project->client?->company_name ?? '—' }}</span></div>
-  <div class="info-row"><span class="info-key">Client Token</span><span class="info-val mono">{{ $project->client?->unique_code ?? '—' }}</span></div>
+  <div class="info-row"><span class="info-key">Customer</span><span class="info-val">{{ $project->client?->company_name ?? '—' }}</span></div>
+  <div class="info-row"><span class="info-key">Customer Token</span><span class="info-val mono">{{ $project->client?->unique_code ?? '—' }}</span></div>
   <div class="info-row"><span class="info-key">Contact Person</span><span class="info-val">{{ $project->client?->contact_name ?? '—' }}</span></div>
   <!-- <div class="info-row"><span class="info-key">Designation</span><span class="info-val">{{ $project->client?->designation ?? '—' }}</span></div> -->
   <div class="info-row"><span class="info-key">Primary Contact</span><span class="info-val">{{ $project->client?->primary_country }} {{ $project->client?->primary_mobile ?? '—' }}</span></div>
@@ -1017,7 +1017,7 @@ if (items.length) {
 
 
     '<div class="d-section">' +
-      '<div class="d-sec-title"><i class="bi bi-star-half"></i>Client Feedback</div>' +
+      '<div class="d-sec-title"><i class="bi bi-star-half"></i>Customers Feedback</div>' +
       '<div class="det-cell" style="display:block;">' +
         '<div class="det-key">Technician Rating</div>' +
         ratingHtml +
