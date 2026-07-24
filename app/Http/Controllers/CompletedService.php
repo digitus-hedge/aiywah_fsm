@@ -91,11 +91,10 @@ class CompletedService extends Controller
         // Warranty scope filter.
         $query->when($request->filled('warranty'), function ($q) use ($request) {
             if ($request->query('warranty') === 'oow') {
-                $q->where(fn ($w) => $w->where('is_oow', true)
-                                       ->orWhere('warranty_status', 'Out of Warranty'));
+                $q->where('warranty_scope', 'oow');
             } elseif ($request->query('warranty') === 'warranty') {
-                $q->where(fn ($w) => $w->where('is_oow', false)
-                                       ->orWhereNull('is_oow'));
+                $q->where(fn ($w) => $w->where('warranty_scope', 'iw')
+                                       ->orWhereNull('warranty_scope'));
             }
         });
 
@@ -161,10 +160,7 @@ class CompletedService extends Controller
         $completedAt = $punch && $punch->punch_out_at
             ? Carbon::parse($punch->punch_out_at)
             : Carbon::parse($sr->updated_at);
-
-        $isOow = ($sr->is_oow ?? false)
-              || (($sr->warranty_status ?? '') === 'Out of Warranty');
-
+        $isOow = ($sr->warranty_scope ?? 'iw') === 'oow';
         return [
             'id'          => $sr->id,
             'code'        => $srCode,

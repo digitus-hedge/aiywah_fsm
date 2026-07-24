@@ -1,7 +1,7 @@
 @extends('layouts.layout')
 
-@section('title', 'Client Account Creation — Digit-Us Portal')
-@section('page_title', 'Client Accounts')
+@section('title', 'Customer Account Creation ')
+@section('page_title', 'Customer Accounts')
 @section('page_icon', 'building-add')
 
 @php
@@ -269,13 +269,13 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 <div class="modal-overlay {{ session('success') ? 'show' : '' }}" id="successModal">
   <div class="modal-box">
     <div class="modal-hdr">
-      <h6>Client Account Saved</h6>
+      <h6>Customer Account Saved</h6>
       <a href="{{ route('clients.create') }}" class="modal-close"><i class="bi bi-x-lg"></i></a>
     </div>
     <div class="modal-body-c">
       <div class="modal-icon-ring"><i class="bi bi-person-check-fill"></i></div>
       <div class="modal-title-t">Saved Successfully</div>
-      <div class="modal-sub-t">The client account has been saved and the lookup index refreshed.</div>
+      <div class="modal-sub-t">The customer account has been saved and the lookup index refreshed.</div>
       <div class="modal-token-box">{{ session('saved_token', 'CUST-——') }}</div>
     </div>
     <div class="modal-ftr">
@@ -286,7 +286,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 </div>
 
 <div class="pg-header">
-  <h4><i class="bi bi-building-add me-2"></i>{{ $isEdit ? 'Edit Client Account' : 'Client Account Creation' }}</h4>
+  <h4><i class="bi bi-building-add me-2"></i>{{ $isEdit ? 'Edit Customer Account' : 'Customer Account Creation' }}</h4>
   <p>{{ $isEdit ? 'Update firm name, contact details, and projects. Only the unique code and project code are locked.' : 'Register enterprise clients, assign identification tokens, link projects, and configure stakeholder contacts.' }}</p>
   <div class="meta-row">
     <span class="meta-badge"><i class="bi bi-person-badge me-1"></i>Front Desk</span>
@@ -310,12 +310,12 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="card">
         <div class="card-hdr">
           <div class="card-hdr-icon" style="background:rgba(154,123,79,.1);"><i class="bi bi-building" style="color:#9A7B4F;"></i></div>
-          <div><h6>Client Identity</h6><span class="csub">{{ $isEdit ? 'Firm name editable — unique code locked' : 'Firm name and unique identification token' }}</span></div>
+          <div><h6>Customer Identity</h6><span class="csub">{{ $isEdit ? 'Firm name editable — unique code locked' : 'Firm name and unique identification token' }}</span></div>
         </div>
         <div class="card-body">
 
           <div class="form-group">
-            <label class="form-label">Client Firm Name <span class="req">*</span></label>
+            <label class="form-label">Customer Firm Name <span class="req">*</span></label>
             <div class="input-icon-wrap">
               <i class="bi bi-building ii"></i>
               <input type="text" class="form-control" id="firmName" name="company_name"
@@ -327,7 +327,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 
           <div class="form-group">
             <label class="form-label">
-              Unique Client Identification Token <span class="req">*</span>
+              Unique Customer Identification Token <span class="req">*</span>
               <span class="auto-tag">AUTO</span>@if($isEdit)<span class="lock-tag">LOCKED</span>@endif
             </label>
             <div class="auto-row">
@@ -454,7 +454,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 
       <div class="action-bar">
         <button type="submit" class="btn-save" id="saveBtn">
-          <i class="bi bi-floppy-fill"></i>{{ $isEdit ? 'Update Client Account' : 'Save Client Account' }}
+          <i class="bi bi-floppy-fill"></i>{{ $isEdit ? 'Update Customer Account' : 'Save Customer Account' }}
         </button>
         <a href="{{ route('clients.create') }}" class="btn-reset">
           <i class="bi bi-arrow-counterclockwise"></i>{{ $isEdit ? 'Cancel / New' : 'Reset Form' }}
@@ -493,7 +493,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
         </div>
         <div class="sum-body">
           <div class="checklist">
-            <div class="cl-item"><div class="cl-icon cl-pending" id="chk-firm">1</div><span class="cl-text" id="chktxt-firm">Client firm name</span></div>
+            <div class="cl-item"><div class="cl-icon cl-pending" id="chk-firm">1</div><span class="cl-text" id="chktxt-firm">Customer firm name</span></div>
             <div class="cl-item"><div class="cl-icon cl-pending" id="chk-token">2</div><span class="cl-text" id="chktxt-token">Token present</span></div>
             <div class="cl-item"><div class="cl-icon cl-pending" id="chk-contact">3</div><span class="cl-text" id="chktxt-contact">Primary contact name</span></div>
             <div class="cl-item"><div class="cl-icon cl-pending" id="chk-phone">4</div><span class="cl-text" id="chktxt-phone">Primary mobile number</span></div>
@@ -505,12 +505,12 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="summary-card">
         <div class="sum-hdr">
           <div class="sum-hdr-ico" style="background:rgba(154,123,79,.1);"><i class="bi bi-buildings" style="color:#9A7B4F;"></i></div>
-          <div><h6>Recent Clients</h6><span class="ssub">Click to edit — last 5</span></div>
+          <div><h6>Recent Customers</h6><span class="ssub">Click to edit — last 5</span></div>
         </div>
         <div class="tbl-wrap">
           <table class="clients-tbl">
             <thead>
-              <tr><th>Client</th><th>Token</th><th>Status</th></tr>
+              <tr><th>Customer</th><th>Token</th><th>Status</th></tr>
             </thead>
             <tbody>
               @forelse($recentClients ?? [] as $c)
@@ -591,7 +591,7 @@ async function lookupByCompanyName() {
     const data = await res.json();
     data.found ? applyMatchedClient(data) : resetToCreateMode();
   } catch (err) {
-    console.error('Client lookup failed:', err);
+    console.error('Customer lookup failed:', err);
   }
 }
 
@@ -626,7 +626,7 @@ function applyMatchedClient(data) {
   (data.projects || []).forEach(p => addProject(p, true)); // project_code stays readonly
   if (!data.projects || !data.projects.length) addProject();
 
-  showToast('primary', 'Existing Client Found', 'Saved details loaded — fields are editable except the token and project codes.');
+  showToast('primary', 'Existing Customer Found', 'Saved details loaded — fields are editable except the token and project codes.');
   syncSummary();
   updateChecklist();
 }
@@ -985,7 +985,7 @@ document.getElementById('clientForm').addEventListener('submit', function (e) {
   const phone   = document.getElementById('primaryMobile').value.replace(/\D/g,'');
   const sites   = document.getElementById('psGrid').children.length;
 
-  if (!firm)    { e.preventDefault(); showToast('error','Missing Field','Please enter the client firm name.'); return; }
+  if (!firm)    { e.preventDefault(); showToast('error','Missing Field','Please enter the customer firm name.'); return; }
   if (!token)   { e.preventDefault(); showToast('error','Token Issue','Token is missing.'); return; }
   if (!contact) { e.preventDefault(); showToast('error','Missing Field','Please enter the primary contact name.'); document.getElementById('contactName').focus(); return; }
   if (phone.length < 7) { e.preventDefault(); showToast('error','Invalid Number','Please enter a valid primary mobile number.'); document.getElementById('primaryMobile').focus(); return; }

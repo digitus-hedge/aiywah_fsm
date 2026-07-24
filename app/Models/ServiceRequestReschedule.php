@@ -4,9 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
+use App\Traits\LogsActivity;
 class ServiceRequestReschedule extends Model
 {
+    use LogsActivity;
     protected $fillable = [
         'service_request_id', 'user_id',
         'previous_eta_at', 'new_eta_at', 'reason', 'from_status',

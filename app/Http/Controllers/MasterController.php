@@ -11,29 +11,10 @@ use App\Models\ExpenseCategory;
 use App\Models\Warranty;
 use App\Models\Priority;
 use App\Models\SlaMatrix;
-use App\Models\WhatsappTemplate;
-use App\Models\ActivityLog;
 
 class MasterController extends Controller
 {
-    /* ============================================================
-     |  Small helper — write an activity log if the table exists
-     ============================================================ */
-    private function log(string $module, string $type, string $desc): void
-    {
-        try {
-            ActivityLog::create([
-                'user_id'       => auth()->id(),
-                'module'        => $module,
-                'activity_type' => $type,
-                'description'   => $desc,
-                'ip_address'    => request()->ip(),
-                'user_agent'    => request()->userAgent(),
-            ]);
-        } catch (\Throwable $e) {
-            // logging must never break the main action
-        }
-    }
+    
 
     /* ============================================================
      |  MAIN PAGE
@@ -48,7 +29,6 @@ class MasterController extends Controller
         $warranties        = Warranty::orderBy('name')->get();
         $priorities        = Priority::orderBy('display_order')->get();
         $slaMatrix         = SlaMatrix::with('priority')->orderBy('priority_id')->get();
-        $templates         = WhatsappTemplate::orderBy('template_name')->get();
 
         $counts = [
             'service'   => $categories->count(),
@@ -56,12 +36,11 @@ class MasterController extends Controller
             'priority'  => $priorities->count(),
             'warranty'  => $warranties->count(),
             'sla'       => $slaMatrix->count(),
-            'templates' => $templates->count(),
         ];
 
         return view('master_data', compact(
             'categories', 'expenseCategories','warranties', 'priorities',
-            'slaMatrix', 'templates', 'counts'
+            'slaMatrix','counts'
         ));
     }
 
@@ -83,7 +62,6 @@ class MasterController extends Controller
         $data['created_by'] = auth()->id();
 
         $category = ServiceCategory::create($data);
-        $this->log('Service Category', 'Create', "Created category: {$category->category_name}");
 
         return response()->json([
             'status'  => true,
@@ -109,7 +87,6 @@ class MasterController extends Controller
         $data['updated_by'] = auth()->id();
 
         $category->update($data);
-        $this->log('Service Category', 'Update', "Updated category: {$category->category_name}");
 
         return response()->json([
             'status'  => true,
@@ -131,7 +108,6 @@ class MasterController extends Controller
 
         $name = $category->category_name;
         $category->delete();
-        $this->log('Service Category', 'Delete', "Deleted category: {$name}");
 
         return response()->json([
             'status'  => true,
@@ -194,7 +170,6 @@ class MasterController extends Controller
         $data['created_by'] = auth()->id();
 
         $domain = ServiceDomain::create($data);
-        $this->log('Service Domain', 'Create', "Created domain: {$domain->domain_name}");
 
         return response()->json([
             'status'  => true,
@@ -231,7 +206,6 @@ class MasterController extends Controller
         $data['updated_by'] = auth()->id();
 
         $domain->update($data);
-        $this->log('Service Domain', 'Update', "Updated domain: {$domain->domain_name}");
 
         return response()->json([
             'status'  => true,
@@ -245,7 +219,6 @@ class MasterController extends Controller
         $domain = ServiceDomain::findOrFail($id);
         $name = $domain->domain_name;
         $domain->delete();
-        $this->log('Service Domain', 'Delete', "Deleted domain: {$name}");
 
         return response()->json([
             'status'  => true,
@@ -285,7 +258,6 @@ class MasterController extends Controller
         }
 
         $expense = ExpenseCategory::create($request->only('name', 'description', 'status'));
-        $this->log('Expense Category', 'Create', "Created expense: {$expense->name}");
 
         return response()->json([
             'status'  => true,
@@ -309,7 +281,6 @@ class MasterController extends Controller
     }
 
     $warranty = Warranty::create($request->only('name', 'value', 'status'));
-    $this->log('Warranty Category', 'Create', "Created warranty: {$warranty->name}");
 
     return response()->json([
         'status'  => true,
@@ -336,7 +307,6 @@ public function updateWarrantyCategory(Request $request, $id)
     }
 
     $warranty->update($request->only('name', 'value', 'status'));
-    $this->log('Warranty Category', 'Update', "Updated warranty: {$warranty->name}");
 
     return response()->json([
         'status'  => true,
@@ -360,7 +330,6 @@ public function updateWarrantyCategory(Request $request, $id)
         }
 
         $expense->update($request->only('name', 'description', 'status'));
-        $this->log('Expense Category', 'Update', "Updated expense: {$expense->name}");
 
         return response()->json([
             'status'  => true,
@@ -374,7 +343,6 @@ public function updateWarrantyCategory(Request $request, $id)
         $expense = ExpenseCategory::findOrFail($id);
         $name = $expense->name;
         $expense->delete();
-        $this->log('Expense Category', 'Delete', "Deleted expense: {$name}");
 
         return response()->json([
             'status'  => true,
@@ -389,7 +357,6 @@ public function updateWarrantyCategory(Request $request, $id)
         $warranty = Warranty::findOrFail($id);
         $name = $warranty->name;
         $warranty->delete();
-        $this->log('Warranty', 'Delete', "Deleted expense: {$name}");
 
         return response()->json([
             'status'  => true,
@@ -448,7 +415,6 @@ public function updateWarrantyCategory(Request $request, $id)
         }
 
         $priority = Priority::create($request->only('name', 'display_order', 'color', 'status'));
-        $this->log('Priority', 'Create', "Created priority: {$priority->name}");
 
         return response()->json([
             'status'  => true,
@@ -473,7 +439,6 @@ public function updateWarrantyCategory(Request $request, $id)
         }
 
         $priority->update($request->only('name', 'display_order', 'color', 'status'));
-        $this->log('Priority', 'Update', "Updated priority: {$priority->name}");
 
         return response()->json([
             'status'  => true,
@@ -495,7 +460,6 @@ public function updateWarrantyCategory(Request $request, $id)
 
         $name = $priority->name;
         $priority->delete();
-        $this->log('Priority', 'Delete', "Deleted priority: {$name}");
 
         return response()->json([
             'status'  => true,
@@ -548,7 +512,6 @@ public function updateWarrantyCategory(Request $request, $id)
             'alert_percentage' => $request->alert_percentage,
             'status'           => $request->status ?? 1,
         ]);
-        $this->log('SLA Matrix', 'Create', 'Created SLA row.');
 
         return response()->json([
             'status'  => true,
@@ -588,7 +551,6 @@ public function updateWarrantyCategory(Request $request, $id)
             'alert_percentage' => $request->alert_percentage,
             'status'           => $request->status ?? 1,
         ]);
-        $this->log('SLA Matrix', 'Update', 'Updated SLA row.');
 
         return response()->json([
             'status'  => true,
@@ -601,7 +563,6 @@ public function updateWarrantyCategory(Request $request, $id)
     {
         $sla = SlaMatrix::findOrFail($id);
         $sla->delete();
-        $this->log('SLA Matrix', 'Delete', 'Deleted SLA row.');
 
         return response()->json([
             'status'  => true,
@@ -640,7 +601,6 @@ public function updateWarrantyCategory(Request $request, $id)
                 );
             }
             DB::commit();
-            $this->log('SLA Matrix', 'Update', 'Saved full SLA matrix.');
 
             return response()->json(['status' => true, 'message' => 'SLA Matrix saved successfully.']);
         } catch (\Exception $e) {
@@ -649,97 +609,7 @@ public function updateWarrantyCategory(Request $request, $id)
         }
     }
 
-    /* ============================================================
-     |  WHATSAPP TEMPLATES
-     ============================================================ */
-    public function storeWhatsappTemplate(Request $request)
-    {
-        $data = $request->validate([
-            'template_name' => 'required|string|max:255',
-            'trigger_event' => 'nullable|string|max:255',
-            'description'   => 'nullable|string|max:500',
-            'body'          => 'required|string',
-            'variables'     => 'nullable|array',
-            'status'        => 'nullable|in:0,1',
-        ]);
-
-        $data['status'] = $data['status'] ?? 1;
-        $template = WhatsappTemplate::create($data);
-        $this->log('WhatsApp Template', 'Create', "Created template: {$template->template_name}");
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'WhatsApp Template created successfully.',
-            'data'    => $template,
-        ]);
-    }
-
-    public function updateWhatsappTemplate(Request $request, $id)
-    {
-        $template = WhatsappTemplate::findOrFail($id);
-
-        $data = $request->validate([
-            'template_name' => 'sometimes|required|string|max:255',
-            'trigger_event' => 'nullable|string|max:255',
-            'description'   => 'nullable|string|max:500',
-            'body'          => 'required|string',
-            'variables'     => 'nullable|array',
-            'status'        => 'nullable|in:0,1',
-        ]);
-
-        $template->update($data);
-        $this->log('WhatsApp Template', 'Update', "Updated template: {$template->template_name}");
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'WhatsApp Template updated successfully.',
-            'data'    => $template,
-        ]);
-    }
-
-    public function deleteWhatsappTemplate($id)
-    {
-        $template = WhatsappTemplate::findOrFail($id);
-        $name = $template->template_name;
-        $template->delete();
-        $this->log('WhatsApp Template', 'Delete', "Deleted template: {$name}");
-
-        return response()->json([
-            'status'  => true,
-            'message' => 'WhatsApp Template deleted successfully.',
-        ]);
-    }
-
-    public function changeWhatsappTemplateStatus(Request $request, $id)
-    {
-        $template = WhatsappTemplate::findOrFail($id);
-        $template->status = $request->has('status')
-            ? (int) $request->status
-            : ($template->status ? 0 : 1);
-        $template->save();
-
-        return response()->json([
-            'status'         => true,
-            'message'        => 'Template status updated.',
-            'current_status' => $template->status,
-        ]);
-    }
-
-    /* ============================================================
-     |  ACTIVITY LOGS
-     ============================================================ */
-    public function activityLogs()
-    {
-        $logs = ActivityLog::orderByDesc('created_at')->paginate(30);
-        return view('activity_logs', compact('logs'));
-    }
-
-    public function viewActivityLog($id)
-    {
-        $log = ActivityLog::findOrFail($id);
-        return response()->json(['status' => true, 'data' => $log]);
-    }
-
+    
     /* ============================================================
      |  AJAX READ ENDPOINTS
      ============================================================ */

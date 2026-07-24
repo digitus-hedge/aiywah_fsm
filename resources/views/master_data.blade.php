@@ -210,24 +210,6 @@ textarea.form-control{resize:vertical;min-height:72px;}
 .sla-inp{width:80px;padding:5px 8px;border-radius:6px;border:1px solid var(--border-color);background:var(--input-bg);color:var(--text-primary);font-size:.8rem;text-align:center;transition:border-color .15s;}
 .sla-inp:focus{outline:none;border-color:#9A7B4F;box-shadow:var(--input-focus-shadow);}
 
-/* ── TEMPLATE ACCORDION ── */
-.tmpl-accordion{display:flex;flex-direction:column;gap:8px;}
-.tmpl-item{border:1px solid var(--border-color);border-radius:9px;overflow:hidden;transition:border-color .15s;}
-.tmpl-item.open{border-color:rgba(154,123,79,.3);}
-.tmpl-item-hdr{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;background:var(--surface-2);transition:background .12s;user-select:none;}
-.tmpl-item.open .tmpl-item-hdr{background:rgba(154,123,79,.06);}
-.tmpl-trigger-pill{font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:12px;border:1px solid;white-space:nowrap;}
-.tmpl-item-desc{flex:1;font-size:.78rem;color:var(--text-muted);}
-.tmpl-chevron{font-size:.78rem;color:var(--text-muted);transition:transform .2s;flex-shrink:0;}
-.tmpl-item.open .tmpl-chevron{transform:rotate(180deg);}
-.tmpl-body{display:none;padding:16px;}
-.tmpl-item.open .tmpl-body{display:block;animation:panelIn .15s ease;}
-.var-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
-.var-chip{font-size:.68rem;background:rgba(37,99,235,.09);color:#2563eb;padding:2px 8px;border-radius:4px;cursor:pointer;border:1px solid rgba(37,99,235,.18);transition:background .12s;}
-.var-chip:hover{background:rgba(37,99,235,.18);}
-[data-bs-theme="dark"] .var-chip{background:rgba(37,99,235,.18);color:#93c5fd;border-color:rgba(37,99,235,.3);}
-.char-hint{font-size:.7rem;color:var(--text-muted);text-align:right;margin-top:4px;}
-
 /* ── MODAL ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:900;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
 .modal-overlay.show{display:flex;}
@@ -316,11 +298,6 @@ textarea.form-control{resize:vertical;min-height:72px;}
       <i class="bi bi-stopwatch"></i>
       <span class="trb-label">SLA Matrix</span>
       <span class="trb-count" id="cnt-sla">{{ $counts['sla'] ?? 0 }}</span>
-    </button>
-    <button class="trb" onclick="switchTab('templates')" data-tab="templates">
-      <i class="bi bi-whatsapp"></i>
-      <span class="trb-label">WA Templates</span>
-      <span class="trb-count" id="cnt-templates">{{ $counts['templates'] ?? 0 }}</span>
     </button>
   </div>
  
@@ -609,32 +586,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
         <span style="font-size:.72rem;color:var(--text-muted);">1440 mins = 24 hrs · 2880 mins = 48 hrs · 4320 mins = 72 hrs</span>
       </div>
     </div>
-  </div>
- 
-  <!-- ════════════════════════════════
-       PANEL 5: WHATSAPP TEMPLATES (JS-rendered from DB)
-  ════════════════════════════════ -->
-  <div class="master-panel" id="panel-templates">
-    <div class="simple-card">
-      <div class="simple-card-hdr">
-        <div class="card-hdr-icon" style="background:rgba(37,211,102,.1);"><i class="bi bi-whatsapp" style="color:#25d366;"></i></div>
-        <div>
-          <h6 style="font-size:.875rem;font-weight:600;color:var(--text-heading);margin:0 0 1px;">WhatsApp Notification Templates</h6>
-          <div class="csub" style="font-size:.72rem;color:var(--text-muted);">One template per system trigger. Click a variable chip to insert it at cursor position.</div>
-        </div>
-      </div>
-      <div style="padding:14px 18px 4px;">
-        <div class="info-banner green">
-          <i class="bi bi-whatsapp"></i>
-          <span>Uses the <strong>Meta WhatsApp Business API</strong>. Variable chips (e.g. <code style="font-size:.7rem;background:rgba(0,0,0,.06);padding:1px 4px;border-radius:3px;">@{{SR_ID}}</code>) are replaced at send-time. Templates must be Meta-approved before going live.</span>
-        </div>
-      </div>
-      <div style="padding:0 18px 18px;">
-        <div class="tmpl-accordion" id="tmpl-accordion"><!-- rendered by JS --></div>
-      </div>
-    </div>
-  </div>
- 
+  </div> 
  
 <!-- ════ MODAL: SERVICE CATEGORY ════ -->
 <div class="modal-overlay" id="modal-cat" onclick="handleOverlayClick(event,'modal-cat')">
@@ -898,14 +850,6 @@ textarea.form-control{resize:vertical;min-height:72px;}
             'active' => (bool) $d->status,
         ])->values(),
     ])->values();
- 
-    $templatesSeed = $templates->map(fn ($t) => [
-        'id'      => $t->id,
-        'trigger' => $t->trigger_event ?? $t->template_name,
-        'desc'    => $t->description,
-        'body'    => $t->body,
-        'vars'    => $t->variables ?? [],
-    ])->values();
 @endphp
  
 @push('scripts')
@@ -941,19 +885,10 @@ window.M_ROUTES = {
   priStatus: (id) => `{{ url('masters/priority/status') }}/${id}`,
  
   slaSaveAll: "{{ route('masters.sla-matrix.save-all') }}",
- 
-  tmplStore:  "{{ route('masters.whatsapp-template.store') }}",
-  tmplUpdate: (id) => `{{ url('masters/whatsapp-template/update') }}/${id}`,
 };
  
 /* ─── DATA (from DB) ─── */
 const CATS      = @json($catsSeed);
-const TEMPLATES = @json($templatesSeed).map(t => ({
-  ...t,
-  triggerColor: '#9A7B4F',
-  triggerBg:    'rgba(154,123,79,.1)',
-  vars: Array.isArray(t.vars) ? t.vars : [],
-}));
  
 let selectedCatId = null;
 /* edit-mode trackers: null = create, otherwise the id being edited */
@@ -1038,68 +973,6 @@ function renderDomains(cat){
       </div>
     </div>
   `).join('');
-}
- 
-/* ─── RENDER TEMPLATES ─── */
-function renderTemplates(){
-  const acc = document.getElementById('tmpl-accordion');
-  if(!acc) return;
-  if(!TEMPLATES.length){
-    acc.innerHTML = `
-      <div class="no-sel" style="padding:30px 20px;text-align:center;">
-        <div class="no-sel-icon"><i class="bi bi-whatsapp"></i></div>
-        <h6>No Templates Yet</h6>
-        <p>Run <code style="font-size:.72rem;background:rgba(0,0,0,.06);padding:1px 5px;border-radius:3px;">php artisan db:seed --class=WhatsappTemplateSeeder</code> to load the 7 system templates.</p>
-      </div>`;
-    const el0 = document.getElementById('cnt-templates'); if(el0) el0.textContent = 0;
-    return;
-  }
-  acc.innerHTML = TEMPLATES.map(t=>`
-    <div class="tmpl-item" id="tmpl-${t.id}">
-      <div class="tmpl-item-hdr" onclick="toggleTemplate('${t.id}')">
-        <span class="tmpl-trigger-pill" style="background:${t.triggerBg};color:${t.triggerColor};border-color:${t.triggerColor}33;">${t.trigger}</span>
-        <span class="tmpl-item-desc">${t.desc||''}</span>
-        <i class="bi bi-chevron-down tmpl-chevron"></i>
-      </div>
-      <div class="tmpl-body">
-        <label class="form-label">Message Body <span class="req">*</span></label>
-        <textarea class="form-control" id="ta-${t.id}" rows="5" oninput="updateCharCount('${t.id}')">${t.body}</textarea>
-        <div class="char-hint" id="cc-${t.id}"></div>
-        <div style="margin-top:8px;">
-          <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:5px;">Click to insert variable at cursor:</div>
-          <div class="var-chips">
-            ${t.vars.map(v=>`<span class="var-chip" onclick="insertVar('ta-${t.id}','${v}')">${v}</span>`).join('')}
-          </div>
-        </div>
-        <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
-          <button class="btn-primary-gold" style="padding:6px 14px;font-size:.78rem;" onclick="saveTemplate('${t.id}')"><i class="bi bi-floppy"></i>Save Template</button>
-          <span style="font-size:.72rem;color:var(--text-muted);" id="saved-${t.id}"></span>
-        </div>
-      </div>
-    </div>
-  `).join('');
-  TEMPLATES.forEach(t=>updateCharCount(t.id));
-  const el = document.getElementById('cnt-templates'); if(el) el.textContent = TEMPLATES.length;
-}
- 
-function toggleTemplate(id){
-  const item = document.getElementById(`tmpl-${id}`);
-  const isOpen = item.classList.contains('open');
-  document.querySelectorAll('.tmpl-item').forEach(i=>i.classList.remove('open'));
-  if(!isOpen) item.classList.add('open');
-}
-function updateCharCount(id){
-  const ta=document.getElementById(`ta-${id}`);
-  if(!ta)return;
-  document.getElementById(`cc-${id}`).textContent=`${ta.value.length} characters`;
-}
-function insertVar(taId,variable){
-  const ta=document.getElementById(taId);
-  const s=ta.selectionStart,e=ta.selectionEnd;
-  ta.value=ta.value.substring(0,s)+variable+ta.value.substring(e);
-  ta.selectionStart=ta.selectionEnd=s+variable.length;
-  ta.focus();
-  updateCharCount(String(taId).replace('ta-',''));
 }
  
 /* ─── MODALS ─── */
@@ -1393,18 +1266,6 @@ async function saveSLA(){
   }catch(e){showToast('err','Error',e.message);}
 }
  
-/* ─── SAVE TEMPLATE ─── */
-async function saveTemplate(id){
-  const body=document.getElementById(`ta-${id}`).value;
-  const t=TEMPLATES.find(x=>String(x.id)===String(id));
-  try{
-    await api(window.M_ROUTES.tmplUpdate(id),'PUT',{body,variables:t?t.vars:[]});
-    const lbl=document.getElementById(`saved-${id}`);
-    if(lbl){lbl.textContent='✓ Saved';setTimeout(()=>lbl.textContent='',2500);}
-    showToast('ok','Template Saved','WhatsApp template updated.');
-  }catch(e){showToast('err','Error',e.message);}
-}
- 
 /* ─── DELETE ─── */
 let pendingDel={};
 function confirmDel(type,id,name){
@@ -1461,7 +1322,6 @@ function showToast(type,title,body){
  
 /* ─── INIT ─── */
 renderCats();
-renderTemplates();
 restoreTab();
 </script>
 @endpush

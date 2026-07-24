@@ -5,9 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
+use App\Traits\LogsActivity;
 class Punchitem extends Model
 {
-
+    use LogsActivity;
     protected $table = 'punch_items';   // point to the real table
 
     protected $fillable = [ 'punch_id', 'name', 'category', 'qty', 'rate', 'line_total', 'receipt_path',

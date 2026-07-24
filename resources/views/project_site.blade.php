@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Project & Site Directory — Digit-Us Portal')
+@section('title', 'Project & Site Directory')
 @section('page_title')
 Project &amp; Site<span class="hide-mobile"> Directory</span>
 @endsection
@@ -1476,7 +1476,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
 
 <div class="pg-header">
   <h4><i class="bi bi-diagram-3 me-2"></i>Project & Site Directory</h4>
-  <p>Each project is linked to a single client and has one designated site location. Manage all registered projects across all client accounts from here.</p>
+  <p>Each project is linked to a single customer and has one designated site location. Manage all registered projects across all customer accounts from here.</p>
   <div class="meta-row">
     <span class="meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
     <span class="meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
@@ -1511,7 +1511,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
     <div class="stat-icon" style="background:rgba(37,99,235,.1);"><i class="bi bi-buildings" style="color:#3b82f6;"></i></div>
     <div>
       <div class="stat-num" id="stat-clients">{{ $stats['clients'] }}</div>
-      <div class="stat-lbl">Clients Covered</div>
+      <div class="stat-lbl">Customer Covered</div>
     </div>
   </div>
 </div>
@@ -1522,9 +1522,9 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
     <input class="filter-control" type="text" id="search-input" placeholder="Project code, name, site..." oninput="filterProjects()" />
   </div>
   <div class="filter-group">
-    <div class="filter-label">Client</div>
+    <div class="filter-label">Customer</div>
     <select class="filter-control" id="filter-client" onchange="filterProjects()">
-      <option value="">All Clients</option>
+      <option value="">All Customers</option>
       @foreach($clients as $c)
       <option value="{{ $c->company_name }}">{{ $c->company_name }}</option>
       @endforeach
@@ -1558,7 +1558,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
           <th style="width:36px;">#</th>
           <th>Project Code</th>
           <th>Project Name</th>
-          <th>Client</th>
+          <th>Customer</th>
           <th>Site Name</th>
           <th>Site Address</th>
           <th style="width:90px;">Status</th>
@@ -1634,7 +1634,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
         <div class="modal-hdr-icon"><i class="bi bi-folder-plus"></i></div>
         <div>
           <h6 id="modal-title">Add New Project</h6>
-          <div class="modal-hdr-sub" id="modal-sub">Select a client, then fill in project and site details</div>
+          <div class="modal-hdr-sub" id="modal-sub">Select a customer, then fill in project and site details</div>
         </div>
       </div>
       <button class="modal-close" onclick="closeModal()"><i class="bi bi-x-lg"></i></button>
@@ -1645,17 +1645,17 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
       <!-- STEP 1: CUSTOMER SELECTION -->
       <div class="m-section">
         <div class="m-section-label" id="step1-label">
-          <span class="step-num">1</span>Select Client Account
+          <span class="step-num">1</span>Select Customer Account
         </div>
         <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Client <span class="req">*</span></label>
+          <label class="form-label">Customer <span class="req">*</span></label>
 
           <!-- Search input -->
           <div class="cust-search-wrap" id="cust-search-wrap">
             <div class="cust-search-input-row">
               <i class="bi bi-search cust-search-icon"></i>
               <input type="text" class="form-control cust-search-input" id="cust-search"
-                placeholder="Type client name or token to search…"
+                placeholder="Type Customer name or token to search…"
                 oninput="filterCustomers(this.value)" onfocus="openCustDropdown()" autocomplete="off" />
               <button class="cust-clear" id="cust-clear" onclick="clearCustomer()"><i class="bi bi-x"></i></button>
             </div>
@@ -1698,7 +1698,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
                   <i class="bi bi-arrow-repeat"></i>Regenerate
                 </button>
               </div>
-              <div class="field-hint">Auto-generated from client token. You can edit it.</div>
+              <div class="field-hint">Auto-generated from customer token. You can edit it.</div>
             </div>
 
             <div class="form-group" style="margin-bottom:0;flex:1;">
@@ -1919,7 +1919,7 @@ $clientsJs = $clients->map(fn($c) => [
   function renderCustOptions(list) {
     const dd = document.getElementById('cust-dropdown');
     if (!list.length) {
-      dd.innerHTML = '<div class="cust-no-results"><i class="bi bi-search" style="display:block;margin-bottom:6px;font-size:1.2rem;color:var(--text-light);"></i>No clients found</div>';
+      dd.innerHTML = '<div class="cust-no-results"><i class="bi bi-search" style="display:block;margin-bottom:6px;font-size:1.2rem;color:var(--text-light);"></i>No customers found</div>';
       return;
     }
     dd.innerHTML = list.map(c => {

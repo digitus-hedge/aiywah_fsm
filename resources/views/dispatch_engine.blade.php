@@ -973,7 +973,7 @@
         <div class="filter-row">
           <div class="fsearch">
             <i class="bi bi-search"></i>
-            <input type="text" class="finput" id="srSearch" placeholder="Search SR, client, site…" oninput="applyFilter()" />
+            <input type="text" class="finput" id="srSearch" placeholder="Search SR, Customer, site…" oninput="applyFilter()" />
           </div>
           <select class="fselect" style="width:150px;" id="domainFilter" onchange="applyFilter()">
             <option value="">All Categories</option>
@@ -1007,7 +1007,7 @@
             <tr>
               <th></th>
               <th>SR_ID</th>
-              <th>Client</th>
+              <th>Customer</th>
               <th>Category</th>
               <th>Site</th>
               <th>Priority</th>
@@ -1158,7 +1158,7 @@
       <!-- <div class="cbody">
         <div class="assign-summary" id="assignSummary">
           <div class="as-row"><span class="as-k">Ticket</span><span class="as-v" id="asSrId" style="color:#6571ff;">—</span></div>
-          <div class="as-row"><span class="as-k">Client</span><span class="as-v" id="asClient">—</span></div>
+          <div class="as-row"><span class="as-k">Customer</span><span class="as-v" id="asClient">—</span></div>
           <div class="as-row"><span class="as-k">Category</span><span class="as-v" id="asDomain">—</span></div>
           <div class="as-row"><span class="as-k">Technician</span><span class="as-v" id="asTech">—</span></div>
           <div class="as-row" style="margin-bottom:0;"><span class="as-k">Priority</span><span class="as-v" id="asPriority">—</span></div>
@@ -1350,7 +1350,7 @@ function renderSnapshot(t) {
   <div class="tk-grid">
     <div class="tk-row"><div class="tk-l">SR_ID</div><div class="tk-v" style="color:#6571ff;font-weight:700;">${t.id}</div></div>
     <div class="tk-row"><div class="tk-l">Priority</div><div class="tk-v"><span class="chip ${pcls[t.priority]||'chip-gray'}">${t.priority}</span></div></div>
-    <div class="tk-row full"><div class="tk-l">Client</div><div class="tk-v">${t.client}</div></div>
+    <div class="tk-row full"><div class="tk-l">Customer</div><div class="tk-v">${t.client}</div></div>
     <div class="tk-row full"><div class="tk-l">Project</div><div class="tk-v">${t.contract || '—'}</div></div>
     <div class="tk-row"><div class="tk-l">Category</div><div class="tk-v">${t.domain}</div></div>
     <div class="tk-row"><div class="tk-l">SLA Elapsed</div><div class="tk-v" style="color:${slaCls};font-weight:700;">${t.hrsAgo}h ago</div></div>
@@ -1509,7 +1509,7 @@ function openDispatchModal(){
   document.getElementById('modalSummary').innerHTML=`
     <div class="ms-row"><div class="ml">SR_ID</div><div class="mv" style="color:#6571ff;font-weight:700;">${t.id}</div></div>
     <div class="ms-row"><div class="ml">Priority</div><div class="mv">${t.priority}</div></div>
-    <div class="ms-row full"><div class="ml">Client</div><div class="mv">${t.client}</div></div>
+    <div class="ms-row full"><div class="ml">Customer</div><div class="mv">${t.client}</div></div>
     <div class="ms-row full"><div class="ml">Site</div><div class="mv">${t.site}</div></div>
     <div class="ms-row"><div class="ml">Category</div><div class="mv">${categoryName}</div></div>
     <div class="ms-row"><div class="ml">Domain</div><div class="mv">${domainName}</div></div>

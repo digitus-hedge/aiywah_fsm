@@ -65,9 +65,9 @@ private function letterhead(): array
 
     return [
         // swapped: the tall contact image goes on top, the thin strip on the bottom
-        'header'    => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'footer.png'),
-        'footer'    => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'header.png'),
-        'watermark' => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'watermark.png'),
+        'header'    => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'footer.jpg'),
+        'footer'    => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'header.jpg'),
+        'watermark' => $this->imageToBase64($dir . DIRECTORY_SEPARATOR . 'watermark.jpg'),
     ];
 }
 
@@ -427,6 +427,7 @@ private function imageToBase64(string $path): ?string
             'serviceRequest.qcReviewedBy.role',
             'serviceRequest.assignedUser',
             'items',
+            'photos',
         ])
         ->where('user_id', $user->id)
         ->whereIn('status', ['draft', 'punched_in'])
@@ -447,8 +448,12 @@ private function buildActive(ServiceRequest $sr, ?Punch $punch): array
         'punchInAt' => $punch ? optional($punch->punch_in_at)->toIso8601String() : null,
         'workDesc'  => $punch->work_description ?? null,
         'uploads'   => [
-            'before' => $punch ? filled($punch->start_photo_path) : false,
-            'after'  => $punch ? filled($punch->finish_photo_path) : false,
+            'before' => $punch ? $punch->photos->where('type', 'before')->map(fn ($p) => [
+                'id' => $p->id, 'url' => $p->url,
+            ])->values() : collect(),
+            'after'  => $punch ? $punch->photos->where('type', 'after')->map(fn ($p) => [
+                'id' => $p->id, 'url' => $p->url,
+            ])->values() : collect(),
         ],
         'expenses' => $punch
             ? $punch->items->map(fn (Punchitem $i) => [
@@ -572,6 +577,7 @@ private function srHistory(ServiceRequest $sr): array
             'history'    => route('worker.history'),
             'profile'    => route('worker.profile'),
             'signature' => route('worker.punch.signature'),
+             'photoDelete' => route('worker.punch.photo.delete'), 
         ];
     }
 

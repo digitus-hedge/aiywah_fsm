@@ -157,7 +157,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
   <div class="filter-group">
     <div class="filter-label">Search</div>
     <input class="filter-control filter-search" type="text" name="search"
-           placeholder="SR ID, client, worker…" oninput="debounceFilter()"/>
+           placeholder="SR ID, customer, worker…" oninput="debounceFilter()"/>
   </div>
   <div class="filter-group">
     <div class="filter-label">Status</div>
@@ -209,7 +209,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
       <thead>
         <tr>
           <th>SR ID</th>
-          <th>Client</th>
+          <th>Customer</th>
           <th>Site / Location</th>
           <th>Worker</th>
           <th>Priority</th>
@@ -355,7 +355,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
           <span class="sr-detail-value" id="sr-m-worker">—</span>
         </div>
         <div class="sr-detail-item">
-          <span class="sr-detail-label"><i class="bi bi-telephone"></i>Client Contact</span>
+          <span class="sr-detail-label"><i class="bi bi-telephone"></i>Customer Contact</span>
           <span class="sr-detail-value" id="sr-m-contact">—</span>
         </div>
         <div class="sr-detail-item">

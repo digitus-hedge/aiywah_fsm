@@ -272,7 +272,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
   <div class="filter-group">
     <div class="filter-label">Search</div>
     <input class="filter-control filter-search" type="text" name="search"
-           placeholder="SR ID, client name, site…" oninput="debounceFilter()"/>
+           placeholder="SR ID, customer name, site…" oninput="debounceFilter()"/>
   </div>
   <div class="filter-group">
     <div class="filter-label">Status</div>
@@ -314,7 +314,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
       <thead>
         <tr>
           <th class="sortable">SR ID <i class="bi bi-chevron-expand"></i></th>
-          <th class="sortable">Client <i class="bi bi-chevron-expand"></i></th>
+          <th class="sortable">Customer<i class="bi bi-chevron-expand"></i></th>
           <th>Site / Location</th>
           <th>Assigned To</th>
           <th class="sortable">Status <i class="bi bi-chevron-expand"></i></th>
@@ -459,7 +459,7 @@ $srPayload = [
           <span class="sr-detail-value" id="sr-m-assigned">—</span>
         </div>
         <div class="sr-detail-item">
-          <span class="sr-detail-label"><i class="bi bi-telephone"></i>Client Contact</span>
+          <span class="sr-detail-label"><i class="bi bi-telephone"></i>Customer Contact</span>
           <span class="sr-detail-value" id="sr-m-contact">—</span>
         </div>
         <div class="sr-detail-item">
