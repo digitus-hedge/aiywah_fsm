@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Punch;
 use App\Models\Punchitem;
 use App\Models\ServiceRequest;
-use App\Models\Role;
 use App\Models\User;
 use App\Models\NotificationLog;
 use App\Models\PunchPhoto;
@@ -16,21 +15,14 @@ use Illuminate\Support\Facades\Storage;
 
 class WorkerpunchController extends Controller
 {
+   /** The signed-in technician. */
     private function worker(Request $request): User
     {
-        $id = $request->input('worker') ?? session('dev_worker_id');
+        $user = Auth::guard('worker')->user();
 
-        if ($id) {
-            return User::findOrFail((int) $id);
-        }
+        abort_unless($user, 401, 'Not signed in.');
 
-        $mlRoleId = Role::where('code', 'ML')->value('id');
-        abort_unless($mlRoleId, 500, 'ML role missing — run RoleSeeder.');
-
-        $worker = User::where('role_id', $mlRoleId)->first();
-        abort_unless($worker, 500, 'No Maintenance Lead user exists.');
-
-        return $worker;
+        return $user;
     }
 
     private function ownedRequest(Request $request, int $srId): ServiceRequest
@@ -99,6 +91,7 @@ class WorkerpunchController extends Controller
                 'hold_reason' => null,
                 'held_at'     => null,
             ]);
+            
 
             NotificationLog::create([
                 'service_request_id' => $sr->id,
@@ -108,7 +101,7 @@ class WorkerpunchController extends Controller
                     . (optional($worker)->name ? ' by ' . $worker->name : ''),
                 'from_status' => $oldStatus,   // e.g. 'Accepted'
                 'to_status'   => 'In Progress',
-                'caused_by'   => auth()->id(),
+                'caused_by'   => $worker->id,
             ]);
 
             return $p;
@@ -255,10 +248,10 @@ class WorkerpunchController extends Controller
             abort_if(blank($punch->$col), 422, "{$label} is required before finishing.");
         }
 
-        $oldStatus = $sr->status;          // capture BEFORE the transaction updates it
+        $oldStatus = $sr->status;
+        $worker    = $this->worker($request);
 
-
-        DB::transaction(function () use ($punch, $sr, $data, $oldStatus) {
+        DB::transaction(function () use ($punch, $sr, $data, $oldStatus, $worker) {
             $punch->fill([
                 'punch_out_at'       => now(),
                 'completion_summary' => $data['summary'] ?? null,
@@ -280,7 +273,7 @@ class WorkerpunchController extends Controller
                 'message'     => $this->buildSrRef($sr) . 'Submitted for QC Review',
                 'from_status' => $oldStatus,
                 'to_status'   => 'Qc Review',
-                'caused_by'   => auth()->id(),
+                'caused_by'   => $worker->id,
             ]);
         });
 
