@@ -51,7 +51,7 @@ class ServiceRequestController extends Controller
                 'sites' => array_values(array_filter([$p->site_name])),
             ])->values();
 
-             $contacts = $client->mobiles->map(fn($m) => [
+            $contacts = $client->mobiles->map(fn($m) => [
                 'id'     => $m->id,
                 'name'   => $m->name,
                 'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
@@ -74,9 +74,9 @@ class ServiceRequestController extends Controller
                 }
             }
 
-           
+
             // prepend the client's primary contact_name if present and not already in the list
-          
+
 
             return response()->json([
                 'found'  => true,
@@ -623,7 +623,7 @@ class ServiceRequestController extends Controller
             'assignedUser',
             'punches' => fn($q) => $q->latest('punch_out_at')
                 ->latest('id')
-                ->with(['items', 'photos']),      
+                ->with(['items', 'photos']),
         ])
             ->where('status', 'Qc Review')
             ->latest('updated_at')
@@ -657,11 +657,11 @@ class ServiceRequestController extends Controller
                 'proof' => [
                     'before' => $punch
                         ? $punch->photos->where('type', 'before')
-                            ->map(fn($p) => $p->url)->values()->all()
+                        ->map(fn($p) => $p->url)->values()->all()
                         : [],
                     'after'  => $punch
                         ? $punch->photos->where('type', 'after')
-                            ->map(fn($p) => $p->url)->values()->all()
+                        ->map(fn($p) => $p->url)->values()->all()
                         : [],
                     'signature' => $punch?->customer_signature_path
                         ? asset('storage/' . $punch->customer_signature_path) : null,
@@ -726,7 +726,19 @@ class ServiceRequestController extends Controller
                 'caused_by'   => Auth::id(),
             ]);
         });
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, $newStatus);
+
+        $feedbackUrl = url("/client_feedback/{$serviceRequest->id}");
+
+
+        Log::info('qcPass: sending whatsapp', [
+            'sr_id'        => $serviceRequest->id,
+            'status'       => $newStatus,
+            'feedback_url' => $feedbackUrl,
+        ]);
+
+        app(\App\Services\WhatsAppService::class)
+            ->notifyServiceStatus($serviceRequest, $newStatus, 'SR Status Update', $feedbackUrl);
+
         $ref = $this->buildSrRef($serviceRequest);
 
         return response()->json([
@@ -824,7 +836,7 @@ class ServiceRequestController extends Controller
             ];
         })->values();
 
-        $clientApproved = ServiceRequest::whereNotNull('client_approved_at')  
+        $clientApproved = ServiceRequest::whereNotNull('client_approved_at')
             ->where('warranty_scope', 'oow')->count();
         $quoteRejected  = ServiceRequest::where('status', 'Quote Rejected')->count();
 

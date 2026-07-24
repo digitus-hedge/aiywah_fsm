@@ -119,7 +119,7 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 
 
 .btn-preview{
-  width:100%;padding:12px;margin-bottom:16px;border-radius:10px;
+  width:100%;padding:12px;margin-top:15px;border-radius:10px;
   border:1px dashed rgba(128,128,128,.45);background:transparent;
   color:inherit;font-size:14px;cursor:pointer;
 }
@@ -209,6 +209,73 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 .pv-table td.num
 {
   text-align: unset;
+}
+
+
+.pv-photo-ph{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  width:100%;
+  aspect-ratio:4/3;
+  border-radius:10px;
+  border:1px dashed rgba(128,128,128,.32);
+  font-size:22px;
+  opacity:.35;
+}
+
+.pv-photo-pdf{
+  border-style:solid;
+  border-color:rgba(220,53,69,.28);
+  background:rgba(220,53,69,.05);
+  color:#dc3545;
+  opacity:1;
+}
+.pv-photo-pdf i{font-size:34px;line-height:1}
+.pv-photo-pdf em{
+  font-style:normal;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.pv-photo-pdf:hover{background:rgba(220,53,69,.1)}
+
+.pv-photo-pdfwrap object{
+  width:100%;
+  aspect-ratio:4/3;
+  border-radius:10px;
+  border:1px solid rgba(128,128,128,.22);
+  background:#f4f4f4;
+  pointer-events:none;
+  display:block;
+  overflow:hidden;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.pv-photo-pdfwrap object::-webkit-scrollbar{display:none}
+
+
+.pv-pdf-clip{
+  position:relative;
+  width:100%;
+  aspect-ratio:4/3;
+  border-radius:10px;
+  border:1px solid rgba(128,128,128,.22);
+  background:#f4f4f4;
+  overflow:hidden;
+}
+.pv-pdf-clip object{
+  position:absolute;
+  top:0;
+  left:0;
+  width:calc(100% + 20px);   /* push the scrollbar past the clip edge */
+  height:calc(100% + 20px);
+  border:0;
+  pointer-events:none;
+  display:block;
 }
   </style>
 </head>
@@ -349,6 +416,8 @@ async function loadPreview() {
     if (!res.ok) throw new Error('Request failed (' + res.status + ')');
     const d = await res.json();
 
+    const hasExpenses = d.punches.some(p => p.items && p.items.length);
+
     body.innerHTML = `
       <div class="pv-ref">${esc(d.ref)}</div>
 
@@ -386,9 +455,11 @@ async function loadPreview() {
         ? d.punches.map(punchBlock).join('')
         : '<div class="pv-sec">Punch Logs</div><div class="pv-empty">No punch records.</div>'}
 
-      <div class="pv-total">
-        <span>Grand Total</span><strong>₹ ${esc(d.total)}</strong>
-      </div>`;
+      ${hasExpenses
+        ? `<div class="pv-total">
+             <span>Grand Total</span><strong>₹ ${esc(d.total)}</strong>
+           </div>`
+        : ''}`;
 
   } catch (e) {
     body.innerHTML = `<div class="pv-err"><i class="bi bi-exclamation-triangle"></i> ${esc(e.message)}</div>`;
@@ -403,16 +474,36 @@ function row(label, val) {
 }
 
 function punchBlock(p) {
-  const photo = (src, label) => src
-    ? `<a class="pv-photo" href="${esc(src)}" target="_blank" rel="noopener">
-         <img src="${esc(src)}" alt="${esc(label)}" loading="lazy"
-              onerror="this.closest('.pv-photo').classList.add('pv-photo-broken')">
-         <span>${esc(label)}</span>
-       </a>`
-    : `<div class="pv-photo pv-photo-empty">
-         <div class="pv-photo-ph"><i class="bi bi-image"></i></div>
-         <span>${esc(label)}</span>
-       </div>`;
+  const isPdf = src => /\.pdf(\?|$)/i.test(String(src || ''));
+
+  const photo = (src, label) => {
+    if (!src) {
+      return `<div class="pv-photo pv-photo-empty">
+                <div class="pv-photo-ph"><i class="bi bi-image"></i></div>
+                <span>${esc(label)}</span>
+              </div>`;
+    }
+
+    if (isPdf(src)) {
+      return `<a class="pv-photo pv-photo-pdfwrap" href="${esc(src)}" target="_blank" rel="noopener" title="Open PDF">
+                <div class="pv-pdf-clip">
+                  <object data="${esc(src)}#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0"
+                          type="application/pdf">
+                    <div class="pv-photo-ph pv-photo-pdf">
+                      <i class="bi bi-file-earmark-pdf-fill"></i><em>PDF</em>
+                    </div>
+                  </object>
+                </div>
+                <span>${esc(label)}</span>
+              </a>`;
+    }
+
+    return `<a class="pv-photo" href="${esc(src)}" target="_blank" rel="noopener">
+              <img src="${esc(src)}" alt="${esc(label)}" loading="lazy"
+                   onerror="this.closest('.pv-photo').classList.add('pv-photo-broken')">
+              <span>${esc(label)}</span>
+            </a>`;
+  };
 
   const items = p.items.length
     ? `<div class="pv-table-wrap">
@@ -436,7 +527,9 @@ function punchBlock(p) {
                  <td class="num">${esc(i.rate)}</td>
                  <td class="num strong">${esc(i.total)}</td>
                  <td class="ctr">${i.receipt
-                       ? `<a href="${esc(i.receipt)}" target="_blank" rel="noopener" title="View receipt"><i class="bi bi-paperclip"></i></a>`
+                       ? `<a href="${esc(i.receipt)}" target="_blank" rel="noopener" title="View receipt">
+                            <i class="bi ${isPdf(i.receipt) ? 'bi-file-earmark-pdf' : 'bi-paperclip'}"></i>
+                          </a>`
                        : '<span class="muted">—</span>'}</td>
                </tr>`).join('')}
            </tbody>
