@@ -979,7 +979,7 @@ body {
           <button class="comp-upload-btn" data-upload="before" disabled>
             <i class="bi bi-camera"></i>Add
           </button>
-          <input type="file" id="beforeInput" class="upload-input" accept="image/*" capture="environment" multiple/>
+          <input type="file" id="beforeInput" class="upload-input" accept="image/*" capture="environment" multiple>
         </div>
         <div class="photo-strip" id="beforeStrip"></div>
 
@@ -1868,20 +1868,55 @@ document.querySelectorAll('[data-upload]').forEach((btn) => {
   $(`${type}Input`).addEventListener('change', (e) => uploadFile(type, e.target));
 });
 
+/** Downscale a camera photo so the tab doesn't run out of memory. */
+function compressImage(file, maxEdge = 1600, quality = 0.8) {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/')) { resolve(file); return; }
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      let { width, height } = img;
+      const scale = Math.min(1, maxEdge / Math.max(width, height));
+      width  = Math.round(width  * scale);
+      height = Math.round(height * scale);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        if (!blob) { resolve(file); return; }
+        resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg',
+                         { type: 'image/jpeg' }));
+      }, 'image/jpeg', quality);
+    };
+
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+    img.src = url;
+  });
+}
+
 async function uploadFile(type, input) {
   if (!input.files.length) return;
 
   const btn = document.querySelector(`[data-upload="${type}"]`);
   const restore = busy(btn, '');
-
-  const form = new FormData();
-  form.append('sr_id', activeSrId);
-  form.append('type', type);
-  for (const f of input.files) form.append('files[]', f);
-
-  const labels = { before:'Before Photos', after:'After Photos' };
+  const labels = { before: 'Before Photos', after: 'After Photos' };
 
   try {
+    const form = new FormData();
+    form.append('sr_id', activeSrId);
+    form.append('type', type);
+
+    // Sequential, not Promise.all — parallel decodes are what crash the tab.
+    for (const f of input.files) {
+      form.append('files[]', await compressImage(f));
+    }
+
     const res = await apiPost(ROUTES.upload, form, true);
     uploads[type].push(...res.photos);
     restore();
