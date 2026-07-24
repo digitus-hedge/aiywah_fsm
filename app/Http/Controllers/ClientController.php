@@ -428,7 +428,7 @@ class ClientController extends Controller
                 return;
             }
 
-           $result = app(\App\Services\WhatsAppService::class)->sendRegistration(
+            $result = app(\App\Services\WhatsAppService::class)->sendRegistration(
                 $phone,
                 $client->contact_name,   // {{1}} name
                 $client->unique_code,    // token (unused by template, kept for the log)
@@ -732,6 +732,97 @@ class ClientController extends Controller
 
         return response()->json(['message' => 'Feedback recorded successfully.']);
     }
+
+
+    public function preview($id)
+    {
+        $sr = ServiceRequest::with([
+            'client',
+            'project',
+            'category',
+            'assignedUser',
+            'punches.user',
+            'punches.items',
+        ])
+            ->where('id', $id)
+            ->where('status', 'Completed')
+            ->firstOrFail();
+
+        $c = $sr->client;
+        $p = $sr->project;
+
+        $punches = $sr->punches->map(function ($pn) {
+            return [
+                'id'          => $pn->id,
+                'technician'  => optional($pn->user)->name ?? '—',
+                'punch_in'    => $pn->punch_in_at  ? \Carbon\Carbon::parse($pn->punch_in_at)->format('d M Y, h:i A')  : '—',
+                'punch_out'   => $pn->punch_out_at ? \Carbon\Carbon::parse($pn->punch_out_at)->format('d M Y, h:i A') : '—',
+                'location'    => $pn->site_location ?: '—',
+                'work'        => $pn->work_description ?: '—',
+                'summary'     => $pn->completion_summary ?: '—',
+                'receipt_no'  => $pn->receipt_number ?: '—',
+                'cust_name'   => $pn->customer_name ?: '—',
+                'cust_phone'  => $pn->customer_phone ?: '—',
+                'status'      => $pn->status,
+                'notes'       => $pn->notes ?: '—',
+                'materials'   => number_format((float) $pn->materials_subtotal, 2),
+                'labour'      => number_format((float) $pn->labour_charge, 2),
+                'grand_total' => number_format((float) $pn->grand_total, 2),
+                'photos' => [
+                    'start'     => $pn->start_photo_path        ? asset('storage/' . $pn->start_photo_path)        : null,
+                    'finish'    => $pn->finish_photo_path       ? asset('storage/' . $pn->finish_photo_path)       : null,
+                    'signature' => $pn->customer_signature_path ? asset('storage/' . $pn->customer_signature_path) : null,
+                ],
+                'items' => $pn->items->map(fn($i) => [
+                    'name'     => $i->name,
+                    'category' => $i->category,
+                    'qty'      => number_format((float) $i->qty, 2),
+                    'rate'     => number_format((float) $i->rate, 2),
+                    'total'    => number_format((float) $i->line_total, 2),
+                    'recon'    => $i->recon_status ?? 'pending',
+                    'receipt'  => $i->receipt_path ? asset('storage/' . $i->receipt_path) : null,
+                ])->values(),
+            ];
+        })->values();
+
+        return response()->json([
+            'ref' => 'SR-' . $sr->created_at->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+
+            // clients table
+            'client_company'  => $c->company_name    ?? '—',
+            'client_code'     => $c->unique_code     ?? '—',
+            'client_contact'  => $c->contact_name    ?? '—',
+            'client_phone'    => $c ? trim(($c->primary_country ?? '') . ' ' . ($c->primary_mobile ?? '')) : '—',
+            'client_desig'    => $c->designation     ?? '—',
+            'client_status'   => $c->status          ?? '—',
+
+            // projects table
+            'proj_name'       => $p->project_name        ?? '—',
+            'proj_code'       => $p->project_code        ?? '—',
+            'site_name'       => $p->site_name           ?? ($sr->project_site ?: '—'),
+            'site_address'    => $p->site_address        ?? '—',
+            'proj_status'     => $p->status              ?? '—',
+            'proj_completion' => $p && $p->completion_date   ? \Carbon\Carbon::parse($p->completion_date)->format('d M Y')   : '—',
+            'warranty_end'    => $p && $p->warranty_end_date ? \Carbon\Carbon::parse($p->warranty_end_date)->format('d M Y') : '—',
+
+            // service_requests table
+            'category'   => optional($sr->category)->category_name ?? '—',
+            'priority'   => $sr->priority_level,
+            'issue'      => $sr->issue_description,
+            'reported'   => $sr->reported_by,
+            'sr_status'  => $sr->status,
+            'dispatched' => $sr->dispatched_at ? \Carbon\Carbon::parse($sr->dispatched_at)->format('d M Y, h:i A') : '—',
+            'accepted'   => $sr->accepted_at   ? \Carbon\Carbon::parse($sr->accepted_at)->format('d M Y, h:i A')   : '—',
+            'tech'       => optional($sr->assignedUser)->name ?? '—',
+
+            'punches' => $punches,
+            'total' => number_format(
+                (float) $sr->punches->sum(fn($pn) => (float) $pn->items->sum('line_total')),
+                2
+            ),
+        ]);
+    }
+
 
     public function lookupByName(Request $request)
     {

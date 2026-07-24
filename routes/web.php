@@ -57,7 +57,7 @@ Route::middleware('auth')->group(function () {
     // Route::get('/dashboard', function () {
     //     return view('dashboard');
     // })->name('dashboard');
-     Route::get('/analytics', function () {
+    Route::get('/analytics', function () {
         return view('analytics_dashboard');
     })->name('analytics');
 
@@ -67,7 +67,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/user-provisioning', [UserProvisioningController::class, 'store'])->name('user_provisioning.store');
     // Route::put('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])->name('user_provisioning.update');
     Route::post('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])
-    ->name('user_provisioning.update');
+        ->name('user_provisioning.update');
     //user-directory
     Route::get('/user-directory', [Userdirectorycontroller::class, 'index'])->name('user_directory');
     Route::post('/user-directory/{user}/toggle-status', [Userdirectorycontroller::class, 'toggleStatus'])->name('user_directory.toggle');
@@ -97,7 +97,7 @@ Route::middleware('auth')->group(function () {
 
 
     Route::post('/service-requests/contacts', [ServiceRequestController::class, 'storeContact']);
-    
+
     /* ---- Clients / Projects ---- */
     Route::get('/clients/create', [ClientController::class, 'create'])->name('clients.create');
     Route::post('/clients', [ClientController::class, 'store'])->name('clients.store');
@@ -107,7 +107,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/directory', [ClientController::class, 'directory'])->name('clients.directory');
     Route::get('/clients/{id}', [ClientController::class, 'show'])->name('clients.show');
     Route::post('/clients-directory/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle');
-   
+
     // Job Tracking
     Route::get('/job-tracking/{id}', [ClientController::class, 'job_tracking'])->name('clients.job_tracking');
     Route::get('/job-tracking/{id}/data', [ClientController::class, 'job_tracking_data'])->name('clients.job_tracking.data');
@@ -120,9 +120,11 @@ Route::middleware('auth')->group(function () {
     Route::get('projects/{project}',       [ProjectController::class, 'show'])->name('projects.show');
     Route::post('projects/{project}/inquiries', [InquiryController::class, 'store'])->name('inquiries.store');
 
+    
     // Clients Feedback
     Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])->name('clients.feedback.show');
     Route::post('/client_feedback/{id}', [ClientController::class, 'storeFeedback'])->name('clients.feedback.store');
+    Route::get('/feedback/{id}/preview', [ClientController::class, 'preview'])->name('feedback.preview');
 
     // Whatapp notifcation
 
@@ -130,42 +132,41 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::get('/notifications/all', [NotificationController::class, 'all'])->name('notifications.all'); // full page
 
-    
+
     Route::controller(ServiceRequestController::class)->group(function () {
-    Route::get('/qc-review', 'qcReview')->name('qc_review');
-    Route::post('/qc-review/{serviceRequest}/pass', 'qcPass')->name('qc.pass');
-    Route::post('/qc-review/{serviceRequest}/fail', 'qcFail')->name('qc.fail');
+        Route::get('/qc-review', 'qcReview')->name('qc_review');
+        Route::post('/qc-review/{serviceRequest}/pass', 'qcPass')->name('qc.pass');
+        Route::post('/qc-review/{serviceRequest}/fail', 'qcFail')->name('qc.fail');
 
-    Route::get('/quotation_desk', [ServiceRequestController::class, 'quotationDesk'])->name('quotation_desk');
-    Route::post('/quotation_desk/{serviceRequest}/quote',   [ServiceRequestController::class, 'quoteSubmit'])->name('quote.submit');
-    Route::post('/quotation_desk/{serviceRequest}/approve', [ServiceRequestController::class, 'quoteApprove'])->name('quote.approve');
+        Route::get('/quotation_desk', [ServiceRequestController::class, 'quotationDesk'])->name('quotation_desk');
+        Route::post('/quotation_desk/{serviceRequest}/quote',   [ServiceRequestController::class, 'quoteSubmit'])->name('quote.submit');
+        Route::post('/quotation_desk/{serviceRequest}/approve', [ServiceRequestController::class, 'quoteApprove'])->name('quote.approve');
 
-    Route::get('/invoice_panel', [ServiceRequestController::class, 'invoicePanel'])->name('invoice_panel');
-    Route::post('/invoice_panel/{serviceRequest}/submit', [ServiceRequestController::class, 'invoiceSubmit'])->name('invoice.submit');
-    Route::post('/invoice_panel/{serviceRequest}/hop-approve', [ServiceRequestController::class, 'hopApprove'])->name('invoice.hop');
+        Route::get('/invoice_panel', [ServiceRequestController::class, 'invoicePanel'])->name('invoice_panel');
+        Route::post('/invoice_panel/{serviceRequest}/submit', [ServiceRequestController::class, 'invoiceSubmit'])->name('invoice.submit');
+        Route::post('/invoice_panel/{serviceRequest}/hop-approve', [ServiceRequestController::class, 'hopApprove'])->name('invoice.hop');
 
-    Route::get('/expense_ledger', [ServiceRequestController::class, 'expenseLedger'])->name('expense_ledger');
+        Route::get('/expense_ledger', [ServiceRequestController::class, 'expenseLedger'])->name('expense_ledger');
 
-    Route::patch('/service-requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])
-    ->name('service-requests.updateStatus');
+        Route::patch('/service-requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])
+            ->name('service-requests.updateStatus');
 
-    //whatsapp notification log
-    Route::get('/wa_notification_log', [WhatsappLogController::class, 'index'])->name('wa_notification_log');
-    Route::get('/wa_notification_log/export', [WhatsappLogController::class, 'export'])->name('wa_notification_log.export');
-    Route::post('/wa_notification_log/retry-all', [WhatsappLogController::class, 'retryAll'])->name('wa_notification_log.retryAll');
-    Route::get('/wa_notification_log/{log}', [WhatsappLogController::class, 'show'])->name('wa_notification_log.show');
-    Route::post('/wa_notification_log/{log}/retry', [WhatsappLogController::class, 'retry'])->name('wa_notification_log.retry');
+        //whatsapp notification log
+        Route::get('/wa_notification_log', [WhatsappLogController::class, 'index'])->name('wa_notification_log');
+        Route::get('/wa_notification_log/export', [WhatsappLogController::class, 'export'])->name('wa_notification_log.export');
+        Route::post('/wa_notification_log/retry-all', [WhatsappLogController::class, 'retryAll'])->name('wa_notification_log.retryAll');
+        Route::get('/wa_notification_log/{log}', [WhatsappLogController::class, 'show'])->name('wa_notification_log.show');
+        Route::post('/wa_notification_log/{log}/retry', [WhatsappLogController::class, 'retry'])->name('wa_notification_log.retry');
 
-    Route::get('/completed-sr',        [CompletedService::class, 'index'])->name('completed');
-    Route::get('/completed-sr/{id}',   [CompletedService::class, 'show'])->name('completed.show');
+        Route::get('/completed-sr',        [CompletedService::class, 'index'])->name('completed');
+        Route::get('/completed-sr/{id}',   [CompletedService::class, 'show'])->name('completed.show');
 
-    Route::get('/assigned-sr',      [AssignedServiceRequestController::class, 'index'])->name('assigned');
-    Route::get('/assigned-sr/{id}', [AssignedServiceRequestController::class, 'show'])->name('assigned.show');
+        Route::get('/assigned-sr',      [AssignedServiceRequestController::class, 'index'])->name('assigned');
+        Route::get('/assigned-sr/{id}', [AssignedServiceRequestController::class, 'show'])->name('assigned.show');
 
-    // Activity Logs
-    Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log');
-    Route::get('/activity-log/{activityLog}', [ActivityLogController::class, 'show'])->name('activity-log.view');
-    
+        // Activity Logs
+        Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log');
+        Route::get('/activity-log/{activityLog}', [ActivityLogController::class, 'show'])->name('activity-log.view');
     });
 
 
@@ -198,7 +199,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/expense-category/status/{id}', [MasterController::class, 'changeExpenseCategoryStatus'])->name('expense-category.status');
 
 
-         // Warranty Categories
+        // Warranty Categories
         Route::post('/warranty-category/store', [MasterController::class, 'storeWarrantyCategory'])->name('warranty-category.store');
         Route::put('/warranty-category/update/{id}', [MasterController::class, 'updateWarrantyCategory'])->name('warranty-category.update');
         Route::delete('/warranty-category/delete/{id}', [MasterController::class, 'deleteWarrantyCategory'])->name('warranty-category.delete');
@@ -226,7 +227,7 @@ Route::middleware('auth')->group(function () {
     });
 });
 
- 
+
 Route::prefix('worker')->name('worker.')->group(function () {
 
     // Guest — login + OTP reset flow
@@ -247,6 +248,9 @@ Route::prefix('worker')->name('worker.')->group(function () {
     Route::middleware('worker')->group(function () {
         Route::post('/logout', [WorkerLoginController::class, 'logout'])->name('logout');
 
+        Route::post('/password', [WorkerLoginController::class, 'changePassword'])->name('password.change');
+
+        Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
         // Forced reset — outside the gate, or you get a redirect loop
         Route::get('/set-password',  [WorkerPasswordController::class, 'showForcedResetForm'])->name('password.forced');
         Route::post('/set-password', [WorkerPasswordController::class, 'forcedReset'])->name('password.forced.update');

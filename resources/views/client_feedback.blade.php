@@ -109,6 +109,107 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 .thanks-stars{display:inline-flex;gap:6px;margin-bottom:6px;}
 .thanks-stars i{color:#fbbc06;font-size:1.3rem;}
 .thanks-stars i.dim{color:var(--star-empty);}
+
+
+
+
+
+
+
+
+
+.btn-preview{
+  width:100%;padding:12px;margin-bottom:16px;border-radius:10px;
+  border:1px dashed rgba(128,128,128,.45);background:transparent;
+  color:inherit;font-size:14px;cursor:pointer;
+}
+.btn-preview:hover{background:rgba(128,128,128,.06)}
+
+.pv-overlay{
+  position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.55);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+}
+.pv-box{
+  width:100%;max-width:630px;max-height:88vh;border-radius:16px;
+  background:#fff;display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
+}
+.pv-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;border-bottom:1px solid rgba(128,128,128,.18);
+}
+.pv-title{font-weight:600;font-size:15px}
+.pv-close{background:none;border:none;font-size:16px;cursor:pointer;color:inherit;opacity:.6}
+.pv-close:hover{opacity:1}
+.pv-body{padding:20px;overflow-y:auto}
+
+.pv-ref{font-size:18px;font-weight:700;margin-bottom:14px}
+.pv-sec{
+  font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+  color:#b08d57;margin:20px 0 10px;padding-bottom:6px;
+  border-bottom:1px solid rgba(176,141,87,.25);
+}
+.pv-sub{font-size:12px;font-weight:600;opacity:.65;margin:14px 0 6px}
+.pv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px 20px}
+.pv-row{display:flex;flex-direction:column;gap:2px}
+.pv-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.05em;opacity:.55}
+.pv-val{font-size:14px}
+.pv-text{font-size:14px;line-height:1.55;white-space:pre-wrap}
+
+.pv-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pv-photo{
+  display:flex;flex-direction:column;gap:6px;text-decoration:none;color:inherit;
+}
+.pv-photo img{
+  width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;
+  border:1px solid rgba(128,128,128,.2);background:#f4f4f4;
+}
+.pv-photo span{font-size:11px;text-align:center;opacity:.65}
+.pv-photo-empty{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;
+  aspect-ratio:4/3;border-radius:10px;gap:6px;
+  border:1px dashed rgba(128,128,128,.3);opacity:.45;
+}
+
+.pv-table{width:100%;border-collapse:collapse;font-size:13px}
+.pv-table th{
+  text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  opacity:.55;padding:8px 6px;border-bottom:1px solid rgba(128,128,128,.2);
+}
+.pv-table td{padding:8px 6px;border-bottom:1px solid rgba(128,128,128,.1)}
+.pv-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+
+.pv-money{
+  display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;
+  padding:10px 12px;border-radius:9px;background:rgba(128,128,128,.06);font-size:13px;
+}
+.pv-punch{
+  margin-top:18px;padding-top:4px;border-top:1px solid rgba(128,128,128,.12);
+}
+.pv-total{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:22px;padding:14px 16px;border-radius:11px;
+  background:rgba(176,141,87,.09);font-size:15px;
+}
+.pv-empty,.pv-loading,.pv-err{
+  font-size:13px;opacity:.6;padding:12px;text-align:center;
+}
+.pv-err{color:#ff3366;opacity:1}
+
+@media(max-width:560px){
+  .pv-grid{grid-template-columns:1fr}
+  .pv-photos{grid-template-columns:1fr}
+}
+
+.pv-chip{
+  display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;
+  text-transform:capitalize;background:rgba(128,128,128,.12);
+}
+
+.pv-table td.num
+{
+  text-align: unset;
+}
   </style>
 </head>
 <body>
@@ -152,6 +253,10 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
           <div class="ti-sub" id="ticketSub">
             {{ $serviceRequest->serviceCategory->category_name ?? 'Service Request' }} · Completed {{ \Carbon\Carbon::parse($serviceRequest->updated_at)->format('d M Y') }}
           </div>
+
+           <button class="btn-preview" id="previewBtn" type="button" onclick="openPreview()">
+        <i class="bi bi-eye-fill"></i> Preview Job Record
+      </button>
         </div>
       </div>
 
@@ -166,6 +271,8 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
         </div>
         <div class="rating-caption empty" id="ratingCaption">Tap a star to rate</div>
       </div>
+
+     
 
       <div class="section-label"><i class="bi bi-chat-left-text"></i> Open Evaluation Comments</div>
       <textarea class="fld-textarea" id="comments" maxlength="500" placeholder="Tell us about your experience — punctuality, quality of work, professionalism, or anything else you'd like us to know…" oninput="updateCount()"></textarea>
@@ -190,6 +297,180 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 </div>
 
 <script>
+
+
+const PREVIEW_URL = @json(route('feedback.preview', $serviceRequest->id));
+
+
+
+
+
+
+
+function openPreview() {
+  if (document.getElementById('pvOverlay')) return;
+
+  const m = document.createElement('div');
+  m.className = 'pv-overlay';
+  m.id = 'pvOverlay';
+  m.innerHTML = `
+    <div class="pv-box" role="dialog" aria-modal="true">
+      <div class="pv-head">
+        <div class="pv-title"><i class="bi bi-clipboard-data"></i> Job Record</div>
+        <button class="pv-close" id="pvClose" type="button"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="pv-body" id="pvBody">
+        <div class="pv-loading"><i class="bi bi-arrow-repeat"></i> Loading…</div>
+      </div>
+    </div>`;
+
+  document.body.appendChild(m);
+  document.body.style.overflow = 'hidden';
+
+  const close = () => {
+    m.remove();
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = e => { if (e.key === 'Escape') close(); };
+
+  document.addEventListener('keydown', onKey);
+  document.getElementById('pvClose').onclick = close;
+  m.onclick = e => { if (e.target === m) close(); };
+
+  loadPreview();
+}
+
+async function loadPreview() {
+  const body = document.getElementById('pvBody');
+
+  try {
+    const res = await fetch(PREVIEW_URL, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('Request failed (' + res.status + ')');
+    const d = await res.json();
+
+    body.innerHTML = `
+      <div class="pv-ref">${esc(d.ref)}</div>
+
+      <div class="pv-sec">Client</div>
+      <div class="pv-grid">
+        ${row('Company', d.client_company)}
+        ${row('Client Code', d.client_code)}
+        ${row('Contact Person', d.client_contact)}
+        ${row('Mobile', d.client_phone)}
+        ${row('Designation', d.client_desig)}
+      </div>
+
+      <div class="pv-sec">Project &amp; Site</div>
+      <div class="pv-grid">
+        ${row('Project', d.proj_name)}
+        ${row('Project Code', d.proj_code)}
+        ${row('Site', d.site_name)}
+        ${row('Warranty Start', d.proj_completion)}
+        ${row('Warranty End', d.warranty_end)}
+      </div>
+      <div class="pv-sub">Site Address</div>
+      <div class="pv-text">${esc(d.site_address)}</div>
+
+      <div class="pv-sec">Service Request</div>
+      <div class="pv-grid">
+        ${row('Category', d.category)}
+        ${row('Priority', d.priority)}
+        ${row('Contact Person', d.reported)}
+        ${row('Technician', d.tech)}
+      </div>
+      <div class="pv-sub">Issue Description</div>
+      <div class="pv-text">${esc(d.issue)}</div>
+
+      ${d.punches.length
+        ? d.punches.map(punchBlock).join('')
+        : '<div class="pv-sec">Punch Logs</div><div class="pv-empty">No punch records.</div>'}
+
+      <div class="pv-total">
+        <span>Grand Total</span><strong>₹ ${esc(d.total)}</strong>
+      </div>`;
+
+  } catch (e) {
+    body.innerHTML = `<div class="pv-err"><i class="bi bi-exclamation-triangle"></i> ${esc(e.message)}</div>`;
+  }
+}
+
+function row(label, val) {
+  return `<div class="pv-row">
+            <div class="pv-lbl">${esc(label)}</div>
+            <div class="pv-val">${esc(val ?? '—')}</div>
+          </div>`;
+}
+
+function punchBlock(p) {
+  const photo = (src, label) => src
+    ? `<a class="pv-photo" href="${esc(src)}" target="_blank" rel="noopener">
+         <img src="${esc(src)}" alt="${esc(label)}" loading="lazy"
+              onerror="this.closest('.pv-photo').classList.add('pv-photo-broken')">
+         <span>${esc(label)}</span>
+       </a>`
+    : `<div class="pv-photo pv-photo-empty">
+         <div class="pv-photo-ph"><i class="bi bi-image"></i></div>
+         <span>${esc(label)}</span>
+       </div>`;
+
+  const items = p.items.length
+    ? `<div class="pv-table-wrap">
+         <table class="pv-table">
+           <thead>
+             <tr>
+               <th>Item</th>
+               <th>Category</th>
+               <th class="num">Qty</th>
+               <th class="num">Rate</th>
+               <th class="num">Total</th>
+               <th class="ctr">Receipt</th>
+             </tr>
+           </thead>
+           <tbody>
+             ${p.items.map(i => `
+               <tr>
+                 <td>${esc(i.name)}</td>
+                 <td>${esc(i.category)}</td>
+                 <td class="num">${esc(i.qty)}</td>
+                 <td class="num">${esc(i.rate)}</td>
+                 <td class="num strong">${esc(i.total)}</td>
+                 <td class="ctr">${i.receipt
+                       ? `<a href="${esc(i.receipt)}" target="_blank" rel="noopener" title="View receipt"><i class="bi bi-paperclip"></i></a>`
+                       : '<span class="muted">—</span>'}</td>
+               </tr>`).join('')}
+           </tbody>
+         </table>
+       </div>`
+    : `<div class="pv-empty">No expense items recorded.</div>`;
+
+  return `
+    <div class="pv-punch">
+      <div class="pv-sec">Punch #${esc(p.id)} · ${esc(p.technician)}</div>
+
+      <div class="pv-grid">
+        ${row('Punch In', p.punch_in)}
+        ${row('Punch Out', p.punch_out)}
+      </div>
+
+      <div class="pv-sub">Site Evidence</div>
+      <div class="pv-photos">
+        ${photo(p.photos.start,     'Before')}
+        ${photo(p.photos.finish,    'After')}
+        ${photo(p.photos.signature, 'Customer Signature')}
+      </div>
+
+      <div class="pv-sub">Expense Log</div>
+      ${items}
+    </div>`;
+}
+
+function esc(v) {
+  return String(v ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 /* THEME — same mechanism as portal pages, with persistence */
 function applyTheme(dark){document.documentElement.setAttribute('data-bs-theme',dark?'dark':'light');try{localStorage.setItem('mm_theme',dark?'dark':'light');}catch(e){}}
 function toggleTheme(){var isDark=document.documentElement.getAttribute('data-bs-theme')==='dark';applyTheme(!isDark);}
