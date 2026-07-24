@@ -64,7 +64,7 @@ class WorkerpunchController extends Controller
         $data = $request->validate([
             'sr_id'            => ['required', 'integer'],
             'work_description' => ['nullable', 'string', 'max:2000'],
-        ]);
+        ] + $this->geoRules());
 
         $sr     = $this->ownedRequest($request, $data['sr_id']);
         $worker = $this->worker($request);
@@ -92,7 +92,7 @@ class WorkerpunchController extends Controller
                 'materials_subtotal' => 0,
                 'labour_charge'      => 0,
                 'grand_total'        => 0,
-            ]);
+            ]  + $this->geoColumns($data, 'punch_in'));
 
             $sr->update([
                 'status'      => 'In Progress',
@@ -119,6 +119,11 @@ class WorkerpunchController extends Controller
             'ok'          => true,
             'punch_id'    => $punch->id,
             'punch_in_at' => $punch->punch_in_at->toIso8601String(),
+            'location'    => [
+                'lat'     => $punch->punch_in_lat,
+                'lng'     => $punch->punch_in_lng,
+                'address' => $punch->punch_in_address,
+            ],
         ]);
     }
 
@@ -234,7 +239,7 @@ class WorkerpunchController extends Controller
         $data = $request->validate([
             'sr_id'         => ['required', 'integer'],
             'summary'       => ['nullable', 'string', 'max:2000'],
-        ]);
+        ] + $this->geoRules());
 
         $sr    = $this->ownedRequest($request, $data['sr_id']);
         $punch = $this->openPunch($request, $sr->id);
@@ -258,7 +263,7 @@ class WorkerpunchController extends Controller
                 'punch_out_at'       => now(),
                 'completion_summary' => $data['summary'] ?? null,
                 'status'             => 'submitted',
-            ])->save();
+            ] + $this->geoColumns($data, 'punch_out'))->save();
 
             $this->recalcTotals($punch);
 
@@ -295,17 +300,18 @@ class WorkerpunchController extends Controller
             'sr_id'       => ['required', 'integer'],
             'client_name' => ['required', 'string', 'max:190'],
             'signature'   => ['required', 'file', 'max:8192', 'mimes:pdf'],
-        ]);
+        ] + $this->geoRules());
 
 
-        $punch = $this->openPunch($request, $data['sr_id']);
+       $punch = $this->openPunch($request, $data['sr_id']);
 
         $path = $request->file('signature')->store("punches/{$punch->id}/acceptance", 'public');
 
         $punch->update([
             'customer_signature_path' => $path,
             'customer_name'           => $data['client_name'],
-        ]);
+            'signed_at'               => now(),
+        ] + $this->geoColumns($data, 'signature'));
 
         return response()->json(['ok' => true, 'path' => $path]);
     }
@@ -345,5 +351,28 @@ class WorkerpunchController extends Controller
             'ok'    => true,
             'count' => $punch->photos()->where('type', $type)->count(),
         ]);
+    }
+
+    /** Shared validation rules for an optional captured location. */
+    private function geoRules(): array
+    {
+        return [
+            'lat'      => ['nullable', 'numeric', 'between:-90,90'],
+            'lng'      => ['nullable', 'numeric', 'between:-180,180'],
+            'accuracy' => ['nullable', 'numeric', 'min:0'],
+            'address'  => ['nullable', 'string', 'max:500'],
+        ];
+    }
+
+    /** Map validated lat/lng/accuracy/address onto prefixed columns. */
+    private function geoColumns(array $data, string $prefix): array
+    {
+        return [
+            "{$prefix}_lat"      => $data['lat'] ?? null,
+            "{$prefix}_lng"      => $data['lng'] ?? null,
+            "{$prefix}_accuracy" => $data['accuracy'] ?? null,
+            "{$prefix}_address"  => $data['address'] ?? null,
+            "{$prefix}_coarse"   => $data['coarse'] ?? null,
+        ];
     }
 }
