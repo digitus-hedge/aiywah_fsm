@@ -1607,6 +1607,8 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
             <td><span class="sbadge {{ $p->status==='Active'?'sb-active':'sb-inactive' }}"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $p->status }}</span></td>
             <td>
               <div class="row-actions">
+                    <button class="btn-xs btn-xs-view" onclick="window.location='{{ url('projects') }}/{{ $p->id }}'"><i class="bi bi-eye"></i>View</button>
+
                 <button class="btn-xs btn-xs-edit" onclick="editProject(this)"><i class="bi bi-pencil"></i>Edit</button>
                 <button class="btn-xs btn-xs-del" onclick='openDelModal({{ $p->id }}, @json($p->project_name))'><i class="bi bi-trash3"></i></button>
               </div>
