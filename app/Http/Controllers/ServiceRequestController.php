@@ -610,7 +610,6 @@ class ServiceRequestController extends Controller
 
         return view('kanban_view', compact('tickets', 'statuses', 'labels'));
     }
-
     /* ============================================================
      |  QC REVIEW
      * ============================================================ */
