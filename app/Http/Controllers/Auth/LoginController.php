@@ -21,37 +21,38 @@ class LoginController extends Controller
      * Handle a login attempt.
      */
     public function login(Request $request)
-{
-    // Validate input
-    $credentials = $request->validate([
-        'email'    => ['required', 'email'],
-        'password' => ['required', 'string', 'min:6'],
-    ]);
+    {
+        $credentials = $request->validate([
+            'email'    => ['required', 'email'],
+            'password' => ['required', 'string', 'min:6'],
+        ]);
 
-    $remember = $request->boolean('remember');
+        $remember = $request->boolean('remember');
 
-    // Attempt login
-    if (Auth::attempt($credentials, $remember)) {
-        // Regenerate session to prevent fixation
-        $request->session()->regenerate();
+        if (!Auth::attempt($credentials, $remember)) {
+            throw ValidationException::withMessages([
+                'email' => 'The provided credentials do not match our records.',
+            ]);
+        }
 
         $user = Auth::user();
 
-        // Maintenance Leads land on their pipeline; everyone else on the explorer.
-        if ((int) $user->role_id === 4) {
-            return redirect()->route('worker.pipeline')
-                ->with('success', 'Welcome back, ' . $user->name . '!');
+        // Maintenance Leads belong on the technician portal, not here.
+        if (optional($user->role)->code === 'ML') {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('worker.login')
+                ->withInput($request->only('email'))
+                ->with('status', 'Field technicians sign in through the Technician Portal.');
         }
+
+        $request->session()->regenerate();
 
         return redirect()->intended(route('sr_explorer'))
             ->with('success', 'Welcome back, ' . $user->name . '!');
     }
-
-    // Auth failed
-    throw ValidationException::withMessages([
-        'email' => 'The provided credentials do not match our records.',
-    ]);
-}
 
     /**
      * Log the user out.

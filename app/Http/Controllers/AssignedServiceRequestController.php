@@ -164,26 +164,40 @@ class AssignedServiceRequestController extends Controller
     ───────────────────────────────────────────────────────── */
 
     private function export(Request $request): StreamedResponse
-    {
-        $rows = $this->baseQuery($request)->latest('updated_at')->get();
+{
+    $rows = $this->baseQuery($request)->latest('updated_at')->get();
 
-        $filename = 'assigned-srs-' . now()->format('Y-m-d') . '.csv';
+    $filename = 'assigned-srs-' . now()->format('Y-m-d') . '.csv';
 
-        return response()->streamDownload(function () use ($rows) {
-            $out = fopen('php://output', 'w');
+    return response()->streamDownload(function () use ($rows) {
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+
+        fputcsv($out, [
+            'SR Code', 'Client', 'Site', 'Worker', 'Status', 'Priority',
+            'Warranty', 'Scheduled (ETA)', 'Assigned', 'SLA Due (ETA)',
+        ]);
+
+        foreach ($rows as $sr) {
+            $assignedAt = $sr->dispatched_at
+                ? Carbon::parse($sr->dispatched_at)
+                : Carbon::parse($sr->updated_at);
+            $eta = $sr->eta_at ? Carbon::parse($sr->eta_at) : null;
+
             fputcsv($out, [
-                'SR Code', 'Client', 'Site', 'Worker', 'Status', 'Priority',
-                'Warranty', 'Scheduled (ETA)', 'Assigned', 'SLA Due (ETA)',
+                'SR-' . Carbon::parse($sr->created_at)->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+                optional($sr->client)->company_name ?? '',
+                optional($sr->project)->site_name ?? '',
+                optional($sr->assignedUser)->name ?? 'Unassigned',
+                Str::headline($sr->status ?? ''),
+                $sr->priority_level ?? '',
+                (($sr->warranty_scope ?? '') === 'Out of Warranty') ? 'Out of Warranty' : 'In Warranty',
+                $eta ? $eta->format('Y-m-d H:i') : '',
+                $assignedAt->format('Y-m-d H:i'),
+                $eta ? $eta->format('Y-m-d H:i') : '',
             ]);
-
-            foreach ($rows as $sr) {
-                $p = $this->payload($sr);
-                fputcsv($out, [
-                    $p['code'], $p['client'], $p['site'], $p['worker'], $p['status'],
-                    $p['priority'], $p['warranty'], $p['scheduled'], $p['assigned'], $p['sla_due'],
-                ]);
-            }
-            fclose($out);
-        }, $filename, ['Content-Type' => 'text/csv']);
-    }
+        }
+        fclose($out);
+    }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+}
 }

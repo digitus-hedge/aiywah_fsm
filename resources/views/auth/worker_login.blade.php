@@ -61,6 +61,9 @@
     .wl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
     .wl-check{display:flex;align-items:center;gap:7px;font-size:.78rem;color:#4b5563;cursor:pointer;user-select:none;}
     .wl-check input{width:15px;height:15px;accent-color:#9A7B4F;cursor:pointer;}
+
+    .wl-link{font-size:.78rem;color:#9A7B4F;text-decoration:none;font-weight:600;}
+    .wl-link:hover{text-decoration:underline;}
     .wl-btn{
       width:100%;height:47px;border:none;border-radius:10px;cursor:pointer;
       background:linear-gradient(135deg,#9A7B4F,#C4A882);color:#fff;
@@ -85,7 +88,12 @@
       <div class="wl-sub">Service That Matters. Always.</div>
       <span class="wl-tag"><i class="bi bi-tools"></i>Technician Portal</span>
     </div>
-
+    @if(session('status'))
+      <div class="wl-alert" style="background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.25);color:#047857;">
+        <i class="bi bi-check-circle-fill" style="margin-top:1px;"></i>
+        <span>{{ session('status') }}</span>
+      </div>
+    @endif
     @if($errors->any())
       <div class="wl-alert">
         <i class="bi bi-exclamation-triangle-fill" style="margin-top:1px;"></i>
@@ -123,6 +131,7 @@
           <input type="checkbox" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}>
           Keep me signed in
         </label>
+        <a class="wl-link" href="{{ route('worker.password.request') }}">Forgot password?</a>
       </div>
 
       <button type="submit" class="wl-btn" id="wlBtn">
