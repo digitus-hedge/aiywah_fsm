@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\ServiceRequestReschedule;
 
 
+use Illuminate\Support\Facades\Auth;
 class WorkerPipelineController extends Controller
 {
     /** Statuses a worker can act on from the pipeline. */
@@ -32,10 +33,6 @@ class WorkerPipelineController extends Controller
     {
         $user = $this->worker($request);
         $user->loadMissing('role');
-
-        // TODO: remove with the auth bypass. Lets the POST routes below know
-        // which worker the pipeline was rendered for.
-        session(['dev_worker_id' => $user->id]);
 
             $requests = ServiceRequest::with([
                 'client', 'project', 'category', 'domain', 'punches.user.role',
@@ -383,21 +380,13 @@ private function imageToBase64(string $path): ?string
      * index() and the POST handlers MUST agree on this, or ownedRequest()
      * fails its firstOrFail() with "No query results".
      */
-    private function worker(Request $request): User
+   private function worker(Request $request): User
     {
-        $id = $request->input('worker') ?? session('dev_worker_id');
+        $user = Auth::guard('worker')->user();
 
-        if ($id) {
-            return User::findOrFail((int) $id);
-        }
+        abort_unless($user, 401, 'Not signed in.');
 
-        $mlRoleId = Role::where('code', 'ML')->value('id');
-        abort_unless($mlRoleId, 500, 'ML role missing — run RoleSeeder.');
-
-        $worker = User::where('role_id', $mlRoleId)->first();
-        abort_unless($worker, 500, 'No Maintenance Lead user exists.');
-
-        return $worker;
+        return $user;
     }
 
     /** Fetch an SR, 404ing unless this worker is the assignee. */
@@ -458,6 +447,12 @@ private function buildActive(ServiceRequest $sr, ?Punch $punch): array
                 'id' => $p->id, 'url' => $p->url,
             ])->values() : collect(),
         ],
+        'punchInLocation' => ($punch && $punch->punch_in_lat) ? [
+            'lat'      => (float) $punch->punch_in_lat,
+            'lng'      => (float) $punch->punch_in_lng,
+            'accuracy' => $punch->punch_in_accuracy !== null ? (float) $punch->punch_in_accuracy : null,
+            'address'  => $punch->punch_in_address,
+        ] : null,
         'expenses' => $punch
             ? $punch->items->map(fn (Punchitem $i) => [
                 'category'   => $i->category,

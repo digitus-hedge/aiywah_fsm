@@ -854,6 +854,30 @@ body {
     </div>
   </div>
 
+<!-- ══════════ LOGOUT DRAWER ══════════ -->
+<div class="overlay" id="outOverlay"></div>
+<div class="drawer" id="logoutDrawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-hdr">
+    <h6><i class="bi bi-box-arrow-right" style="color:#ff3366;"></i>Sign Out</h6>
+    <button class="drawer-close" data-close="out"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="drawer-body">
+    <div class="hold-note" style="background:rgba(255,51,102,.07);border-color:rgba(255,51,102,.2);">
+      <i class="bi bi-question-circle-fill" style="color:#ff3366;"></i>
+      You'll need to sign in again to access your pipeline. Any unsaved work in the terminal will be lost.
+    </div>
+
+    <div class="drawer-actions">
+      <button class="btn-cancel" data-close="out">Stay Signed In</button>
+      <button class="btn-save" id="outConfirmBtn"
+              style="background:linear-gradient(135deg,#ff3366,#e02050);">
+        <i class="bi bi-box-arrow-right"></i> Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
   <!-- ── PIPELINE ── -->
   <section id="pagePipeline">
     <div class="page-band">
@@ -900,6 +924,9 @@ body {
           <div class="tw-lbl" id="timerLabel">Not started</div>
         </div>
         <div class="tw-status status-idle" id="timerStatus">Idle</div>
+      </div>
+      <div class="location-badge" id="geoBadge" style="flex-wrap:wrap;">
+        <i class="bi bi-geo-alt"></i><span>Location not captured yet</span>
       </div>
 
       <div class="section-card">
@@ -1105,6 +1132,93 @@ function esc(value) {
     .replace(/'/g, '&#39;');
 }
 
+/* ══════════════════════════════════════════════════════
+   GEOLOCATION
+══════════════════════════════════════════════════════ */
+let lastFix = null;   // { lat, lng, accuracy, address }
+
+/**
+ * Ask the browser for a position. Resolves to null rather than rejecting —
+ * a denied permission must not block the punch.
+ */
+function getPosition({ timeout = 12000, highAccuracy = true } = {}) {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) { resolve(null); return; }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolve({
+        lat: +pos.coords.latitude.toFixed(7),
+        lng: +pos.coords.longitude.toFixed(7),
+        accuracy: pos.coords.accuracy != null ? +pos.coords.accuracy.toFixed(2) : null,
+      }),
+      () => resolve(null),
+      { enableHighAccuracy: highAccuracy, timeout, maximumAge: 30000 }
+    );
+  });
+}
+
+/** Reverse-geocode via OSM. Failure is non-fatal — coords alone are enough. */
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) return null;
+    const body = await res.json();
+    return body.display_name ?? null;
+  } catch { return null; }
+}
+
+/** Capture a fix and (best-effort) its address. Always resolves. */
+const MAX_ACCEPTABLE_ACCURACY = 100;   // metres
+
+async function captureLocation() {
+  const fix = await getPosition();
+  if (!fix) { lastFix = null; renderLocationBadge(null); return null; }
+
+  // A coarse fix on desktop is usually IP-based and can be hundreds of km off.
+  fix.coarse = fix.accuracy != null && fix.accuracy > MAX_ACCEPTABLE_ACCURACY;
+
+  fix.address = await reverseGeocode(fix.lat, fix.lng);
+  lastFix = fix;
+  renderLocationBadge(fix);
+  return fix;
+}
+
+/** Append lat/lng/accuracy/address to a payload object or FormData. */
+function withGeo(payload, fix) {
+  if (!fix) return payload;
+
+  if (payload instanceof FormData) {
+    payload.append('lat', fix.lat);
+    payload.append('lng', fix.lng);
+    if (fix.accuracy != null) payload.append('accuracy', fix.accuracy);
+    if (fix.address) payload.append('address', fix.address);
+    payload.append('coarse', fix.coarse ? 1 : 0);
+    return payload;
+  }
+  return { ...payload, lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy,
+           address: fix.address, coarse: fix.coarse };
+}
+
+function renderLocationBadge(fix) {
+  const el = $('geoBadge');
+  if (!el) return;
+
+  if (!fix) {
+    el.innerHTML =
+      '<i class="bi bi-geo-alt-slash"></i>' +
+      '<span>Location unavailable &mdash; enable GPS for site verification</span>';
+    return;
+  }
+
+ el.innerHTML =
+    `<i class="bi bi-geo-alt-fill" style="color:${fix.coarse ? '#fbbc06' : '#9a8053'};"></i>` +
+    `<span class="coords">${fix.lat.toFixed(5)}, ${fix.lng.toFixed(5)}</span>` +
+    (fix.accuracy != null ? `<span style="margin-left:auto;">&plusmn;${Math.round(fix.accuracy)}m</span>` : '') +
+    (fix.coarse ? '<div style="flex-basis:100%;margin-top:4px;color:#a8802a;">Approximate — network-based fix, not GPS. Use the mobile app on site.</div>' : '') +
+    (fix.address ? `<div style="flex-basis:100%;margin-top:4px;">${esc(fix.address)}</div>` : '');
+}
+
 /** Today as YYYY-MM-DD in the *local* timezone (toISOString would shift it). */
 function todayLocal() {
   const d = new Date();
@@ -1202,9 +1316,14 @@ $('logoutBtn').addEventListener('click', () => {
       'Finish or hold the current job before signing out.');
     return;
   }
-  if (confirm('Sign out of the technician portal?')) {
-    $('logoutForm').submit();
-  }
+  openDrawer('out');
+});
+
+$('outConfirmBtn').addEventListener('click', () => {
+  const btn = $('outConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Signing out\u2026';
+  $('logoutForm').submit();
 });
 
 (function initClock() {
@@ -1267,6 +1386,7 @@ const DRAWERS = {
   rs:  { drawer: 'rsDrawer',      overlay: 'rsOverlay'  },
   fin: { drawer: 'finishDrawer',  overlay: 'finOverlay' },
   sign: { drawer: 'signDrawer',    overlay: 'signOverlay' },
+  out:  { drawer: 'logoutDrawer',  overlay: 'outOverlay' },
 };
 
 function openDrawer(name) {
@@ -1681,19 +1801,27 @@ $('punchInBtn').addEventListener('click', () => {
 });
 
 async function punchIn() {
-  const btn = $('punchInBtn');
-  if (!activeSrId) {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
-    showToast('error', 'No active job', 'Re-activate the job first.');
-    return;
-  }
+    const btn = $('punchInBtn');
+    if (!activeSrId) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
+      showToast('error', 'No active job', 'Re-activate the job first.');
+      return;
+    }
 
-  try {
-    const res = await apiPost(ROUTES.punchIn, {
-      sr_id: activeSrId,
-      work_description: $('workDesc').value.trim() || null,
-    });
+    btn.innerHTML = '<span class="spin"></span> Locating\u2026';
+    const fix = await captureLocation();
+    btn.innerHTML = '<span class="spin"></span> Starting\u2026';
+
+    if (!fix) {
+      showToast('warning', 'No GPS fix', 'Starting without location. Enable GPS if possible.');
+    }
+
+    try {
+      const res = await apiPost(ROUTES.punchIn, withGeo({
+        sr_id: activeSrId,
+        work_description: $('workDesc').value.trim() || null,
+      }, fix));
 
     punchInTime = new Date(res.punch_in_at);
 
@@ -1841,12 +1969,15 @@ $('punchOutBtn').addEventListener('click', () => {
 
 $('finConfirmBtn').addEventListener('click', async () => {
   const btn = $('finConfirmBtn');
-  const restore = busy(btn, 'Processing\u2026');
+  const restore = busy(btn, 'Locating\u2026');
 
-  const payload = {
-  sr_id:   activeSrId,
-  summary: $('finSummary').value.trim() || null,
-};
+  const fix = await captureLocation();
+  btn.innerHTML = '<span class="spin"></span> Processing\u2026';
+
+  const payload = withGeo({
+    sr_id:   activeSrId,
+    summary: $('finSummary').value.trim() || null,
+  }, fix);
 
   try {
     const res = await apiPost(ROUTES.punchOut, payload);
@@ -2176,19 +2307,20 @@ $('signSubmitBtn').addEventListener('click', async () => {
   }
 
   const btn = $('signSubmitBtn');
-  const restore = busy(btn, 'Generating\u2026');
+  const restore = busy(btn, 'Locating\u2026');
+
+  const fix = await captureLocation();
+  btn.innerHTML = '<span class="spin"></span> Generating\u2026';
 
   try {
-  let pdfBlob = buildAcceptancePdf(clientName);
-  console.log('pdfBlob:', pdfBlob, 'size:', pdfBlob && pdfBlob.size);
-  pdfBlob = new Blob([pdfBlob], { type: 'application/pdf' });
-  console.log('typed blob size:', pdfBlob.size);
+    let pdfBlob = buildAcceptancePdf(clientName, fix);
+    pdfBlob = new Blob([pdfBlob], { type: 'application/pdf' });
 
-  const form = new FormData();
-  form.append('sr_id', activeSrId);
-  form.append('client_name', clientName);
-  form.append('signature', pdfBlob, `acceptance-${activeRef}.pdf`);
-
+    const form = new FormData();
+    form.append('sr_id', activeSrId);
+    form.append('client_name', clientName);
+    form.append('signature', pdfBlob, `acceptance-${activeRef}.pdf`);
+    withGeo(form, fix);
 
     const res = await apiPost(ROUTES.signature, form, true);
 
@@ -2208,7 +2340,7 @@ $('signSubmitBtn').addEventListener('click', async () => {
 
 /** Compose the terms + signature into a one-page PDF. Returns a Blob. */
 
-function buildAcceptancePdf(clientName) {
+function buildAcceptancePdf(clientName, fix) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pageW = doc.internal.pageSize.getWidth();
@@ -2291,9 +2423,22 @@ function paintChrome() {
   y += sigH + 2;
   doc.setDrawColor(150);
   doc.line(margin, y, margin + sigW, y);
+  y += 6;
+
+  if (fix) {
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text(`Signed at: ${fix.lat.toFixed(6)}, ${fix.lng.toFixed(6)}`
+      + (fix.accuracy != null ? ` (±${Math.round(fix.accuracy)}m)` : ''), margin, y);
+    y += 4;
+    if (fix.address) {
+      doc.text(doc.splitTextToSize(fix.address, pageW - margin * 2), margin, y);
+    }
+  }
 
   return doc.output('blob');
 }
+
 
 /* ══════════════════════════════════════════════════════
    LIGHTBOX
@@ -2323,6 +2468,7 @@ $('lbOverlay').addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if ($('lbOverlay').classList.contains('show'))    { closeLightbox(); return; }
+  if ($('logoutDrawer').classList.contains('open')) { closeDrawer('out'); return; }
   if ($('finishDrawer').classList.contains('open')) { closeDrawer('fin'); return; }
   if ($('expenseDrawer').classList.contains('open')){ closeDrawer('exp'); return; }
   if ($('rsDrawer').classList.contains('open'))     { closeDrawer('rs'); }
@@ -2625,7 +2771,9 @@ function restoreTerminal(state) {
 
     $('punchInBtn').disabled  = true;
     $('punchInBtn').innerHTML = '<i class="bi bi-check2"></i>Job Started';
-
+    if (state.punchInLocation) {
+      renderLocationBadge(state.punchInLocation);
+    }
     document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
     $('expenseBtn').disabled = false;
     $('rsBtn').classList.remove('hidden');

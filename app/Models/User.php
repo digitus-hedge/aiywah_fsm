@@ -20,6 +20,8 @@ class User extends Authenticatable
     protected $casts = [
         'password'  => 'hashed',
         'fd_grants' => 'array',
+        'email_verified_at'   => 'datetime',
+        'must_reset_password' => 'boolean',
     ];
 
     public function role() { 

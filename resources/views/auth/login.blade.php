@@ -196,6 +196,18 @@
             display:block;font-size:.76rem;font-weight:500;
             color:var(--ink-soft);margin-bottom:7px;letter-spacing:.01em;
         }
+        .field-head{
+            display:flex;align-items:baseline;justify-content:space-between;
+            margin-bottom:7px;
+        }
+        .field-head .field-label{margin-bottom:0;}
+        .field-link{
+            font-size:.74rem;font-weight:500;
+            color:var(--brand-500);text-decoration:none;
+            transition:color .18s;
+        }
+        .field-link:hover{color:var(--brand-700);text-decoration:underline;}
+
         .field-box{position:relative;}
         .field-box .fi{
             position:absolute;top:50%;left:14px;transform:translateY(-50%);
@@ -358,7 +370,9 @@
 
                 {{-- Password --}}
                 <div class="field">
-                    <label for="password" class="field-label">Password</label>
+                    <div class="field-head">
+                        <label for="password" class="field-label">Password</label>
+                    </div>
                     <div class="field-box">
                         <i data-feather="lock" class="fi"></i>
                         <input
@@ -410,6 +424,8 @@
             btn.disabled = true;
             btnText.textContent = 'Signing in…';
         });
+
+       
     </script>
 </body>
 </html>

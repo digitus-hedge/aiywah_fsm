@@ -19,6 +19,7 @@ use App\Http\Controllers\CompletedService;
 use App\Http\Controllers\AssignedServiceRequestController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\WorkerLoginController;
+use App\Http\Controllers\Auth\WorkerPasswordController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -229,9 +230,19 @@ Route::middleware('auth')->group(function () {
 
 Route::prefix('worker')->name('worker.')->group(function () {
 
-    // Guest — login screen
+    // Guest — login + OTP reset flow
     Route::get('/login',  [WorkerLoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [WorkerLoginController::class, 'login'])->name('login.attempt');
+
+    Route::get('/forgot-password',  [WorkerPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+    Route::post('/forgot-password', [WorkerPasswordController::class, 'sendOtp'])
+        ->middleware('throttle:5,10')->name('password.email');
+
+    Route::get('/verify-otp',  [WorkerPasswordController::class, 'showOtpForm'])->name('otp.form');
+    Route::post('/verify-otp', [WorkerPasswordController::class, 'verifyOtp'])
+        ->middleware('throttle:10,10')->name('otp.verify');
+    Route::post('/resend-otp', [WorkerPasswordController::class, 'resendOtp'])
+        ->middleware('throttle:3,10')->name('otp.resend');
 
     // Authenticated worker only
     Route::middleware('worker')->group(function () {
@@ -240,21 +251,29 @@ Route::prefix('worker')->name('worker.')->group(function () {
         Route::post('/password', [WorkerLoginController::class, 'changePassword'])->name('password.change');
 
         Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
+        // Forced reset — outside the gate, or you get a redirect loop
+        Route::get('/set-password',  [WorkerPasswordController::class, 'showForcedResetForm'])->name('password.forced');
+        Route::post('/set-password', [WorkerPasswordController::class, 'forcedReset'])->name('password.forced.update');
 
-        Route::post('/job/accept',     [WorkerPipelineController::class, 'accept'])->name('job.accept');
-        Route::post('/job/reschedule', [WorkerPipelineController::class, 'reschedule'])->name('job.reschedule');
-        Route::post('/job/hold',       [WorkerPipelineController::class, 'hold'])->name('job.hold');
-        Route::post('/job/resume',     [WorkerPipelineController::class, 'resume'])->name('job.resume');
+        // Everything else sits behind the reset gate
+        Route::middleware('worker.reset')->group(function () {
+            Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
 
-        Route::post('/punch/in',        [WorkerpunchController::class, 'punchIn'])->name('punch.in');
-        Route::post('/punch/out',       [WorkerpunchController::class, 'punchOut'])->name('punch.out');
-        Route::post('/punch/upload',    [WorkerpunchController::class, 'upload'])->name('punch.upload');
-        Route::post('/punch/expense',   [WorkerpunchController::class, 'expense'])->name('punch.expense');
-        Route::post('/punch/signature', [WorkerpunchController::class, 'signature'])->name('punch.signature');
+            Route::post('/job/accept',     [WorkerPipelineController::class, 'accept'])->name('job.accept');
+            Route::post('/job/reschedule', [WorkerPipelineController::class, 'reschedule'])->name('job.reschedule');
+            Route::post('/job/hold',       [WorkerPipelineController::class, 'hold'])->name('job.hold');
+            Route::post('/job/resume',     [WorkerPipelineController::class, 'resume'])->name('job.resume');
 
-        Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
-        Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
+            Route::post('/punch/in',        [WorkerpunchController::class, 'punchIn'])->name('punch.in');
+            Route::post('/punch/out',       [WorkerpunchController::class, 'punchOut'])->name('punch.out');
+            Route::post('/punch/upload',    [WorkerpunchController::class, 'upload'])->name('punch.upload');
+            Route::post('/punch/expense',   [WorkerpunchController::class, 'expense'])->name('punch.expense');
+            Route::post('/punch/signature', [WorkerpunchController::class, 'signature'])->name('punch.signature');
 
-        Route::post('/punch/photo/delete', [WorkerpunchController::class, 'deletePhoto'])->name('punch.photo.delete');
+            Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
+            Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
+
+            Route::post('/punch/photo/delete', [WorkerpunchController::class, 'deletePhoto'])->name('punch.photo.delete');
+        });
     });
 });

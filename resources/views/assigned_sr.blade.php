@@ -466,30 +466,46 @@ function debounceFilter(){
 function goToPage(p){ currentPage = p; applyFilters(); }
 
 function applyFilters(){
-  var form = document.getElementById('filterForm');
-  var params = new URLSearchParams(new FormData(form));
-  params.set('page', currentPage);
+    var form = document.getElementById('filterForm');
+    var params = new URLSearchParams(new FormData(form));
+    params.set('page', currentPage);
 
-  var exportBtn = document.getElementById('exportBtn');
-  if (exportBtn) exportBtn.href = window.location.pathname + "?" + params.toString() + "&export=csv";
+    updateExportHref();  // ← replaces the inline exportBtn.href line
 
-  fetch(window.location.pathname + "?" + params.toString() + "&frag=rows", {
-    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-  })
-  .then(function(r){ return r.text(); })
-  .then(function(html){ document.getElementById('sr-tbody').innerHTML = html; });
+    fetch(window.location.pathname + "?" + params.toString() + "&frag=rows", {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function(r){ return r.text(); })
+    .then(function(html){ document.getElementById('sr-tbody').innerHTML = html; });
 
-  fetch(window.location.pathname + "?" + params.toString() + "&frag=pager", {
-    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-  })
-  .then(function(r){ return r.text(); })
-  .then(function(html){ document.querySelector('.pagination-bar').innerHTML = html; });
+    fetch(window.location.pathname + "?" + params.toString() + "&frag=pager", {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(function(r){ return r.text(); })
+    .then(function(html){ document.querySelector('.pagination-bar').innerHTML = html; });
 }
 
 function resetFilters(){
   document.getElementById('filterForm').reset();
   currentPage = 1;
   applyFilters();
+}
+
+
+// Set export href on initial load (before any filter change)
+document.addEventListener('DOMContentLoaded', function () {
+    updateExportHref();
+});
+
+function updateExportHref() {
+    var form = document.getElementById('filterForm');
+    if (!form) return;
+    var params = new URLSearchParams(new FormData(form));
+    params.set('page', currentPage);
+    var exportBtn = document.getElementById('exportBtn');
+    if (exportBtn) {
+        exportBtn.href = window.location.pathname + '?' + params.toString() + '&export=csv';
+    }
 }
 </script>
 @endpush
