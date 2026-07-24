@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\ServiceRequestReschedule;
 
+
 class WorkerPipelineController extends Controller
 {
     /** Statuses a worker can act on from the pipeline. */
@@ -58,6 +59,8 @@ class WorkerPipelineController extends Controller
             'letterhead'        => $this->letterhead(), 
         ]);
     }
+
+
 
 private function letterhead(): array
 {
@@ -566,18 +569,20 @@ private function srHistory(ServiceRequest $sr): array
     private function routes(): array
     {
         return [
-            'accept'     => route('worker.job.accept'),
-            'punchIn'    => route('worker.punch.in'),
-            'punchOut'   => route('worker.punch.out'),
-            'upload'     => route('worker.punch.upload'),
-            'expense'    => route('worker.punch.expense'),
-            'reschedule' => route('worker.job.reschedule'),
-            'hold'       => route('worker.job.hold'),
-            'resume'     => route('worker.job.resume'),
-            'history'    => route('worker.history'),
-            'profile'    => route('worker.profile'),
-            'signature' => route('worker.punch.signature'),
-             'photoDelete' => route('worker.punch.photo.delete'), 
+            'accept'        => route('worker.job.accept'),
+            'punchIn'       => route('worker.punch.in'),
+            'punchOut'      => route('worker.punch.out'),
+            'upload'        => route('worker.punch.upload'),
+            'expense'       => route('worker.punch.expense'),
+            'reschedule'    => route('worker.job.reschedule'),
+            'hold'          => route('worker.job.hold'),
+            'resume'        => route('worker.job.resume'),
+            'history'       => route('worker.history'),
+            'profile'       => route('worker.profile'),
+            'signature'     => route('worker.punch.signature'),
+            'photoDelete'   => route('worker.punch.photo.delete'),
+            'changePassword'=> route('worker.password.change'),
+
         ];
     }
 

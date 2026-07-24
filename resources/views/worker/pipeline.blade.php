@@ -489,6 +489,8 @@ body {
 .ti-t { font-size:.8rem; font-weight:600; margin:0 0 1px; color:var(--text-heading); }
 .ti-b { font-size:.7rem; margin:0; color:var(--text-muted); }
 
+
+
 /* ═══════════════════════════════════════ LIGHTBOX ═══ */
 .lb-overlay {
   display:none; position:fixed; inset:0; background:rgba(0,0,0,.88);
@@ -578,6 +580,61 @@ body {
   [data-bs-theme="dark"] body { background:#030810; }
   .app-shell { box-shadow:0 0 40px rgba(0,0,0,.15); }
 }
+
+/* Modal Form Data */
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  background:rgba(0,0,0,.55);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+}
+.modal-card{
+  width:100%;
+  max-width:380px;
+  padding:20px;
+  border-radius:16px;
+  background:var(--bs-body-bg,#fff);
+  color:var(--bs-body-color,inherit);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
+}
+.modal-card .inp{
+  width:100%;
+  padding:11px 13px;
+  border-radius:9px;
+  font-size:14px;
+  border:1px solid rgba(128,128,128,.3);
+  background:transparent;
+  color:inherit;
+}
+.modal-card .inp:focus{
+  outline:none;
+  border-color:#b08d57;
+}
+.modal-actions{
+  display:flex;
+  gap:8px;
+  margin-top:6px;
+}
+.modal-actions button{
+  flex:1;
+}
+.pwd-msg{
+  font-size:13px;
+  padding:8px 10px;
+  border-radius:8px;
+}
+.pwd-err{color:#ff3366;background:rgba(255,51,102,.08);}
+.pwd-ok{color:#22c55e;background:rgba(34,197,94,.08);}
+
+
   </style>
 </head>
 <body>
@@ -1013,6 +1070,7 @@ const ROUTES = {
   profile:    @json($routes['profile']    ?? ''),
   signature:  @json($routes['signature'] ?? ''),
   photoDelete: @json($routes['photoDelete'] ?? ''),
+  changePassword: @json($routes['changePassword'] ?? ''),
 };
 
 const LETTERHEAD = @json($letterhead ?? ['header'=>null,'footer'=>null,'watermark'=>null]);
@@ -2362,6 +2420,10 @@ async function loadProfile(force = false) {
         </div>
       </div>
 
+      <button class="btn-outline brand" id="profPwdBtn">
+        <i class="bi bi-key-fill"></i>Change Password
+      </button>
+
       <button class="btn-outline brand" id="profThemeBtn">
         <i class="bi bi-circle-half"></i>Toggle Theme
       </button>
@@ -2371,21 +2433,116 @@ async function loadProfile(force = false) {
         <i class="bi bi-box-arrow-right"></i>Sign Out
       </button>`;
 
+    $('profPwdBtn').addEventListener('click', openPwdModal);
+
     $('profThemeBtn').addEventListener('click', () => {
       applyTheme(document.documentElement.getAttribute('data-bs-theme') !== 'dark');
     });
 
     $('profLogoutBtn').addEventListener('click', () => $('logoutBtn').click());
 
-    $('profThemeBtn').addEventListener('click', () => {
-      applyTheme(document.documentElement.getAttribute('data-bs-theme') !== 'dark');
-    });
   } catch (err) {
+    profileLoaded = false;
     $('profBody').innerHTML =
       '<div class="empty-state"><i class="bi bi-wifi-off"></i>' +
       `<h6>Could not load</h6><p>${esc(err.message)}</p></div>`;
   }
 }
+
+
+/* ---------- Change password modal ---------- */
+
+function openPwdModal() {
+  if (document.getElementById('pwdModal')) return;
+
+  const m = document.createElement('div');
+  m.className = 'modal-backdrop';
+  m.id = 'pwdModal';
+  m.innerHTML = `
+    <div class="modal-card" role="dialog" aria-modal="true" aria-label="Change password">
+      <div class="comp-title"><i class="bi bi-key-fill"></i>Change Password</div>
+
+      <div id="pwdMsg" class="pwd-msg" style="display:none"></div>
+
+      <input type="password" id="pwdCur"  class="inp" placeholder="Current password"     autocomplete="current-password">
+      <input type="password" id="pwdNew"  class="inp" placeholder="New password"         autocomplete="new-password">
+      <input type="password" id="pwdConf" class="inp" placeholder="Confirm new password" autocomplete="new-password">
+
+      <div class="modal-actions">
+        <button class="btn-outline" id="pwdCancel" type="button">Cancel</button>
+        <button class="btn-outline brand" id="pwdSave" type="button">Update</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(m);
+  document.body.style.overflow = 'hidden';
+  $('pwdCur').focus();
+
+  const msg = $('pwdMsg');
+
+  function close() {
+    document.removeEventListener('keydown', onKey);
+    document.body.style.overflow = '';
+    m.remove();
+  }
+
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+    if (e.key === 'Enter' && m.contains(document.activeElement)) submit();
+  }
+
+  function show(text, ok = false) {
+    msg.textContent = text;
+    msg.className = ok ? 'pwd-msg pwd-ok' : 'pwd-msg pwd-err';
+    msg.style.display = 'block';
+  }
+
+  async function submit() {
+    const btn = $('pwdSave');
+    if (btn.disabled) return;
+
+    const cur  = $('pwdCur').value;
+    const nw   = $('pwdNew').value;
+    const conf = $('pwdConf').value;
+
+    msg.style.display = 'none';
+
+    if (!cur || !nw || !conf) return show('All fields are required.');
+    if (nw.length < 8)        return show('New password must be at least 8 characters.');
+    if (nw !== conf)          return show('New passwords do not match.');
+    if (nw === cur)           return show('New password must differ from the current one.');
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+
+    try {
+      const r = await apiPost(ROUTES.changePassword, {
+        current_password: cur,
+        password: nw,
+        password_confirmation: conf,
+      });
+
+      show(r.message || 'Password updated.', true);
+      setTimeout(close, 1200);
+
+    } catch (e) {
+      show(
+        (e.errors && (e.errors.current_password?.[0] || e.errors.password?.[0])) ||
+        e.message ||
+        'Could not update password.'
+      );
+      btn.disabled = false;
+      btn.textContent = 'Update';
+    }
+  }
+
+  document.addEventListener('keydown', onKey);
+  m.addEventListener('click', e => { if (e.target === m) close(); });
+  $('pwdCancel').addEventListener('click', close);
+  $('pwdSave').addEventListener('click', submit);
+}
+
+
 
 $('profRefresh').addEventListener('click', () => loadProfile(true));
 
