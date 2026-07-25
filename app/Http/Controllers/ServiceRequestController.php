@@ -277,6 +277,10 @@ class ServiceRequestController extends Controller
             ->latest()
             ->get();
 
+        $priorities = Priority::where('status', 1)
+    ->orderBy('display_order')
+    ->get();
+
         $stats = [
             'pending'   => $inquiries->count(),
             'approved'  => ServiceRequest::where('status', 'Approved')->whereDate('updated_at', today())->count(),
@@ -284,7 +288,7 @@ class ServiceRequestController extends Controller
             'rejected'  => ServiceRequest::where('status', 'Rejected')->whereDate('updated_at', today())->count(),
         ];
 
-        return view('inquiry_approval', compact('inquiries', 'stats'));
+        return view('inquiry_approval', compact('inquiries', 'stats','priorities'));
     }
 
     public function approve(ServiceRequest $serviceRequest)

@@ -423,13 +423,16 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
           <i class="bi bi-search"></i>
           <input type="text" class="form-control-sm" id="searchInput" placeholder="Search SR_ID, customer, site, category…" oninput="applyFilter()"/>
         </div>
-        <select class="form-select-sm" style="width:130px;" id="priorityFilter" onchange="applyFilter()">
-          <option value="">All Priorities</option>
-          <option value="Low">Low</option>
-          <option value="Medium">Medium</option>
-          <option value="High">High</option>
-          <option value="Critical">Critical</option>
-        </select>
+       <select class="form-select-sm" style="width:130px;" id="priorityFilter" onchange="applyFilter()">
+  <option value="">All Priorities</option>
+  @foreach(($priorities ?? []) as $p)
+    <option value="{{ $p->name }}"
+            data-color="{{ $p->color }}"
+            @selected(request('priority') === $p->name)>
+      {{ $p->name }}
+    </option>
+  @endforeach
+</select>
 
         <select class="form-select-sm" style="width:140px;" id="warrantyFilter" onchange="applyFilter()">
           <option value="">All Warranty</option>
