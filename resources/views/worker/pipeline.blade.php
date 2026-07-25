@@ -203,7 +203,7 @@ body {
 .eta-form { padding:12px 14px; background:var(--surface-3); border-top:1px solid var(--card-border); }
 .eta-title { font-size:.72rem; font-weight:700; color:var(--text-heading); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
 .eta-title i { color:#9a8053; }
-.eta-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.eta-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:25px; }
 .eta-field label {
   font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em;
   color:var(--text-muted); display:block; margin-bottom:4px;
