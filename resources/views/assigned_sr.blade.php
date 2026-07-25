@@ -171,14 +171,19 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
     </select>
   </div>
   <div class="filter-group">
-    <div class="filter-label">Priority</div>
-    <select class="filter-control" name="priority" onchange="applyFilters()">
-      <option value="">All</option>
-      <option value="High">High</option>
-      <option value="Medium">Medium</option>
-      <option value="Low">Low</option>
-    </select>
-  </div>
+
+  <div class="filter-label">Priority</div>
+  <select class="filter-control" name="priority" onchange="applyFilters()">
+    <option value="">All</option>
+    @foreach(($priorities ?? []) as $p)
+      <option value="{{ $p->name }}"
+              data-color="{{ $p->color }}"
+              @selected(request('priority') === $p->name)>
+        {{ $p->name }}
+      </option>
+    @endforeach
+  </select>
+</div>
   <div class="filter-group">
     <div class="filter-label">Assigned From</div>
     <input class="filter-control" type="date" name="date_from" onchange="applyFilters()"/>
