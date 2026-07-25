@@ -89,14 +89,26 @@ class CompletedService extends Controller
         });
 
         // Warranty scope filter.
-        $query->when($request->filled('warranty'), function ($q) use ($request) {
-            if ($request->query('warranty') === 'oow') {
-                $q->where('warranty_scope', 'oow');
-            } elseif ($request->query('warranty') === 'warranty') {
-                $q->where(fn ($w) => $w->where('warranty_scope', 'iw')
-                                       ->orWhereNull('warranty_scope'));
-            }
-        });
+       $query->when($request->filled('warranty'), function ($q) use ($request) {
+    $now = now()->endOfDay();
+
+    if ($request->query('warranty') === 'iw') {
+        // has a project with a warranty end date still in the future
+        $q->whereHas('project', fn ($p) =>
+            $p->whereNotNull('warranty_end_date')
+              ->where('warranty_end_date', '>=', $now)
+        );
+    } elseif ($request->query('warranty') === 'oow') {
+        // expired, no end date recorded, or no project at all
+        $q->where(fn ($w) =>
+            $w->whereHas('project', fn ($p) =>
+                  $p->whereNull('warranty_end_date')
+                    ->orWhere('warranty_end_date', '<', $now)
+              )
+              ->orWhereDoesntHave('project')
+        );
+    }
+});
 
         // Completion date range (using updated_at as the close timestamp).
         $query->when($request->filled('date_from'), fn ($q) =>

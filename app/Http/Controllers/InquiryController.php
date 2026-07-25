@@ -38,7 +38,7 @@ class InquiryController extends Controller
                 'project_id'        => $project->id,
                 'project_site'      => $project->site_name,
                 'service_type_id'   => $data['service_type_id'],
-                'reported_by'       => auth()->user()?->name ?? 'System',
+               'reported_by' => optional($project->client)->contact_name ?? 'Unknown',
                 'priority_level'    => $data['priority_level'],
                 'issue_description' => $data['issue_description'],
                 'internal_remark'   => $data['internal_remark'] ?? null,

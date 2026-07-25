@@ -1205,6 +1205,9 @@
 
   const TECHS = @json($technicians ?? []);
 
+
+  
+
   let tickets = [...ALL_TK];
   let filtered = [...tickets];
   let selTkId = null;
@@ -1353,6 +1356,7 @@ function renderSnapshot(t) {
     <div class="tk-row full"><div class="tk-l">Customer</div><div class="tk-v">${t.client}</div></div>
     <div class="tk-row full"><div class="tk-l">Project</div><div class="tk-v">${t.contract || '—'}</div></div>
     <div class="tk-row"><div class="tk-l">Category</div><div class="tk-v">${t.domain}</div></div>
+        <div class="tk-row"><div class="tk-l">Warranty</div><div class="tk-v">${t.warranty}</div></div>
     <div class="tk-row"><div class="tk-l">SLA Elapsed</div><div class="tk-v" style="color:${slaCls};font-weight:700;">${t.hrsAgo}h ago</div></div>
     <div class="tk-row full"><div class="tk-l">Site</div><div class="tk-v">${t.site}</div></div>
     <div class="tk-row full"><div class="tk-l">Approved At</div><div class="tk-v">${t.approvedStr}</div></div>

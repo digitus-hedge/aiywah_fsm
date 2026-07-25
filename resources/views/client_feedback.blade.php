@@ -311,6 +311,23 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
   <div class="card" id="formCard">
     <div class="card-body">
 
+
+      <!-- ▼ ALERT GOES HERE ▼ -->
+      <div id="fbAlert" class="fb-alert" role="alert" style="display:none;"></div>
+
+      @if($serviceRequest->feedback_submitted_at)
+        <div class="fb-alert warn" style="display:flex;">
+          <i class="bi bi-info-circle-fill"></i>
+          <span>
+            Feedback for this service request was submitted on
+            {{ \Carbon\Carbon::parse($serviceRequest->feedback_submitted_at)->format('d M Y \a\t h:i A') }}.
+            It can only be submitted once.
+          </span>
+        </div>
+      @endif
+      <!-- ▲ END ▲ -->
+
+
       <div class="ticket-info">
         <div class="ti-icon"><i class="bi bi-receipt"></i></div>
         <div>
@@ -345,9 +362,16 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
       <textarea class="fld-textarea" id="comments" maxlength="500" placeholder="Tell us about your experience — punctuality, quality of work, professionalism, or anything else you'd like us to know…" oninput="updateCount()"></textarea>
       <div class="char-count"><span id="charCount">0</span> / 500</div>
 
-      <button class="btn-submit" id="submitBtn" onclick="submitFeedback()">
+      <!-- <button class="btn-submit" id="submitBtn" onclick="submitFeedback()">
         <i class="bi bi-send-fill"></i> Submit Feedback Assessment
-      </button>
+      </button> -->
+
+      <button class="btn-submit" id="submitBtn" onclick="submitFeedback()"
+        @disabled($serviceRequest->feedback_submitted_at)>
+  <i class="bi bi-send-fill"></i>
+  {{ $serviceRequest->feedback_submitted_at ? 'Feedback Already Submitted' : 'Submit Feedback Assessment' }}
+</button>
+
 
       <div class="form-footnote"><i class="bi bi-info-circle"></i> Your feedback is linked to this service request and can only be submitted once.</div>
     </div>
@@ -365,13 +389,17 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 
 <script>
 
+document.addEventListener('DOMContentLoaded', function () {
+  @if($serviceRequest->feedback_submitted_at)
+    document.getElementById('comments').disabled = true;
+    var s = document.getElementById('stars');
+    s.style.pointerEvents = 'none';
+    s.style.opacity = '.55';
+    document.getElementById('ratingCaption').textContent = 'Rating submitted';
+  @endif
+});
 
 const PREVIEW_URL = @json(route('feedback.preview', $serviceRequest->id));
-
-
-
-
-
 
 
 function openPreview() {
@@ -437,6 +465,7 @@ async function loadPreview() {
         ${row('Site', d.site_name)}
         ${row('Warranty Start', d.proj_completion)}
         ${row('Warranty End', d.warranty_end)}
+          ${row('Warranty Scope', d.warranty)}
       </div>
       <div class="pv-sub">Site Address</div>
       <div class="pv-text">${esc(d.site_address)}</div>
@@ -592,7 +621,9 @@ function submitFeedback(){
     cap.style.color='#ef4444';cap.style.fontStyle='normal';cap.style.fontWeight='600';
     return;
   }
+
   var btn=document.getElementById('submitBtn');
+  var original=btn.innerHTML;
   btn.disabled=true;btn.innerHTML='<i class="bi bi-arrow-repeat"></i> Submitting…';
 
   fetch('{{ route("clients.feedback.store", $serviceRequest->id) }}', {
@@ -607,11 +638,48 @@ function submitFeedback(){
       evaluation_comment: document.getElementById('comments').value
     })
   })
+  // read the body no matter what the status is
   .then(function(res){
-    if(!res.ok) throw new Error('Submission failed');
-    return res.json();
+    return res.json()
+      .catch(function(){ return {}; })          // HTML error page / empty body
+      .then(function(data){ return { status: res.status, ok: res.ok, data: data }; });
   })
-  .then(function(){
+  .then(function(r){
+
+    /* ---- already submitted ---- */
+    if(r.status===409){
+      showFbAlert('warn', r.data.message || 'Feedback has already been submitted for this request.');
+      lockFbForm();
+      return;
+    }
+
+    /* ---- validation failed ---- */
+    if(r.status===422){
+      var first='';
+      if(r.data.errors){
+        var k=Object.keys(r.data.errors)[0];
+        first=r.data.errors[k][0];
+      }
+      showFbAlert('err', first || r.data.message || 'Please check the form and try again.');
+      btn.disabled=false;btn.innerHTML=original;
+      return;
+    }
+
+    /* ---- session expired / not authorised ---- */
+    if(r.status===401 || r.status===419){
+      showFbAlert('err','Your session expired. Please refresh the page and try again.');
+      btn.disabled=false;btn.innerHTML=original;
+      return;
+    }
+
+    /* ---- any other failure ---- */
+    if(!r.ok){
+      showFbAlert('err', r.data.message || 'Something went wrong ('+r.status+'). Please try again.');
+      btn.disabled=false;btn.innerHTML=original;
+      return;
+    }
+
+    /* ---- success ---- */
     var ts=document.getElementById('thanksStars');
     var h='';for(var i=1;i<=5;i++){h+='<i class="bi bi-star-fill'+(i<=rating?'':' dim')+'"></i>';}
     ts.innerHTML=h;
@@ -620,10 +688,29 @@ function submitFeedback(){
     window.scrollTo({top:0,behavior:'smooth'});
   })
   .catch(function(){
-    btn.disabled=false;
-    btn.innerHTML='<i class="bi bi-send-fill"></i> Submit Feedback Assessment';
-    alert('Something went wrong. Please try again.');
+    // only genuine network failures reach here now
+    showFbAlert('err','Network error — please check your connection and try again.');
+    btn.disabled=false;btn.innerHTML=original;
   });
+}
+
+function showFbAlert(type,msg){
+  var a=document.getElementById('fbAlert');
+  var icons={err:'exclamation-triangle-fill',ok:'check-circle-fill',warn:'info-circle-fill'};
+  a.className='fb-alert '+type;
+  a.innerHTML='<i class="bi bi-'+icons[type]+'"></i><span>'+msg+'</span>';
+  a.style.display='flex';
+  a.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function lockFbForm(){
+  var btn=document.getElementById('submitBtn');
+  btn.disabled=true;
+  btn.innerHTML='<i class="bi bi-check-circle-fill"></i> Feedback Already Submitted';
+  document.getElementById('comments').disabled=true;
+  var s=document.getElementById('stars');
+  s.style.pointerEvents='none';
+  s.style.opacity='.55';
 }
 </script>
 </body>

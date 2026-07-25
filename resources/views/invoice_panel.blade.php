@@ -263,7 +263,7 @@
       </div>
       <div class="ws-success" id="inv-success">
         <div class="s-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-receipt" style="color:#9a8053;font-size:1.6rem;"></i></div>
-        <h5 style="font-size:1rem;color:var(--text-heading);margin-bottom:6px;" id="inv-success-title"></h5>
+        <h5 style="font-size:1rem;color:var(--text-heading);margin-bottom:6px;font-family:unset;" id="inv-success-title"></h5>
         <p style="font-size:.82rem;color:var(--text-muted);margin-bottom:18px;" id="inv-success-body"></p>
         <button onclick="invNext()" class="btn-gold"><i class="bi bi-arrow-right"></i>Next Ticket</button>
       </div>
@@ -387,7 +387,7 @@
       <div class="modal-hdr">
         <div class="modal-hdr-left">
           <div class="modal-hdr-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-patch-check-fill" style="color:#9a8053;"></i></div>
-          <h6>Mark Invoice as HoP Approved</h6>
+          <h6 style="font-family:unset;">Mark Invoice as HoP Approved</h6>
         </div>
         <button class="modal-close" onclick="document.getElementById('hop-modal').classList.remove('show')"><i class="bi bi-x-lg"></i></button>
       </div>
