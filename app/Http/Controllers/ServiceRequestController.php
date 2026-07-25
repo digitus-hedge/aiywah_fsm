@@ -433,6 +433,11 @@ class ServiceRequestController extends Controller
                 'hrsAgo'            => abs((int) now()->diffInHours($sr->updated_at, false)),
                 'approvedStr'       => $sr->updated_at?->format('d M Y h:i A'),
                 'status'            => $sr->status,
+                'warranty'          => ($sr->project
+                    && $sr->project->warranty_end_date
+                    && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
+                    ? 'In Warranty'
+                    : 'Out of Warranty',
                 'client_id'         => $sr->client_id,
                 'project_id'        => $sr->project_id,
                 'service_type_id'   => $sr->service_type_id,
@@ -638,6 +643,12 @@ class ServiceRequestController extends Controller
             $exp   = $punch ? $this->srExpenses($punch)
                 : ['rows' => [], 'total' => 0];
 
+
+            $warrantyEnd = optional($sr->project)->warranty_end_date;
+
+            $isInWarranty = $warrantyEnd
+                && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
+
             return [
                 'id'           => $this->buildSrRef($sr),
                 'dbId'         => $sr->id,
@@ -645,8 +656,14 @@ class ServiceRequestController extends Controller
                 'site'         => $punch?->site_location
                     ?? optional($sr->project)->site_name ?? '—',
                 'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
-                'scope'        => $scope,
-                'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
+              
+                // 'scope'        => $scope,
+                // 'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
+
+                'scope'      => $isInWarranty ? 'iw' : 'oow',
+                'scopeLabel' => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
+                'warranty'   => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
+
                 'punchIn'      => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
                 'punchOut'     => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
                 'sla'          => $sla,

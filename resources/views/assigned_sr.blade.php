@@ -102,8 +102,8 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sr-modal-hdr{border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .sr-modal-hdr-banner{background:var(--app-bg);padding:16px 22px;position:relative;overflow:hidden;}
 .sr-modal-hdr-banner::after{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);}
-.sr-modal-close{position:absolute;top:14px;right:16px;z-index:2;background:rgba(255,255,255,.18);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;}
-.sr-modal-close:hover{background:rgba(255,255,255,.32);}
+.sr-modal-close{position:absolute;top:14px;right:16px;z-index:2;background: rgb(165 165 165);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.sr-modal-close:hover{background:rgb(165 165 165);}
 .sr-modal-id{font-size:1.05rem;font-weight:700;margin:0 0 4px;position:relative;z-index:1;}
 .sr-modal-client{font-size:.82rem;opacity:.9;position:relative;z-index:1;display:flex;align-items:center;gap:6px;}
 .sr-modal-body{padding:20px 22px;overflow-y:auto;}
@@ -261,7 +261,12 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
               'issue'       => $sr->issue_description ?? '—',
               'status'      => $statusLbl,
               'priority'    => $priority,
-              'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
+              // 'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
+              'warranty' => ($sr->project
+                && $sr->project->warranty_end_date
+                && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
+                    ? 'In Warranty'
+                    : 'Out of Warranty',
               'contact'     => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
               'scheduled'   => $eta ? $eta->format('d M Y · h:i A') : '—',
               'assigned'    => $assignedAt->format('d M Y · h:i A'),

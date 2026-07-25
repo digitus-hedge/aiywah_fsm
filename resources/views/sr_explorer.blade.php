@@ -210,7 +210,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sr-modal-hdr-banner::after{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);}
 .sr-modal-close{position:absolute;top:14px;right:16px;z-index:2;background:rgba(255,255,255,.18);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;}
 .sr-modal-close:hover{background:rgba(255,255,255,.32);}
-.sr-modal-id{font-size:1.05rem;font-weight:700;margin:0 0 4px;position:relative;z-index:1;}
+.sr-modal-id{font-size:1.35rem;color:#fff;font-weight:700;margin:0 0 4px;position:relative;z-index:1;}
 .sr-modal-client{font-size:.82rem;opacity:.9;position:relative;z-index:1;display:flex;align-items:center;gap:6px;}
 .sr-modal-body{padding:20px 22px;overflow-y:auto;}
 .sr-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;}
@@ -363,7 +363,11 @@ $srPayload = [
   'site'      => optional($sr->project)->site_name ?? '—',
   'assigned'  => $sr->assignedUser->name ?? 'Unassigned',
   'issue'     => $sr->issue_description ?? '—',
-  'warranty'  => $sr->warranty_status ?? (($sr->is_oow ?? false) ? 'Out of Warranty' : '—'),
+'warranty' => ($sr->project
+                && $sr->project->warranty_end_date
+                && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
+                    ? 'In Warranty'
+                    : 'Out of Warranty',
   'contact'   => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
   'created'   => \Carbon\Carbon::parse($sr->created_at)->format('d M Y · h:i A'),
   'created_h' => \Carbon\Carbon::parse($sr->created_at)->diffForHumans(),
@@ -434,7 +438,7 @@ $srPayload = [
       <div class="sr-modal-hdr-banner">
         <button class="sr-modal-close" onclick="closeSrModal()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
         <div class="sr-modal-id" id="sr-m-id">—</div>
-        <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client">—</span></div>
+        <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client" style="font-size: 15px;">—</span></div>
       </div>
     </div>
     <div class="sr-modal-body">

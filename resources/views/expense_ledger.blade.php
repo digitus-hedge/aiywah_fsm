@@ -329,7 +329,7 @@
   <div class="tbl-card">
     <div class="tbl-card-hdr">
       <div style="display:flex;align-items:center;gap:10px;">
-        <span class="card-title">Expense Reconciliation Ledger</span>
+        <span class="card-title" style="font-family:unset;">Expense Reconciliation Ledger</span>
         <span class="result-count" id="led-count">0 entries</span>
       </div>
     </div>
@@ -363,7 +363,7 @@
       <div class="modal-hdr">
         <div class="modal-hdr-left">
           <div class="modal-hdr-icon"><i class="bi bi-receipt" style="color:#d97706;"></i></div>
-          <h6 id="rcpt-title">Receipt Image</h6>
+          <h6 id="rcpt-title" style="font-family:unset;">Receipt Image</h6>
         </div>
         <button class="modal-close" type="button" id="rcpt-close" aria-label="Close">
           <i class="bi bi-x-lg"></i>

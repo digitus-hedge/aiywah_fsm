@@ -563,14 +563,27 @@ function selectSR(id){
   slaEl.textContent = selectedSR.sla.label;
   slaEl.className   = 'ws-meta-value ' + (selectedSR.sla.cls==='warn'?'warn':selectedSR.sla.cls==='breach'?'breach':'');
 
-  const sp = document.getElementById('ws-scope-pill');
-  if(selectedSR.scope==='iw'){
-    sp.style.background='rgba(21,128,61,.12)';sp.style.color='#15803d';
-    sp.innerHTML='<i class="bi bi-shield-check"></i> In Warranty';
-  } else {
-    sp.style.background='rgba(239,68,68,.1)';sp.style.color='#ef4444';
-    sp.innerHTML='<i class="bi bi-shield-exclamation"></i> Out of Warranty';
-  }
+
+  // const sp = document.getElementById('ws-scope-pill');
+  // if(selectedSR.scope==='iw'){
+  //   sp.style.background='rgba(21,128,61,.12)';sp.style.color='#15803d';
+  //   sp.innerHTML='<i class="bi bi-shield-check"></i> In Warranty';
+  // } else {
+  //   sp.style.background='rgba(239,68,68,.1)';sp.style.color='#ef4444';
+  //   sp.innerHTML='<i class="bi bi-shield-exclamation"></i> Out of Warranty';
+  // }
+
+
+const sp = document.getElementById('ws-scope-pill');
+const iw = selectedSR.scope === 'iw';
+
+sp.style.background = iw ? 'rgba(21,128,61,.12)' : 'rgba(239,68,68,.1)';
+sp.style.color      = iw ? '#15803d' : '#ef4444';
+sp.innerHTML        = `<i class="bi bi-shield-${iw ? 'check' : 'exclamation'}"></i> `
+                    + (selectedSR.scopeLabel ?? (iw ? 'In Warranty' : 'Out of Warranty'));
+
+
+
 
   const si = document.getElementById('scope-indicator');
   if(selectedSR.scope==='iw'){

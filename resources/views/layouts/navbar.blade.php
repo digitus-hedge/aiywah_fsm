@@ -115,6 +115,91 @@
     </div>
 </header>
 
+
+<style>
+/* ---------- desktop: dropdown anchored to bell ---------- */
+#notifPanel {
+  position: absolute !important;
+  right: 0 !important;
+  left: auto !important;
+  top: calc(100% + 6px) !important;
+  width: 340px !important;
+  max-width: calc(100vw - 24px) !important;
+  max-height: 420px !important;
+  overflow-y: auto !important;
+  background: #fff !important;
+  border: 1px solid #eee !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,.12) !important;
+  z-index: 1050 !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ---------- mobile: centred modal ---------- */
+#notifPanel.centered {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  width: calc(100vw - 32px) !important;
+  max-width: 420px !important;
+  max-height: 80vh !important;
+  max-height: 80dvh !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,.22) !important;
+}
+
+@media (max-width: 576px) {
+  #notifPanel {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: calc(100vw - 32px) !important;
+    max-width: 420px !important;
+    max-height: 80dvh !important;
+    border-radius: 16px !important;
+  }
+}
+
+/* backdrop behind the centred modal */
+#notifBackdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 1040;
+}
+#notifBackdrop.show { display: block; }
+
+body.notif-locked { overflow: hidden !important; }
+
+/* sticky head/foot keep working inside the modal */
+#notifPanel .notif-head,
+#notifPanel > div:first-child {
+  position: sticky !important; top: 0 !important;
+  background: #fff !important; z-index: 2;
+  border-radius: 16px 16px 0 0;
+}
+#notifPanel > a[href="/notifications/all"] {
+  position: sticky !important; bottom: 0 !important;
+  background: #fff !important;
+  border-radius: 0 0 16px 16px;
+}
+
+/* stop long strings widening the panel */
+#notifList, #notifList * {
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  max-width: 100%;
+}
+</style>
+
 <script>
 const NOTIF_ICON = { sr_created: 'bi-plus-circle-fill', status_updated: 'bi-arrow-repeat' };
 const NOTIF_CLR  = { sr_created: '#05a34a', status_updated: '#6571ff' };
@@ -165,11 +250,19 @@ function loadNotif() {
     });
 }
 
-function toggleNotif() {
+function toggleNotif(force) {
   const p = document.getElementById('notifPanel');
-  const show = p.style.display === 'none' || p.style.display === '';
-  p.style.display = show ? 'block' : 'none';
-  if (show) loadNotif();
+  const b = document.getElementById('notifBackdrop');
+  const open = (force !== undefined) ? force : !p.classList.contains('show');
+  const small = Math.min(window.innerWidth, document.documentElement.clientWidth) <= 576;
+
+  p.removeAttribute('style');
+  p.classList.toggle('centered', small);
+  p.style.display = open ? 'block' : 'none';
+
+  if (b) b.classList.toggle('show', open && small);
+  document.body.classList.toggle('notif-locked', open && small);
+  if (open) loadNotif();
 }
 
 function markAllRead() {

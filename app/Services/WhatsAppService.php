@@ -291,7 +291,6 @@ class WhatsAppService
 }
 
 
-
     /**
      * SR creation → template: sr_creation
      * Body vars: {{1}} name, {{2}} SR ref   (status is fixed text in the template)

@@ -92,7 +92,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sr-modal-hdr{border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .sr-modal-hdr-banner{background:var(--app-bg);padding:16px 22px;position:relative;overflow:hidden;}
 .sr-modal-hdr-banner::after{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);}
-.sr-modal-close{position:absolute;top:14px;right:16px;z-index:2;background:rgba(255,255,255,.18);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+.sr-modal-close{position:absolute;top:14px;right:16px;z-index:2;background:rgb(255 255 255);border:none;color:#655a5abf;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;}
 .sr-modal-close:hover{background:rgba(255,255,255,.32);}
 .sr-modal-id{font-size:1.05rem;font-weight:700;margin:0 0 4px;position:relative;z-index:1;}
 .sr-modal-client{font-size:.82rem;opacity:.9;position:relative;z-index:1;display:flex;align-items:center;gap:6px;}
@@ -171,14 +171,14 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
     <input class="filter-control filter-search" type="text" name="search"
            placeholder="SR ID, customer, worker…" oninput="debounceFilter()"/>
   </div>
-  <div class="filter-group">
-    <div class="filter-label">Warranty</div>
-    <select class="filter-control" name="warranty" onchange="applyFilters()">
-      <option value="">All</option>
-      <option value="warranty">In Warranty</option>
-      <option value="oow">Out of Warranty</option>
-    </select>
-  </div>
+<div class="filter-group">
+  <div class="filter-label">Warranty</div>
+  <select class="filter-control" name="warranty" onchange="applyFilters()">
+    <option value="">All</option>
+    <option value="iw"  @selected(request('warranty') === 'iw')>In Warranty</option>
+    <option value="oow" @selected(request('warranty') === 'oow')>Out of Warranty</option>
+  </select>
+</div>
   <div class="filter-group">
     <div class="filter-label">Completed From</div>
     <input class="filter-control" type="date" name="date_from" onchange="applyFilters()"/>
@@ -234,7 +234,14 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
             $duration   = $punch->duration_label ?? '—';
             $worker     = optional($punch?->user)->name ?? 'Unassigned';
 
-           $isOow = ($sr->warranty_scope ?? 'iw') === 'oow';
+            $warrantyEnd = optional($sr->project)->warranty_end_date;
+
+$isInWarranty = $warrantyEnd
+    && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
+
+$isOow = ! $isInWarranty;
+
+
 
             // Proof URLs (before/after photos are images, signature is a PDF)
             $beforeUrl = $punch && $punch->start_photo_path  ? \Illuminate\Support\Facades\Storage::url($punch->start_photo_path)  : null;
@@ -247,7 +254,8 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
               'site'        => optional($sr->project)->site_name ?? '—',
               'worker'      => $worker,
               'issue'       => $sr->issue_description ?? '—',
-              'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
+                'warranty'    => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
+
               'contact'     => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
               'cust_name'   => $punch->customer_name ?? '—',
               'summary'     => $punch->completion_summary ?? '—',

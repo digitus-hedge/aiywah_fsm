@@ -805,6 +805,11 @@ class ClientController extends Controller
             'proj_completion' => $p && $p->completion_date   ? \Carbon\Carbon::parse($p->completion_date)->format('d M Y')   : '—',
             'warranty_end'    => $p && $p->warranty_end_date ? \Carbon\Carbon::parse($p->warranty_end_date)->format('d M Y') : '—',
 
+            'warranty'          => ($sr->project
+                            && $sr->project->warranty_end_date
+                            && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
+                                ? 'In Warranty'
+                                : 'Out of Warranty',
             // service_requests table
             'category'   => optional($sr->category)->category_name ?? '—',
             'priority'   => $sr->priority_level,
