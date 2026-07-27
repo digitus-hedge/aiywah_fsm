@@ -1159,7 +1159,7 @@ async function saveExpense(){
   const payload={
     name,
     description: document.getElementById('exp-desc').value.trim(),
-    status:      document.getElementById('warranty-tog-track').classList.contains('on')?1:0,
+    status:      document.getElementById('exp-tog-track').classList.contains('on')?1:0,
   };
   try{
     if(editMode.expense){

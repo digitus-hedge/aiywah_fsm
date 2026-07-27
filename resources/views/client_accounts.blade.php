@@ -536,7 +536,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 
 @push('scripts')
 
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 @php
   $clientData = null;
@@ -557,6 +557,8 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
         'project_code'    => $p->project_code,
         'site_name'       => $p->site_name,
         'site_address'    => $p->site_address,
+        'project_engineer'=> $p->project_engineer,
+        'engineer_contact' => $p->engineer_contact,
         'completion_date' => optional($p->completion_date)->format('Y-m-d'),
           'warranty_id'     => $p->warranty_id,
 
@@ -565,8 +567,8 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
   }
 @endphp
 
-const IS_EDIT = @json($isEdit);
-const CLIENT_DATA = @json($clientData);
+const IS_EDIT         = @json($isEdit);
+const CLIENT_DATA     = @json($clientData);
 const EXISTING_TOKENS = @json($existingTokens ?? []);
 
 let matchedClientId = null;
@@ -846,6 +848,8 @@ function addProject(prefill, existing) {
   const cd = prefill && prefill.completion_date ? prefill.completion_date : '';
   const wid = prefill && prefill.warranty_id ? String(prefill.warranty_id) : '';
   const pid = prefill && prefill.id ? String(prefill.id) : '';
+  const pe  = prefill && prefill.project_engineer ? prefill.project_engineer.replace(/"/g,'&quot;') : '';
+  const pec = prefill && prefill.engineer_contact ? prefill.engineer_contact.replace(/"/g,'&quot;') : '';
 
   const warrantyOptions = (window.warrantiesData || [])
     .map(w => `<option value="${w.id}" ${String(w.id) === wid ? 'selected' : ''}>${w.name}</option>`)
@@ -883,6 +887,21 @@ function addProject(prefill, existing) {
           ${warrantyOptions}
         </select>
       </div>
+      <div>
+        <span class="ps-label">Project Engineer
+          <span style="font-size:.6rem;background:rgba(154,123,79,.1);color:#9A7B4F;padding:1px 5px;border-radius:3px;font-weight:700;"></span>
+        </span>
+        <input type="text" class="ps-input" name="projects[${idx}][project_engineer]" id="pseng-${idx}"
+               value="${pe}" placeholder="e.g. Rahul Menon" oninput="syncSummary()"/>
+      </div>
+      <div>
+        <span class="ps-label">Engineer Contact</span>
+<input type="text" class="ps-input" name="projects[${idx}][engineer_contact]" id="psengc-${idx}"
+       value="${pec}" placeholder="Phone"
+       inputmode="numeric" pattern="[0-9]{7,15}" maxlength="15"
+       title="Digits only (7–15)"
+       oninput="this.value = this.value.replace(/[^0-9]/g,''); syncSummary();"/>
+      </div>
       <div class="ps-full">
         <span class="ps-label">Site Name / Header <span style="color:#ff3366;">*</span></span>
         <input type="text" class="ps-input" name="projects[${idx}][site_name]" value="${sn}" placeholder="e.g. Main Building, Warehouse Block A" oninput="syncSummary()"/>
@@ -898,6 +917,34 @@ function addProject(prefill, existing) {
   updateChecklist();
   setTimeout(() => div.classList.remove('new-row'), 200);
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+  const grid = document.getElementById('psGrid');
+  if (grid && !grid.querySelectorAll('.ps-row').length) {
+    addProject();
+  }
+});
+function confirmMissingEngineers() {
+  const rows = document.querySelectorAll('#psGrid .ps-row');
+  const missing = [];
+
+  rows.forEach((row, i) => {
+    const eng = row.querySelector('input[name*="[project_engineer]"]');
+    if (eng && !eng.value.trim()) {
+      const nameInput = row.querySelector('input[name*="[project_name]"]');
+      missing.push(nameInput && nameInput.value.trim() ? nameInput.value.trim() : `Entry #${i + 1}`);
+    }
+  });
+
+  if (!missing.length) return true;
+
+  const label = missing.length === 1
+    ? `Project engineer field is empty for "${missing[0]}".`
+    : `Project engineer field is empty for ${missing.length} projects:\n\n• ${missing.join('\n• ')}`;
+
+  return confirm(`${label}\n\nDo you want to proceed?`);
+}
+
 
 function genProjectCode(idx) {
   const el = document.getElementById(`pscode-${idx}`);
@@ -962,6 +1009,26 @@ function setCheck(id, done) {
   }
 }
 
+
+
+
+
+
+
+
+function getMissingEngineers() {
+  const rows = document.querySelectorAll('#psGrid .ps-row');
+  const missing = [];
+  rows.forEach((row, i) => {
+    const eng = row.querySelector('input[name*="[project_engineer]"]');
+    if (eng && !eng.value.trim()) {
+      const nameInput = row.querySelector('input[name*="[project_name]"]');
+      missing.push(nameInput && nameInput.value.trim() ? nameInput.value.trim() : `Entry #${i + 1}`);
+    }
+  });
+  return missing;
+}
+
 function updateChecklist() {
   const firm     = document.getElementById('firmName').value.trim().length > 0;
   const token    = document.getElementById('clientToken').value.trim().length > 0;
@@ -978,7 +1045,10 @@ function updateChecklist() {
 }
 
 /* ── Submit guard ── */
+let engineerWarnAck = false;
+
 document.getElementById('clientForm').addEventListener('submit', function (e) {
+  const form    = this;                     // ← add this
   const firm    = document.getElementById('firmName').value.trim();
   const token   = document.getElementById('clientToken').value.trim();
   const contact = document.getElementById('contactName').value.trim();
@@ -990,6 +1060,37 @@ document.getElementById('clientForm').addEventListener('submit', function (e) {
   if (!contact) { e.preventDefault(); showToast('error','Missing Field','Please enter the primary contact name.'); document.getElementById('contactName').focus(); return; }
   if (phone.length < 7) { e.preventDefault(); showToast('error','Invalid Number','Please enter a valid primary mobile number.'); document.getElementById('primaryMobile').focus(); return; }
   if (!sites)   { e.preventDefault(); showToast('error','No Projects','Please add at least one project.'); return; }
+
+  const missing = getMissingEngineers();
+  if (missing.length && !engineerWarnAck) {
+    e.preventDefault();
+
+    const html = missing.length === 1
+      ? `Project engineer is empty for <b>${missing[0]}</b>.`
+      : `Project engineer is empty for <b>${missing.length} projects</b>:<br>
+         <div style="text-align:left;margin-top:10px;font-size:.85rem;max-height:160px;overflow:auto;">
+           ${missing.map(m => `• ${m}`).join('<br>')}
+         </div>`;
+
+    Swal.fire({
+      icon: 'warning',
+      title: 'Project Engineer Missing',
+      html: `${html}<br><span style="font-size:.85rem;color:#888;">Do you want to proceed?</span>`,
+      showCancelButton: true,
+      confirmButtonText: 'Yes, proceed',
+      cancelButtonText: 'Go back',
+      confirmButtonColor: '#9A7B4F',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true,
+      focusCancel: true
+    }).then(res => {
+      if (res.isConfirmed) {
+        engineerWarnAck = true;
+        form.requestSubmit();
+      }
+    });
+    return;
+  }
 
   const btn = document.getElementById('saveBtn');
   btn.disabled  = true;

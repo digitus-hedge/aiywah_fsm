@@ -243,6 +243,9 @@ class ProjectController extends Controller
             // 'warranty_id' => 'nullable|exists:warranties,id',
             'warranty_id'     => 'required|exists:warranties,id',
 
+            'project_engineer' => 'nullable|string|max:255',
+            'engineer_contact' => 'nullable',
+            
         ], [
             'completion_date.required' => 'Please select a completion date.',
             'warranty_id.required'     => 'Please select a warranty.',
@@ -252,7 +255,6 @@ class ProjectController extends Controller
         // $data['warranty_end_date'] = !empty($data['completion_date'])
         //     ? Carbon::parse($data['completion_date'])->addYear()
         //     : null;
-
 
         $warrantyDays = 0;
 

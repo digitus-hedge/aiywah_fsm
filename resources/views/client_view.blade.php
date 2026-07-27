@@ -1955,6 +1955,25 @@
   </div>
 </div>
 
+
+
+<div class="form-group" style="margin-bottom:0;margin-top:14px;">
+  <div style="display:flex;gap:14px;flex-wrap:wrap;">
+    <div style="flex:1;min-width:180px;">
+      <label class="form-label">Project Engineer</label>
+      <input type="text" class="form-control" id="pn-engineer" placeholder="e.g. Rahul Menon" />
+      <div class="field-hint">Internal person associated with the project. Optional.</div>
+    </div>
+    <div style="flex:1;min-width:180px;">
+      <label class="form-label">Engineer Contact</label>
+      <input type="text" class="form-control" id="pn-engineer-contact" placeholder="Phone"
+             inputmode="numeric" maxlength="15"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+      <div class="field-hint">Digits only.</div>
+    </div>
+  </div>
+</div>
+
 </div>
 
 
@@ -2083,6 +2102,8 @@
     document.getElementById('pn-addr').value = '';
     document.getElementById('pn-completion').value = '';
     document.getElementById('pn-warranty').value = '';
+    document.getElementById('pn-engineer').value = '';
+     document.getElementById('pn-engineer-contact').value = '';
     var tog = document.getElementById('statusTog');
     tog.classList.add('on');
     var togLbl = tog.parentElement.querySelector('.tog-label');
@@ -2105,6 +2126,8 @@
     document.getElementById('pn-code').value = p.code || '';
     document.getElementById('pn-site').value = p.siteName || '';
     document.getElementById('pn-addr').value = p.siteAddress || '';
+    document.getElementById('pn-engineer').value = p.project_engineer || '';
+    document.getElementById('pn-engineer-contact').value = p.engineer_contact || '';
     document.getElementById('pn-completion').value = p.completionDate || '';
     document.getElementById('pn-warranty').value = p.warrantyId ? String(p.warrantyId) : '';
 
@@ -2194,6 +2217,8 @@
     var completion = document.getElementById('pn-completion').value || null;
     var warranty = document.getElementById('pn-warranty').value || null;
     var active = document.getElementById('statusTog').classList.contains('on');
+    var engineer = document.getElementById('pn-engineer-contact').value.trim();
+    var engineer_contact = document.getElementById('pn-engineer').value.trim();
 
     if (!name) { showToast('err','Missing','Please enter a project name.'); document.getElementById('pn-name').focus(); return; }
     if (!site) { showToast('err','Missing','Please enter the site name.'); document.getElementById('pn-site').focus(); return; }
@@ -2211,6 +2236,8 @@
       site_address:    addr,
       completion_date: completion,
       warranty_id:     warranty,
+      project_engineer: engineer,
+      engineer_contact: engineer_contact,
       status:          active ? 'Active' : 'Inactive',
     };
 

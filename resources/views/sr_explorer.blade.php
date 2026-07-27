@@ -225,7 +225,24 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sr-modal-foot{padding:14px 22px;border-top:1px solid var(--border-color);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0;flex-wrap:wrap;}
 @media(max-width:480px){.sr-modal-foot{justify-content:stretch;}.sr-modal-foot > *{flex:1;justify-content:center;}}
 .sr-file-thumb{padding:0;border-radius:8px;overflow:hidden;width:75%}
-.sr-file-thumb img{width: 50%;margin: 0 auto;height:auto;object-fit:contain;border-radius:8px;display:block}
+.sr-file-thumb img{width: 100%;margin: 0 auto;height:auto;object-fit:contain;border-radius:8px;display:block}
+
+
+.sr-file-pdf { cursor:pointer; width:100%;margin-bottom:20px; border:1px solid #e3e3e3; border-radius:6px; overflow:hidden; background:#fff; }
+.sr-file-pdf:hover { border-color:#9A7B4F; }
+.sr-pdf-preview { position:relative; height:130px; overflow:hidden; background:#f7f7f7; }
+.sr-pdf-preview iframe { width:200%; height:200%; border:0; transform:scale(.5); transform-origin:0 0; pointer-events:none; }
+.sr-pdf-cap { display:flex; align-items:center; gap:5px; padding:5px 7px; font-size:.7rem;
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; border-top:1px solid #eee; }
+.sr-pdf-cap i { color:#dc3545; }
+
+
+
+.pdfv-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:2000; }
+.pdfv-overlay.show { display:flex; align-items:center; justify-content:center; }
+.pdfv-box { background:#fff; width:90vw; max-width:900px; height:88vh; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; }
+.pdfv-hdr { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-bottom:1px solid #eee; font-size:.85rem; font-weight:600; }
+.pdfv-box iframe { flex:1; width:100%; border:0; }
   </style>
   @endpush
 
@@ -473,16 +490,20 @@ $srPayload = [
 
 
 
-        <div class="sr-detail-item">
-          <span class="sr-detail-label"><i class="bi bi-card-text"></i>Reported Issue</span>
-          <span class="sr-detail-value muted" id="sr-m-issue">—</span>
-        </div>
+      
 
 
           <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-card-text"></i>Contact Person</span>
           <span class="sr-detail-value muted" id="sr-m-person">—</span>
         </div>
+
+
+          <div class="sr-detail-item full" style="text-align: justify;">
+          <span class="sr-detail-label"><i class="bi bi-card-text"></i>Reported Issue</span>
+          <span class="sr-detail-value muted" id="sr-m-issue">—</span>
+        </div>
+
 
         <div class="sr-detail-divider"></div>
 <div class="sr-detail-item full">
@@ -511,6 +532,23 @@ $srPayload = [
     </div>
   </div>
 </div>
+
+
+<div class="pdfv-overlay" id="pdfViewer" onclick="if(event.target===this) closePdfViewer()">
+  <div class="pdfv-box">
+    <div class="pdfv-hdr">
+      <span id="pdfViewerName"></span>
+      <div>
+        <a id="pdfViewerDl" href="#" target="_blank" class="btn-ghost" style="padding:4px 10px;font-size:.75rem;">
+          <i class="bi bi-download"></i> Open
+        </a>
+        <button class="modal-close" onclick="closePdfViewer()"><i class="bi bi-x-lg"></i></button>
+      </div>
+    </div>
+    <iframe id="pdfViewerFrame" src=""></iframe>
+  </div>
+</div>
+
 
 <div id="toastWrap"></div>
 
@@ -575,13 +613,32 @@ if (box){
     box.innerHTML = '<span class="sr-files-empty">No attachments</span>';
   } else {
     box.innerHTML = files.map(function(f){
-      return f.image
-        ? '<a class="sr-file sr-file-thumb" href="'+f.url+'" target="_blank" title="'+f.name+'"><img src="'+f.url+'" alt=""></a>'
-        : '<a class="sr-file" href="'+f.url+'" target="_blank"><i class="bi bi-file-earmark-arrow-down"></i>'+f.name+'</a>';
+      var name = esc(f.name || '');
+      var url  = esc(f.url  || '');
+      var isPdf = f.pdf === true || /\.pdf(\?|$)/i.test(f.url || '') || f.mime === 'application/pdf';
+
+      if (f.image){
+        return '<a class="sr-file sr-file-thumb" href="'+url+'" target="_blank" title="'+name+'">'
+             +   '<img src="'+url+'" alt="">'
+             + '</a>';
+      }
+      if (isPdf){
+        return '<div class="sr-file sr-file-pdf" title="'+name+'" onclick="openPdfViewer(\''+url+'\',\''+name+'\')">'
+             +   '<div class="sr-pdf-preview"><iframe src="'+url+'#toolbar=0&navpanes=0&view=FitH" scrolling="no"></iframe></div>'
+             +   '<div class="sr-pdf-cap"><i class="bi bi-filetype-pdf"></i>'+name+'</div>'
+             + '</div>';
+      }
+      return '<a class="sr-file" href="'+url+'" target="_blank">'
+           +   '<i class="bi bi-file-earmark-arrow-down"></i>'+name
+           + '</a>';
     }).join('');
   }
 }
 
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 
   // Status badge (styled pill) instead of plain text
   var statusEl = document.getElementById('sr-m-status');
@@ -644,6 +701,20 @@ function resetFilters(){
   document.getElementById('filterForm').reset();
   currentPage = 1;
   applyFilters();
+}
+
+
+function openPdfViewer(url, name){
+  document.getElementById('pdfViewerName').textContent = name || 'Document';
+  document.getElementById('pdfViewerDl').href = url;
+  document.getElementById('pdfViewerFrame').src = url;
+  document.getElementById('pdfViewer').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closePdfViewer(){
+  document.getElementById('pdfViewer').classList.remove('show');
+  document.getElementById('pdfViewerFrame').src = '';   // stops the PDF loading in the background
+  document.body.style.overflow = '';
 }
 </script>
 @endpush

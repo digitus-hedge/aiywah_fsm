@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes; // <-- Import the Trait
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Traits\LogsActivity;
+
 class Project extends Model
 {
-        use LogsActivity;
-         use SoftDeletes; 
-        protected $table = 'projects';
+    use LogsActivity;
+    use SoftDeletes;
+    protected $table = 'projects';
     protected $fillable = [
         'client_id',
         'project_name',
@@ -21,7 +22,9 @@ class Project extends Model
         'completion_date',
         'warranty_end_date',
         'status',
-        'warranty_id'
+        'warranty_id',
+        'project_engineer',
+        'engineer_contact',
     ];
 
     protected $casts = [
@@ -38,7 +41,7 @@ class Project extends Model
     {
         return $this->hasMany(ServiceRequest::class);
     }
-   
+
     public function warranty(): BelongsTo
     {
         return $this->belongsTo(Warranty::class);

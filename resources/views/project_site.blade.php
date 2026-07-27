@@ -1582,6 +1582,8 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
           'client_token' => optional($cl)->unique_code,
           'warranty_id' => $p->warranty_id,
           'warranty_name' => optional($p->warranty)->name,
+          'project_engineer' => $p->project_engineer,
+          'engineer_contact' => $p->engineer_contact,
           ];
           @endphp
           <tr data-client="{{ optional($cl)->company_name }}" data-status="{{ $p->status }}" data-json='@json($rowData)'>
@@ -1711,7 +1713,6 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
           </div>
 
 
-
           <div class="form-group" style="margin-top:14px;flex:1;">
             <label class="form-label">Warranty Name <span class="req">*</span></label>
             <div class="auto-code-row">
@@ -1724,8 +1725,25 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
             </div>
             <div class="field-hint">Select a warranty.</div>
           </div>
-        </div>
 
+
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;">
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:260px;">
+              <label class="form-label">Project Engineer</label>
+              <input type="text" class="form-control" id="proj-engineer" placeholder="e.g. Rahul Menon">
+              <div class="field-hint">Internal person associated with the project. Optional.</div>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;flex:1;min-width:260px;">
+              <label class="form-label">Engineer Contact</label>
+              <input type="text" class="form-control" id="proj-engineer-contact" placeholder="Phone"
+                     inputmode="numeric" maxlength="15"
+                     oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+              <div class="field-hint">Digits only.</div>
+            </div>
+          </div>
+
+        </div>
 
         <div class="m-section">
           <div class="m-section-label" id="step3-label">
@@ -1843,6 +1861,8 @@ $clientsJs = $clients->map(fn($c) => [
     setTimeout(() => {
       document.getElementById('proj-name').value = p.project_name;
       document.getElementById('proj-code').value = p.project_code;
+      document.getElementById('proj-engineer').value =  p.project_engineer ?? '';
+      document.getElementById('proj-engineer-contact').value = p.engineer_contact ?? '';
       document.getElementById('site-name').value = p.site_name;
       document.getElementById('site-address').value = p.site_address;
       // ── warranty (handles inactive/filtered warranties) ──
@@ -1903,7 +1923,7 @@ $clientsJs = $clients->map(fn($c) => [
     document.getElementById('cust-dropdown').classList.remove('open');
     document.getElementById('cust-clear').classList.remove('visible');
     document.getElementById('proj-form-body').classList.remove('revealed');
-    ['proj-name', 'proj-code', 'proj-completion', 'site-name', 'site-address'].forEach(id => {
+    ['proj-name', 'proj-code', 'proj-completion', 'site-name', 'site-address', 'proj-engineer', 'proj-engineer-contact'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -2009,74 +2029,121 @@ $clientsJs = $clients->map(fn($c) => [
 
   /* ---- SAVE (POST/PUT to DB) ---- */
   function saveProject() {
-    const payload = {
-      client_id: selectedClientId,
-      project_name: document.getElementById('proj-name').value.trim(),
-      project_code: document.getElementById('proj-code').value.trim(),
-      site_name: document.getElementById('site-name').value.trim(),
-      site_address: document.getElementById('site-address').value.trim(),
-      completion_date: document.getElementById('proj-completion').value || null, // <-- ADD THIS LINE
-      warranty_id: document.getElementById('proj-warranty').value || null, // <-- warranty
-      status: document.getElementById('status-tog').classList.contains('on') ? 'Active' : 'Inactive',
-    };
-    if (!payload.client_id) {
-      showToast('err', 'Missing', 'Please select a client.');
+  const payload = {
+    client_id: selectedClientId,
+    project_name: document.getElementById('proj-name').value.trim(),
+    project_code: document.getElementById('proj-code').value.trim(),
+    site_name: document.getElementById('site-name').value.trim(),
+    site_address: document.getElementById('site-address').value.trim(),
+    completion_date: document.getElementById('proj-completion').value || null,
+    warranty_id: document.getElementById('proj-warranty').value || null,
+    project_engineer: document.getElementById('proj-engineer').value.trim() || null,
+    engineer_contact: document.getElementById('proj-engineer-contact').value.trim() || null,
+    status: document.getElementById('status-tog').classList.contains('on') ? 'Active' : 'Inactive',
+  };
+
+  if (!payload.client_id) {
+    showToast('err', 'Missing', 'Please select a client.');
+    return;
+  }
+  if (!payload.project_name) {
+    showToast('err', 'Missing', 'Please enter a project name.');
+    return;
+  }
+  if (!payload.completion_date) {
+    showToast('err', 'Missing', 'Please select a completion date.');
+    return;
+  }
+  if (!payload.warranty_id) {
+    showToast('err', 'Missing', 'Please select a warranty.');
+    return;
+  }
+  if (!payload.site_name) {
+    showToast('err', 'Missing', 'Please enter the site name.');
+    return;
+  }
+  if (!payload.site_address) {
+    showToast('err', 'Missing', 'Please enter the site address.');
+    return;
+  }
+  
+
+  // optional field — warn, but allow proceeding
+  if (!payload.project_engineer) {
+    if (typeof Swal === 'undefined') {
+      if (confirm('Project engineer field is empty.\n\nDo you want to proceed?')) doSaveProject(payload);
       return;
     }
-    if (!payload.project_name) {
-      showToast('err', 'Missing', 'Please enter a project name.');
-      return;
-    }
 
-     if (!payload.completion_date) {
-  showToast('err', 'Missing', 'Please select a completion date.');
-  return;
-}
-if (!payload.warranty_id) {
-  showToast('err', 'Missing', 'Please select a warranty.');
-  return;
-}
-
-    if (!payload.site_name) {
-      showToast('err', 'Missing', 'Please enter the site name.');
-      return;
-    }
-    if (!payload.site_address) {
-      showToast('err', 'Missing', 'Please enter the site address.');
-      return;
-    }
-
-   
-
-    const url = editingProjectId ? ROUTES.update(editingProjectId) : ROUTES.store;
-    const method = editingProjectId ? 'PUT' : 'POST';
-
-    fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-TOKEN': CSRF,
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      })
-      .then(async r => {
-        if (!r.ok) {
-          throw await r.json();
-        }
-        return r.json();
-      })
-      .then(data => {
-        showToast('ok', editingProjectId ? 'Project Updated' : 'Project Added', data.message);
-        closeModal();
-        setTimeout(() => location.reload(), 700);
-      })
-      .catch(err => {
-        const msg = err?.errors ? Object.values(err.errors)[0][0] : 'Could not save project.';
-        showToast('err', 'Error', msg);
-      });
+    Swal.fire({
+      icon: 'warning',
+      title: 'Project Engineer Missing',
+      html: `Project engineer field is empty.<br>
+             <span style="font-size:.85rem;color:#888;">Do you want to proceed?</span>`,
+      showCancelButton: true,
+      confirmButtonText: 'Yes, proceed',
+      cancelButtonText: 'Go back',
+      confirmButtonColor: '#9A7B4F',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true,
+      focusCancel: true
+    }).then(res => {
+      if (res.isConfirmed) {
+        doSaveProject(payload);
+      } else {
+        document.getElementById('proj-engineer').focus();
+      }
+    });
+    return;
   }
 
+  doSaveProject(payload);
+}
+
+function doSaveProject(payload) {
+  const url    = editingProjectId ? ROUTES.update(editingProjectId) : ROUTES.store;
+  const method = editingProjectId ? 'PUT' : 'POST';
+  const isEdit = !!editingProjectId;
+
+  fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': CSRF,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    })
+    .then(async r => {
+      if (!r.ok) {
+        throw await r.json();
+      }
+      return r.json();
+    })
+    .then(data => {
+      closeModal();
+
+      Swal.fire({
+        icon: 'success',
+        title: isEdit ? 'Project Updated' : 'Project Added',
+        html: `${data.message || 'Saved successfully.'}<br>
+               <span style="font-size:.8rem;color:#888;">${payload.project_code || ''}</span>`,
+        confirmButtonText: 'Done',
+        confirmButtonColor: '#9A7B4F',
+        allowOutsideClick: false
+      }).then(() => location.reload());
+    })
+    .catch(err => {
+      const msg = err?.errors ? Object.values(err.errors)[0][0] : 'Could not save project.';
+      Swal.fire({
+        icon: 'error',
+        title: 'Save Failed',
+        text: msg,
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#9A7B4F'
+      });
+    });
+}
   /* ---- DELETE (DELETE to DB) ---- */
   function openDelModal(id, name) {
     deletingProjectId = id;
@@ -2125,4 +2192,6 @@ if (!payload.warranty_id) {
     }, 3500);
   }
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 @endpush
