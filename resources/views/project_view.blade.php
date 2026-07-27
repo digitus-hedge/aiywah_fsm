@@ -307,6 +307,80 @@ span#cds
   align-items: center;
   text-align: center;
 }
+
+
+.wt-static {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: 10px;
+  border: 1px solid transparent;
+}
+.wt-static i { font-size: 1.05rem; flex: 0 0 auto; margin-top: 2px; }
+.wt-static-title { font-size: .84rem; font-weight: 600; }
+.wt-static-sub   { font-size: .72rem; opacity: .85; margin-top: 2px; line-height: 1.4; }
+
+.wt-static.iw {
+  background: rgba(16,185,129,.08);
+  border-color: rgba(16,185,129,.25);
+  color: #059669;
+}
+.wt-static.oow {
+  background: rgba(139,92,246,.08);
+  border-color: rgba(139,92,246,.25);
+  color: #7c3aed;
+}
+
+
+
+.file-chips {
+  display: flex; flex-direction: column; gap: 7px;
+  margin-top: 10px;
+}
+
+.file-chip {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 9px; min-width: 0;
+  background: #fff;
+  border: 1px solid #ececf2;
+  border-radius: 9px;
+}
+
+.fc-thumb {
+  flex: 0 0 auto;
+  width: 36px; height: 36px;
+  border-radius: 6px; overflow: hidden;
+  background: #f4f5f9;
+  display: flex; align-items: center; justify-content: center;
+}
+.fc-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fc-thumb.pdf { background: rgba(239,68,68,.08); }
+.fc-thumb.pdf i { color: #ef4444; font-size: 1.05rem; }
+
+.fc-name {
+  flex: 1 1 auto; min-width: 0;
+  font-size: .74rem; font-weight: 600; color: #22252d;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.fc-size {
+  flex: 0 0 auto;
+  font-size: .66rem; color: #9aa0ae;
+}
+
+.fc-x {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f2f5;
+   color: #6b7280;
+  font-size: .58rem;
+   cursor: pointer;
+  display: flex;
+   align-items: center; 
+   justify-content: center;
+}
+.fc-x:hover { color: #fff; }
 </style>
 @endpush
 
@@ -465,13 +539,18 @@ span#cds
             'High'      => 24,
             default     => 48,
         };
+
+         $warrantyEnd  = optional($sr->project)->warranty_end_date;
+  $isInWarranty = $warrantyEnd
+      && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
+      
       @endphp
       <tr class="sr-row"
           data-id="{{ strtolower($sr->code) }}"
           data-desc="{{ strtolower($sr->issue_description) }}"
           data-category="{{ strtolower($catName) }}"
           data-status="{{ $sr->status }}"
-          data-warranty="{{ $sr->warranty_scope === 'iw' ? 'iw' : 'oow' }}"
+          data-warranty="{{ $isInWarranty ? 'iw' : 'oow' }}"
           data-date="{{ $sr->created_at?->toDateString() }}">
 
         <td class="mono">{{ $sr->code }}</td>
@@ -498,7 +577,7 @@ span#cds
         </td>
 
        <td>
-  @if($sr->warranty_scope === 'iw')
+  @if($isInWarranty)
     <span class="sbadge" style="background:rgba(16,185,129,.1);color:#059669;font-size:.66rem;"><i class="bi bi-shield-fill-check" style="font-size:.55rem;"></i>IW</span>
   @else
     <span class="sbadge" style="background:rgba(139,92,246,.1);color:#7c3aed;font-size:.66rem;"><i class="bi bi-currency-dollar" style="font-size:.55rem;"></i>OoW</span>
@@ -756,26 +835,58 @@ span#cds
     <div class="inq-section">
       <div class="sec-title"><i class="bi bi-shield-check"></i>Warranty &amp; Priority</div>
 
-      <div class="form-group">
-        <label class="form-label">Warranty Coverage <span class="req">*</span></label>
-        <input type="hidden" name="warranty_scope" id="warrantyInput" value="{{ old('warranty_scope', 'iw') }}">
-        <div class="warranty-toggle">
-          <button type="button" class="wt-btn iw" id="wtIW" onclick="setWarranty('iw')"><i class="bi bi-shield-fill-check"></i> In-Warranty</button>
-          <div class="wt-div"></div>
-          <button type="button" class="wt-btn" id="wtOOW" onclick="setWarranty('oow')"><i class="bi bi-currency-dollar"></i> Out-of-Warranty</button>
-        </div>
-        <div class="field-hint" id="warrantyHint">Covered under active contract. No quotation required.</div>
-        @error('warranty_scope')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
-      </div>
+      @php
+  $warrantyEnd  = $project->warranty_end_date ?? null;
+  $isInWarranty = $warrantyEnd
+      && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
+  $scope = $isInWarranty ? 'iw' : 'oow';
+@endphp
 
-      <div class="form-group" style="margin-bottom:0;">
-        <label class="form-label">Priority Level</label>
-        <select class="form-select" name="priority_level" id="inqPriority">
-          @foreach(['Low','Medium','High','Critical'] as $p)
-            <option @selected(old('priority_level') === $p)>{{ $p }}</option>
-          @endforeach
-        </select>
+     <div class="form-group">
+  <label class="form-label">Warranty Coverage</label>
+
+  <input type="hidden" name="warranty_scope" id="warrantyInput" value="{{ $scope }}">
+
+  <div class="wt-static {{ $scope }}">
+    @if($isInWarranty)
+      <i class="bi bi-shield-fill-check"></i>
+      <div>
+        <div class="wt-static-title">In-Warranty</div>
+        <div class="wt-static-sub">
+          Covered until {{ \Carbon\Carbon::parse($warrantyEnd)->format('d M Y') }}
+       
+        </div>
       </div>
+    @else
+      <i class="bi bi-currency-dollar"></i>
+      <div>
+        <div class="wt-static-title">Out-of-Warranty</div>
+        <div class="wt-static-sub">
+          @if($warrantyEnd)
+            Warranty expired on {{ \Carbon\Carbon::parse($warrantyEnd)->format('d M Y') }}. Quotation required.
+          @else
+            No warranty period recorded for this contract. Quotation required.
+          @endif
+        </div>
+      </div>
+    @endif
+  </div>
+</div>
+
+
+   <div class="form-group" style="margin-bottom:0;">
+  <label class="form-label">Priority Level</label>
+  <select class="form-select" name="priority_level" id="inqPriority">
+    <option value="">— Select priority —</option>
+    @foreach(($priorities ?? []) as $p)
+      <option value="{{ $p->name }}"
+              data-color="{{ $p->color }}"
+              @selected(old('priority_level', $serviceRequest->priority_level ?? '') === $p->name)>
+        {{ $p->name }}
+      </option>
+    @endforeach
+  </select>
+</div>
     </div>
 
     <div class="inq-section">
@@ -1073,17 +1184,99 @@ function setWarranty(mode) {
     : 'Out-of-warranty: Accounts will prepare a quotation before approval.';
 }
 
+
+const MAX_FILES = 5;
+const MAX_SIZE  = 10 * 1024 * 1024;
+
+let pickedFiles = [];   // the real source of truth
+
 function handleFiles(input) {
+  const incoming = Array.from(input.files);
+
+  for (const f of incoming) {
+    if (f.size > MAX_SIZE) {
+      showToast('err', 'File Too Large', `${f.name} exceeds 10 MB.`);
+      continue;
+    }
+    // skip exact duplicates
+    if (pickedFiles.some(p => p.name === f.name && p.size === f.size && p.lastModified === f.lastModified)) {
+      continue;
+    }
+    if (pickedFiles.length >= MAX_FILES) {
+      showToast('err', 'Limit Reached', `Max ${MAX_FILES} files per inquiry.`);
+      break;
+    }
+    pickedFiles.push(f);
+  }
+
+  syncInput();
+  renderChips();
+
+  // CRITICAL: lets the user re-pick the same file later
+  input.value = '';
+}
+
+function syncInput() {
+  const input = document.getElementById('inqFileInput');
+  const dt = new DataTransfer();
+  pickedFiles.forEach(f => dt.items.add(f));
+  input.files = dt.files;
+}
+
+function removeFile(index) {
+  pickedFiles.splice(index, 1);
+  syncInput();
+  renderChips();
+}
+
+function renderChips() {
   const chips = document.getElementById('fileChips');
   chips.innerHTML = '';
-  if (input.files.length > 5) { showToast('err','Limit Reached','Max 5 files per inquiry.'); input.value = ''; return; }
-  Array.from(input.files).forEach(f => {
+
+  const counter = document.getElementById('fileCounter');
+  if (counter) counter.textContent = pickedFiles.length
+    ? `${pickedFiles.length} of ${MAX_FILES} files attached`
+    : '';
+
+  pickedFiles.forEach((f, i) => {
+    const isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+
     const chip = document.createElement('div');
     chip.className = 'file-chip';
-    chip.innerHTML = `<i class="bi bi-paperclip"></i>${f.name}`;
+    chip.innerHTML = `
+      <span class="fc-thumb ${isPdf ? 'pdf' : ''}">
+        ${isPdf ? '<i class="bi bi-file-earmark-pdf-fill"></i>' : ''}
+      </span>
+      <span class="fc-name" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
+      <span class="fc-size">${fmtSize(f.size)}</span>
+      <button type="button" class="fc-x" title="Remove"><i class="bi bi-x-lg"></i></button>`;
+
+    if (!isPdf) {
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.src = url;
+      img.onload = () => URL.revokeObjectURL(url);
+      chip.querySelector('.fc-thumb').appendChild(img);
+    }
+
+    chip.querySelector('.fc-x').addEventListener('click', () => removeFile(i));
     chips.appendChild(chip);
   });
 }
+
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(0) + ' KB';
+  return (b / 1048576).toFixed(1) + ' MB';
+}
+
+function escHtml(s) {
+  return String(s).replace(/[&<>"']/g,
+    c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+
+// Files Uploaded
 
 document.getElementById('inqForm').addEventListener('submit', function(e) {
   const desc = document.getElementById('inqDesc').value.trim();

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ServiceRequest;
+use App\Models\Priority;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -41,7 +42,12 @@ class AssignedServiceRequestController extends Controller
 
         $stats = $this->stats();
 
-        return view('assigned_sr', compact('assigned', 'stats'));
+        $priorities = Priority::where('status', 1)
+            ->orderBy('display_order')
+            ->get();
+
+
+        return view('assigned_sr', compact('assigned', 'stats', 'priorities'));
     }
 
     /**
@@ -80,24 +86,24 @@ class AssignedServiceRequestController extends Controller
             $s = trim($request->query('search'));
             $q->where(function ($w) use ($s) {
                 $w->where('id', 'like', "%{$s}%")
-                  ->orWhereHas('client', fn ($c) => $c->where('company_name', 'like', "%{$s}%"))
-                  ->orWhereHas('assignedUser', fn ($u) => $u->where('name', 'like', "%{$s}%"));
+                    ->orWhereHas('client', fn($c) => $c->where('company_name', 'like', "%{$s}%"))
+                    ->orWhereHas('assignedUser', fn($u) => $u->where('name', 'like', "%{$s}%"));
             });
         });
 
         // Status filter.
-        $query->when($request->filled('status'), fn ($q) =>
-            $q->where('status', $request->query('status')));
+        $query->when($request->filled('status'), fn($q) =>
+        $q->where('status', $request->query('status')));
 
         // Priority filter.
-        $query->when($request->filled('priority'), fn ($q) =>
-            $q->where('priority_level', $request->query('priority')));
+        $query->when($request->filled('priority'), fn($q) =>
+        $q->where('priority_level', $request->query('priority')));
 
         // Assigned date range (using dispatched_at as the assignment timestamp).
-        $query->when($request->filled('date_from'), fn ($q) =>
-            $q->whereDate('dispatched_at', '>=', $request->query('date_from')));
-        $query->when($request->filled('date_to'), fn ($q) =>
-            $q->whereDate('dispatched_at', '<=', $request->query('date_to')));
+        $query->when($request->filled('date_from'), fn($q) =>
+        $q->whereDate('dispatched_at', '>=', $request->query('date_from')));
+        $query->when($request->filled('date_to'), fn($q) =>
+        $q->whereDate('dispatched_at', '<=', $request->query('date_to')));
 
         return $query;
     }
@@ -108,15 +114,15 @@ class AssignedServiceRequestController extends Controller
 
     private function stats(): array
     {
-        $base = fn () => ServiceRequest::whereIn('status', $this->assignedStatuses);
+        $base = fn() => ServiceRequest::whereIn('status', $this->assignedStatuses);
 
         return [
             'total'      => $base()->count(),
             'inProgress' => $base()->where('status', 'in_progress')->count(),
             'unassigned' => $base()->whereNull('assigned_user_id')->count(),
             'overdue'    => $base()->whereNotNull('eta_at')
-                                   ->where('eta_at', '<', now())
-                                   ->count(),
+                ->where('eta_at', '<', now())
+                ->count(),
         ];
     }
 
@@ -127,7 +133,7 @@ class AssignedServiceRequestController extends Controller
     private function payload(ServiceRequest $sr): array
     {
         $srCode = 'SR-' . Carbon::parse($sr->created_at)->format('Y')
-                . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
+            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
 
         $assignedAt = $sr->dispatched_at
             ? Carbon::parse($sr->dispatched_at)
@@ -149,7 +155,7 @@ class AssignedServiceRequestController extends Controller
             'priority'    => $sr->priority_level ?? '—',
             'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
             'contact'     => optional($sr->client)->primary_mobile
-                             ?? optional($sr->client)->contact_number ?? '—',
+                ?? optional($sr->client)->contact_number ?? '—',
             'scheduled'   => $eta ? $eta->format('d M Y · h:i A') : '—',
             'assigned'    => $assignedAt->format('d M Y · h:i A'),
             'assigned_h'  => $assignedAt->diffForHumans(),
@@ -164,40 +170,48 @@ class AssignedServiceRequestController extends Controller
     ───────────────────────────────────────────────────────── */
 
     private function export(Request $request): StreamedResponse
-{
-    $rows = $this->baseQuery($request)->latest('updated_at')->get();
+    {
+        $rows = $this->baseQuery($request)->latest('updated_at')->get();
 
-    $filename = 'assigned-srs-' . now()->format('Y-m-d') . '.csv';
+        $filename = 'assigned-srs-' . now()->format('Y-m-d') . '.csv';
 
-    return response()->streamDownload(function () use ($rows) {
-        $out = fopen('php://output', 'w');
-        fwrite($out, "\xEF\xBB\xBF");
-
-        fputcsv($out, [
-            'SR Code', 'Client', 'Site', 'Worker', 'Status', 'Priority',
-            'Warranty', 'Scheduled (ETA)', 'Assigned', 'SLA Due (ETA)',
-        ]);
-
-        foreach ($rows as $sr) {
-            $assignedAt = $sr->dispatched_at
-                ? Carbon::parse($sr->dispatched_at)
-                : Carbon::parse($sr->updated_at);
-            $eta = $sr->eta_at ? Carbon::parse($sr->eta_at) : null;
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
 
             fputcsv($out, [
-                'SR-' . Carbon::parse($sr->created_at)->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
-                optional($sr->client)->company_name ?? '',
-                optional($sr->project)->site_name ?? '',
-                optional($sr->assignedUser)->name ?? 'Unassigned',
-                Str::headline($sr->status ?? ''),
-                $sr->priority_level ?? '',
-                (($sr->warranty_scope ?? '') === 'Out of Warranty') ? 'Out of Warranty' : 'In Warranty',
-                $eta ? $eta->format('Y-m-d H:i') : '',
-                $assignedAt->format('Y-m-d H:i'),
-                $eta ? $eta->format('Y-m-d H:i') : '',
+                'SR Code',
+                'Client',
+                'Site',
+                'Worker',
+                'Status',
+                'Priority',
+                'Warranty',
+                'Scheduled (ETA)',
+                'Assigned',
+                'SLA Due (ETA)',
             ]);
-        }
-        fclose($out);
-    }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
-}
+
+            foreach ($rows as $sr) {
+                $assignedAt = $sr->dispatched_at
+                    ? Carbon::parse($sr->dispatched_at)
+                    : Carbon::parse($sr->updated_at);
+                $eta = $sr->eta_at ? Carbon::parse($sr->eta_at) : null;
+
+                fputcsv($out, [
+                    'SR-' . Carbon::parse($sr->created_at)->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+                    optional($sr->client)->company_name ?? '',
+                    optional($sr->project)->site_name ?? '',
+                    optional($sr->assignedUser)->name ?? 'Unassigned',
+                    Str::headline($sr->status ?? ''),
+                    $sr->priority_level ?? '',
+                    (($sr->warranty_scope ?? '') === 'Out of Warranty') ? 'Out of Warranty' : 'In Warranty',
+                    $eta ? $eta->format('Y-m-d H:i') : '',
+                    $assignedAt->format('Y-m-d H:i'),
+                    $eta ? $eta->format('Y-m-d H:i') : '',
+                ]);
+            }
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
+    }
 }

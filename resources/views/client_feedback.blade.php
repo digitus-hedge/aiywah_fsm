@@ -119,7 +119,7 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 
 
 .btn-preview{
-  width:100%;padding:12px;margin-bottom:16px;border-radius:10px;
+  width:100%;padding:12px;margin-top:15px;border-radius:10px;
   border:1px dashed rgba(128,128,128,.45);background:transparent;
   color:inherit;font-size:14px;cursor:pointer;
 }
@@ -210,6 +210,73 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 {
   text-align: unset;
 }
+
+
+.pv-photo-ph{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  width:100%;
+  aspect-ratio:4/3;
+  border-radius:10px;
+  border:1px dashed rgba(128,128,128,.32);
+  font-size:22px;
+  opacity:.35;
+}
+
+.pv-photo-pdf{
+  border-style:solid;
+  border-color:rgba(220,53,69,.28);
+  background:rgba(220,53,69,.05);
+  color:#dc3545;
+  opacity:1;
+}
+.pv-photo-pdf i{font-size:34px;line-height:1}
+.pv-photo-pdf em{
+  font-style:normal;
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.pv-photo-pdf:hover{background:rgba(220,53,69,.1)}
+
+.pv-photo-pdfwrap object{
+  width:100%;
+  aspect-ratio:4/3;
+  border-radius:10px;
+  border:1px solid rgba(128,128,128,.22);
+  background:#f4f4f4;
+  pointer-events:none;
+  display:block;
+  overflow:hidden;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+}
+.pv-photo-pdfwrap object::-webkit-scrollbar{display:none}
+
+
+.pv-pdf-clip{
+  position:relative;
+  width:100%;
+  aspect-ratio:4/3;
+  border-radius:10px;
+  border:1px solid rgba(128,128,128,.22);
+  background:#f4f4f4;
+  overflow:hidden;
+}
+.pv-pdf-clip object{
+  position:absolute;
+  top:0;
+  left:0;
+  width:calc(100% + 20px);   /* push the scrollbar past the clip edge */
+  height:calc(100% + 20px);
+  border:0;
+  pointer-events:none;
+  display:block;
+}
   </style>
 </head>
 <body>
@@ -243,6 +310,23 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
   <!-- FORM CARD -->
   <div class="card" id="formCard">
     <div class="card-body">
+
+
+      <!-- ▼ ALERT GOES HERE ▼ -->
+      <div id="fbAlert" class="fb-alert" role="alert" style="display:none;"></div>
+
+      @if($serviceRequest->feedback_submitted_at)
+        <div class="fb-alert warn" style="display:flex;">
+          <i class="bi bi-info-circle-fill"></i>
+          <span>
+            Feedback for this service request was submitted on
+            {{ \Carbon\Carbon::parse($serviceRequest->feedback_submitted_at)->format('d M Y \a\t h:i A') }}.
+            It can only be submitted once.
+          </span>
+        </div>
+      @endif
+      <!-- ▲ END ▲ -->
+
 
       <div class="ticket-info">
         <div class="ti-icon"><i class="bi bi-receipt"></i></div>
@@ -278,9 +362,16 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
       <textarea class="fld-textarea" id="comments" maxlength="500" placeholder="Tell us about your experience — punctuality, quality of work, professionalism, or anything else you'd like us to know…" oninput="updateCount()"></textarea>
       <div class="char-count"><span id="charCount">0</span> / 500</div>
 
-      <button class="btn-submit" id="submitBtn" onclick="submitFeedback()">
+      <!-- <button class="btn-submit" id="submitBtn" onclick="submitFeedback()">
         <i class="bi bi-send-fill"></i> Submit Feedback Assessment
-      </button>
+      </button> -->
+
+      <button class="btn-submit" id="submitBtn" onclick="submitFeedback()"
+        @disabled($serviceRequest->feedback_submitted_at)>
+  <i class="bi bi-send-fill"></i>
+  {{ $serviceRequest->feedback_submitted_at ? 'Feedback Already Submitted' : 'Submit Feedback Assessment' }}
+</button>
+
 
       <div class="form-footnote"><i class="bi bi-info-circle"></i> Your feedback is linked to this service request and can only be submitted once.</div>
     </div>
@@ -298,13 +389,17 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 
 <script>
 
+document.addEventListener('DOMContentLoaded', function () {
+  @if($serviceRequest->feedback_submitted_at)
+    document.getElementById('comments').disabled = true;
+    var s = document.getElementById('stars');
+    s.style.pointerEvents = 'none';
+    s.style.opacity = '.55';
+    document.getElementById('ratingCaption').textContent = 'Rating submitted';
+  @endif
+});
 
 const PREVIEW_URL = @json(route('feedback.preview', $serviceRequest->id));
-
-
-
-
-
 
 
 function openPreview() {
@@ -349,6 +444,8 @@ async function loadPreview() {
     if (!res.ok) throw new Error('Request failed (' + res.status + ')');
     const d = await res.json();
 
+    const hasExpenses = d.punches.some(p => p.items && p.items.length);
+
     body.innerHTML = `
       <div class="pv-ref">${esc(d.ref)}</div>
 
@@ -368,6 +465,7 @@ async function loadPreview() {
         ${row('Site', d.site_name)}
         ${row('Warranty Start', d.proj_completion)}
         ${row('Warranty End', d.warranty_end)}
+          ${row('Warranty Scope', d.warranty)}
       </div>
       <div class="pv-sub">Site Address</div>
       <div class="pv-text">${esc(d.site_address)}</div>
@@ -386,9 +484,11 @@ async function loadPreview() {
         ? d.punches.map(punchBlock).join('')
         : '<div class="pv-sec">Punch Logs</div><div class="pv-empty">No punch records.</div>'}
 
-      <div class="pv-total">
-        <span>Grand Total</span><strong>₹ ${esc(d.total)}</strong>
-      </div>`;
+      ${hasExpenses
+        ? `<div class="pv-total">
+             <span>Grand Total</span><strong>₹ ${esc(d.total)}</strong>
+           </div>`
+        : ''}`;
 
   } catch (e) {
     body.innerHTML = `<div class="pv-err"><i class="bi bi-exclamation-triangle"></i> ${esc(e.message)}</div>`;
@@ -403,16 +503,36 @@ function row(label, val) {
 }
 
 function punchBlock(p) {
-  const photo = (src, label) => src
-    ? `<a class="pv-photo" href="${esc(src)}" target="_blank" rel="noopener">
-         <img src="${esc(src)}" alt="${esc(label)}" loading="lazy"
-              onerror="this.closest('.pv-photo').classList.add('pv-photo-broken')">
-         <span>${esc(label)}</span>
-       </a>`
-    : `<div class="pv-photo pv-photo-empty">
-         <div class="pv-photo-ph"><i class="bi bi-image"></i></div>
-         <span>${esc(label)}</span>
-       </div>`;
+  const isPdf = src => /\.pdf(\?|$)/i.test(String(src || ''));
+
+  const photo = (src, label) => {
+    if (!src) {
+      return `<div class="pv-photo pv-photo-empty">
+                <div class="pv-photo-ph"><i class="bi bi-image"></i></div>
+                <span>${esc(label)}</span>
+              </div>`;
+    }
+
+    if (isPdf(src)) {
+      return `<a class="pv-photo pv-photo-pdfwrap" href="${esc(src)}" target="_blank" rel="noopener" title="Open PDF">
+                <div class="pv-pdf-clip">
+                  <object data="${esc(src)}#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0"
+                          type="application/pdf">
+                    <div class="pv-photo-ph pv-photo-pdf">
+                      <i class="bi bi-file-earmark-pdf-fill"></i><em>PDF</em>
+                    </div>
+                  </object>
+                </div>
+                <span>${esc(label)}</span>
+              </a>`;
+    }
+
+    return `<a class="pv-photo" href="${esc(src)}" target="_blank" rel="noopener">
+              <img src="${esc(src)}" alt="${esc(label)}" loading="lazy"
+                   onerror="this.closest('.pv-photo').classList.add('pv-photo-broken')">
+              <span>${esc(label)}</span>
+            </a>`;
+  };
 
   const items = p.items.length
     ? `<div class="pv-table-wrap">
@@ -436,7 +556,9 @@ function punchBlock(p) {
                  <td class="num">${esc(i.rate)}</td>
                  <td class="num strong">${esc(i.total)}</td>
                  <td class="ctr">${i.receipt
-                       ? `<a href="${esc(i.receipt)}" target="_blank" rel="noopener" title="View receipt"><i class="bi bi-paperclip"></i></a>`
+                       ? `<a href="${esc(i.receipt)}" target="_blank" rel="noopener" title="View receipt">
+                            <i class="bi ${isPdf(i.receipt) ? 'bi-file-earmark-pdf' : 'bi-paperclip'}"></i>
+                          </a>`
                        : '<span class="muted">—</span>'}</td>
                </tr>`).join('')}
            </tbody>
@@ -499,7 +621,9 @@ function submitFeedback(){
     cap.style.color='#ef4444';cap.style.fontStyle='normal';cap.style.fontWeight='600';
     return;
   }
+
   var btn=document.getElementById('submitBtn');
+  var original=btn.innerHTML;
   btn.disabled=true;btn.innerHTML='<i class="bi bi-arrow-repeat"></i> Submitting…';
 
   fetch('{{ route("clients.feedback.store", $serviceRequest->id) }}', {
@@ -514,11 +638,48 @@ function submitFeedback(){
       evaluation_comment: document.getElementById('comments').value
     })
   })
+  // read the body no matter what the status is
   .then(function(res){
-    if(!res.ok) throw new Error('Submission failed');
-    return res.json();
+    return res.json()
+      .catch(function(){ return {}; })          // HTML error page / empty body
+      .then(function(data){ return { status: res.status, ok: res.ok, data: data }; });
   })
-  .then(function(){
+  .then(function(r){
+
+    /* ---- already submitted ---- */
+    if(r.status===409){
+      showFbAlert('warn', r.data.message || 'Feedback has already been submitted for this request.');
+      lockFbForm();
+      return;
+    }
+
+    /* ---- validation failed ---- */
+    if(r.status===422){
+      var first='';
+      if(r.data.errors){
+        var k=Object.keys(r.data.errors)[0];
+        first=r.data.errors[k][0];
+      }
+      showFbAlert('err', first || r.data.message || 'Please check the form and try again.');
+      btn.disabled=false;btn.innerHTML=original;
+      return;
+    }
+
+    /* ---- session expired / not authorised ---- */
+    if(r.status===401 || r.status===419){
+      showFbAlert('err','Your session expired. Please refresh the page and try again.');
+      btn.disabled=false;btn.innerHTML=original;
+      return;
+    }
+
+    /* ---- any other failure ---- */
+    if(!r.ok){
+      showFbAlert('err', r.data.message || 'Something went wrong ('+r.status+'). Please try again.');
+      btn.disabled=false;btn.innerHTML=original;
+      return;
+    }
+
+    /* ---- success ---- */
     var ts=document.getElementById('thanksStars');
     var h='';for(var i=1;i<=5;i++){h+='<i class="bi bi-star-fill'+(i<=rating?'':' dim')+'"></i>';}
     ts.innerHTML=h;
@@ -527,10 +688,29 @@ function submitFeedback(){
     window.scrollTo({top:0,behavior:'smooth'});
   })
   .catch(function(){
-    btn.disabled=false;
-    btn.innerHTML='<i class="bi bi-send-fill"></i> Submit Feedback Assessment';
-    alert('Something went wrong. Please try again.');
+    // only genuine network failures reach here now
+    showFbAlert('err','Network error — please check your connection and try again.');
+    btn.disabled=false;btn.innerHTML=original;
   });
+}
+
+function showFbAlert(type,msg){
+  var a=document.getElementById('fbAlert');
+  var icons={err:'exclamation-triangle-fill',ok:'check-circle-fill',warn:'info-circle-fill'};
+  a.className='fb-alert '+type;
+  a.innerHTML='<i class="bi bi-'+icons[type]+'"></i><span>'+msg+'</span>';
+  a.style.display='flex';
+  a.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function lockFbForm(){
+  var btn=document.getElementById('submitBtn');
+  btn.disabled=true;
+  btn.innerHTML='<i class="bi bi-check-circle-fill"></i> Feedback Already Submitted';
+  document.getElementById('comments').disabled=true;
+  var s=document.getElementById('stars');
+  s.style.pointerEvents='none';
+  s.style.opacity='.55';
 }
 </script>
 </body>

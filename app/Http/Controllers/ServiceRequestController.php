@@ -51,7 +51,7 @@ class ServiceRequestController extends Controller
                 'sites' => array_values(array_filter([$p->site_name])),
             ])->values();
 
-             $contacts = $client->mobiles->map(fn($m) => [
+            $contacts = $client->mobiles->map(fn($m) => [
                 'id'     => $m->id,
                 'name'   => $m->name,
                 'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
@@ -74,9 +74,9 @@ class ServiceRequestController extends Controller
                 }
             }
 
-           
+
             // prepend the client's primary contact_name if present and not already in the list
-          
+
 
             return response()->json([
                 'found'  => true,
@@ -277,6 +277,10 @@ class ServiceRequestController extends Controller
             ->latest()
             ->get();
 
+        $priorities = Priority::where('status', 1)
+    ->orderBy('display_order')
+    ->get();
+
         $stats = [
             'pending'   => $inquiries->count(),
             'approved'  => ServiceRequest::where('status', 'Approved')->whereDate('updated_at', today())->count(),
@@ -284,7 +288,7 @@ class ServiceRequestController extends Controller
             'rejected'  => ServiceRequest::where('status', 'Rejected')->whereDate('updated_at', today())->count(),
         ];
 
-        return view('inquiry_approval', compact('inquiries', 'stats'));
+        return view('inquiry_approval', compact('inquiries', 'stats','priorities'));
     }
 
     public function approve(ServiceRequest $serviceRequest)
@@ -433,6 +437,11 @@ class ServiceRequestController extends Controller
                 'hrsAgo'            => abs((int) now()->diffInHours($sr->updated_at, false)),
                 'approvedStr'       => $sr->updated_at?->format('d M Y h:i A'),
                 'status'            => $sr->status,
+                'warranty'          => ($sr->project
+                    && $sr->project->warranty_end_date
+                    && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
+                    ? 'In Warranty'
+                    : 'Out of Warranty',
                 'client_id'         => $sr->client_id,
                 'project_id'        => $sr->project_id,
                 'service_type_id'   => $sr->service_type_id,
@@ -622,7 +631,7 @@ class ServiceRequestController extends Controller
             'assignedUser',
             'punches' => fn($q) => $q->latest('punch_out_at')
                 ->latest('id')
-                ->with(['items', 'photos']),      
+                ->with(['items', 'photos']),
         ])
             ->where('status', 'Qc Review')
             ->latest('updated_at')
@@ -637,6 +646,12 @@ class ServiceRequestController extends Controller
             $exp   = $punch ? $this->srExpenses($punch)
                 : ['rows' => [], 'total' => 0];
 
+
+            $warrantyEnd = optional($sr->project)->warranty_end_date;
+
+            $isInWarranty = $warrantyEnd
+                && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
+
             return [
                 'id'           => $this->buildSrRef($sr),
                 'dbId'         => $sr->id,
@@ -644,8 +659,14 @@ class ServiceRequestController extends Controller
                 'site'         => $punch?->site_location
                     ?? optional($sr->project)->site_name ?? '—',
                 'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
-                'scope'        => $scope,
-                'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
+              
+                // 'scope'        => $scope,
+                // 'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
+
+                'scope'      => $isInWarranty ? 'iw' : 'oow',
+                'scopeLabel' => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
+                'warranty'   => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
+
                 'punchIn'      => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
                 'punchOut'     => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
                 'sla'          => $sla,
@@ -656,11 +677,11 @@ class ServiceRequestController extends Controller
                 'proof' => [
                     'before' => $punch
                         ? $punch->photos->where('type', 'before')
-                            ->map(fn($p) => $p->url)->values()->all()
+                        ->map(fn($p) => $p->url)->values()->all()
                         : [],
                     'after'  => $punch
                         ? $punch->photos->where('type', 'after')
-                            ->map(fn($p) => $p->url)->values()->all()
+                        ->map(fn($p) => $p->url)->values()->all()
                         : [],
                     'signature' => $punch?->customer_signature_path
                         ? asset('storage/' . $punch->customer_signature_path) : null,
@@ -725,7 +746,19 @@ class ServiceRequestController extends Controller
                 'caused_by'   => Auth::id(),
             ]);
         });
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, $newStatus);
+
+        $feedbackUrl = url("/client_feedback/{$serviceRequest->id}");
+
+
+        Log::info('qcPass: sending whatsapp', [
+            'sr_id'        => $serviceRequest->id,
+            'status'       => $newStatus,
+            'feedback_url' => $feedbackUrl,
+        ]);
+
+        app(\App\Services\WhatsAppService::class)
+            ->notifyServiceStatus($serviceRequest, $newStatus, 'SR Status Update', $feedbackUrl);
+
         $ref = $this->buildSrRef($serviceRequest);
 
         return response()->json([
@@ -823,7 +856,7 @@ class ServiceRequestController extends Controller
             ];
         })->values();
 
-        $clientApproved = ServiceRequest::whereNotNull('client_approved_at')  
+        $clientApproved = ServiceRequest::whereNotNull('client_approved_at')
             ->where('warranty_scope', 'oow')->count();
         $quoteRejected  = ServiceRequest::where('status', 'Quote Rejected')->count();
 

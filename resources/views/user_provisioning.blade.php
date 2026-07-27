@@ -422,6 +422,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
           <div class="fg">
             <label class="fl">Phone Number</label>
             <div style="display:flex;gap:8px;">
+
               <select class="form-select" id="empCountryCode" style="max-width:130px;" onchange="syncAll()">
                 <option value="+91">🇮🇳 +91</option>
                 <option value="+1">🇺🇸 +1</option>
@@ -429,12 +430,16 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
                 <option value="+971">🇦🇪 +971</option>
                 <option value="+61">🇦🇺 +61</option>
               </select>
+
               <div class="iiwrap" style="flex:1;">
-                <i class="bi bi-telephone ii"></i>
-                <input type="tel" class="form-control" id="empPhone"
-                      placeholder="98765 43210" autocomplete="off"
-                      inputmode="tel" oninput="syncAll()">
+              <i class="bi bi-telephone ii"></i>
+              <input type="tel" class="form-control" id="empPhone"
+              placeholder="98765 43210" autocomplete="off"
+              inputmode="numeric" pattern="[0-9]*" maxlength="10"
+              oninput="onPhoneInput(this)">
               </div>
+
+
             </div>
           </div>
         </div>
@@ -1010,6 +1015,22 @@ function commitSavedUser(saved,m,email){
 }
 
 function closeModal(){document.getElementById('successModal').classList.remove('show');window.location.reload();}
+
+
+
+
+function onPhoneInput(el) {
+  const start = el.selectionStart;
+  const before = el.value;
+
+  el.value = before.replace(/\D/g, '').slice(0, 10);
+
+  // keep the caret from jumping to the end when editing mid-string
+  const removed = before.slice(0, start).replace(/\D/g, '').length;
+  el.setSelectionRange(removed, removed);
+
+  syncAll();
+}
 
 /* ════════════════════════════════
    RESET

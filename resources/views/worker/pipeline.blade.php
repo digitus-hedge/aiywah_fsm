@@ -203,7 +203,7 @@ body {
 .eta-form { padding:12px 14px; background:var(--surface-3); border-top:1px solid var(--card-border); }
 .eta-title { font-size:.72rem; font-weight:700; color:var(--text-heading); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
 .eta-title i { color:#9a8053; }
-.eta-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.eta-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:25px; }
 .eta-field label {
   font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em;
   color:var(--text-muted); display:block; margin-bottom:4px;
@@ -729,7 +729,7 @@ body {
       @endforeach
     </select>
 
-    <div id="expNameWrap" class="hidden">
+    <div id="expNameWrap" class="hidden" style="margin-top: 13px;">
       <label class="d-label" for="expName">Item Name <span class="req">*</span></label>
       <input type="text" class="d-input" id="expName" placeholder="e.g. 20mm PVC elbow"/>
     </div>
@@ -737,7 +737,7 @@ body {
     <label class="d-label" for="expAmount">Amount (AED) <span class="req">*</span></label>
     <input type="number" class="d-input" id="expAmount" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
 
-    <span class="d-label">Receipt Photo</span>
+    <span class="d-label" style="margin-top: 13px;">Receipt Photo</span>
     <div class="receipt-zone">
       <input type="file" id="expReceipt" accept="image/*" capture="environment"/>
       <i class="bi bi-camera-fill"></i>
@@ -808,11 +808,11 @@ body {
       </label>
     </div>
 
-    <div id="signBlock" class="hidden">
+    <div id="signBlock" class="hidden" style="margin-top: 15px;">
       <label class="d-label" for="clientNameInput">Client Name <span class="req">*</span></label>
       <input type="text" class="d-input" id="clientNameInput" placeholder="Name of person signing"/>
 
-      <span class="d-label">Signature <span class="req">*</span></span>
+      <span class="d-label" style="margin-top:12px;">Signature <span class="req">*</span></span>
       <div style="border:1.5px solid var(--border-color);border-radius:8px;background:#fff;position:relative;">
         <canvas id="sigCanvas" style="width:100%;height:170px;display:block;touch-action:none;border-radius:8px;"></canvas>
       </div>

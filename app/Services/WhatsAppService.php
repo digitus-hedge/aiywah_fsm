@@ -173,62 +173,123 @@ class WhatsAppService
      * SR status update → template: status_change
      * Body vars: {{1}} name, {{2}} SR ref, {{3}} status
      */
+    
+    // public function notifyServiceStatus(
+    //     \App\Models\ServiceRequest $sr,
+    //     string $status,
+    //     string $event = 'SR Status Update'): void {
+    //     $client = $sr->client;
+    //     if (!$client) {
+    //         Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+    //         return;
+    //     }
+
+    //     $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
+    //     if (!$phone) {
+    //         Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
+    //         return;
+    //     }
+
+    //     $ref = $this->buildRef($sr);
+
+    //     $this->sendLogged(
+    //         $sr,
+    //         $client,
+    //         $phone,
+    //         $event,
+    //         'status_change',
+    //         [[
+    //             "type"       => "body",
+    //             "parameters" => [
+    //                 ["type" => "text", "text" => (string) $client->contact_name],
+    //                 ["type" => "text", "text" => (string) $ref],
+    //                 ["type" => "text", "text" => (string) $status],
+    //             ],
+    //         ]],
+    //         "Hi {$client->contact_name}, your request {$ref} status: {$status}"
+    //     );
+
+
+    //     // Secondary contacts with notify = 1
+    //     foreach ($this->notifiableSecondaryContacts($client) as $c) {
+    //         $this->sendLogged(
+    //             $sr,
+    //             $client,
+    //             $c['phone'],
+    //             $event,
+    //             'status_change',
+    //             [[
+    //                 "type"       => "body",
+    //                 "parameters" => [
+    //                     ["type" => "text", "text" => (string) $c['name']],
+    //                     ["type" => "text", "text" => (string) $ref],
+    //                     ["type" => "text", "text" => (string) $status],
+    //                 ],
+    //             ]],
+    //             "Hi {$c['name']}, request {$ref} status: {$status}"
+    //         );
+    //     }
+    // }
+
+
+
     public function notifyServiceStatus(
-        \App\Models\ServiceRequest $sr,
-        string $status,
-        string $event = 'SR Status Update'
-    ): void {
-        $client = $sr->client;
-        if (!$client) {
-            Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
-            return;
+    \App\Models\ServiceRequest $sr,
+    string $status,
+    string $event = 'SR Status Update',
+    ?string $link = null
+): void {
+    $client = $sr->client;
+    if (!$client) {
+        Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+        return;
+    }
+
+    $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
+    if (!$phone) {
+        Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
+        return;
+    }
+
+    $ref = $this->buildRef($sr);
+
+    $buildParams = function (string $name) use ($ref, $status, $link) {
+        $params = [
+            ["type" => "text", "text" => (string) $name],
+            ["type" => "text", "text" => (string) $ref],
+            ["type" => "text", "text" => (string) $status],
+        ];
+        if ($link) {
+            $params[] = ["type" => "text", "text" => (string) $link];
         }
+        return [["type" => "body", "parameters" => $params]];
+    };
 
-        $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-        if (!$phone) {
-            Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-            return;
-        }
+    $suffix = $link ? " Share your feedback: {$link}" : '';
 
-        $ref = $this->buildRef($sr);
+    $this->sendLogged(
+        $sr,
+        $client,
+        $phone,
+        $event,
+        'status_change',
+        $buildParams($client->contact_name),
+        "Hi {$client->contact_name}, your request {$ref} status: {$status}.{$suffix}"
+    );
 
+    foreach ($this->notifiableSecondaryContacts($client) as $c) {
         $this->sendLogged(
             $sr,
             $client,
-            $phone,
+            $c['phone'],
             $event,
             'status_change',
-            [[
-                "type"       => "body",
-                "parameters" => [
-                    ["type" => "text", "text" => (string) $client->contact_name],
-                    ["type" => "text", "text" => (string) $ref],
-                    ["type" => "text", "text" => (string) $status],
-                ],
-            ]],
-            "Hi {$client->contact_name}, your request {$ref} status: {$status}"
+            $buildParams($c['name']),
+            "Hi {$c['name']}, request {$ref} status: {$status}.{$suffix}"
         );
-
-        // Secondary contacts with notify = 1
-        foreach ($this->notifiableSecondaryContacts($client) as $c) {
-            $this->sendLogged(
-                $sr,
-                $client,
-                $c['phone'],
-                $event,
-                'status_change',
-                [[
-                    "type"       => "body",
-                    "parameters" => [
-                        ["type" => "text", "text" => (string) $c['name']],
-                        ["type" => "text", "text" => (string) $ref],
-                        ["type" => "text", "text" => (string) $status],
-                    ],
-                ]],
-                "Hi {$c['name']}, request {$ref} status: {$status}"
-            );
-        }
     }
+}
+
 
     /**
      * SR creation → template: sr_creation

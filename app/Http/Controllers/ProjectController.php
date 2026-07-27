@@ -7,6 +7,7 @@ use App\Models\Warranty;
 use App\Models\Client;
 use App\Models\ServiceCategory;
 use App\Models\ServiceRequest;
+use App\Models\Priority;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -112,7 +113,8 @@ class ProjectController extends Controller
                 'remark'      => $s->internal_remark,
                 'date'        => $s->created_at?->format('d M Y'),
                 'status'      => $s->status,
-                'iw'          => $s->in_warranty,
+               'iw' => (bool) (optional($s->project)->warranty_end_date
+    && \Carbon\Carbon::parse($s->project->warranty_end_date)->endOfDay()->isFuture()),
                 'priority'    => $s->priority_level,
                 'reported_by' => $s->reported_by,
                 'site'        => $p?->site_location ?? $s->project_site,
@@ -209,6 +211,10 @@ class ProjectController extends Controller
         $nextId     = (ServiceRequest::max('id') ?? 0) + 1;
         $nextSrCode = 'SR-' . now()->year . '-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
 
+        $priorities = Priority::where('status', 1)
+            ->orderBy('display_order')
+            ->get();
+
         return view('project_view', compact(
             'project',
             'srs',
@@ -217,7 +223,8 @@ class ProjectController extends Controller
             'srMap',
             'categories',
             'activities',
-            'nextSrCode'
+            'nextSrCode',
+            'priorities'
         ));
     }
 

@@ -243,7 +243,7 @@
     <div class="ws-panel">
       <div class="ws-empty" id="q-empty">
         <div class="ws-empty-icon"><i class="bi bi-file-earmark-text"></i></div>
-        <h6>Select a Ticket</h6>
+        <h6 style="font-family:unset;">Select a Ticket</h6>
         <p>Choose a pending OoW SR from the queue to begin the quotation upload process.</p>
       </div>
       <div class="ws-success" id="q-success">
