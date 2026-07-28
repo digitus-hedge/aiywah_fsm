@@ -2006,12 +2006,21 @@ $clientsJs = $clients->map(fn($c) => [
     if (dd && !dd.contains(e.target) && !document.getElementById('cust-search')?.contains(e.target)) dd.classList.remove('open');
   });
 
+  // function regenCode() {
+  //   if (!selectedClientId) return;
+  //   const cl = getClient(selectedClientId);
+  //   const prefix = cl.token ? cl.token.replace('CUST-', '').substring(0, 3) : 'PRJ';
+  //   document.getElementById('proj-code').value = `PRJ-${prefix}${String(Math.floor(Math.random()*900)+100)}`;
+  // }
+
   function regenCode() {
-    if (!selectedClientId) return;
-    const cl = getClient(selectedClientId);
-    const prefix = cl.token ? cl.token.replace('CUST-', '').substring(0, 3) : 'PRJ';
-    document.getElementById('proj-code').value = `PRJ-${prefix}${String(Math.floor(Math.random()*900)+100)}`;
-  }
+  if (!selectedClientId) return;
+  const year  = new Date().getFullYear();
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let rand = '';
+  for (let i = 0; i < 4; i++) rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  document.getElementById('proj-code').value = `PRJ-${year}-${rand}`;
+}
 
   function toggleTog(trackId, wrap) {
     const t = document.getElementById(trackId);
