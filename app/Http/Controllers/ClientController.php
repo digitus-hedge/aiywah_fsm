@@ -323,6 +323,8 @@ class ClientController extends Controller
                 'name'           => $p->project_name,
                 'siteName'       => $p->site_name,
                 'siteAddress'    => $p->site_address,
+                'project_engineer'  => $p->project_engineer,
+                'engineer_contact'=> $p->engineer_contact,
                 'contract'       => $p->contract_type ?? '—',
                 'startDate'      => optional($p->created_at)->format('d M Y'),
                 'completionDate' => optional($p->completion_date)->format('Y-m-d'),  // <-- add
@@ -573,6 +575,8 @@ class ClientController extends Controller
             'projects.*.completion_date'    => ['required', 'date'],
             'projects.*.warranty_id' => 'required|exists:warranties,id',
             'projects.*.warranty_end_date'  => ['nullable', 'date'],
+            'projects.*.project_engineer'   => ['nullable', 'string', 'max:255'],
+            'projects.*.engineer_contact'   => ['nullable', 'digits_between:7,15'],
         ];
 
         // Firm name is always editable
@@ -660,6 +664,8 @@ class ClientController extends Controller
                 'completion_date'   => $project['completion_date'] ?? null,
                 'warranty_id'       => $project['warranty_id'] ?? null,
                 'warranty_end_date' => $warrantyEndDate,
+                'project_engineer'  => $project['project_engineer'] ?? null,
+                'engineer_contact'  => $project['engineer_contact'] ?? null,
             ];
 
             if (!empty($project['id'])) {
@@ -683,8 +689,6 @@ class ClientController extends Controller
             ->forceDelete();
     }
 
-
-
     public function showFeedback($id)
     {
         $serviceRequest = ServiceRequest::with('category')
@@ -694,7 +698,6 @@ class ClientController extends Controller
 
         return view('client_feedback', compact('serviceRequest'));
     }
-
 
 
     public function storeFeedback(Request $request, $id)
@@ -806,10 +809,10 @@ class ClientController extends Controller
             'warranty_end'    => $p && $p->warranty_end_date ? \Carbon\Carbon::parse($p->warranty_end_date)->format('d M Y') : '—',
 
             'warranty'          => ($sr->project
-                            && $sr->project->warranty_end_date
-                            && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
-                                ? 'In Warranty'
-                                : 'Out of Warranty',
+                && $sr->project->warranty_end_date
+                && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
+                ? 'In Warranty'
+                : 'Out of Warranty',
             // service_requests table
             'category'   => optional($sr->category)->category_name ?? '—',
             'priority'   => $sr->priority_level,

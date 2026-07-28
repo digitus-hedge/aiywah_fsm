@@ -492,23 +492,102 @@ body {
 
 
 /* ═══════════════════════════════════════ LIGHTBOX ═══ */
+/* overlay */
 .lb-overlay {
-  display:none; position:fixed; inset:0; background:rgba(0,0,0,.88);
-  z-index:9000; align-items:center; justify-content:center; padding:20px;
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.75);
+  z-index: 3000;
+  padding: 48px 24px 24px;
+  overflow: auto;
 }
-.lb-overlay.show { display:flex; }
-.lb-inner { width:100%; max-width:420px; text-align:center; }
-.lb-img { width:100%; max-height:60vh; object-fit:contain; border-radius:10px; }
-.lb-ph {
-  color:rgba(255,255,255,.5); font-size:.85rem; padding:60px 20px;
-  background:rgba(255,255,255,.05); border-radius:10px;
-  display:flex; flex-direction:column; align-items:center; gap:8px;
+.lb-overlay.show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+/* box */
+.lb-box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-width: min(900px, 92vw);
+  max-height: 88vh;
+  margin: auto;
+}
+
+/* close button — top right, above the media */
 .lb-close {
-  color:#fff; background:rgba(255,255,255,.15); border:none; border-radius:8px;
-  padding:8px 18px; margin-top:12px; cursor:pointer; font-size:.84rem;
-  display:inline-flex; align-items:center; gap:6px;
+  position: absolute;
+  top: -34px;
+  right: 0;
+  background: none;
+  border: 0;
+  color: #fff;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  z-index: 2;
 }
+.lb-close:hover { color: #fbbc06; }
+
+/* media */
+.lb-media {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;          /* lets the image shrink inside a flex column */
+  max-width: 100%;
+}
+.lb-media img {
+  max-width: 100%;
+  max-height: 78vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  border-radius: 6px;
+  background: #fff;
+}
+.lb-pdf iframe {
+  width: min(900px, 92vw);
+  height: 78vh;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  display: block;
+}
+
+/* caption bar */
+.lb-cap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+  color: #fff;
+  font-size: .78rem;
+}
+.lb-cap > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;           /* required or the filename won't ellipsis in flex */
+  opacity: .85;
+}
+.lb-open {
+  color: #fbbc06 !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.lb-open:hover { text-decoration: underline !important; }
 
 .spin {
   display:inline-block; width:14px; height:14px;
@@ -642,10 +721,10 @@ body {
 <div class="toast-wrap" id="toastWrap"></div>
 
 <!-- ══════════ LIGHTBOX ══════════ -->
-<div class="lb-overlay" id="lbOverlay">
-  <div class="lb-inner">
+<div class="lb-overlay" id="lbOverlay" onclick="if(event.target===this) closeLightbox()">
+  <div class="lb-box">
+    <button class="lb-close" onclick="closeLightbox()"><i class="bi bi-x-lg"></i></button>
     <div id="lbContent"></div>
-    <button class="lb-close" id="lbCloseBtn"><i class="bi bi-x-lg"></i>Close</button>
   </div>
 </div>
 
@@ -1429,6 +1508,16 @@ function renderPipeline() {
   list.innerHTML = visible.map(buildJobCard).join('');
 }
 
+function fileUrl(a) {
+  let p = typeof a === 'string' ? a : (a.url || a.path || '');
+  if (!p) return '';
+  if (/^https?:\/\//i.test(p)) return p;
+  p = String(p).replace(/^\/+/, '');
+  if (!/^storage\//i.test(p)) p = 'storage/' + p;
+  return '/' + p.replace(/\/{2,}/g, '/');
+}
+
+
 function buildJobCard(job) {
   const slaClass = job.hrsAgo > 24 ? 'sla-c' : job.hrsAgo > 8 ? 'sla-w' : 'sla-ok';
   const isResched = job.status === 'Rescheduled';
@@ -1480,20 +1569,35 @@ const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
        </div>
      </div>`
   : '';
-  const photoBlock = (job.attachments ?? []).length
-    ? `<div class="jc-exp-section">
-         <div class="exp-label"><i class="bi bi-images" style="color:#fbbc06;"></i>Attached Photos</div>
-         <div class="photo-row">
-           ${job.attachments.map((a) => {
-             const isBefore = a === 'before';
-             return `<div class="photo-thumb" data-photo="${esc(a)}" data-ref="${ref}">
-                       <i class="bi bi-${isBefore ? 'camera-fill' : 'image-fill'}"
-                          style="color:${isBefore ? '#fbbc06' : '#9a8053'};"></i>
+ const photoBlock = (job.attachments ?? []).length
+  ? `<div class="jc-exp-section">
+       <div class="exp-label"><i class="bi bi-images" style="color:#fbbc06;"></i>Attached Photos</div>
+       <div class="photo-row">
+         ${job.attachments.map((a) => {
+           const url  = fileUrl(a);
+           const name = url.split('/').pop().split('?')[0];
+
+           if (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url)) {
+             return `<div class="photo-thumb" title="${esc(name)}"
+                          onclick="openLightbox('image','${esc(url)}','${esc(name)}')">
+                       <img src="${esc(url)}" alt="" loading="lazy"
+                            onerror="this.parentNode.classList.add('thumb-fail')">
                      </div>`;
-           }).join('')}
-         </div>
-       </div>`
-    : '';
+           }
+           if (/\.pdf(\?|$)/i.test(url)) {
+             return `<div class="photo-thumb photo-pdf" title="${esc(name)}"
+                          onclick="openLightbox('pdf','${esc(url)}','${esc(name)}')">
+                       <iframe src="${esc(url)}#toolbar=0&navpanes=0&view=FitH" scrolling="no"></iframe>
+                       <span class="pdf-tag"><i class="bi bi-filetype-pdf"></i></span>
+                     </div>`;
+           }
+           return `<a class="photo-thumb photo-doc" href="${esc(url)}" target="_blank" title="${esc(name)}">
+                     <i class="bi bi-file-earmark-arrow-down" style="color:#9a8053;"></i>
+                   </a>`;
+         }).join('')}
+       </div>
+     </div>`
+  : '';
   const onHold = job.status === 'On Hold';
 
    const footer = isActive
@@ -1514,6 +1618,25 @@ const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
                data-activate="${ref}" data-srid="${Number(job.sr_id)}">
          <i class="bi bi-broadcast"></i>Make Active
        </button>
+
+         <button class="accept-btn" style="border-color: rgba(154, 128, 83, .4);
+    color: #9a8053;
+    background: rgba(154, 128, 83, .04);width: 100%;
+    border: 1.5px dashed rgba(251, 188, 6, .5);
+    border-radius: 10px;
+    padding: .6rem 1rem;
+    font-size: .82rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;transition: all .2s;
+    margin-bottom: 14px; margin-top: 20px;"
+             data-rsagain="${ref}" data-srid="${Number(job.sr_id)}">
+       <i class="bi bi-calendar2-event"></i>Reschedule
+     </button>
+
      </div>`
     : isResched
 ? `<div class="eta-form">
@@ -2478,26 +2601,40 @@ function paintChrome() {
 /* ══════════════════════════════════════════════════════
    LIGHTBOX
 ══════════════════════════════════════════════════════ */
-function openLightbox(type, ref) {
-  const isBefore = type === 'before';
-  $('lbContent').innerHTML = `
-    <div class="lb-ph">
-      <i class="bi bi-${isBefore ? 'camera-fill' : 'image-fill'}"
-         style="color:${isBefore ? '#fbbc06' : '#9a8053'};font-size:3rem;"></i>
-      <div>
-        ${isBefore ? 'Before Photo' : 'After Photo'}<br/>
-        <span style="font-size:.72rem;opacity:.6;">${esc(ref)}</span>
-      </div>
-    </div>`;
-  $('lbOverlay').classList.add('show');
+function openLightbox(type, url, name) {
+  const overlay = document.getElementById('lbOverlay');
+  const content = document.getElementById('lbContent');
+  if (!overlay || !content) { console.warn('lightbox markup missing'); return; }
+
+  const openBtn = `<a href="${esc(url)}" target="_blank" rel="noopener" class="lb-open">
+                     <i class="bi bi-box-arrow-up-right"></i> Open in new tab
+                   </a>`;
+
+  content.innerHTML = type === 'pdf'
+    ? `<div class="lb-media lb-pdf">
+         <iframe src="${esc(url)}#view=FitH" title="${esc(name || '')}"></iframe>
+         <div class="lb-cap"><span>${esc(name || '')}</span>${openBtn}</div>
+       </div>`
+    : `<div class="lb-media">
+         <img src="${esc(url)}" alt="${esc(name || '')}">
+         <div class="lb-cap"><span>${esc(name || '')}</span>${openBtn}</div>
+       </div>`;
+
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 
-function closeLightbox() { $('lbOverlay').classList.remove('show'); }
+function closeLightbox() {
+  const overlay = document.getElementById('lbOverlay');
+  const content = document.getElementById('lbContent');
+  if (overlay) overlay.classList.remove('show');
+  if (content) content.innerHTML = '';
+  document.body.style.overflow = '';
+}
 
-$('lbCloseBtn').addEventListener('click', closeLightbox);
-$('lbOverlay').addEventListener('click', (e) => {
-  if (e.target === $('lbOverlay')) closeLightbox();
-});
+window.openLightbox  = openLightbox;    // makes inline onclick work regardless of scope
+window.closeLightbox = closeLightbox;
+
 
 /* Escape closes whatever is on top. */
 document.addEventListener('keydown', (e) => {

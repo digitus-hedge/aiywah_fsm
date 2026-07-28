@@ -331,6 +331,26 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
   .form-control,.form-select{font-size:.8rem;}
   .btn-save,.btn-rst{font-size:.82rem;}
 }
+
+.iiwrap { position: relative; }
+
+.pw-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: 0;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--text-muted, #888);
+  font-size: .95rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+.pw-toggle:hover  { color: #9A7B4F; }
+.pw-toggle:focus  { outline: none; }
 </style>
 @endpush
 
@@ -408,16 +428,22 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
                 <div class="fok" id="emailOkMsg">✓ Email available.</div>
               </div>
             </div>
-            <div class="col-sm-6">
-              <div class="fg">
-                <label class="fl">Password <span class="req">*</span></label>
-                <div class="iiwrap">
-                  <i class="bi bi-lock ii"></i>
-                  <input type="password" class="form-control" id="empPassword" placeholder="Min. 8 characters" autocomplete="new-password" oninput="syncAll()">
-                </div>
-                <div class="fhint">Sent securely to the employee on save.</div>
-              </div>
-            </div>
+          <div class="col-sm-6">
+  <div class="fg">
+    <label class="fl">Password <span class="req">*</span></label>
+    <div class="iiwrap">
+      <i class="bi bi-lock ii"></i>
+      <input type="password" class="form-control" id="empPassword" placeholder="Min. 8 characters"
+             autocomplete="new-password" style="padding-right:38px;" oninput="syncAll()">
+      <button type="button" class="pw-toggle" id="empPasswordToggle"
+              onclick="togglePw('empPassword','empPasswordToggle')"
+              aria-label="Show password" tabindex="-1">
+        <i class="bi bi-eye"></i>
+      </button>
+    </div>
+    <div class="fhint">Sent securely to the employee on save.</div>
+  </div>
+</div>
           <div class="col-sm-6">
           <div class="fg">
             <label class="fl">Phone Number</label>
@@ -1110,6 +1136,16 @@ function loadUser(u){
   showToast('primary','Editing',`Editing ${u.name}. Change details and click Update.`);
 }
 
+
+
+function togglePw(inputId, btnId) {
+  const inp = document.getElementById(inputId);
+  const ico = document.getElementById(btnId).querySelector('i');
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  ico.className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+  document.getElementById(btnId).setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+}
 /* ════════════════════════════════
    TOAST
 ════════════════════════════════ */
