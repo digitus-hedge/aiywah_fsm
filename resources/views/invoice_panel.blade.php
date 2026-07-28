@@ -413,19 +413,20 @@
 <script>
 /* =========================================================
    Invoice Panel — page scripts
-   NOTE: data arrays are empty. Connect to DB later, e.g.:
-   var INV_QUEUE   = @json($invQueue ?? []);
-   var PENDING_HOP = @json($pendingHop ?? []);
-
    INV_QUEUE row shape:
-   { id, client, site, logged, punchIn, punchOut, duration,
-     expenses:[{cat, amt}], totalExp }
+   { id, dbId, client, site, technician, logged, createdAt,
+     punchIn, punchOut, duration, expenses:[{cat, amt}], totalExp }
    PENDING_HOP row shape:
-   { id, sr, client, site, code, submitted, waiting }
+   { id, sr, dbId, client, site, code, submitted, waiting, createdAt }
    ========================================================= */
 var INV_QUEUE   = @json($invQueue ?? []);
 var PENDING_HOP = @json($pendingHop ?? []);
 var CSRF        = '{{ csrf_token() }}';
+
+/* filtered views — what actually gets rendered */
+var INV_FILTERED = INV_QUEUE.slice();
+var PH_FILTERED  = PENDING_HOP.slice();
+
 var selInv = null;
 var inv_fileOk = false;
 
@@ -492,15 +493,17 @@ function inv_validate(){
 window.inv_validate = inv_validate;
 
 /* ---------- QUEUE ---------- */
-function renderInvQueue(){
+function renderInvQueue(list){
+  list = list || INV_FILTERED;
   var ul = document.getElementById('inv-list');
-  document.getElementById('inv-count').textContent = INV_QUEUE.length;
-  document.getElementById('stat-pi').textContent   = INV_QUEUE.length;
-  if(!INV_QUEUE.length){
-    ul.innerHTML = '<div style="padding:28px;text-align:center;font-size:.8rem;color:var(--text-muted);"><i class="bi bi-inbox" style="display:block;font-size:1.6rem;margin-bottom:8px;color:var(--text-light);"></i>No pending invoices</div>';
+  document.getElementById('inv-count').textContent = list.length;
+  var pi = document.getElementById('stat-pi');
+  if(pi) pi.textContent = INV_QUEUE.length;   // KPI = total, not filtered
+  if(!list.length){
+    ul.innerHTML = '<div style="padding:28px;text-align:center;font-size:.8rem;color:var(--text-muted);"><i class="bi bi-inbox" style="display:block;font-size:1.6rem;margin-bottom:8px;color:var(--text-light);"></i>No matching tickets</div>';
     return;
   }
-  ul.innerHTML = INV_QUEUE.map(function(sr){
+  ul.innerHTML = list.map(function(sr){
     var ac = selInv && selInv.id===sr.id ? ' active':'';
     return '<div class="queue-item'+ac+'" data-id="'+sr.id+'" onclick="selectInv(this.dataset.id)">'+
       '<div class="qi-id">'+sr.id+'</div>'+
@@ -523,17 +526,21 @@ function selectInv(id){
   renderInvQueue();
   document.getElementById('inv-empty').style.display = 'none';
   document.getElementById('inv-success').classList.remove('show');
-  var det = document.getElementById('inv-detail'); det.style.display = 'flex';
+  document.getElementById('inv-detail').style.display = 'flex';
   document.getElementById('inv-sr-id').textContent     = selInv.id;
   document.getElementById('inv-sr-client').textContent = selInv.client;
   document.getElementById('inv-sr-site').innerHTML     = '<i class="bi bi-geo-alt" style="color:#9a8053;font-size:.8rem;"></i> '+selInv.site;
   document.getElementById('inv-chips').innerHTML =
-    '<div class="meta-chip"><div class="meta-chip-label">Technician</div><div class="meta-chip-value">'+(selInv.technician||selInv.client)+'</div></div>'+
+    '<div class="meta-chip"><div class="meta-chip-label">Technician</div><div class="meta-chip-value">'+(selInv.technician||'—')+'</div></div>'+
     '<div class="meta-chip"><div class="meta-chip-label">Punch In</div><div class="meta-chip-value">'+(selInv.punchIn||'—')+'</div></div>'+
     '<div class="meta-chip"><div class="meta-chip-label">Punch Out</div><div class="meta-chip-value">'+(selInv.punchOut||'—')+'</div></div>'+
     '<div class="meta-chip"><div class="meta-chip-label">Duration</div><div class="meta-chip-value">'+(selInv.duration||'—')+'</div></div>';
+
   var expenses = selInv.expenses || [];
-  var expRows = expenses.map(function(e){return '<div class="rb-row"><span class="rb-key">'+e.cat+'</span><span class="rb-val">AED '+Number(e.amt).toLocaleString()+'</span></div>';}).join('');
+  var expRows = expenses.length
+    ? expenses.map(function(e){return '<div class="rb-row"><span class="rb-key">'+e.cat+'</span><span class="rb-val">AED '+Number(e.amt||0).toLocaleString()+'</span></div>';}).join('')
+    : '<div class="rb-row"><span class="rb-key">No expenses logged</span><span class="rb-val">—</span></div>';
+
   document.getElementById('inv-resources').innerHTML =
     '<div class="resource-block"><div class="rb-label"><i class="bi bi-clock"></i>Time on Site</div>'+
     '<div class="rb-row"><span class="rb-key">Punch In</span><span class="rb-val">'+(selInv.punchIn||'—')+'</span></div>'+
@@ -543,15 +550,76 @@ function selectInv(id){
     '<div class="rb-row"><span class="rb-key">Total</span><span class="rb-total">AED '+Number(selInv.totalExp||0).toLocaleString()+'</span></div></div>';
 }
 
+/* ---------- PENDING HOP ---------- */
+function renderPH(list){
+  list = list || PH_FILTERED;
+  var tbody = document.getElementById('ph-tbody');
+  document.getElementById('ph-count').textContent = list.length;
+  var ph = document.getElementById('stat-ph');
+  if(ph) ph.textContent = PENDING_HOP.length;   // KPI = total
+  if(!list.length){
+    tbody.innerHTML = '<tr><td colspan="7"><div class="pa-empty"><i class="bi bi-inbox"></i><p>No invoices pending HoP approval</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(item){
+    return '<tr>'+
+      '<td class="mono">'+item.sr+'</td>'+
+      '<td style="font-weight:500;">'+item.client+'</td>'+
+      '<td class="muted">'+item.site+'</td>'+
+      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.code+'</span></td>'+
+      '<td class="muted">'+item.submitted+'</td>'+
+      '<td><span style="font-size:.75rem;color:#9a8053;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
+      '<td style="text-align:center;"><button class="btn-mark btn-mark-blue" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openHopModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-patch-check-fill"></i>Mark HoP Approved &amp; Close</button></td>'+
+    '</tr>';
+  }).join('');
+}
+
+/* ---------- FILTERS ---------- */
+function invFilter(){
+  var q     = document.getElementById('inv-search').value.trim().toLowerCase();
+  var from  = document.getElementById('inv-date').value;          // '' or 'YYYY-MM-DD'
+  var toEl  = document.getElementById('inv-date-to');             // optional second input
+  var to    = toEl ? toEl.value : '';
+
+  function match(row){
+    if (from && (!row.createdAt || row.createdAt < from)) return false;
+    if (to   && (!row.createdAt || row.createdAt > to))   return false;
+    if (q) {
+      var hay = [row.id, row.sr, row.client, row.site, row.code, row.technician]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  }
+
+  INV_FILTERED = INV_QUEUE.filter(match);
+  PH_FILTERED  = PENDING_HOP.filter(match);
+  renderInvQueue(INV_FILTERED);
+  renderPH(PH_FILTERED);
+}
+
+function invResetFilters(){
+  document.getElementById('inv-search').value = '';
+  document.getElementById('inv-date').value = '';
+  var toEl = document.getElementById('inv-date-to');
+  if(toEl) toEl.value = '';
+  INV_FILTERED = INV_QUEUE.slice();
+  PH_FILTERED  = PENDING_HOP.slice();
+  renderInvQueue(INV_FILTERED);
+  renderPH(PH_FILTERED);
+}
+
 /* ---------- SUBMIT ---------- */
 function openInvConfirm(){
   document.getElementById('inv-conf-sr').textContent = selInv ? selInv.id : '';
   document.getElementById('inv-conf-modal').classList.add('show');
 }
+
 function execInvSubmit(){
   document.getElementById('inv-conf-modal').classList.remove('show');
-  var sr   = selInv;
-  var code = document.getElementById('inv-code').value.trim();
+  var sr = selInv;
+  if(!sr) return;
+  var code = document.getElementById('inv-code').value.trim().toUpperCase();
   var btn  = document.getElementById('inv-btn');
   btn.disabled = true;
 
@@ -566,15 +634,22 @@ function execInvSubmit(){
     body: fd
   })
   .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
-  .then(function(d){
-    INV_QUEUE.splice(INV_QUEUE.findIndex(function(s){return s.id===sr.id;}),1);
-    PENDING_HOP.push({id:'IA-'+sr.dbId,dbId:sr.dbId,sr:sr.id,client:sr.client,site:sr.site,code:code.toUpperCase(),submitted:'Just now',waiting:'0m'});
+  .then(function(){
+    var i = INV_QUEUE.findIndex(function(s){return s.id===sr.id;});
+    if(i > -1) INV_QUEUE.splice(i,1);
+
+    PENDING_HOP.push({
+      id:'IA-'+sr.dbId, dbId:sr.dbId, sr:sr.id, client:sr.client, site:sr.site,
+      code:code, submitted:'Just now', waiting:'0m',
+      createdAt: sr.createdAt || new Date().toISOString().slice(0,10)
+    });
+
     document.getElementById('inv-detail').style.display = 'none';
     document.getElementById('inv-success-title').textContent = sr.id+' — Invoice Submitted';
     document.getElementById('inv-success-body').textContent  = 'Invoice committed. Head of Projects notified. Ticket now appears in Pending HoP Approval below.';
     document.getElementById('inv-success').classList.add('show');
     selInv = null; inv_fileOk = false;
-    renderInvQueue(); renderPH();
+    invFilter();
     showToast('ok','Invoice Submitted',sr.id+' moved to Pending HoP Approval.');
   })
   .catch(function(e){
@@ -582,39 +657,13 @@ function execInvSubmit(){
     showToast('err','Upload Failed', e.message);
   });
 }
+
 function invNext(){document.getElementById('inv-success').classList.remove('show');document.getElementById('inv-empty').style.display='';}
 
-/* ---------- FILTERS ---------- */
-function invResetFilters(){
-  document.getElementById('inv-search').value = '';
-  document.getElementById('inv-date').value = '';
-  renderInvQueue();
-}
-
-/* ---------- PENDING HOP ---------- */
-function renderPH(){
-  var tbody = document.getElementById('ph-tbody');
-  document.getElementById('ph-count').textContent = PENDING_HOP.length;
-  document.getElementById('stat-ph').textContent  = PENDING_HOP.length;
-  if(!PENDING_HOP.length){
-    tbody.innerHTML = '<tr><td colspan="7"><div class="pa-empty"><i class="bi bi-inbox"></i><p>No invoices pending HoP approval</p></div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = PENDING_HOP.map(function(item){
-    return '<tr>'+
-      '<td class="mono">'+item.sr+'</td>'+
-      '<td style="font-weight:500;">'+item.client+'</td>'+
-      '<td class="muted">'+item.site+'</td>'+
-      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.code+'</span></td>'+
-      '<td class="muted">'+item.submitted+'</td>'+
-      '<td><span style="font-size:.75rem;color:#9a8053;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
-      '<td style="text-align:center;"><button class="btn-mark btn-mark-blue" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openHopModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-patch-check-fill"></i>Mark HoP Approved &amp; Close</button></td>'+
-    '</tr>';
-  }).join('');
-}
-
+/* ---------- HOP APPROVAL ---------- */
 var pendingHopId = null;
 function openHopModal(id,sr){pendingHopId=id;document.getElementById('hop-sr').textContent=sr;document.getElementById('hop-modal').classList.add('show');}
+
 function execHopApproval(){
   var idx  = PENDING_HOP.findIndex(function(i){return i.id===pendingHopId;});
   var item = PENDING_HOP[idx];
@@ -628,13 +677,19 @@ function execHopApproval(){
   .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
   .then(function(){
     PENDING_HOP.splice(idx,1);
-    renderPH();
+    invFilter();
     showToast('ok','SR Closed',item.sr+' — Completed. WhatsApp summary sent to customer.');
   })
   .catch(function(e){ showToast('err','Approval Failed', e.message); });
 }
 
+/* ---------- INIT ---------- */
 document.addEventListener('DOMContentLoaded', function(){
+  ['inv-search','inv-date','inv-date-to'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener(el.type === 'date' ? 'change' : 'input', invFilter);
+  });
   renderInvQueue();
   renderPH();
 });

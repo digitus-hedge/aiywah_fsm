@@ -496,25 +496,25 @@
 <script>
 /* =========================================================
    QC Review Terminal — page scripts
-   NOTE: QUEUE is empty. Connect to DB later, e.g.:
-   const QUEUE = @json($queue ?? []);
-
-   Row shape expected:
-   { id, client, site, tech, scope('iw'|'oow'), scopeLabel,
-     punchIn, punchOut, sla:{label, cls('' |'warn'|'breach')},
-     slaFill(0-100), slaColor,
-     expenses:[{cat, icon, amt, receipt(bool)}], totalExpense }
+   Row shape:
+   { id, dbId, client, site, tech, scope('iw'|'oow'), scopeLabel,
+     punchIn, punchOut, sla:{label, cls, fill, color}, slaFill, slaColor,
+     expenses:[{cat, icon, amt, receipt}], totalExpense, proof:{before[],after[],signature} }
    ========================================================= */
 const QUEUE = @json($queue ?? []);
 
-let selectedSR = null;
-let failMode   = false;
+let QC_FILTERED = QUEUE.slice();   // what's currently rendered
+let selectedSR  = null;
+let failMode    = false;
 
 /* ---------- RENDER QUEUE ---------- */
 function renderQueue(list){
+  list = list || QC_FILTERED;
   const ul = document.getElementById('queue-list');
-  document.getElementById('queue-count').textContent  = list.length;
-  document.getElementById('stat-pending').textContent = QUEUE.length;
+  document.getElementById('queue-count').textContent = list.length;
+  const sp = document.getElementById('stat-pending');
+  if(sp) sp.textContent = QUEUE.length;          // KPI = total, not filtered
+
   if(!list.length){
     ul.innerHTML=`<div style="padding:28px 16px;text-align:center;font-size:.8rem;color:var(--text-muted);">
       <i class="bi bi-inbox" style="display:block;font-size:1.6rem;margin-bottom:8px;color:var(--text-light);"></i>
@@ -522,8 +522,9 @@ function renderQueue(list){
     return;
   }
   ul.innerHTML = list.map(sr=>{
-    const active = selectedSR && selectedSR.id === sr.id ? 'active' : '';
-    const timerCls = (sr.sla.cls === 'warn' || sr.sla.cls === 'breach') ? 'timer-warn' : '';
+    const sla      = sr.sla || {label:'—', cls:'', fill:0, color:'#9ca3af'};
+    const active   = selectedSR && selectedSR.id === sr.id ? 'active' : '';
+    const timerCls = (sla.cls === 'warn' || sla.cls === 'breach') ? 'timer-warn' : '';
     const scopeCls = sr.scope === 'iw' ? 'scope-iw' : 'scope-oow';
     return `<div class="queue-item ${active}" id="qi-${sr.id}" onclick="selectSR('${sr.id}')">
       <div class="queue-item-id">${sr.id}</div>
@@ -531,11 +532,73 @@ function renderQueue(list){
       <div class="queue-item-site"><i class="bi bi-geo-alt" style="font-size:.7rem;"></i> ${sr.site}</div>
       <div class="queue-item-foot">
         <span class="scope-badge ${scopeCls}">${sr.scopeLabel}</span>
-        <span class="queue-timer ${timerCls}"><i class="bi bi-clock" style="font-size:.65rem;"></i>${sr.sla.label}</span>
+        <span class="queue-timer ${timerCls}"><i class="bi bi-clock" style="font-size:.65rem;"></i>${sla.label}</span>
       </div>
-      <div class="sla-bar"><div class="sla-bar-fill" style="width:${sr.slaFill}%;background:${sr.slaColor};"></div></div>
+      <div class="sla-bar"><div class="sla-bar-fill" style="width:${sr.slaFill||0}%;background:${sr.slaColor||'#9ca3af'};"></div></div>
     </div>`;
   }).join('');
+}
+
+/* ---------- PROOF HELPERS (module scope, not nested) ---------- */
+function setProofSet(type, urls){
+  urls = Array.isArray(urls) ? urls : (urls ? [urls] : []);
+
+  const el    = document.getElementById(`proof-${type}`);
+  const st    = document.getElementById(`proof-${type}-status`);
+  const badge = document.getElementById(`proof-${type}-count`);
+  const strip = document.getElementById(`${type}-strip`);
+  const label = document.getElementById(`${type}-strip-label`);
+  if(!el || !st) return;
+  const icon  = el.querySelector('.proof-img-icon');
+
+  if(urls.length){
+    el.style.backgroundImage    = `url('${urls[0]}')`;
+    el.style.backgroundSize     = 'cover';
+    el.style.backgroundPosition = 'center';
+    if(icon) icon.style.display = 'none';
+    st.innerHTML   = `<i class="bi bi-check-circle-fill"></i>${urls.length} uploaded`;
+    st.style.color = '#15803d';
+  } else {
+    el.style.backgroundImage = 'none';
+    if(icon) icon.style.display = '';
+    st.innerHTML   = '<i class="bi bi-x-circle"></i>Missing';
+    st.style.color = '#ef4444';
+  }
+
+  if(badge){
+    if(urls.length > 1){ badge.textContent = `1 / ${urls.length}`; badge.classList.remove('hidden'); }
+    else { badge.classList.add('hidden'); }
+  }
+
+  if(strip && label){
+    if(urls.length > 1){
+      label.style.display = '';
+      strip.innerHTML = urls.map((u, i) => `
+        <div class="proof-strip-item" onclick="openLightbox('${type}', ${i})">
+          <img src="${u}" alt="${type} photo ${i + 1}">
+        </div>`).join('');
+    } else {
+      label.style.display = 'none';
+      strip.innerHTML = '';
+    }
+  }
+}
+
+function setProofPdf(elId, statusId, url){
+  const el = document.getElementById(elId);
+  const st = document.getElementById(statusId);
+  if(!el || !st) return;
+  const icon = el.querySelector('.proof-img-icon');
+  el.style.backgroundImage = 'none';
+  if(url){
+    if(icon){ icon.className='bi bi-file-earmark-pdf-fill proof-img-icon'; icon.style.display=''; icon.style.opacity='.55'; icon.style.color='#c0392b'; }
+    st.innerHTML = '<i class="bi bi-check-circle-fill"></i>Uploaded';
+    st.style.color = '#15803d';
+  } else {
+    if(icon){ icon.className='bi bi-image proof-img-icon'; icon.style.display=''; icon.style.opacity=''; icon.style.color=''; }
+    st.innerHTML = '<i class="bi bi-x-circle"></i>Missing';
+    st.style.color = '#ef4444';
+  }
 }
 
 /* ---------- SELECT SR ---------- */
@@ -559,34 +622,20 @@ function selectSR(id){
   document.getElementById('ws-punchin').textContent  = selectedSR.punchIn;
   document.getElementById('ws-punchout').textContent = selectedSR.punchOut;
 
+  const sla   = selectedSR.sla || {label:'—', cls:''};
   const slaEl = document.getElementById('ws-sla');
-  slaEl.textContent = selectedSR.sla.label;
-  slaEl.className   = 'ws-meta-value ' + (selectedSR.sla.cls==='warn'?'warn':selectedSR.sla.cls==='breach'?'breach':'');
+  slaEl.textContent = sla.label;
+  slaEl.className   = 'ws-meta-value ' + (sla.cls || '');
 
-
-  // const sp = document.getElementById('ws-scope-pill');
-  // if(selectedSR.scope==='iw'){
-  //   sp.style.background='rgba(21,128,61,.12)';sp.style.color='#15803d';
-  //   sp.innerHTML='<i class="bi bi-shield-check"></i> In Warranty';
-  // } else {
-  //   sp.style.background='rgba(239,68,68,.1)';sp.style.color='#ef4444';
-  //   sp.innerHTML='<i class="bi bi-shield-exclamation"></i> Out of Warranty';
-  // }
-
-
-const sp = document.getElementById('ws-scope-pill');
-const iw = selectedSR.scope === 'iw';
-
-sp.style.background = iw ? 'rgba(21,128,61,.12)' : 'rgba(239,68,68,.1)';
-sp.style.color      = iw ? '#15803d' : '#ef4444';
-sp.innerHTML        = `<i class="bi bi-shield-${iw ? 'check' : 'exclamation'}"></i> `
-                    + (selectedSR.scopeLabel ?? (iw ? 'In Warranty' : 'Out of Warranty'));
-
-
-
+  const iw = selectedSR.scope === 'iw';
+  const sp = document.getElementById('ws-scope-pill');
+  sp.style.background = iw ? 'rgba(21,128,61,.12)' : 'rgba(239,68,68,.1)';
+  sp.style.color      = iw ? '#15803d' : '#ef4444';
+  sp.innerHTML        = `<i class="bi bi-shield-${iw ? 'check' : 'exclamation'}"></i> `
+                      + (selectedSR.scopeLabel || (iw ? 'In Warranty' : 'Out of Warranty'));
 
   const si = document.getElementById('scope-indicator');
-  if(selectedSR.scope==='iw'){
+  if(iw){
     si.className='scope-indicator iw';
     si.innerHTML=`<i class="bi bi-arrow-right-circle-fill" style="color:#15803d;flex-shrink:0;"></i>
       <span style="font-size:.8rem;"><strong>In-Warranty path:</strong> QC Pass will set status to <strong>Completed</strong> and trigger client WhatsApp summary.</span>`;
@@ -596,93 +645,38 @@ sp.innerHTML        = `<i class="bi bi-shield-${iw ? 'check' : 'exclamation'}"><
       <span style="font-size:.8rem;"><strong>Out-of-Warranty path:</strong> QC Pass will forward this SR to <strong>Invoice Panel</strong> for invoice upload before final closure.</span>`;
   }
 
-// ---- Proof photos ----
-const proof = selectedSR.proof || {};
+  /* ---- Proof ---- */
+  const proof = selectedSR.proof || {};
+  setProofSet('before', proof.before);
+  setProofSet('after',  proof.after);
+  setProofPdf('proof-signature', 'proof-signature-status', proof.signature);
 
-function setProofSet(type, urls){
-  urls = Array.isArray(urls) ? urls : (urls ? [urls] : []);
-
-  const el     = document.getElementById(`proof-${type}`);
-  const st     = document.getElementById(`proof-${type}-status`);
-  const badge  = document.getElementById(`proof-${type}-count`);
-  const strip  = document.getElementById(`${type}-strip`);
-  const label  = document.getElementById(`${type}-strip-label`);
-  const icon   = el.querySelector('.proof-img-icon');
-
-  if(urls.length){
-    // Hero tile shows the first photo.
-    el.style.backgroundImage    = `url('${urls[0]}')`;
-    el.style.backgroundSize     = 'cover';
-    el.style.backgroundPosition = 'center';
-    if(icon) icon.style.display = 'none';
-    st.innerHTML   = `<i class="bi bi-check-circle-fill"></i>${urls.length} uploaded`;
-    st.style.color = '#15803d';
-  } else {
-    el.style.backgroundImage = 'none';
-    if(icon) icon.style.display = '';
-    st.innerHTML   = '<i class="bi bi-x-circle"></i>Missing';
-    st.style.color = '#ef4444';
-  }
-
-  // Count badge only when there's more than one.
-  if(urls.length > 1){
-    badge.textContent = `1 / ${urls.length}`;
-    badge.classList.remove('hidden');
-  } else {
-    badge.classList.add('hidden');
-  }
-
-  // Thumbnail strip — only when there's more than one.
-  if(urls.length > 1){
-    label.style.display = '';
-    strip.innerHTML = urls.map((u, i) => `
-      <div class="proof-strip-item" onclick="openLightbox('${type}', ${i})">
-        <img src="${u}" alt="${type} photo ${i + 1}">
-      </div>`).join('');
-  } else {
-    label.style.display = 'none';
-    strip.innerHTML = '';
-  }
-}
-
-setProofSet('before', proof.before);
-setProofSet('after',  proof.after);
-setProofPdf('proof-signature', 'proof-signature-status', proof.signature);
-function setProofPdf(elId, statusId, url){
-  const el = document.getElementById(elId);
-  const st = document.getElementById(statusId);
-  const icon = el.querySelector('.proof-img-icon');
-  if(url){
-    // PDF can't be a CSS background — show a PDF glyph and mark uploaded.
-    el.style.backgroundImage = 'none';
-    if(icon){ icon.className = 'bi bi-file-earmark-pdf-fill proof-img-icon'; icon.style.display=''; icon.style.opacity='.55'; icon.style.color='#c0392b'; }
-    st.innerHTML = '<i class="bi bi-check-circle-fill"></i>Uploaded';
-    st.style.color = '#15803d';
-  } else {
-    el.style.backgroundImage = 'none';
-    if(icon){ icon.style.display=''; }
-    st.innerHTML = '<i class="bi bi-x-circle"></i>Missing';
-    st.style.color = '#ef4444';
-  }
-}
+  /* ---- Expenses ---- */
   const expBody = document.getElementById('ws-expense-body');
-  document.getElementById('ws-expense-total').textContent = selectedSR.totalExpense;
-  const expenses = selectedSR.expenses || [];
+  document.getElementById('ws-expense-total').textContent = selectedSR.totalExpense || 'AED 0';
+
+  const raw = selectedSR.expenses;
+  const expenses = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.values(raw) : []);
+
   if(!expenses.length){
     expBody.innerHTML=`<div style="padding:10px 0;text-align:center;font-size:.8rem;color:var(--text-muted);">
       <i class="bi bi-receipt" style="display:block;font-size:1.4rem;color:var(--text-light);margin-bottom:6px;"></i>
       No field expenses logged for this SR.</div>`;
   } else {
-    expBody.innerHTML = expenses.map(e=>`
-      <div class="expense-row">
-        <div class="expense-cat"><i class="bi ${e.icon}"></i>${e.cat}</div>
+    expBody.innerHTML = expenses.map(e=>{
+      const amt = (typeof e.amt === 'number')
+        ? 'AED ' + e.amt.toLocaleString()
+        : (String(e.amt || '').trim() || 'AED 0');
+      return `<div class="expense-row">
+        <div class="expense-cat"><i class="bi ${e.icon || 'bi-receipt'}"></i>${e.cat || '—'}</div>
         <div style="display:flex;align-items:center;gap:12px;">
-          <span class="expense-amt">${e.amt}</span>
+          <span class="expense-amt">${amt}</span>
           ${e.receipt
             ? `<span class="expense-receipt" onclick="showToast('info','Receipt','Opening receipt image…')"><i class="bi bi-image"></i>View Receipt</span>`
             : `<span style="font-size:.72rem;color:var(--text-light);">No receipt</span>`}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }
 }
 
@@ -705,9 +699,11 @@ function initiatePass(){
   document.getElementById('pass-modal').classList.add('show');
 }
 function closePassModal(){document.getElementById('pass-modal').classList.remove('show');}
+
 function executePass(){
   closePassModal();
   const sr = selectedSR;
+  if(!sr) return;
   fetch(`/qc-review/${sr.dbId}/pass`, {
     method:'POST',
     headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'Accept':'application/json'}
@@ -715,14 +711,11 @@ function executePass(){
   .then(r=>r.json())
   .then(res=>{
     if(!res.success){ showToast('err','Failed', res.message || 'Could not authorise.'); return; }
-    const idx = QUEUE.findIndex(s=>s.id===sr.id);
-    if(idx>-1) QUEUE.splice(idx,1);
-    renderQueue(QUEUE);
+    dropFromQueue(sr.id);
     document.getElementById('ws-detail').classList.remove('show');
-    const success=document.getElementById('ws-success');
-    const icon=document.getElementById('success-icon');
-    const title=document.getElementById('success-title');
-    const body=document.getElementById('success-body');
+    const icon  = document.getElementById('success-icon');
+    const title = document.getElementById('success-title');
+    const body  = document.getElementById('success-body');
     if(sr.scope==='iw'){
       icon.style.background='rgba(21,128,61,.12)';
       icon.innerHTML='<i class="bi bi-check-circle-fill" style="color:#15803d;font-size:1.8rem;"></i>';
@@ -736,7 +729,7 @@ function executePass(){
       body.textContent='Status updated to Pending Invoice. Accounts team notified to upload the invoice.';
       showToast('ok','Forwarded to Accounts',`${sr.id} sent to Invoice Panel.`);
     }
-    success.classList.add('show');
+    document.getElementById('ws-success').classList.add('show');
     selectedSR=null;
   })
   .catch(()=>showToast('err','Network Error','Could not reach the server.'));
@@ -748,6 +741,7 @@ function initiateFail(){
   failMode = true;
   const ta = document.getElementById('rework-textarea');
   ta.disabled = false;
+  ta.style.borderColor = '';
   ta.placeholder = 'Describe the rework requirements clearly — this will be sent directly to the technician\'s mobile view…';
   ta.focus();
   document.getElementById('rework-locked-tag').style.display='none';
@@ -766,6 +760,7 @@ function resetFailMode(){
   const ta = document.getElementById('rework-textarea');
   ta.disabled = true;
   ta.value = '';
+  ta.style.borderColor = '';
   ta.placeholder = 'This field is locked. Click \'QC Fail — Return to Rework\' to activate…';
   document.getElementById('rework-locked-tag').style.display='flex';
   document.getElementById('rework-unlocked-tag').style.display='none';
@@ -778,14 +773,16 @@ function resetFailMode(){
   document.getElementById('btn-confirm-rework').classList.remove('show');
   document.getElementById('cancel-fail-wrap').style.display='none';
 }
+
 function confirmRework(){
-  const ta=document.getElementById('rework-textarea');
+  const ta = document.getElementById('rework-textarea');
   if(!ta.value.trim()){
     ta.style.borderColor='#ef4444'; ta.focus();
     showToast('err','Required Field','Please enter the mandatory rework requirements before proceeding.');
     return;
   }
-  const sr=selectedSR;
+  const sr = selectedSR;
+  if(!sr) return;
   fetch(`/qc-review/${sr.dbId}/fail`, {
     method:'POST',
     headers:{
@@ -797,26 +794,31 @@ function confirmRework(){
   .then(r=>r.json())
   .then(res=>{
     if(!res.success){ showToast('err','Failed', res.message || 'Could not return to rework.'); return; }
-    const idx=QUEUE.findIndex(s=>s.id===sr.id);
-    if(idx>-1) QUEUE.splice(idx,1);
-    renderQueue(QUEUE);
+    dropFromQueue(sr.id);
     document.getElementById('ws-detail').classList.remove('show');
-    const success=document.getElementById('ws-success');
     document.getElementById('success-icon').style.background='rgba(239,68,68,.08)';
     document.getElementById('success-icon').innerHTML='<i class="bi bi-arrow-counterclockwise" style="color:#ef4444;font-size:1.8rem;"></i>';
     document.getElementById('success-title').textContent=`${sr.id} — Returned to Rework`;
     document.getElementById('success-body').textContent='Status reverted to Rework. Technician has been notified on their mobile with your requirements. SLA timestamps preserved.';
-    success.classList.add('show');
+    document.getElementById('ws-success').classList.add('show');
     showToast('warn','Rework Initiated',`${sr.id} sent back to ${sr.tech}.`);
     selectedSR=null; failMode=false;
   })
   .catch(()=>showToast('err','Network Error','Could not reach the server.'));
 }
+
+/* ---------- QUEUE MUTATION ---------- */
+function dropFromQueue(id){
+  const i = QUEUE.findIndex(s=>s.id===id);
+  if(i>-1) QUEUE.splice(i,1);
+  qcFilterQueue();          // re-applies the active filter instead of resetting it
+}
+
 /* ---------- NEXT TICKET ---------- */
 function nextTicket(){
   document.getElementById('ws-success').classList.remove('show');
-  if(QUEUE.length){
-    selectSR(QUEUE[0].id);
+  if(QC_FILTERED.length){
+    selectSR(QC_FILTERED[0].id);
   } else {
     document.getElementById('ws-empty').style.display='';
     showToast('ok','Queue Clear','All pending QC tickets have been reviewed.');
@@ -825,28 +827,35 @@ function nextTicket(){
 
 /* ---------- FILTER QUEUE ---------- */
 function qcFilterQueue(q){
-  q = q || '';
-  const scope = document.getElementById('qc-scope').value;
-  const tech  = document.getElementById('qc-tech').value;
-  const filtered = QUEUE.filter(s=>{
-    const mq = !q || s.id.toLowerCase().includes(q.toLowerCase()) || s.client.toLowerCase().includes(q.toLowerCase()) || s.tech.toLowerCase().includes(q.toLowerCase());
+  const searchEl = document.getElementById('qc-search');
+  if(q === undefined) q = searchEl ? searchEl.value : '';
+  q = (q || '').trim().toLowerCase();
+
+  const scopeEl = document.getElementById('qc-scope');
+  const techEl  = document.getElementById('qc-tech');
+  const scope = scopeEl ? scopeEl.value : '';
+  const tech  = techEl  ? techEl.value  : '';
+
+  QC_FILTERED = QUEUE.filter(s=>{
+    const hay = [s.id, s.client, s.tech, s.site].filter(Boolean).join(' ').toLowerCase();
+    const mq = !q || hay.includes(q);
     const ms = !scope || s.scopeLabel === scope;
     const mt = !tech  || s.tech === tech;
     return mq && ms && mt;
   });
-  renderQueue(filtered);
+  renderQueue(QC_FILTERED);
 }
 
 /* ---------- LIGHTBOX ---------- */
-
-let lbCurrentUrl  = null;
-let lbList        = [];
-let lbIndex       = 0;
-let lbTitleBase   = '';
+let lbCurrentUrl = null;
+let lbList       = [];
+let lbIndex      = 0;
+let lbTitleBase  = '';
+let lbIsPdf      = false;
 
 function openLightbox(type, index){
   const proof = (selectedSR && selectedSR.proof) || {};
-  let isPdf = false;
+  lbIsPdf = false;
 
   if(type === 'before'){
     lbList = Array.isArray(proof.before) ? proof.before : (proof.before ? [proof.before] : []);
@@ -857,15 +866,15 @@ function openLightbox(type, index){
   } else {
     lbList = proof.signature ? [proof.signature] : [];
     lbTitleBase = 'Customer Acceptance (Signed PDF)';
-    isPdf = true;
+    lbIsPdf = true;
   }
 
   lbIndex = Number.isInteger(index) ? index : 0;
-  lbRender(isPdf);
+  lbRender();
   document.getElementById('lightbox-modal').classList.add('show');
 }
 
-function lbRender(isPdf){
+function lbRender(){
   const url = lbList[lbIndex] || null;
   lbCurrentUrl = url;
 
@@ -874,7 +883,7 @@ function lbRender(isPdf){
   document.getElementById('lb-filename').textContent = url ? url.split('/').pop() : 'No file';
 
   const box = document.getElementById('lb-img');
-  if(url && isPdf){
+  if(url && lbIsPdf){
     box.style.background = '#525659';
     box.innerHTML = `<iframe src="${url}#toolbar=1" style="width:100%;height:70vh;border:none;border-radius:6px;" title="${lbTitleBase}"></iframe>`;
   } else if(url){
@@ -885,7 +894,6 @@ function lbRender(isPdf){
     box.innerHTML = `<i class="bi bi-image" style="font-size:3rem;opacity:.3;"></i><div style="opacity:.5;">No file uploaded</div>`;
   }
 
-  // Prev/next controls
   const nav = document.getElementById('lb-nav');
   if(lbList.length > 1){
     nav.style.display = 'flex';
@@ -900,9 +908,8 @@ function lbStep(delta){
   const next = lbIndex + delta;
   if(next < 0 || next >= lbList.length) return;
   lbIndex = next;
-  lbRender(false);
+  lbRender();
 }
-
 function closeLightbox(){document.getElementById('lightbox-modal').classList.remove('show');}
 
 function downloadProof(){
@@ -929,15 +936,20 @@ function showToast(type,title,body){
 /* ---------- INIT ---------- */
 function qcPopulateTechFilter(){
   const sel = document.getElementById('qc-tech');
-  const techs = [...new Set(QUEUE.map(s=>s.tech))];
-  techs.forEach(t=>{
+  if(!sel) return;
+  [...new Set(QUEUE.map(s=>s.tech))].forEach(t=>{
     const o=document.createElement('option');o.value=t;o.textContent=t;sel.appendChild(o);
   });
 }
 
 document.addEventListener('DOMContentLoaded', function(){
   qcPopulateTechFilter();
-  renderQueue(QUEUE);
+  ['qc-search','qc-scope','qc-tech'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', ()=>qcFilterQueue());
+  });
+  renderQueue(QC_FILTERED);
 });
 </script>
 @endpush
