@@ -67,9 +67,10 @@ class WorkerpunchController extends Controller
             ->whereIn('status', ['draft', 'punched_in'])
             ->exists();
         abort_if(
-            $sr->eta_at && now()->lt($sr->eta_at),
+            $sr->eta_at && now()->addMinutes(15)->lt($sr->eta_at),
             422,
-            'Too early — scheduled for ' . $sr->eta_at->format('d M Y, H:i') . '. Reschedule if you need to start now.'
+            'Too early — scheduled for ' . $sr->eta_at->format('d M Y, H:i')
+                . '. Reschedule if you need to start now.'
         );
 
         $oldStatus = $sr->status;          // capture BEFORE the transaction updates it

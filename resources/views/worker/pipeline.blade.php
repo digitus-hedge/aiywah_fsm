@@ -1017,7 +1017,11 @@ body {
                     placeholder="What work is being carried out&hellip;"></textarea>
         </div>
       </div>
-
+      <div class="lock-info hidden" id="etaNotice"
+          style="background:rgba(251,188,6,.07);border-color:rgba(251,188,6,.2);">
+        <i class="bi bi-clock-history" style="color:#fbbc06;"></i>
+        <span id="etaNoticeText"></span>
+      </div>
       <div class="punch-row">
         <button class="punch-btn btn-punchin" id="punchInBtn">
           <i class="bi bi-play-fill"></i>Start Job
@@ -1182,7 +1186,7 @@ const ROUTES = {
 const LETTERHEAD = @json($letterhead ?? ['header'=>null,'footer'=>null,'watermark'=>null]);
 /* ══════════════════════════════════════════════════════
    STATE
-   activeRef  = display ref ("SR-2026-000123") -> DOM ids
+   activeRef  = display ref ("SR-2026-0123") -> DOM ids
    activeSrId = numeric primary key            -> API calls
 ══════════════════════════════════════════════════════ */
 let activeRef      = null;
@@ -1196,6 +1200,9 @@ let expenses       = [];
 let historyLoaded  = false;
 let profileLoaded  = false;
 let signatureUploaded = false;
+let activeEtaAt  = null;
+let etaGateTimer = null;
+const EARLY_START_GRACE_MS = 15 * 60 * 1000;
 /* ══════════════════════════════════════════════════════
    HELPERS
 ══════════════════════════════════════════════════════ */
@@ -1879,6 +1886,7 @@ function buildBanner(job, etaDate, etaTime) {
   $('expSrRef').textContent = job.id;
   $('rsSrRef').textContent  = job.id;
   $('finSrRef').textContent = job.id;
+  activeEtaAt = parseEta(etaDate, etaTime); 
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1893,7 +1901,7 @@ function openTerminal() {
   $('punchOutBtn').disabled  = true;
   $('punchOutBtn').innerHTML = '<i class="bi bi-check2-square"></i>Finish Job';
   $('expenseBtn').disabled = true;
-  $('rsBtn').classList.add('hidden');
+   $('rsBtn').classList.remove('hidden'); 
   $('lockInfo').classList.add('hidden');
 
   $('timerDisplay').textContent = '00:00:00';
@@ -1924,27 +1932,28 @@ $('punchInBtn').addEventListener('click', () => {
 });
 
 async function punchIn() {
-    const btn = $('punchInBtn');
-    if (!activeSrId) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
-      showToast('error', 'No active job', 'Re-activate the job first.');
-      return;
-    }
+  const btn = $('punchInBtn');
 
-    btn.innerHTML = '<span class="spin"></span> Locating\u2026';
-    const fix = await captureLocation();
-    btn.innerHTML = '<span class="spin"></span> Starting\u2026';
+  if (!activeSrId) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
+    showToast('error', 'No active job', 'Re-activate the job first.');
+    return;
+  }
 
-    if (!fix) {
-      showToast('warning', 'No GPS fix', 'Starting without location. Enable GPS if possible.');
-    }
+  btn.innerHTML = '<span class="spin"></span> Locating\u2026';
+  const fix = await captureLocation();
+  btn.innerHTML = '<span class="spin"></span> Starting\u2026';
 
-    try {
-      const res = await apiPost(ROUTES.punchIn, withGeo({
-        sr_id: activeSrId,
-        work_description: $('workDesc').value.trim() || null,
-      }, fix));
+  if (!fix) {
+    showToast('warning', 'No GPS fix', 'Starting without location. Enable GPS if possible.');
+  }
+
+  try {
+    const res = await apiPost(ROUTES.punchIn, withGeo({
+      sr_id: activeSrId,
+      work_description: $('workDesc').value.trim() || null,
+    }, fix));
 
     punchInTime = new Date(res.punch_in_at);
 
@@ -1964,11 +1973,20 @@ async function punchIn() {
     btn.innerHTML = '<i class="bi bi-check2"></i>Job Started';
 
     showToast('success', 'Punched In', 'Job started.');
+    applyEtaGate();     // punch is open now — hides the notice, stops the ticker
     refreshLock();
   } catch (err) {
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
-    showToast('error', 'Punch-in failed', err.message);
+    $('rsBtn').classList.remove('hidden');
+
+    if (/too early/i.test(err.message)) {
+      showToast('warning', 'Too early to start', err.message);
+      openRescheduleFromTerminal();
+      $('rsRemark').value = 'Attending earlier than scheduled ETA.';   // after, not before
+    } else {
+      showToast('error', 'Punch-in failed', err.message);
+    }
   }
 }
 
@@ -2157,6 +2175,9 @@ $('finConfirmBtn').addEventListener('click', async () => {
     if (index > -1) JOBS.splice(index, 1);
 
     activeRef = activeSrId = punchInTime = null;
+    activeEtaAt = null;
+  clearInterval(etaGateTimer);
+  $('etaNotice').classList.add('hidden');
     uploads  = { before: [], after: [] };
     expenses = [];
     historyLoaded = false;
@@ -2279,7 +2300,7 @@ $('expenseListWrap').addEventListener('click', (e) => {
 /* ══════════════════════════════════════════════════════
    RESCHEDULE / HOLD DRAWER
 ══════════════════════════════════════════════════════ */
-$('rsBtn').addEventListener('click', () => {
+function openRescheduleFromTerminal() {
   $('rsSrRef').textContent = activeRef ?? '\u2014';
   $('rsDate').min = todayLocal();
   $('rsDate').value = '';
@@ -2288,7 +2309,9 @@ $('rsBtn').addEventListener('click', () => {
   $('holdRemark').value = '';
   switchRsTab('reschedule');
   openDrawer('rs');
-});
+}
+
+$('rsBtn').addEventListener('click', openRescheduleFromTerminal);
 
 document.querySelectorAll('[data-rstab]').forEach((tab) => {
   tab.addEventListener('click', () => switchRsTab(tab.dataset.rstab));
@@ -2339,6 +2362,9 @@ $('rsConfirmBtn').addEventListener('click', async () => {
     }
 
     activeRef = activeSrId = punchInTime = null;
+    activeEtaAt = null;
+    clearInterval(etaGateTimer);
+    $('etaNotice').classList.add('hidden');
     uploads  = { before: [], after: [] };
     expenses = [];
     $('activeDot').classList.add('hidden');
@@ -2372,6 +2398,9 @@ $('holdConfirmBtn').addEventListener('click', async () => {
       JOBS[index].accepted = false;
     }
     activeRef = activeSrId = punchInTime = null;
+    activeEtaAt = null;
+    clearInterval(etaGateTimer);
+    $('etaNotice').classList.add('hidden');
     uploads  = { before: [], after: [] };
     expenses = [];
     $('activeDot').classList.add('hidden');
@@ -2926,7 +2955,7 @@ function restoreTerminal(state) {
 
   $('activeDot').classList.remove('hidden');
   $('workDesc').value = state.workDesc ?? '';
-
+  $('rsBtn').classList.remove('hidden'); 
   // Punch already open: the timer is running, uploads are unlocked.
   if (state.punchInAt) {
     punchInTime = new Date(state.punchInAt);
@@ -2948,13 +2977,53 @@ function restoreTerminal(state) {
     }
     document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
     $('expenseBtn').disabled = false;
-    $('rsBtn').classList.remove('hidden');
   }
 
   ['before', 'after'].forEach((type) => renderPhotoStrip(type));
 
   renderExpenses();
   refreshLock();
+  applyEtaGate();
+}
+
+function parseEta(dateStr, timeStr) {
+  if (!dateStr || !timeStr || dateStr === '\u2014' || timeStr === '\u2014') return null;
+  const d = new Date(`${dateStr}T${String(timeStr).slice(0, 5)}:00`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function applyEtaGate() {
+  clearInterval(etaGateTimer);
+  const notice = $('etaNotice');
+  const btn    = $('punchInBtn');
+
+  if (punchInTime || !activeEtaAt) { notice.classList.add('hidden'); return; }
+
+  const tick = () => {
+    const waitMs = activeEtaAt.getTime() - Date.now() - EARLY_START_GRACE_MS;
+
+    if (waitMs <= 0) {
+      notice.classList.add('hidden');
+      btn.disabled = false;
+      clearInterval(etaGateTimer);
+      return;
+    }
+
+    const mins  = Math.ceil(waitMs / 60000);
+    const label = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+
+    $('etaNoticeText').innerHTML =
+      `Scheduled for <strong>${esc(activeEtaAt.toLocaleString('en-GB', {
+        day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+      }))}</strong> — can start in ${esc(label)}. ` +
+      `Tap <strong>Reschedule / Hold Job</strong> if you need to start now.`;
+
+    notice.classList.remove('hidden');
+    btn.disabled = true;
+  };
+
+  tick();
+  etaGateTimer = setInterval(tick, 30000);
 }
 </script>
 </body>
