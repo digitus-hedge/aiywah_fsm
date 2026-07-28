@@ -107,7 +107,7 @@ class WorkerpunchController extends Controller
             return $p;
         });
         
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Work in progress');
+        app(\App\Services\WhatsAppService::class)->notifyMaintenanceStarted($sr, $punch);
         return response()->json([
             'ok'          => true,
             'punch_id'    => $punch->id,
@@ -226,6 +226,65 @@ class WorkerpunchController extends Controller
             'grand_total'        => (string) $punch->grand_total,
         ]);
     }
+
+    /** Technician attended but could not finish — park the SR and close the punch. */
+public function hold(Request $request)
+{
+    $data = $request->validate([
+        'sr_id'  => ['required', 'integer'],
+        'status' => ['required', 'in:On Hold,Reschedule'],
+        'reason' => ['required', 'string', 'min:10', 'max:1000'],
+        'eta_at' => ['nullable', 'date', 'after:now'],
+    ] + $this->geoRules());
+
+    $sr     = $this->ownedRequest($request, $data['sr_id']);
+    $punch  = $this->openPunch($request, $sr->id);
+    $worker = $this->worker($request);
+
+    $oldStatus = $sr->status;
+
+    DB::transaction(function () use ($punch, $sr, $data, $oldStatus, $worker) {
+        // Close the punch so the SR isn't stuck with an open one.
+        $punch->fill([
+            'punch_out_at'       => now(),
+            'completion_summary' => $data['reason'],
+            'status'             => 'on_hold',
+        ] + $this->geoColumns($data, 'punch_out'))->save();
+
+        $this->recalcTotals($punch);
+
+        $sr->update([
+            'status'      => $data['status'],
+            'hold_reason' => $data['reason'],
+            'held_at'     => now(),
+            'eta_at'      => $data['status'] === 'Reschedule'
+                ? ($data['eta_at'] ?? null)
+                : $sr->eta_at,
+        ]);
+
+        NotificationLog::create([
+            'service_request_id' => $sr->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($sr) . ' — visit incomplete: '
+                . \Illuminate\Support\Str::limit($data['reason'], 60),
+            'from_status' => $oldStatus,          // 'In Progress'
+            'to_status'   => $data['status'],
+            'caused_by'   => $worker->id,
+        ]);
+    });
+
+    app(\App\Services\WhatsAppService::class)->notifyMaintenanceOnHold(
+        $sr,
+        $data['status'] === 'Reschedule' ? 'Rescheduled' : 'On Hold',
+        $data['reason']
+    );
+
+    return response()->json([
+        'ok'     => true,
+        'status' => $data['status'],
+    ]);
+}
 
     public function punchOut(Request $request)
     {

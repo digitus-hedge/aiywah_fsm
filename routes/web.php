@@ -41,6 +41,22 @@ Route::post('/logout', function (Illuminate\Http\Request $request) {
     return redirect('/login');
 })->name('logout')->middleware('auth');
 
+
+/* ---- Public customer links (WhatsApp) ---- */
+
+Route::middleware('signed')->group(function () {
+    Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])
+        ->name('clients.feedback.show');
+
+    Route::get('/sr/{serviceRequest}/photos', [ServiceRequestController::class, 'publicPhotos'])
+        ->name('sr.photos');
+});
+
+// POST stays unsigned so the form can submit normally
+Route::post('/client_feedback/{id}', [ClientController::class, 'storeFeedback'])
+    ->name('clients.feedback.store');
+
+
 /* ---- Root: redirect to dashboard (or login) ---- */
 // Route::get('/', function () {
 //     return redirect()->route('dashboard');
@@ -122,9 +138,7 @@ Route::middleware('auth')->group(function () {
 
     
     // Clients Feedback
-    Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])->name('clients.feedback.show');
-    Route::post('/client_feedback/{id}', [ClientController::class, 'storeFeedback'])->name('clients.feedback.store');
-    Route::get('/feedback/{id}/preview', [ClientController::class, 'preview'])->name('feedback.preview');
+        Route::get('/feedback/{id}/preview', [ClientController::class, 'preview'])->name('feedback.preview');
 
     // Whatapp notifcation
 
@@ -265,6 +279,7 @@ Route::prefix('worker')->name('worker.')->group(function () {
             Route::post('/job/resume',     [WorkerPipelineController::class, 'resume'])->name('job.resume');
 
             Route::post('/punch/in',        [WorkerpunchController::class, 'punchIn'])->name('punch.in');
+            Route::post('/punch/hold',      [WorkerpunchController::class, 'hold'])->name('punch.hold');
             Route::post('/punch/out',       [WorkerpunchController::class, 'punchOut'])->name('punch.out');
             Route::post('/punch/upload',    [WorkerpunchController::class, 'upload'])->name('punch.upload');
             Route::post('/punch/expense',   [WorkerpunchController::class, 'expense'])->name('punch.expense');
