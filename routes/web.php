@@ -20,6 +20,7 @@ use App\Http\Controllers\AssignedServiceRequestController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\WorkerLoginController;
 use App\Http\Controllers\Auth\WorkerPasswordController;
+use App\Http\Controllers\DashboardController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -69,10 +70,10 @@ Route::post('/client_feedback/{id}', [ClientController::class, 'storeFeedback'])
 */
 Route::middleware('auth')->group(function () {
 
-    /* ---- Dashboard ---- */
-    // Route::get('/dashboard', function () {
-    //     return view('dashboard');
-    // })->name('dashboard');
+   /* ---- Dashboard ---- */
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/panel', [DashboardController::class, 'panel'])->name('dashboard.panel');
+    
     Route::get('/analytics', function () {
         return view('analytics_dashboard');
     })->name('analytics');
@@ -103,7 +104,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/sr-registration', [ServiceRequestController::class, 'create'])->name('sr_registration');
     Route::get('/service-requests/lookup/{code}', [ServiceRequestController::class, 'lookup'])->name('service-requests.lookup');
     Route::post('/service-requests', [ServiceRequestController::class, 'store'])->name('service-requests.store');
-    Route::get('/', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
+    Route::get('/sr_explorer', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
     Route::get('/ticket-summary', [ServiceRequestController::class, 'ticketSummary'])->name('kanban_view');
 
 

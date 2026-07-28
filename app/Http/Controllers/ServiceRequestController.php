@@ -448,10 +448,6 @@ class ServiceRequestController extends Controller
             ->where('status', 'Approved')
             ->latest()
             ->get();
-
-
-
-
         $tickets = $inquiries->map(function ($sr) {
             return [
                 'id'                => $this->buildSrRef($sr),
@@ -571,7 +567,7 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        app(\App\Services\WhatsAppService::class)->notifyTechnicianAssigned($serviceRequest);
+    // app(\App\Services\WhatsAppService::class)->notifyTechnicianAssigned($serviceRequest);
 
         return response()->json([
             'ok'      => true,

@@ -119,7 +119,7 @@ class ServiceRequest extends Model
     // Display reference, e.g. "SR-2026-000123"
     public function getRefAttribute(): string
     {
-        return 'SR-' . now()->format('Y') . '-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+        return 'SR-' . now()->format('Y') . '-' . str_pad((string) $this->id, 5, '0', STR_PAD_LEFT);
     }
 
     public function getCodeAttribute(): string
