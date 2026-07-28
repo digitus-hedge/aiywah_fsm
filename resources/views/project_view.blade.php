@@ -646,6 +646,15 @@ span#cds
   <div class="info-row"><span class="info-key">Site Name</span><span class="info-val">{{ $project->site_name }}</span></div>
   <div class="info-row"><span class="info-key">Site Address</span><span class="info-val" style="font-size:.72rem;line-height:1.4;">{{ $project->site_address }}</span></div>
 
+
+  @if(filled($project->project_engineer))
+  <div class="info-row"><span class="info-key">Project Engineer</span><span class="info-val">{{ $project->project_engineer }}</span></div>
+@endif
+
+@if(filled($project->engineer_contact))
+  <div class="info-row"><span class="info-key">Engineer Contact</span><span class="info-val mono">{{ $project->engineer_contact }}</span></div>
+@endif
+
   <div class="info-row">
     <span class="info-key">Status</span>
     <span class="info-val">

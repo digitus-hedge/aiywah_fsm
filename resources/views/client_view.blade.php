@@ -1673,7 +1673,9 @@
           <span class="result-count" id="pf-count">4 projects</span>
         </div>
         <div style="display:flex;gap:7px;">
-          <button class="btn-ghost" onclick="showToast('ok','Export','Generating projects CSV…')"><i class="bi bi-download"></i>Export</button>
+          <!-- <button class="btn-ghost" onclick="showToast('ok','Export','Generating projects CSV…')"><i class="bi bi-download"></i>Export</button> -->
+         
+          <button class="btn-ghost" onclick="exportProjects()"><i class="bi bi-download"></i>Export</button>
           <button class="btn-gold" onclick="openProjectModalNew()"><i class="bi bi-plus-lg"></i>Create Project</button>
         </div>
       </div>
@@ -2014,6 +2016,7 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
   var CLIENT = {
     id: @json($client->id),
@@ -2063,6 +2066,67 @@
     document.getElementById('pf-count').textContent = list.length + ' project' + (list.length !== 1 ? 's' : '');
     document.getElementById('pf-page-info').textContent = 'Page 1 of 1 · ' + list.length + ' project' + (list.length !== 1 ? 's' : '');
   }
+
+
+
+  function csvCell(v) {
+  var s = (v === null || v === undefined) ? '' : String(v);
+  // neutralise formula injection (=, +, -, @ at start)
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+
+function exportProjects() {
+  var list = filteredProjects;
+  if (!list.length) { showToast('err', 'Nothing to export', 'No projects match the current filters.'); return; }
+
+  var dash = function (v) { return (v === null || v === undefined || v === '') ? '—' : v; };
+
+  var rows = [
+    ['Customer Details'],
+    ['Customer Token',  dash(CLIENT.token)],
+    ['Trade Name',      dash(CLIENT.name)],
+    ['Primary Contact', dash(CLIENT.contact)],
+    ['Designation',     dash(CLIENT.designation)],
+    ['Phone',           dash(CLIENT.phone)],
+    ['Email',           dash(CLIENT.email)],
+    ['HQ Address',      dash(CLIENT.address)],
+    ['Status',          dash(CLIENT.status)],
+    ['Onboarded',       dash(CLIENT.onboarded)],
+    ['Exported',        new Date().toLocaleString()],
+    [],
+    ['Projects (' + list.length + ')'],
+    ['#', 'Project Code', 'Project Name', 'Contract', 'Site Name', 'Site Address',
+     'Engineer', 'Engineer Contact', 'Start Date', 'Completion Date', 'SRs', 'Status']
+  ];
+
+  list.forEach(function (p, i) {
+    rows.push([
+      i + 1, dash(p.code), dash(p.name), dash(p.contract), dash(p.siteName),
+      dash(p.siteAddress), dash(p.project_engineer), dash(p.engineer_contact),
+      dash(p.startDate), dash(p.completionDate), p.srCount,
+      p.active ? 'Active' : 'Inactive'
+    ]);
+  });
+
+  var csv = rows.map(function (r) { return r.map(csvCell).join(','); }).join('\r\n');
+
+  var blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  var safeName = (CLIENT.name || 'client').replace(/[^a-z0-9]+/gi, '_');
+  var stamp = new Date().toISOString().slice(0, 10);
+
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = safeName + '_customer_' + stamp + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+
+  showToast('ok', 'Export', list.length + ' project' + (list.length !== 1 ? 's' : '') + ' exported.');
+}
+
+
 
   function filterProjects() {
     var q = document.getElementById('pf-search').value.toLowerCase();

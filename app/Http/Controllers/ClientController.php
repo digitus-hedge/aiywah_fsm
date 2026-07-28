@@ -324,7 +324,7 @@ class ClientController extends Controller
                 'siteName'       => $p->site_name,
                 'siteAddress'    => $p->site_address,
                 'project_engineer'  => $p->project_engineer,
-                'engineer_contact'=> $p->engineer_contact,
+                'engineer_contact' => $p->engineer_contact,
                 'contract'       => $p->contract_type ?? '—',
                 'startDate'      => optional($p->created_at)->format('d M Y'),
                 'completionDate' => optional($p->completion_date)->format('Y-m-d'),  // <-- add
@@ -380,9 +380,7 @@ class ClientController extends Controller
             ->take(5)
             ->values();
 
-
         $warranties = Warranty::where('status', 1)->orderBy('name')->get();
-
 
         $lifetimeSrs = 0;
         $activeSrs   = 0;
@@ -841,6 +839,7 @@ class ClientController extends Controller
         }
 
         $client = Client::where('company_name', $name)
+            ->where('status', 'Active')
             ->with(['mobiles', 'projects'])
             ->first();
 
