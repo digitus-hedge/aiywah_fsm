@@ -310,7 +310,20 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        $this->sendServiceRequestMessage($serviceRequest, $ref, 'Approved');
+        // $this->sendServiceRequestMessage($serviceRequest, $ref, 'Approved');
+
+        $wa = app(\App\Services\WhatsAppService::class);
+
+        $inWarranty = optional($serviceRequest->project)->warranty_end_date
+            && \Carbon\Carbon::parse($serviceRequest->project->warranty_end_date)
+                ->endOfDay()->isFuture();
+
+        if ($inWarranty) {
+            $wa->notifyWarrantyApproved($serviceRequest);
+        } else {
+            // no live warranty on the project — fall back to the generic status message
+            $wa->notifyServiceStatus($serviceRequest, 'Approved');
+        }
 
         return response()->json([
             'ok'      => true,
@@ -320,31 +333,34 @@ class ServiceRequestController extends Controller
     }
 
     public function forward(ServiceRequest $serviceRequest)
-    {
-        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+{
+    $oldStatus = $serviceRequest->status;          // capture BEFORE update
 
-        $serviceRequest->update(['status' => 'Forwarded']);
+    $serviceRequest->update([
+        'status'         => 'Forwarded',
+        'warranty_scope' => 'oow',
+    ]);
 
-        $ref = $this->buildSrRef($serviceRequest);
+    $ref = $this->buildSrRef($serviceRequest);
 
-        NotificationLog::create([
-            'service_request_id' => $serviceRequest->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            'message'     => "{$ref} Forwarded to Accounts",
-            'from_status' => $oldStatus,
-            'to_status'   => 'Forwarded',
-            'caused_by'   => auth()->id(),
-        ]);
+    NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => "{$ref} Forwarded to Accounts",
+        'from_status' => $oldStatus,
+        'to_status'   => 'Forwarded',
+        'caused_by'   => auth()->id(),
+    ]);
 
-        $this->sendServiceRequestMessage($serviceRequest, $ref, 'Forwarded to Accounts');
+    app(\App\Services\WhatsAppService::class)->notifyOutsideWarranty($serviceRequest);
 
-        return response()->json([
-            'ok'      => true,
-            'success' => true,
-            'message' => "Ticket {$ref} forwarded — Quotation Desk. Scope set as Out-of-Warranty.",
-        ]);
-    }
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => "Ticket {$ref} forwarded — Quotation Desk. Scope set as Out-of-Warranty.",
+    ]);
+}
 
     public function additionalWork(ServiceRequest $serviceRequest)
     {
@@ -510,47 +526,48 @@ class ServiceRequestController extends Controller
     }
 
 
-    public function dispatch(Request $request, ServiceRequest $serviceRequest)
-    {
-        $data = $request->validate([
-            'assigned_user_id'  => ['required', 'exists:users,id'],
-            'service_domain_id' => ['nullable', 'exists:service_domains,id'],
-        ]);
+   public function dispatch(Request $request, ServiceRequest $serviceRequest)
+{
+    $data = $request->validate([
+        'assigned_user_id'  => ['required', 'exists:users,id'],
+        'service_domain_id' => ['nullable', 'exists:service_domains,id'],
+        'eta_at'            => ['nullable', 'date'],          // ADDED
+    ]);
 
-        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+    $oldStatus = $serviceRequest->status;
 
-        $serviceRequest->update([
-            'status'            => 'Assigned',
-            'assigned_user_id'  => $data['assigned_user_id'],
-            'service_domain_id' => $data['service_domain_id'] ?? null,
-            'dispatched_at'     => now(),
-        ]);
+    $serviceRequest->update([
+        'status'            => 'Assigned',
+        'assigned_user_id'  => $data['assigned_user_id'],
+        'service_domain_id' => $data['service_domain_id'] ?? null,
+        'eta_at'            => $data['eta_at'] ?? null,       // ADDED
+        'dispatched_at'     => now(),
+    ]);
 
-        $ref  = $this->buildSrRef($serviceRequest);
-        $tech = User::find($data['assigned_user_id']);
+    $ref  = $this->buildSrRef($serviceRequest);
+    $tech = User::find($data['assigned_user_id']);
 
+    NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => "{$ref} assigned to " . ($tech->name ?? 'a technician')
+            . (!empty($data['eta_at'])
+                ? ' — ETA ' . \Carbon\Carbon::parse($data['eta_at'])->format('d M Y h:i A')
+                : ''),
+        'from_status' => $oldStatus,
+        'to_status'   => 'Assigned',
+        'caused_by'   => auth()->id(),
+    ]);
 
-        NotificationLog::create([
-            'service_request_id' => $serviceRequest->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            'message'     => "{$ref} assigned to " . ($tech->name ?? 'a technician'),
-            'from_status' => $oldStatus,               // e.g. 'Approved'
-            'to_status'   => 'Assigned',
-            'caused_by'   => auth()->id(),
-        ]);
+    app(\App\Services\WhatsAppService::class)->notifyTechnicianAssigned($serviceRequest);
 
-        $this->sendServiceRequestMessage(
-            $serviceRequest,
-            $ref,
-            'Assigned to ' . ($tech->name ?? 'a technician')
-        );
-        return response()->json([
-            'ok'      => true,
-            'success' => true,
-            'message' => 'Ticket ' . $ref . ' dispatched to ' . ($tech->name ?? 'technician') . '. Status: Assigned.',
-        ]);
-    }
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => 'Ticket ' . $ref . ' dispatched to ' . ($tech->name ?? 'technician') . '. Status: Assigned.',
+    ]);
+}
 
     /* ============================================================
      |  KANBAN / TICKET SUMMARY
@@ -747,17 +764,27 @@ class ServiceRequestController extends Controller
             ]);
         });
 
-        $feedbackUrl = url("/client_feedback/{$serviceRequest->id}");
-
-
         Log::info('qcPass: sending whatsapp', [
             'sr_id'        => $serviceRequest->id,
             'status'       => $newStatus,
             'feedback_url' => $feedbackUrl,
         ]);
 
-        app(\App\Services\WhatsAppService::class)
-            ->notifyServiceStatus($serviceRequest, $newStatus, 'SR Status Update', $feedbackUrl);
+            // app(\App\Services\WhatsAppService::class)
+            //     ->notifyMaintenanceCompleted($serviceRequest);
+
+            $photosLink = \Illuminate\Support\Facades\URL::signedRoute(
+                'sr.photos',
+                ['serviceRequest' => $serviceRequest->id]
+            );
+
+            app(\App\Services\WhatsAppService::class)
+                ->notifyMaintenanceCompleted($serviceRequest, null, $photosLink);
+                
+            \App\Jobs\SendSatisfactionSurvey::dispatch($serviceRequest)
+                ->delay(now()->addDay());
+
+                
 
         $ref = $this->buildSrRef($serviceRequest);
 

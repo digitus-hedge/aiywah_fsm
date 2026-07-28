@@ -41,4 +41,12 @@ return [
     'version' => env('WHATSAPP_API_VERSION', 'v23.0'),
 ],
 
+    'internal_recipients' => array_values(array_filter(array_map(
+    function ($pair) {
+        [$name, $phone] = array_pad(explode(':', trim($pair), 2), 2, null);
+        return $phone ? ['name' => trim($name), 'phone' => preg_replace('/\D/', '', $phone)] : null;
+    },
+    explode(',', (string) env('WHATSAPP_INTERNAL_NUMBERS', ''))
+))),
+
 ];
