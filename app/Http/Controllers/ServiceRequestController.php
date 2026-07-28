@@ -704,7 +704,7 @@ class ServiceRequestController extends Controller
                     'amt'     => $r['amt']     ?? $r['amount']   ?? 0,
                     'receipt' => (bool) ($r['receipt'] ?? $r['receipt_path'] ?? false),
                 ])->values(),
-                
+
                 'totalExpense' => 'AED ' . number_format($exp['total'], 0),
                 'proof' => [
                     'before' => $punch
@@ -779,11 +779,11 @@ class ServiceRequestController extends Controller
             ]);
         });
 
-        Log::info('qcPass: sending whatsapp', [
-            'sr_id'        => $serviceRequest->id,
-            'status'       => $newStatus,
-            'feedback_url' => $feedbackUrl,
-        ]);
+        // Log::info('qcPass: sending whatsapp', [
+        //     'sr_id'        => $serviceRequest->id,
+        //     'status'       => $newStatus,
+        //     'feedback_url' => $feedbackUrl,
+        // ]);
 
         // app(\App\Services\WhatsAppService::class)
         //     ->notifyMaintenanceCompleted($serviceRequest);
