@@ -42,6 +42,7 @@ class ServiceRequestController extends Controller
         // Resolve a picked client: exact code match → full detail + projects
         $client = Client::with(['projects', 'mobiles'])
             ->where('unique_code', $term)
+            ->where('status', 'Active')
             ->first();
 
         if ($client) {
@@ -93,8 +94,18 @@ class ServiceRequestController extends Controller
         }
 
         // Otherwise → always return a list, even for a single hit
-        $matches = Client::where('company_name', 'like', "%{$term}%")
-            ->orWhere('primary_mobile', 'like', "%{$term}%")
+
+        // $matches = Client::where('company_name', 'like', "%{$term}%")
+        //     ->orWhere('primary_mobile', 'like', "%{$term}%")
+        //     ->orderBy('company_name')
+        //     ->limit(10)
+        //     ->get();
+
+        $matches = Client::where('status', 'Active')
+            ->where(function ($q) use ($term) {
+                $q->where('company_name', 'like', "%{$term}%")
+                    ->orWhere('primary_mobile', 'like', "%{$term}%");
+            })
             ->orderBy('company_name')
             ->limit(10)
             ->get();
@@ -278,8 +289,8 @@ class ServiceRequestController extends Controller
             ->get();
 
         $priorities = Priority::where('status', 1)
-    ->orderBy('display_order')
-    ->get();
+            ->orderBy('display_order')
+            ->get();
 
         $stats = [
             'pending'   => $inquiries->count(),
@@ -288,7 +299,7 @@ class ServiceRequestController extends Controller
             'rejected'  => ServiceRequest::where('status', 'Rejected')->whereDate('updated_at', today())->count(),
         ];
 
-        return view('inquiry_approval', compact('inquiries', 'stats','priorities'));
+        return view('inquiry_approval', compact('inquiries', 'stats', 'priorities'));
     }
 
     public function approve(ServiceRequest $serviceRequest)
@@ -316,7 +327,7 @@ class ServiceRequestController extends Controller
 
         $inWarranty = optional($serviceRequest->project)->warranty_end_date
             && \Carbon\Carbon::parse($serviceRequest->project->warranty_end_date)
-                ->endOfDay()->isFuture();
+            ->endOfDay()->isFuture();
 
         if ($inWarranty) {
             $wa->notifyWarrantyApproved($serviceRequest);
@@ -333,34 +344,34 @@ class ServiceRequestController extends Controller
     }
 
     public function forward(ServiceRequest $serviceRequest)
-{
-    $oldStatus = $serviceRequest->status;          // capture BEFORE update
+    {
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update
 
-    $serviceRequest->update([
-        'status'         => 'Forwarded',
-        'warranty_scope' => 'oow',
-    ]);
+        $serviceRequest->update([
+            'status'         => 'Forwarded',
+            'warranty_scope' => 'oow',
+        ]);
 
-    $ref = $this->buildSrRef($serviceRequest);
+        $ref = $this->buildSrRef($serviceRequest);
 
-    NotificationLog::create([
-        'service_request_id' => $serviceRequest->id,
-        'event'       => 'status_updated',
-        'title'       => 'Status Updated',
-        'message'     => "{$ref} Forwarded to Accounts",
-        'from_status' => $oldStatus,
-        'to_status'   => 'Forwarded',
-        'caused_by'   => auth()->id(),
-    ]);
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => "{$ref} Forwarded to Accounts",
+            'from_status' => $oldStatus,
+            'to_status'   => 'Forwarded',
+            'caused_by'   => auth()->id(),
+        ]);
 
-    app(\App\Services\WhatsAppService::class)->notifyOutsideWarranty($serviceRequest);
+        app(\App\Services\WhatsAppService::class)->notifyOutsideWarranty($serviceRequest);
 
-    return response()->json([
-        'ok'      => true,
-        'success' => true,
-        'message' => "Ticket {$ref} forwarded — Quotation Desk. Scope set as Out-of-Warranty.",
-    ]);
-}
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => "Ticket {$ref} forwarded — Quotation Desk. Scope set as Out-of-Warranty.",
+        ]);
+    }
 
     public function additionalWork(ServiceRequest $serviceRequest)
     {
@@ -522,48 +533,48 @@ class ServiceRequestController extends Controller
     }
 
 
-   public function dispatch(Request $request, ServiceRequest $serviceRequest)
-{
-    $data = $request->validate([
-        'assigned_user_id'  => ['required', 'exists:users,id'],
-        'service_domain_id' => ['nullable', 'exists:service_domains,id'],
-        'eta_at'            => ['nullable', 'date'],          // ADDED
-    ]);
+    public function dispatch(Request $request, ServiceRequest $serviceRequest)
+    {
+        $data = $request->validate([
+            'assigned_user_id'  => ['required', 'exists:users,id'],
+            'service_domain_id' => ['nullable', 'exists:service_domains,id'],
+            'eta_at'            => ['nullable', 'date'],          // ADDED
+        ]);
 
-    $oldStatus = $serviceRequest->status;
+        $oldStatus = $serviceRequest->status;
 
-    $serviceRequest->update([
-        'status'            => 'Assigned',
-        'assigned_user_id'  => $data['assigned_user_id'],
-        'service_domain_id' => $data['service_domain_id'] ?? null,
-        'eta_at'            => $data['eta_at'] ?? null,       // ADDED
-        'dispatched_at'     => now(),
-    ]);
+        $serviceRequest->update([
+            'status'            => 'Assigned',
+            'assigned_user_id'  => $data['assigned_user_id'],
+            'service_domain_id' => $data['service_domain_id'] ?? null,
+            'eta_at'            => $data['eta_at'] ?? null,       // ADDED
+            'dispatched_at'     => now(),
+        ]);
 
-    $ref  = $this->buildSrRef($serviceRequest);
-    $tech = User::find($data['assigned_user_id']);
+        $ref  = $this->buildSrRef($serviceRequest);
+        $tech = User::find($data['assigned_user_id']);
 
-    NotificationLog::create([
-        'service_request_id' => $serviceRequest->id,
-        'event'       => 'status_updated',
-        'title'       => 'Status Updated',
-        'message'     => "{$ref} assigned to " . ($tech->name ?? 'a technician')
-            . (!empty($data['eta_at'])
-                ? ' — ETA ' . \Carbon\Carbon::parse($data['eta_at'])->format('d M Y h:i A')
-                : ''),
-        'from_status' => $oldStatus,
-        'to_status'   => 'Assigned',
-        'caused_by'   => auth()->id(),
-    ]);
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => "{$ref} assigned to " . ($tech->name ?? 'a technician')
+                . (!empty($data['eta_at'])
+                    ? ' — ETA ' . \Carbon\Carbon::parse($data['eta_at'])->format('d M Y h:i A')
+                    : ''),
+            'from_status' => $oldStatus,
+            'to_status'   => 'Assigned',
+            'caused_by'   => auth()->id(),
+        ]);
 
     // app(\App\Services\WhatsAppService::class)->notifyTechnicianAssigned($serviceRequest);
 
-    return response()->json([
-        'ok'      => true,
-        'success' => true,
-        'message' => 'Ticket ' . $ref . ' dispatched to ' . ($tech->name ?? 'technician') . '. Status: Assigned.',
-    ]);
-}
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => 'Ticket ' . $ref . ' dispatched to ' . ($tech->name ?? 'technician') . '. Status: Assigned.',
+        ]);
+    }
 
     /* ============================================================
      |  KANBAN / TICKET SUMMARY
@@ -672,7 +683,7 @@ class ServiceRequestController extends Controller
                 'site'         => $punch?->site_location
                     ?? optional($sr->project)->site_name ?? '—',
                 'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
-              
+
                 // 'scope'        => $scope,
                 // 'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
 
@@ -685,7 +696,15 @@ class ServiceRequestController extends Controller
                 'sla'          => $sla,
                 'slaFill'      => $sla['fill'],
                 'slaColor'     => $sla['color'],
-                'expenses'     => $exp['rows'],
+                // 'expenses'     => $exp['rows'],
+
+                'expenses' => collect($exp['rows'])->map(fn($r) => [
+                    'cat'     => $r['cat']     ?? $r['category'] ?? '—',
+                    'icon'    => $r['icon']    ?? 'bi-receipt',
+                    'amt'     => $r['amt']     ?? $r['amount']   ?? 0,
+                    'receipt' => (bool) ($r['receipt'] ?? $r['receipt_path'] ?? false),
+                ])->values(),
+                
                 'totalExpense' => 'AED ' . number_format($exp['total'], 0),
                 'proof' => [
                     'before' => $punch
@@ -766,21 +785,21 @@ class ServiceRequestController extends Controller
             'feedback_url' => $feedbackUrl,
         ]);
 
-            // app(\App\Services\WhatsAppService::class)
-            //     ->notifyMaintenanceCompleted($serviceRequest);
+        // app(\App\Services\WhatsAppService::class)
+        //     ->notifyMaintenanceCompleted($serviceRequest);
 
-            $photosLink = \Illuminate\Support\Facades\URL::signedRoute(
-                'sr.photos',
-                ['serviceRequest' => $serviceRequest->id]
-            );
+        $photosLink = \Illuminate\Support\Facades\URL::signedRoute(
+            'sr.photos',
+            ['serviceRequest' => $serviceRequest->id]
+        );
 
-            app(\App\Services\WhatsAppService::class)
-                ->notifyMaintenanceCompleted($serviceRequest, null, $photosLink);
-                
-            \App\Jobs\SendSatisfactionSurvey::dispatch($serviceRequest)
-                ->delay(now()->addDay());
+        app(\App\Services\WhatsAppService::class)
+            ->notifyMaintenanceCompleted($serviceRequest, null, $photosLink);
 
-                
+        \App\Jobs\SendSatisfactionSurvey::dispatch($serviceRequest)
+            ->delay(now()->addDay());
+
+
 
         $ref = $this->buildSrRef($serviceRequest);
 
@@ -857,6 +876,7 @@ class ServiceRequestController extends Controller
                 'client' => optional($sr->client)->company_name ?? '—',
                 'site'   => optional($sr->project)->site_name ?? '—',
                 'logged' => $sr->updated_at?->diffForHumans() ?? '—',
+                'createdAt' => $sr->created_at?->format('Y-m-d'),   // <-- for filtering
                 'issue'  => $sr->issue_description ?? '—',
             ];
         })->values();
@@ -876,6 +896,8 @@ class ServiceRequestController extends Controller
                 'ref'       => $sr->erp_quote_ref ?? '—',
                 'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '—',
                 'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+                'createdAt' => $sr->created_at?->format('Y-m-d'),   // <-- missing
+
             ];
         })->values();
 
@@ -986,6 +1008,7 @@ class ServiceRequestController extends Controller
                 'site'       => $punch?->site_location ?? optional($sr->project)->site_name ?? '—',
                 'technician' => optional($sr->assignedUser)->name ?? 'Unassigned',
                 'logged'     => $sr->updated_at?->diffForHumans() ?? '—',
+                'createdAt'  => $sr->created_at?->format('Y-m-d'),   // <-- add
                 'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
                 'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
                 'duration'   => $duration,
@@ -1007,6 +1030,7 @@ class ServiceRequestController extends Controller
                 'id'        => 'IA-' . $sr->id,
                 'sr'        => $this->buildSrRef($sr),
                 'dbId'      => $sr->id,
+                'createdAt'  => $sr->created_at?->format('Y-m-d'),   // <-- add
                 'client'    => optional($sr->client)->company_name ?? '—',
                 'site'      => optional($sr->project)->site_name ?? '—',
                 'code'      => $sr->invoice_code ?? '—',
@@ -1239,16 +1263,23 @@ class ServiceRequestController extends Controller
 
     private function srSla(ServiceRequest $sr, Punch $punch): array
     {
-        $target  = 48 * 60;
-        $elapsed = $punch->punch_out_at
-            ? abs($sr->created_at->diffInMinutes($punch->punch_out_at))
+        $target = 48 * 60; // minutes
+
+        // Clock starts at SR creation, stops at punch-out.
+        // Still open → keep counting to now, so the badge stays live.
+        $start = $sr->created_at;
+        $end   = $punch->punch_out_at ?? now();
+
+        $elapsed = $start && $end
+            ? max(0, (int) round($start->diffInMinutes($end, false)))
             : 0;
 
-        $pct = $target > 0 ? min(100, (int) round($elapsed / $target * 100)) : 0;
+        $raw = $target > 0 ? $elapsed / $target * 100 : 0;
+        $pct = min(100, (int) round($raw));   // bar width only — must be capped
 
         [$cls, $color] = match (true) {
-            $pct >= 100 => ['breach', '#ef4444'],
-            $pct >= 75  => ['warn',   '#d97706'],
+            $raw >= 100 => ['breach', '#ef4444'],
+            $raw >= 75  => ['warn',   '#d97706'],
             default     => ['',       '#15803d'],
         };
 
@@ -1256,10 +1287,11 @@ class ServiceRequestController extends Controller
         $m = $elapsed % 60;
 
         return [
-            'label' => $h > 0 ? "{$h}h {$m}m" : "{$m}m",
-            'cls'   => $cls,
-            'fill'  => $pct,
-            'color' => $color,
+            'label'   => $h > 0 ? "{$h}h {$m}m" : "{$m}m",
+            'cls'     => $cls,
+            'fill'    => $pct,
+            'color'   => $color,
+            'running' => $punch->punch_out_at === null,
         ];
     }
 

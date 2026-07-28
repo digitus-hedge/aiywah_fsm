@@ -325,7 +325,17 @@ body {
 }
 .comp-upload-btn:hover:not(:disabled) { border-color:#9a8053; color:#9a8053; }
 .comp-upload-btn:disabled { opacity:.4; cursor:not-allowed; }
-.upload-input { display:none; }
+/* .upload-input { display:none; } */
+
+.upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
 
 .lock-info {
   background:rgba(255,51,102,.06); border:1px solid rgba(255,51,102,.2);

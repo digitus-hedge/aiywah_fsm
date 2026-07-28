@@ -269,7 +269,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 <div class="modal-overlay {{ session('success') ? 'show' : '' }}" id="successModal">
   <div class="modal-box">
     <div class="modal-hdr">
-      <h6>Customer Account Saved</h6>
+      <h6 style="text-align: center;margin: 0 auto;">Customer Account Saved</h6>
       <a href="{{ route('clients.create') }}" class="modal-close"><i class="bi bi-x-lg"></i></a>
     </div>
     <div class="modal-body-c">

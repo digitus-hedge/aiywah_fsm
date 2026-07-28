@@ -369,18 +369,19 @@
 <script>
 /* =========================================================
    Quotation Desk — page scripts
-   NOTE: data arrays are empty. Connect to DB later, e.g.:
-   var Q_QUEUE          = @json($qQueue ?? []);
-   var PENDING_APPROVAL = @json($pendingApproval ?? []);
-
    Q_QUEUE row shape:
-   { id, client, site, logged, issue }
+   { id, dbId, client, site, logged, createdAt, issue }
    PENDING_APPROVAL row shape:
-   { id, sr, client, site, ref, submitted, waiting }
+   { id, sr, dbId, client, site, ref, submitted, waiting, createdAt }
    ========================================================= */
 var Q_QUEUE          = @json($qQueue ?? []);
 var PENDING_APPROVAL = @json($pendingApproval ?? []);
 var CSRF             = '{{ csrf_token() }}';
+
+/* filtered views — what actually gets rendered */
+var Q_FILTERED  = Q_QUEUE.slice();
+var PA_FILTERED = PENDING_APPROVAL.slice();
+
 var selQ = null;
 var q_fileOk = false;
 
@@ -447,15 +448,16 @@ function q_validate(){
 window.q_validate = q_validate;
 
 /* ---------- QUEUE ---------- */
-function renderQQueue(){
+function renderQQueue(list){
+  list = list || Q_FILTERED;
   var ul = document.getElementById('q-list');
-  document.getElementById('q-count').textContent = Q_QUEUE.length;
-  document.getElementById('stat-pq').textContent = Q_QUEUE.length;
-  if(!Q_QUEUE.length){
-    ul.innerHTML = '<div style="padding:28px;text-align:center;font-size:.8rem;color:var(--text-muted);"><i class="bi bi-inbox" style="display:block;font-size:1.6rem;margin-bottom:8px;color:var(--text-light);"></i>No pending tickets</div>';
+  document.getElementById('q-count').textContent = list.length;
+  document.getElementById('stat-pq').textContent = Q_QUEUE.length;   // KPI = total, not filtered
+  if(!list.length){
+    ul.innerHTML = '<div style="padding:28px;text-align:center;font-size:.8rem;color:var(--text-muted);"><i class="bi bi-inbox" style="display:block;font-size:1.6rem;margin-bottom:8px;color:var(--text-light);"></i>No matching tickets</div>';
     return;
   }
-  ul.innerHTML = Q_QUEUE.map(function(sr){
+  ul.innerHTML = list.map(function(sr){
     var ac = selQ && selQ.id===sr.id ? ' active':'';
     return '<div class="queue-item'+ac+'" data-id="'+sr.id+'" onclick="selectQ(this.dataset.id)">'+
       '<div class="qi-id">'+sr.id+'</div>'+
@@ -478,7 +480,7 @@ function selectQ(id){
   renderQQueue();
   document.getElementById('q-empty').style.display   = 'none';
   document.getElementById('q-success').classList.remove('show');
-  var det = document.getElementById('q-detail'); det.style.display = 'flex';
+  document.getElementById('q-detail').style.display = 'flex';
   document.getElementById('q-sr-id').textContent     = selQ.id;
   document.getElementById('q-sr-client').textContent = selQ.client;
   document.getElementById('q-sr-site').innerHTML     = '<i class="bi bi-geo-alt" style="color:#9a8053;font-size:.8rem;"></i> '+selQ.site;
@@ -488,9 +490,65 @@ function selectQ(id){
     '<div class="meta-chip"><div class="meta-chip-label">Scope</div><div class="meta-chip-value" style="color:#ef4444;">Out of Warranty</div></div>';
 }
 
+/* ---------- PENDING APPROVAL ---------- */
+function renderPA(list){
+  list = list || PA_FILTERED;
+  var tbody = document.getElementById('pa-tbody');
+  document.getElementById('pa-count').textContent = list.length;
+  document.getElementById('stat-pa').textContent  = PENDING_APPROVAL.length;   // KPI = total
+  if(!list.length){
+    tbody.innerHTML = '<tr><td colspan="7"><div class="pa-empty"><i class="bi bi-inbox"></i><p>No quotes awaiting client approval</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(item){
+    return '<tr>'+
+      '<td class="mono">'+item.sr+'</td>'+
+      '<td style="font-weight:500;">'+item.client+'</td>'+
+      '<td class="muted">'+item.site+'</td>'+
+      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.ref+'</span></td>'+
+      '<td class="muted">'+item.submitted+'</td>'+
+      '<td><span style="font-size:.75rem;color:#d97706;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
+      '<td style="text-align:center;"><button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Mark Client Approved</button></td>'+
+    '</tr>';
+  }).join('');
+}
+
+/* ---------- FILTERS ---------- */
+function qdFilter(){
+  var q    = document.getElementById('q-search').value.trim().toLowerCase();
+  var from = document.getElementById('q-date-from').value;   // '' or 'YYYY-MM-DD'
+  var to   = document.getElementById('q-date-to').value;
+
+  function match(row){
+    if (from && (!row.createdAt || row.createdAt < from)) return false;
+    if (to   && (!row.createdAt || row.createdAt > to))   return false;
+    if (q) {
+      var hay = [row.id, row.sr, row.client, row.site, row.ref, row.issue]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  }
+
+  Q_FILTERED  = Q_QUEUE.filter(match);
+  PA_FILTERED = PENDING_APPROVAL.filter(match);
+  renderQQueue(Q_FILTERED);
+  renderPA(PA_FILTERED);
+}
+
+function qdResetFilters(){
+  document.getElementById('q-search').value = '';
+  document.getElementById('q-date-from').value = '';
+  document.getElementById('q-date-to').value = '';
+  Q_FILTERED  = Q_QUEUE.slice();
+  PA_FILTERED = PENDING_APPROVAL.slice();
+  renderQQueue(Q_FILTERED);
+  renderPA(PA_FILTERED);
+}
+
 /* ---------- SUBMIT ---------- */
 function submitQuote(){
-  var ref = document.getElementById('q-ref').value.trim();
+  var ref = document.getElementById('q-ref').value.trim().toUpperCase();
   if(!ref || !q_fileOk){ showValMsg('q','Please fill the ERP Reference and attach a PDF.'); return; }
   var sr  = selQ;
   var btn = document.getElementById('q-btn');
@@ -507,18 +565,29 @@ function submitQuote(){
   })
   .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
   .then(function(){
-    Q_QUEUE.splice(Q_QUEUE.findIndex(function(s){return s.id===sr.id;}),1);
-    PENDING_APPROVAL.push({id:'PA-'+sr.dbId,dbId:sr.dbId,sr:sr.id,client:sr.client,site:sr.site,ref:ref.toUpperCase(),submitted:'Just now',waiting:'0m'});
+    var i = Q_QUEUE.findIndex(function(s){return s.id===sr.id;});
+    if(i > -1) Q_QUEUE.splice(i,1);
+
+    PENDING_APPROVAL.push({
+      id:'PA-'+sr.dbId, dbId:sr.dbId, sr:sr.id, client:sr.client, site:sr.site,
+      ref:ref, submitted:'Just now', waiting:'0m',
+      createdAt: sr.createdAt || new Date().toISOString().slice(0,10)
+    });
+
     document.getElementById('q-detail').style.display = 'none';
     document.getElementById('q-success-title').textContent = sr.id+' — Quote Submitted';
-    document.getElementById('q-success-body').textContent  = 'Quote PDF uploaded with ERP ref '+ref.toUpperCase()+'. Client notified via WhatsApp.';
+    document.getElementById('q-success-body').textContent  = 'Quote PDF uploaded with ERP ref '+ref+'. Client notified via WhatsApp.';
     document.getElementById('q-success').classList.add('show');
     selQ = null; q_fileOk = false;
-    renderQQueue(); renderPA();
+    qdFilter();
     showToast('ok','Quote Submitted',sr.id+' moved to Pending Client Approval.');
   })
   .catch(function(e){ btn.disabled = false; showToast('err','Upload Failed', e.message); });
 }
+
+/* ---------- APPROVAL ---------- */
+var pendingQAId = null;
+function openQAModal(id,sr){pendingQAId=id;document.getElementById('qa-sr').textContent=sr;document.getElementById('qa-modal').classList.add('show');}
 
 function execQApproval(){
   var idx  = PENDING_APPROVAL.findIndex(function(i){return i.id===pendingQAId;});
@@ -533,45 +602,13 @@ function execQApproval(){
   .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
   .then(function(){
     PENDING_APPROVAL.splice(idx,1);
-    renderPA();
+    qdFilter();
     showToast('ok','Client Approved',item.sr+' — status set to Approved.');
   })
   .catch(function(e){ showToast('err','Approval Failed', e.message); });
 }
+
 function qdNext(){document.getElementById('q-success').classList.remove('show');document.getElementById('q-empty').style.display='';}
-
-/* ---------- FILTERS ---------- */
-function qdResetFilters(){
-  document.getElementById('q-search').value = '';
-  document.getElementById('q-date-from').value = '';
-  document.getElementById('q-date-to').value = '';
-  renderQQueue();
-}
-
-/* ---------- PENDING APPROVAL ---------- */
-function renderPA(){
-  var tbody = document.getElementById('pa-tbody');
-  document.getElementById('pa-count').textContent = PENDING_APPROVAL.length;
-  document.getElementById('stat-pa').textContent  = PENDING_APPROVAL.length;
-  if(!PENDING_APPROVAL.length){
-    tbody.innerHTML = '<tr><td colspan="7"><div class="pa-empty"><i class="bi bi-inbox"></i><p>No quotes awaiting client approval</p></div></td></tr>';
-    return;
-  }
-  tbody.innerHTML = PENDING_APPROVAL.map(function(item){
-    return '<tr>'+
-      '<td class="mono">'+item.sr+'</td>'+
-      '<td style="font-weight:500;">'+item.client+'</td>'+
-      '<td class="muted">'+item.site+'</td>'+
-      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.ref+'</span></td>'+
-      '<td class="muted">'+item.submitted+'</td>'+
-      '<td><span style="font-size:.75rem;color:#d97706;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
-      '<td style="text-align:center;"><button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Mark Client Approved</button></td>'+
-    '</tr>';
-  }).join('');
-}
-
-var pendingQAId = null;
-function openQAModal(id,sr){pendingQAId=id;document.getElementById('qa-sr').textContent=sr;document.getElementById('qa-modal').classList.add('show');}
 
 function showValMsg(prefix,msg){
   var el = document.getElementById(prefix+'-val-msg');
@@ -579,7 +616,13 @@ function showValMsg(prefix,msg){
   setTimeout(function(){el.style.display='none';},3500);
 }
 
+/* ---------- INIT ---------- */
 document.addEventListener('DOMContentLoaded', function(){
+  ['q-search','q-date-from','q-date-to'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(!el) return;
+    el.addEventListener(el.type === 'date' ? 'change' : 'input', qdFilter);
+  });
   renderQQueue();
   renderPA();
 });
