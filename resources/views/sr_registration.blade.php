@@ -1035,7 +1035,7 @@
       <i class="bi bi-check-circle-fill me-1" style="color:#05a34a;"></i>Timestamped and saved in the system.
     </p>
     <button class="btn-main w-100 mb-2" onclick="goHub()">
-      <i class="bi bi-grid-1x2"></i>Go to SR Explorer
+      <i class="bi bi-grid-1x2"></i>Inquiry Approvels
     </button>
     <button class="btn-ghost w-100" onclick="newTicket()">
       <i class="bi bi-plus-circle"></i>Register Another SR
@@ -1867,7 +1867,7 @@ async function verify(val) {
   function goHub() {
     document.getElementById('srOverlay').classList.remove('show');
     clearAll();
-    window.location.href = "{{ route('sr_explorer') }}";
+    window.location.href = "{{ route('inquiry-approval.index') }}";
   }
 
   function newTicket() {

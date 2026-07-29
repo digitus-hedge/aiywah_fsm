@@ -209,7 +209,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 /* ═══════════════════════════════════════
    TOAST
 ═══════════════════════════════════════ */
-.toast-wrap{position:fixed;top:70px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:310px;}
+/* .toast-wrap{position:fixed;top:70px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:310px;}
 .toast-item{background:var(--card-bg);border-left:4px solid #6571ff;border-radius:7px;padding:12px 14px;box-shadow:0 6px 24px rgba(0,0,0,.18);display:flex;align-items:flex-start;gap:10px;animation:toastIn .3s ease;}
 .toast-item.success{border-color:#05a34a;}.toast-item.error{border-color:#ff3366;}.toast-item.warning{border-color:#fbbc06;}
 @keyframes toastIn{from{transform:translateX(40px);opacity:0;}to{transform:none;opacity:1;}}
@@ -217,7 +217,67 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 .ti-icon.primary{color:#6571ff;}.ti-icon.success{color:#05a34a;}.ti-icon.error{color:#ff3366;}.ti-icon.warning{color:#fbbc06;}
 .ti-title{font-size:.8125rem;font-weight:600;margin:0 0 2px;color:var(--text-heading);}
 .ti-body{font-size:.72rem;margin:0;color:var(--text-muted);}
-@media(max-width:575.98px){.toast-wrap{left:12px;right:12px;max-width:none;}}
+@media(max-width:575.98px){.toast-wrap{left:12px;right:12px;max-width:none;}} */
+
+
+
+.toast-wrap{
+  position:fixed;top:70px;right:22px;z-index:9999;
+  display:flex;flex-direction:column;gap:14px;
+  max-width:calc(100vw - 44px);pointer-events:none;
+}
+
+.toast-item{
+  pointer-events:auto;
+  width:400px;max-width:100%;
+  background:var(--card-bg);
+  border-left:5px solid var(--tc,#6571ff);
+  border-radius:12px;
+  padding:16px 18px;
+  box-shadow:0 14px 40px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.10);
+  display:flex;align-items:flex-start;gap:13px;
+  position:relative;overflow:hidden;
+  animation:toastIn .38s cubic-bezier(.2,.9,.25,1.15);
+}
+.toast-item.hide{transform:translateX(115%);opacity:0;transition:transform .35s ease,opacity .3s ease;}
+
+.toast-item.primary{--tc:#6571ff;--tc-soft:rgba(101,113,255,.14);}
+.toast-item.success{--tc:#05a34a;--tc-soft:rgba(5,163,74,.14);}
+.toast-item.error  {--tc:#ff3366;--tc-soft:rgba(255,51,102,.14);}
+.toast-item.warning{--tc:#fbbc06;--tc-soft:rgba(251,188,6,.16);}
+
+@keyframes toastIn{from{transform:translateX(60px);opacity:0;}to{transform:none;opacity:1;}}
+
+.ti-icon{
+  flex:0 0 36px;height:36px;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:1.1rem;
+  color:var(--tc);background:var(--tc-soft);
+}
+.ti-icon.primary{color:#6571ff;}.ti-icon.success{color:#05a34a;}
+.ti-icon.error{color:#ff3366;}.ti-icon.warning{color:#fbbc06;}
+
+.toast-item>div{flex:1;min-width:0;padding-top:3px;}
+.ti-title{font-size:.9375rem;font-weight:600;margin:0 0 4px;color:var(--text-heading);letter-spacing:-.01em;}
+.ti-body{font-size:.82rem;line-height:1.5;margin:0;color:var(--text-muted);word-break:break-word;}
+
+.ti-close{background:none;border:0;cursor:pointer;padding:2px 4px;line-height:1;
+  font-size:.95rem;color:var(--text-muted);opacity:.55;transition:opacity .2s;}
+.ti-close:hover{opacity:1;}
+
+.ti-bar{position:absolute;bottom:0;left:0;height:3px;width:100%;
+  background:var(--tc);transform-origin:left;animation:tiBar linear forwards;}
+@keyframes tiBar{from{transform:scaleX(1);}to{transform:scaleX(0);}}
+
+@media(max-width:575.98px){
+  .toast-wrap{left:12px;right:12px;top:64px;max-width:none;}
+  .toast-item{width:100%;padding:16px 18px;gap:13px;}
+  .ti-icon{flex-basis:36px;height:36px;font-size:1.05rem;}
+  .ti-title{font-size:.9375rem;}.ti-body{font-size:.82rem;}
+}
+
+
+
 
 /* ═══════════════════════════════════════
    WHATSAPP SENT BADGE
@@ -573,7 +633,9 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 ════════════════════════════════ */
 const CSRF = "{{ csrf_token() }}";
 window.ROUTES = {
-  approveBase: "{{ url('service-requests') }}"   // Matches your exact web.php declaration mapping
+  approveBase: "{{ url('service-requests') }}",  // Matches your exact web.php declaration mapping
+      dispatchEngine: "{{ route('dispatch_engine') }}",
+    quotationDesk:       "{{ route('quotation_desk') }}"
 };
 
 const ALL_TICKETS = [
@@ -601,6 +663,14 @@ const ALL_TICKETS = [
   },
 @endforeach
 ];
+
+
+const ACTIONS = {
+  approve:    { type:'success', title:'Ticket Approved',                redirect:'dispatchEngine' },
+  accounts:   { type:'warning', title:'Forwarded to Accounts',          redirect:'quotationDesk' },
+  additional: { type:'primary', title:'Accepted as Additional Work',    redirect:'quotationDesk' },
+  reject:     { type:'error',   title:'Ticket Rejected',                redirect:null }
+};
 
 /* ════════════════════════════════
     CLOCK
@@ -894,81 +964,198 @@ document.getElementById('confirmModal').addEventListener('click',function(e){if(
 /* ════════════════════════════════
     EXECUTE ACTION — Real POST payload dispatch
 ════════════════════════════════ */
-function executeAction(){
-  if(!pendingAction||!selectedId)return;
-  const t=tickets.find(x=>x.id===selectedId);
-  const btn=document.getElementById('modalConfirmBtn');
-  btn.disabled=true;
-  btn.innerHTML='<span class="spinner-border" style="width:13px;height:13px;border-width:2px;"></span> Processing…';
 
-  let url, body={};
-  if(pendingAction==='approve'){ url=`${window.ROUTES.approveBase}/${t.dbId}/approve`; }
-  else if(pendingAction==='accounts'){ url=`${window.ROUTES.approveBase}/${t.dbId}/forward`; }
-  else if(pendingAction==='additional'){ url=`${window.ROUTES.approveBase}/${t.dbId}/additional`; }
-  else if(pendingAction==='reject'){
-    url=`${window.ROUTES.approveBase}/${t.dbId}/reject`;
-    body.reason=document.getElementById('rejectionText').value;
-  }
+
+// function executeAction(){
+//   if(!pendingAction||!selectedId)return;
+//   const t=tickets.find(x=>x.id===selectedId);
+//   const btn=document.getElementById('modalConfirmBtn');
+//   btn.disabled=true;
+//   btn.innerHTML='<span class="spinner-border" style="width:13px;height:13px;border-width:2px;"></span> Processing…';
+
+//   let url, body={};
+//   if(pendingAction==='approve'){ url=`${window.ROUTES.approveBase}/${t.dbId}/approve`; }
+//   else if(pendingAction==='accounts'){ url=`${window.ROUTES.approveBase}/${t.dbId}/forward`; }
+//   else if(pendingAction==='additional'){ url=`${window.ROUTES.approveBase}/${t.dbId}/additional`; }
+//   else if(pendingAction==='reject'){
+//     url=`${window.ROUTES.approveBase}/${t.dbId}/reject`;
+//     body.reason=document.getElementById('rejectionText').value;
+//   }
+
+//   fetch(url,{
+//     method:'POST',
+//     headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json','Content-Type':'application/json'},
+//     body:JSON.stringify(body)
+//   })
+//   .then(r=>r.json().then(j=>({status:r.status,j})))
+//   .then(({status,j})=>{
+//     if(status>=200 && status<300 && j.ok){
+//       tickets=tickets.filter(x=>x.id!==selectedId);
+//       if(pendingAction==='approve')todayApproved++;
+//       else if(pendingAction==='accounts')todayFwd++;
+//       else if(pendingAction==='reject')todayRejected++;
+
+//       const toastType  = pendingAction==='reject' ? 'error'
+//                        : pendingAction==='accounts' ? 'warning'
+//                        : pendingAction==='additional' ? 'primary'
+//                        : 'success';
+//       const toastTitle = pendingAction==='reject' ? 'Ticket Rejected'
+//                        : pendingAction==='accounts' ? 'Forwarded to Accounts'
+//                        : pendingAction==='additional' ? 'Accepted as Additional Work'
+//                        : 'Ticket Approved';
+//       showToast(toastType, toastTitle, j.message);
+
+//       closeModal();
+//       selectedId=null;
+//       filtered=[...tickets];
+//       applyFilter();
+//       updateStats();
+//       document.getElementById('contractBody').innerHTML='<div class="dp-empty"><i class="bi bi-mouse2"></i>Select a row to load contract data</div>';
+//       document.getElementById('descBody').innerHTML='<div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>';
+//       ['btnApprove','btnAccounts','btnAdditional','btnReject'].forEach(id=>{document.getElementById(id).disabled=true;});
+//       document.getElementById('noSelectionNote').style.display='block';
+//       cancelRejection();
+//     } else if(status===422 && j.errors){
+//       showToast('error','Validation Failed',Object.values(j.errors)[0][0]);
+//     } else {
+//       showToast('error','Failed',j.message||'Action failed.');
+//     }
+//     btn.disabled=false;
+//     btn.innerHTML='<i class="bi bi-check2"></i>Confirm';
+//   })
+//   .catch(()=>{
+//     showToast('error','Network Error','Could not reach the server.');
+//     btn.disabled=false;
+//     btn.innerHTML='<i class="bi bi-check2"></i>Confirm';
+//   });
+// }
+
+
+
+let actionBusy = false;
+
+function executeAction(){
+  if(actionBusy || !pendingAction || !selectedId) return;
+  actionBusy = true;
+
+  const t   = tickets.find(x => x.id === selectedId);
+  const btn = document.getElementById('modalConfirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border" style="width:13px;height:13px;border-width:2px;"></span> Processing…';
+
+  const paths = { approve:'approve', accounts:'forward', additional:'additional', reject:'reject' };
+  const url   = `${window.ROUTES.approveBase}/${t.dbId}/${paths[pendingAction]}`;
+  const body  = pendingAction === 'reject'
+    ? { reason: document.getElementById('rejectionText').value }
+    : {};
+
+  let redirecting = false;
 
   fetch(url,{
     method:'POST',
     headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json','Content-Type':'application/json'},
     body:JSON.stringify(body)
   })
-  .then(r=>r.json().then(j=>({status:r.status,j})))
-  .then(({status,j})=>{
-    if(status>=200 && status<300 && j.ok){
-      tickets=tickets.filter(x=>x.id!==selectedId);
-      if(pendingAction==='approve')todayApproved++;
-      else if(pendingAction==='accounts')todayFwd++;
-      else if(pendingAction==='reject')todayRejected++;
+  .then(async r => {
+    const text = await r.text();
+    let j; try { j = JSON.parse(text); }
+    catch { j = { message:`Server returned ${r.status} (non-JSON response).` }; }
+    return { status:r.status, j };
+  })
+  .catch(() => {                                    // ← BEFORE the handler
+    showToast('error','Network Error','Could not reach the server.', 8000);
+    return null;
+  })
+  .then(res => {
+    if(!res) return;                                // network failure already toasted
+    const { status, j } = res;
+    const cfg = ACTIONS[pendingAction] || ACTIONS.approve;
 
-      const toastType  = pendingAction==='reject' ? 'error'
-                       : pendingAction==='accounts' ? 'warning'
-                       : pendingAction==='additional' ? 'primary'
-                       : 'success';
-      const toastTitle = pendingAction==='reject' ? 'Ticket Rejected'
-                       : pendingAction==='accounts' ? 'Forwarded to Accounts'
-                       : pendingAction==='additional' ? 'Accepted as Additional Work'
-                       : 'Ticket Approved';
-      showToast(toastType, toastTitle, j.message);
+    if(status >= 200 && status < 300 && j.ok){
+      const target = cfg.redirect ? window.ROUTES[cfg.redirect] : null;
 
+      showToast(cfg.type, cfg.title, j.message, target ? 3000 : 6000);   // ← exactly one
       closeModal();
-      selectedId=null;
-      filtered=[...tickets];
+      cancelRejection();
+
+      if(target){
+        redirecting = true;
+        setTimeout(() => { window.location.href = target; }, 3000);
+        return;
+      }
+
+      // reject only — update in place
+      tickets = tickets.filter(x => x.id !== selectedId);
+      todayRejected++;
+      selectedId = null;
+      filtered = [...tickets];
       applyFilter();
       updateStats();
-      document.getElementById('contractBody').innerHTML='<div class="dp-empty"><i class="bi bi-mouse2"></i>Select a row to load contract data</div>';
-      document.getElementById('descBody').innerHTML='<div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>';
-      ['btnApprove','btnAccounts','btnAdditional','btnReject'].forEach(id=>{document.getElementById(id).disabled=true;});
-      document.getElementById('noSelectionNote').style.display='block';
-      cancelRejection();
-    } else if(status===422 && j.errors){
-      showToast('error','Validation Failed',Object.values(j.errors)[0][0]);
+      resetDetailPanel();
+
+    } else if(status === 422 && j.errors){
+      showToast('error','Validation Failed', Object.values(j.errors)[0][0], 7000);
+    } else if(status === 419){
+      showToast('error','Session Expired','Please refresh the page and try again.', 9000);
     } else {
-      showToast('error','Failed',j.message||'Action failed.');
+      showToast('error','Action Failed', j.message || 'Action failed.', 7000);
     }
-    btn.disabled=false;
-    btn.innerHTML='<i class="bi bi-check2"></i>Confirm';
   })
-  .catch(()=>{
-    showToast('error','Network Error','Could not reach the server.');
-    btn.disabled=false;
-    btn.innerHTML='<i class="bi bi-check2"></i>Confirm';
+  .finally(() => {
+    actionBusy = false;
+    if(redirecting) return;                         // keep button locked while navigating
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check2"></i>Confirm';
   });
 }
+
+
 
 /* ════════════════════════════════
     TOAST
 ════════════════════════════════ */
-function showToast(type,title,body){
-  const w=document.getElementById('toastWrap');
-  const icons={success:'bi-check-circle-fill',error:'bi-x-circle-fill',primary:'bi-info-circle-fill',warning:'bi-exclamation-circle-fill'};
-  const t=document.createElement('div');
-  t.className=`toast-item ${type}`;
-  t.innerHTML=`<i class="bi ${icons[type]||'bi-info-circle-fill'} ti-icon ${type}"></i><div><p class="ti-title">${title}</p><p class="ti-body">${body}</p></div>`;
+function showToast(type, title, body, duration = 6000){
+  let w = document.getElementById('toastWrap');
+  if(!w){
+    w = document.createElement('div');
+    w.id = 'toastWrap';
+    document.body.appendChild(w);
+  }
+
+  const icons = {
+    success:'bi-check-circle-fill',
+    error:'bi-x-octagon-fill',
+    primary:'bi-briefcase-fill',
+    warning:'bi-exclamation-triangle-fill'
+  };
+
+  const t = document.createElement('div');
+  t.className = `toast-item ${type}`;
+  t.innerHTML = `
+    <i class="bi ${icons[type]||'bi-info-circle-fill'} ti-icon"></i>
+    <div><p class="ti-title"></p><p class="ti-body"></p></div>
+    <button class="ti-close" aria-label="Close"><i class="bi bi-x-lg"></i></button>
+    <div class="ti-bar" style="animation-duration:${duration}ms"></div>
+  `;
+
+  t.querySelector('.ti-title').textContent = title;
+  t.querySelector('.ti-body').textContent  = body || '';
+
   w.appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300);},4000);
+  requestAnimationFrame(()=> t.classList.add('show'));
+
+  const bar = t.querySelector('.ti-bar');
+  let timer = setTimeout(dismiss, duration);
+
+  function dismiss(){
+    clearTimeout(timer);
+    t.classList.add('hide');
+    setTimeout(()=> t.remove(), 450);
+  }
+
+  t.querySelector('.ti-close').onclick = dismiss;
+  t.onmouseenter = ()=>{ clearTimeout(timer); bar.style.animationPlayState='paused'; };
+  t.onmouseleave = ()=>{ bar.style.animationPlayState='running'; timer = setTimeout(dismiss, 2000); };
 }
 
 /* ════════════════════════════════

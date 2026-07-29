@@ -25,6 +25,7 @@ class Project extends Model
         'warranty_id',
         'project_engineer',
         'engineer_contact',
+        'engineer_country',
     ];
 
     protected $casts = [

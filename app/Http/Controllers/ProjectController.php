@@ -245,6 +245,7 @@ class ProjectController extends Controller
 
             'project_engineer' => 'nullable|string|max:255',
             'engineer_contact' => 'nullable',
+               'engineer_country' => 'nullable',
             
         ], [
             'completion_date.required' => 'Please select a completion date.',
