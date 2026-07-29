@@ -291,6 +291,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
     <input class="filter-control filter-search" type="text" name="search"
            placeholder="SR ID, customer name, site…" oninput="debounceFilter()"/>
   </div>
+  
   <div class="filter-group">
     <div class="filter-label">Status</div>
     <select class="filter-control" id="filter-status" name="status" onchange="applyFilters()">
@@ -301,6 +302,22 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
       @endforeach
     </select>
   </div>
+
+
+  <div class="filter-group">
+  <div class="filter-label">Category</div>
+  <select class="filter-control" id="filter-category" name="category_id" onchange="applyFilters()">
+    <option value="">All Categories</option>
+    @foreach($categories as $category)
+      <option value="{{ $category->id }}"
+        @selected(request('category_id') == $category->id)>
+        {{ $category->category_name }}
+      </option>
+    @endforeach
+  </select>
+</div>
+
+
   <div class="filter-group">
     <div class="filter-label">Date From</div>
     <input class="filter-control" type="date" name="date_from" onchange="applyFilters()"/>
@@ -334,6 +351,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
           <th class="sortable">Customer<i class="bi bi-chevron-expand"></i></th>
           <th>Site / Location</th>
           <th>Assigned To</th>
+                    <th>Category</th>
           <th class="sortable">Status <i class="bi bi-chevron-expand"></i></th>
           <th class="sortable">Created <i class="bi bi-chevron-expand"></i></th>
           <th style="width:70px;">Action</th>
@@ -405,6 +423,11 @@ $srPayload = [
               @if($sr->assignedUser){{ $sr->assignedUser->name }}
               @else <span style="color:#999;">Unassigned</span> @endif
             </td>
+
+
+              <td>{{ optional($sr->category)->category_name ?? '—' }}</td>
+
+              
             <td>
               <span class="sbadge {{ $badge }}">
                 <i class="bi bi-circle-fill" style="font-size:.4rem;"></i> 
@@ -412,6 +435,12 @@ $srPayload = [
 
               </span>
             </td>
+
+         
+           
+         
+
+            
             <td class="muted">{{ \Carbon\Carbon::parse($sr->created_at)->diffForHumans() }}</td>
             <td onclick="event.stopPropagation()">
               <div style="display:flex;gap:5px;">
@@ -487,10 +516,6 @@ $srPayload = [
           <span class="sr-detail-label"><i class="bi bi-clock-history"></i>Last Updated</span>
           <span class="sr-detail-value muted" id="sr-m-updated">—</span>
         </div>
-
-
-
-      
 
 
           <div class="sr-detail-item">

@@ -258,6 +258,26 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 .ti-title{font-size:.8125rem;font-weight:600;margin:0 0 2px;color:var(--text-heading);}
 .ti-body{font-size:.72rem;margin:0;color:var(--text-muted);}
 @media(max-width:575.98px){.toast-wrap{left:12px;right:12px;max-width:none;}}
+
+.ps-phone{
+  display:grid;
+  grid-template-columns:112px 1fr;
+  gap:6px;
+  align-items:center;
+}
+.ps-phone .ps-code,
+.ps-phone .ps-input{
+  min-width:0;      /* required — grid items default to auto and blow out the row */
+  margin:0;         /* kills any inherited bottom margin that breaks the baseline */
+}
+.ps-code{
+  height:100%;
+  padding:8px 6px;
+  font-size:.82rem;
+  border:1px solid var(--border, rgba(0,0,0,.15));
+  border-radius:7px;
+  background:var(--card-bg,#fff);
+}
 </style>
 @endpush
 
@@ -421,7 +441,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="card">
         <div class="card-hdr">
           <div class="card-hdr-icon" style="background:rgba(37,211,102,.1);"><i class="bi bi-whatsapp" style="color:#25d366;"></i></div>
-          <div><h6>Personal Contacts</h6><span class="csub">Additional contacts for ticket notifications</span></div>
+          <div><h6>Contact Person</h6><span class="csub">Additional contacts for ticket notifications</span></div>
         </div>
         <div class="card-body">
           <div style="font-size:.72rem;color:var(--text-muted);background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.18);border-radius:7px;padding:8px 11px;display:flex;align-items:flex-start;gap:7px;margin-bottom:14px;">
@@ -894,13 +914,27 @@ function addProject(prefill, existing) {
         <input type="text" class="ps-input" name="projects[${idx}][project_engineer]" id="pseng-${idx}"
                value="${pe}" placeholder="e.g. Rahul Menon" oninput="syncSummary()"/>
       </div>
-      <div>
+     <div>
         <span class="ps-label">Engineer Contact</span>
-<input type="text" class="ps-input" name="projects[${idx}][engineer_contact]" id="psengc-${idx}"
-       value="${pec}" placeholder="Phone"
-       inputmode="numeric" pattern="[0-9]{7,15}" maxlength="15"
-       title="Digits only (7–15)"
-       oninput="this.value = this.value.replace(/[^0-9]/g,''); syncSummary();"/>
+        <div class="ps-phone">
+          <select class="ps-code" name="projects[${idx}][engineer_country]" id="psengcc-${idx}"
+                  onchange="syncSummary()">
+            <option value="+971" ${pec === '+971' ? 'selected' : ''}>🇦🇪 +971</option>
+            <option value="+91"  ${pec === '+91'  ? 'selected' : ''}>🇮🇳 +91</option>
+            <option value="+1"   ${pec === '+1'   ? 'selected' : ''}>🇺🇸 +1</option>
+            <option value="+44"  ${pec === '+44'  ? 'selected' : ''}>🇬🇧 +44</option>
+            <option value="+966" ${pec === '+966' ? 'selected' : ''}>🇸🇦 +966</option>
+            <option value="+974" ${pec === '+974' ? 'selected' : ''}>🇶🇦 +974</option>
+            <option value="+965" ${pec === '+965' ? 'selected' : ''}>🇰🇼 +965</option>
+            <option value="+973" ${pec === '+973' ? 'selected' : ''}>🇧🇭 +973</option>
+            <option value="+968" ${pec === '+968' ? 'selected' : ''}>🇴🇲 +968</option>
+          </select>
+          <input type="text" class="ps-input" name="projects[${idx}][engineer_contact]" id="psengc-${idx}"
+                 value="${pec}" placeholder="Phone"
+                 inputmode="numeric" pattern="[0-9]{7,15}" maxlength="15"
+                 title="Digits only (7–15)"
+                 oninput="this.value = this.value.replace(/[^0-9]/g,''); syncSummary();"/>
+        </div>
       </div>
       <div class="ps-full">
         <span class="ps-label">Site Name / Header <span style="color:#ff3366;">*</span></span>

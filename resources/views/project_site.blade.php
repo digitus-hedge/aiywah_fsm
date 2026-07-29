@@ -1727,21 +1727,36 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
           </div>
 
 
-          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;">
-            <div class="form-group" style="margin-bottom:0;flex:1;min-width:260px;">
-              <label class="form-label">Project Engineer</label>
-              <input type="text" class="form-control" id="proj-engineer" placeholder="e.g. Rahul Menon">
-              <div class="field-hint">Internal person associated with the project. Optional.</div>
-            </div>
+         <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:14px;">
+  <div class="form-group" style="margin-bottom:0;flex:1;min-width:260px;">
+    <label class="form-label">Project Engineer</label>
+    <input type="text" class="form-control" id="proj-engineer" placeholder="e.g. Rahul Menon">
+    <div class="field-hint">Internal person associated with the project. Optional.</div>
+  </div>
 
-            <div class="form-group" style="margin-bottom:0;flex:1;min-width:260px;">
-              <label class="form-label">Engineer Contact</label>
-              <input type="text" class="form-control" id="proj-engineer-contact" placeholder="Phone"
-                     inputmode="numeric" maxlength="15"
-                     oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-              <div class="field-hint">Digits only.</div>
-            </div>
-          </div>
+  <div class="form-group" style="margin-bottom:0;flex:1;min-width:260px;">
+    <label class="form-label">Engineer Contact</label>
+    <div style="display:grid;grid-template-columns:112px 1fr;gap:6px;align-items:center;">
+      <select class="form-control" id="proj-engineer-country" style="min-width:0;padding-left:8px;padding-right:6px;">
+        <option value="">— Code —</option>
+        <option value="+971" selected>UAE +971</option>
+        <option value="+91">India +91</option>
+        <option value="+1">USA +1</option>
+        <option value="+44">UK +44</option>
+        <option value="+966">KSA +966</option>
+        <option value="+974">Qatar +974</option>
+        <option value="+965">Kuwait +965</option>
+        <option value="+973">Bahrain +973</option>
+        <option value="+968">Oman +968</option>
+      </select>
+      <input type="text" class="form-control" id="proj-engineer-contact" placeholder="Phone"
+             style="min-width:0;"
+             inputmode="numeric" maxlength="15"
+             oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+    </div>
+    <!-- <div class="field-hint">Digits only.</div> -->
+  </div>
+</div>
 
         </div>
 
@@ -1863,6 +1878,7 @@ $clientsJs = $clients->map(fn($c) => [
       document.getElementById('proj-code').value = p.project_code;
       document.getElementById('proj-engineer').value =  p.project_engineer ?? '';
       document.getElementById('proj-engineer-contact').value = p.engineer_contact ?? '';
+         document.getElementById('proj-engineer-country').value = p.engineer_country ?? '';
       document.getElementById('site-name').value = p.site_name;
       document.getElementById('site-address').value = p.site_address;
       // ── warranty (handles inactive/filtered warranties) ──
@@ -1923,7 +1939,7 @@ $clientsJs = $clients->map(fn($c) => [
     document.getElementById('cust-dropdown').classList.remove('open');
     document.getElementById('cust-clear').classList.remove('visible');
     document.getElementById('proj-form-body').classList.remove('revealed');
-    ['proj-name', 'proj-code', 'proj-completion', 'site-name', 'site-address', 'proj-engineer', 'proj-engineer-contact'].forEach(id => {
+    ['proj-name', 'proj-code', 'proj-completion', 'site-name', 'site-address', 'proj-engineer','proj-engineer-country', 'proj-engineer-contact'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -2048,6 +2064,7 @@ $clientsJs = $clients->map(fn($c) => [
     warranty_id: document.getElementById('proj-warranty').value || null,
     project_engineer: document.getElementById('proj-engineer').value.trim() || null,
     engineer_contact: document.getElementById('proj-engineer-contact').value.trim() || null,
+    engineer_country: document.getElementById('proj-engineer-country').value.trim() || null,
     status: document.getElementById('status-tog').classList.contains('on') ? 'Active' : 'Inactive',
   };
 

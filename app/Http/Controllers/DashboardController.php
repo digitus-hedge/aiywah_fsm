@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -66,6 +67,24 @@ class DashboardController extends Controller
      | Page
      ===================================================================== */
 
+
+
+private function dashboardView(): string
+{
+    $role = optional(Auth::user()?->role)->name;
+
+    $map = [
+        'Head of Projects' => 'head_projects_dashboard',
+        'Front Desk'       => 'front_desk_dashboard',
+        'Accounts'         => 'accounts_dashboard',
+        'QC'               => 'qc_dashboard',
+    ];
+
+    $view = $map[$role] ?? 'dashboard';
+
+    return view()->exists($view) ? $view : 'dashboard';
+}
+     
     public function index(Request $request)
     {
         [$start, $end]         = $this->resolveRange($request->input('range', 'month'));
@@ -83,7 +102,8 @@ class DashboardController extends Controller
         $current  = $this->load($filters, $start, $end);
         $previous = $this->load($filters, $prevStart, $prevEnd);
 
-        return view('dashboard', [
+         return view($this->dashboardView(), [
+        // return view('dashboard', [
             'greeting'    => $this->greeting(),
             'greetingSub' => "Here's your complete operations overview",
             'today'       => now()->format('l, d F Y'),

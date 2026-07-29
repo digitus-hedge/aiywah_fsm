@@ -174,7 +174,12 @@ body {
   font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
   color:var(--text-muted); margin-bottom:7px; display:flex; align-items:center; gap:5px;
 }
-.exp-text { font-size:.76rem; color:var(--text-primary); line-height:1.5; }
+.exp-text { font-size:.76rem; color:var(--text-primary); line-height:1.5;overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
+
+    max-width: 100%;
+    min-width: 0 }
 .rework-note {
   background:rgba(255,51,102,.07); border:1px solid rgba(255,51,102,.2);
   border-radius:8px; padding:9px 11px; font-size:.76rem;
@@ -723,7 +728,9 @@ body {
 .pwd-err{color:#ff3366;background:rgba(255,51,102,.08);}
 .pwd-ok{color:#22c55e;background:rgba(34,197,94,.08);}
 
-
+.photo-pdf iframe{
+  pointer-events: none;    /* ← clicks pass through to the parent div */
+}
   </style>
 </head>
 <body>

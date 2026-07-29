@@ -9,6 +9,7 @@ use App\Models\ServiceRequest;
 use App\Models\ClientMobile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class ClientController extends Controller
@@ -567,7 +568,7 @@ class ClientController extends Controller
             'projects'                 => ['required', 'array', 'min:1'],
             'projects.*.id'            => ['nullable', 'integer', 'exists:projects,id'],
             'projects.*.project_name'  => ['required', 'string', 'max:255'],
-            'projects.*.project_code'  => ['required', 'string', 'max:50'],
+             'projects.*.project_code' => ['nullable', 'string', 'max:50'],
             'projects.*.site_name'     => ['required', 'string', 'max:255'],
             'projects.*.site_address'  => ['nullable', 'string', 'max:1000'],
             'projects.*.completion_date'    => ['required', 'date'],
@@ -575,6 +576,8 @@ class ClientController extends Controller
             'projects.*.warranty_end_date'  => ['nullable', 'date'],
             'projects.*.project_engineer'   => ['nullable', 'string', 'max:255'],
             'projects.*.engineer_contact'   => ['nullable', 'digits_between:7,15'],
+            'projects.*.engineer_country'  => ['nullable', 'string', 'max:6'],
+
         ];
 
         // Firm name is always editable
@@ -614,78 +617,52 @@ class ClientController extends Controller
     }
 
     private function syncProjects(Client $client, array $validated): void
-    {
-        // foreach ($validated['projects'] as $project) {
+{
+    $incomingIds = [];
 
-        //     $warrantyDays = 0;
+    foreach ($validated['projects'] as $project) {
 
-        //     if (!empty($project['warranty_id'])) {
-        //         $warranty = Warranty::find($project['warranty_id']);
-        //         $warrantyDays = (int) ($warranty->value ?? 0);
-        //     }
-
-        //     $warrantyEndDate = !empty($project['completion_date'])
-        //         ? Carbon::parse($project['completion_date'])->addDays($warrantyDays)->toDateString()
-        //         : null;
-
-
-        //     $client->projects()->create([
-        //         'project_name'      => $project['project_name'],
-        //         'project_code'      => $project['project_code'],
-        //         'site_name'         => $project['site_name'] ?? null,
-        //         'site_address'      => $project['site_address'] ?? null,
-        //         'completion_date'   => $project['completion_date'] ?? null,
-        //         'warranty_id'       => $project['warranty_id'] ?? null,
-        //         'warranty_end_date' => $warrantyEndDate,
-        //     ]);
-        // }
-
-        $incomingIds = [];
-
-        foreach ($validated['projects'] as $project) {
-
-            $warrantyDays = 0;
-            if (!empty($project['warranty_id'])) {
-                $warranty = Warranty::find($project['warranty_id']);
-                $warrantyDays = (int) ($warranty->value ?? 0);
-            }
-
-            $warrantyEndDate = !empty($project['completion_date'])
-                ? Carbon::parse($project['completion_date'])->addDays($warrantyDays)->toDateString()
-                : null;
-
-            $data = [
-                'project_name'      => $project['project_name'],
-                'project_code'      => $project['project_code'],
-                'site_name'         => $project['site_name'] ?? null,
-                'site_address'      => $project['site_address'] ?? null,
-                'completion_date'   => $project['completion_date'] ?? null,
-                'warranty_id'       => $project['warranty_id'] ?? null,
-                'warranty_end_date' => $warrantyEndDate,
-                'project_engineer'  => $project['project_engineer'] ?? null,
-                'engineer_contact'  => $project['engineer_contact'] ?? null,
-            ];
-
-            if (!empty($project['id'])) {
-                // existing row → update in place, keep the same id
-                $model = $client->projects()->find($project['id']);
-                if ($model) {
-                    $model->update($data);
-                    $incomingIds[] = $model->id;
-                    continue;
-                }
-            }
-
-            // no id (or id not found) → create new
-            $new = $client->projects()->create($data);
-            $incomingIds[] = $new->id;
+        $warrantyDays = 0;
+        if (!empty($project['warranty_id'])) {
+            $warranty = Warranty::find($project['warranty_id']);
+            $warrantyDays = (int) ($warranty->value ?? 0);
         }
 
-        // delete rows the user removed from the form (present in DB, absent from submission)
-        $client->projects()
-            ->whereNotIn('id', $incomingIds)
-            ->forceDelete();
+        $warrantyEndDate = !empty($project['completion_date'])
+            ? Carbon::parse($project['completion_date'])->addDays($warrantyDays)->toDateString()
+            : null;
+
+        $data = [
+            'project_name'      => $project['project_name'],
+            'site_name'         => $project['site_name'] ?? null,
+            'site_address'      => $project['site_address'] ?? null,
+            'completion_date'   => $project['completion_date'] ?? null,
+            'warranty_id'       => $project['warranty_id'] ?? null,
+            'warranty_end_date' => $warrantyEndDate,
+            'project_engineer'  => $project['project_engineer'] ?? null,
+            'engineer_contact'  => $project['engineer_contact'] ?? null,
+            'engineer_country'  => $project['engineer_country'] ?? null,
+            
+        ];
+        // note: project_code deliberately NOT in $data
+
+        if (!empty($project['id'])) {
+            $model = $client->projects()->find($project['id']);
+            if ($model) {
+                $model->update($data);          // existing row keeps its code
+                $incomingIds[] = $model->id;
+                continue;
+            }
+        }
+
+        $data['project_code'] = $this->generateProjectCode();   // only on create
+        $incomingIds[] = $client->projects()->create($data)->id;
     }
+
+    $client->projects()
+        ->whereNotIn('id', $incomingIds)
+        ->forceDelete();
+}
 
     public function showFeedback($id)
     {
@@ -697,6 +674,14 @@ class ClientController extends Controller
         return view('client_feedback', compact('serviceRequest'));
     }
 
+    private function generateProjectCode(): string
+{
+    do {
+        $code = 'PRJ-' . now()->year . '-' . strtoupper(Str::random(6));
+    } while (Project::withTrashed()->where('project_code', $code)->exists());
+
+    return $code;
+}
 
     public function storeFeedback(Request $request, $id)
     {

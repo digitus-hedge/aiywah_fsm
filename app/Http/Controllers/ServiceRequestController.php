@@ -205,7 +205,9 @@ class ServiceRequestController extends Controller
         ];
         $statuses = array_keys($statusMap);
 
-        $query = ServiceRequest::with(['client', 'project', 'assignedUser']);
+        $categories = ServiceCategory::orderBy('category_name')->get(['id', 'category_name']);
+
+        $query = ServiceRequest::with(['client', 'project', 'assignedUser','category']);
 
         if ($request->filled('search')) {
             $s = trim($request->search);
@@ -227,6 +229,7 @@ class ServiceRequestController extends Controller
         }
 
         if ($request->filled('status'))    $query->where('status', $request->status);
+        if ($request->filled('category_id')) $query->where('service_type_id', $request->category_id);
         if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->date_from);
         if ($request->filled('date_to'))   $query->whereDate('created_at', '<=', $request->date_to);
 
@@ -270,11 +273,11 @@ class ServiceRequestController extends Controller
         ];
 
         if ($request->ajax() && $request->filled('frag')) {
-            return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats'))
+            return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats','categories'))
                 ->fragment($request->frag);
         }
 
-        return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats'));
+        return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats','categories'));
     }
 
     /* ============================================================
