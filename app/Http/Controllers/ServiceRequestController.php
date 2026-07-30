@@ -903,13 +903,34 @@ class ServiceRequestController extends Controller
 
             ];
         })->values();
+        $rejected = ServiceRequest::with(['client', 'project'])
+            ->where('status', 'Quote Rejected')
+            ->latest('updated_at')
+            ->get();
+
+        $rejectedQuotes = $rejected->map(function ($sr) {
+            return [
+                'id'        => 'QR-' . $sr->id,
+                'sr'        => $this->buildSrRef($sr),
+                'dbId'      => $sr->id,
+                'client'    => optional($sr->client)->company_name ?? '—',
+                'site'      => optional($sr->project)->site_name ?? '—',
+                'ref'       => $sr->erp_quote_ref ?? '—',
+                'rejected'  => $sr->updated_at?->format('d M · h:i A') ?? '—',
+                'ago'       => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+                'createdAt' => $sr->created_at?->format('Y-m-d'),
+            ];
+        })->values();
 
         $clientApproved = ServiceRequest::whereNotNull('client_approved_at')
             ->where('warranty_scope', 'oow')->count();
         $quoteRejected  = ServiceRequest::where('status', 'Quote Rejected')->count();
 
-        return view('quotation_desk', compact('qQueue', 'pendingApproval', 'clientApproved', 'quoteRejected'));
+        return view('quotation_desk', compact(
+            'qQueue', 'pendingApproval', 'rejectedQuotes', 'clientApproved', 'quoteRejected'
+        ));
     }
+
 
     public function quoteSubmit(Request $request, ServiceRequest $serviceRequest)
     {
@@ -977,6 +998,43 @@ class ServiceRequestController extends Controller
         ]);
     }
 
+    public function quoteReject(Request $request, ServiceRequest $serviceRequest)
+    {
+        $data = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $oldStatus = $serviceRequest->status;   // 'Quoted'
+
+        $serviceRequest->update([
+            'status'            => 'Quote Rejected',
+            'warranty_scope'    => 'oow',
+            'quote_rejected_at' => now(),
+            'internal_remark'   => trim(($serviceRequest->internal_remark ?? '')
+                . "\nQuote rejected by client" . (!empty($data['reason']) ? ': ' . $data['reason'] : '')),
+        ]);
+
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($serviceRequest)
+                . ' — quotation rejected by client'
+                . (!empty($data['reason']) ? ' (' . $data['reason'] . ')' : ''),
+            'from_status' => $oldStatus,
+            'to_status'   => 'Quote Rejected',
+            'caused_by'   => auth()->id(),
+        ]);
+
+        app(\App\Services\WhatsAppService::class)
+            ->notifyServiceStatus($serviceRequest, 'Quote Rejected');
+
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => 'Quotation marked as rejected by client.',
+        ]);
+    }
     /* ============================================================
      |  INVOICE PANEL
      * ============================================================ */

@@ -157,6 +157,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/quotation_desk/{serviceRequest}/quote',   [ServiceRequestController::class, 'quoteSubmit'])->name('quote.submit');
         Route::post('/quotation_desk/{serviceRequest}/approve', [ServiceRequestController::class, 'quoteApprove'])->name('quote.approve');
 
+        Route::post('/quotation_desk/{serviceRequest}/reject',
+        [ServiceRequestController::class, 'quoteReject'])->name('quotation.reject');
+
         Route::get('/invoice_panel', [ServiceRequestController::class, 'invoicePanel'])->name('invoice_panel');
         Route::post('/invoice_panel/{serviceRequest}/submit', [ServiceRequestController::class, 'invoiceSubmit'])->name('invoice.submit');
         Route::post('/invoice_panel/{serviceRequest}/hop-approve', [ServiceRequestController::class, 'hopApprove'])->name('invoice.hop');
