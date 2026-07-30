@@ -122,6 +122,19 @@
 .qd-wrap .dz-err-msg.show{display:block;}
 .qd-wrap .dz-input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
 
+/* TABS */
+.qd-wrap .qd-tabs{display:flex;gap:6px;margin:22px 0 12px;border-bottom:1px solid var(--border-color);flex-wrap:wrap;}
+.qd-wrap .qd-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:.8rem;font-weight:600;color:var(--text-muted);cursor:pointer;margin-bottom:-1px;transition:color .15s,border-color .15s;}
+.qd-wrap .qd-tab:hover{color:var(--text-heading);}
+.qd-wrap .qd-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.qd-wrap .qd-tab-count{font-size:.65rem;padding:1px 7px;border-radius:9px;font-weight:700;background:var(--surface-2);color:var(--text-muted);}
+.qd-wrap .qd-tab.active .qd-tab-count{background:rgba(154,128,83,.12);color:var(--gold);}
+.qd-wrap .qd-pane{display:none;}
+.qd-wrap .qd-pane.active{display:block;}
+.qd-wrap .sb-rej{background:rgba(239,68,68,.1);color:#ef4444;}
+.qd-modal-overlay .btn-reject{flex:1;padding:9px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#ef4444;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.qd-modal-overlay .btn-reject:hover{background:rgba(239,68,68,.15);}
+
 /* BUTTONS */
 .qd-wrap .btn-gold{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:linear-gradient(135deg,var(--gold),var(--gold-2));color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:500;cursor:pointer;white-space:nowrap;}
 .qd-wrap .btn-gold:hover{opacity:.87;}
@@ -301,36 +314,60 @@
     </div>
   </div>
 
-  {{-- PENDING CLIENT APPROVAL SECTION --}}
-  <div class="section-divider">
-    <div class="section-divider-line"></div>
-    <div class="section-label">
-      <i class="bi bi-clock-history" style="color:#d97706;"></i>Pending Customer Approval
-      <span class="section-count" style="background:rgba(245,158,11,.1);color:#d97706;" id="pa-count">0</span>
-    </div>
-    <div class="section-divider-line"></div>
+  {{-- TABS: PENDING / REJECTED --}}
+  <div class="qd-tabs">
+    <button class="qd-tab active" id="tab-pending" onclick="qdTab('pending')">
+      <i class="bi bi-clock-history"></i>Pending Customer Approval
+      <span class="qd-tab-count" id="pa-count">0</span>
+    </button>
+    <button class="qd-tab" id="tab-rejected" onclick="qdTab('rejected')">
+      <i class="bi bi-x-circle"></i>Quotation Rejected
+      <span class="qd-tab-count" id="rj-count">0</span>
+    </button>
   </div>
 
-  <div class="pa-card">
-    <div class="pa-card-hdr">
-      <div class="pa-card-hdr-left">
-        <div class="pa-card-icon" style="background:rgba(245,158,11,.1);"><i class="bi bi-hourglass-split" style="color:#d97706;"></i></div>
-        <div><div class="pa-card-title">Awaiting Customer Response</div><div class="pa-card-sub">Quote sent to customer — mark approved when customer confirms acceptance</div></div>
+  {{-- PANE: PENDING --}}
+  <div class="qd-pane active" id="pane-pending">
+    <div class="pa-card">
+      <div class="pa-card-hdr">
+        <div class="pa-card-hdr-left">
+          <div class="pa-card-icon" style="background:rgba(245,158,11,.1);"><i class="bi bi-hourglass-split" style="color:#d97706;"></i></div>
+          <div><div class="pa-card-title">Awaiting Customer Response</div><div class="pa-card-sub">Quote sent to customer — mark approved or rejected when customer responds</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-muted);">
+          <i class="bi bi-whatsapp" style="color:#25d366;"></i>Customer notified via WhatsApp on submission
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-muted);">
-        <i class="bi bi-whatsapp" style="color:#25d366;"></i>Customer notified via WhatsApp on submission
+      <div class="pa-scroll">
+        <table class="pa-tbl">
+          <thead>
+            <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>ERP Quote Ref</th><th>Quote Submitted</th><th>Waiting</th><th style="text-align:center;width:160px;">Action</th></tr>
+          </thead>
+          <tbody id="pa-tbody"></tbody>
+        </table>
       </div>
-    </div>
-    <div class="pa-scroll">
-      <table class="pa-tbl">
-        <thead>
-          <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>ERP Quote Ref</th><th>Quote Submitted</th><th>Waiting</th><th style="text-align:center;width:160px;">Action</th></tr>
-        </thead>
-        <tbody id="pa-tbody"></tbody>
-      </table>
     </div>
   </div>
 
+  {{-- PANE: REJECTED --}}
+  <div class="qd-pane" id="pane-rejected">
+    <div class="pa-card">
+      <div class="pa-card-hdr">
+        <div class="pa-card-hdr-left">
+          <div class="pa-card-icon" style="background:rgba(239,68,68,.1);"><i class="bi bi-x-circle" style="color:#ef4444;"></i></div>
+          <div><div class="pa-card-title">Quotations Rejected by Customer</div><div class="pa-card-sub">Quotes the customer declined — revise and re-submit if required</div></div>
+        </div>
+      </div>
+      <div class="pa-scroll">
+        <table class="pa-tbl">
+          <thead>
+            <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>ERP Quote Ref</th><th>Rejected On</th><th>Since</th><th style="text-align:center;width:120px;">Status</th></tr>
+          </thead>
+          <tbody id="rj-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
   {{-- APPROVE MODAL --}}
   <div class="qd-modal-overlay" id="qa-modal" onclick="if(event.target===this)this.classList.remove('show')">
     <div class="modal-box">
@@ -354,8 +391,8 @@
           <i class="bi bi-whatsapp" style="color:#9a8053;"></i>WhatsApp confirmation dispatched to client stakeholders.
         </div>
       </div>
-      <div class="modal-foot">
-        <button class="btn-cancel" onclick="document.getElementById('qa-modal').classList.remove('show')">Cancel</button>
+     <div class="modal-foot">
+        <button class="btn-reject" onclick="execQRejection()"><i class="bi bi-x-circle"></i> Quotation Rejected</button>
         <button class="btn-confirm" style="background:linear-gradient(135deg,#9A7B4F,#7A6140);" onclick="execQApproval()"><i class="bi bi-check-lg"></i> Confirm Approval</button>
       </div>
     </div>
@@ -385,6 +422,9 @@ var PA_FILTERED = PENDING_APPROVAL.slice();
 var selQ = null;
 var q_fileOk = false;
 
+var REJECTED    = @json($rejectedQuotes ?? []);
+var RJ_FILTERED = REJECTED.slice();
+var QD_TAB      = 'pending';
 /* ---------- TOAST ---------- */
 function showToast(type,title,body){
   var w = document.getElementById('qdToastWrap');
@@ -508,7 +548,7 @@ function renderPA(list){
       '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.ref+'</span></td>'+
       '<td class="muted">'+item.submitted+'</td>'+
       '<td><span style="font-size:.75rem;color:#d97706;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
-      '<td style="text-align:center;"><button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Mark Client Approved</button></td>'+
+      '<td style="text-align:center;"><button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Record Decision</button></td>'+
     '</tr>';
   }).join('');
 }
@@ -532,6 +572,8 @@ function qdFilter(){
 
   Q_FILTERED  = Q_QUEUE.filter(match);
   PA_FILTERED = PENDING_APPROVAL.filter(match);
+  RJ_FILTERED = REJECTED.filter(match);   
+  renderRJ(RJ_FILTERED);
   renderQQueue(Q_FILTERED);
   renderPA(PA_FILTERED);
 }
@@ -542,6 +584,8 @@ function qdResetFilters(){
   document.getElementById('q-date-to').value = '';
   Q_FILTERED  = Q_QUEUE.slice();
   PA_FILTERED = PENDING_APPROVAL.slice();
+  RJ_FILTERED = REJECTED.slice();         
+  renderRJ(RJ_FILTERED);
   renderQQueue(Q_FILTERED);
   renderPA(PA_FILTERED);
 }
@@ -579,8 +623,8 @@ function submitQuote(){
     document.getElementById('q-success-body').textContent  = 'Quote PDF uploaded with ERP ref '+ref+'. Client notified via WhatsApp.';
     document.getElementById('q-success').classList.add('show');
     selQ = null; q_fileOk = false;
-    qdFilter();
     showToast('ok','Quote Submitted',sr.id+' moved to Pending Client Approval.');
+    qdFilter();
   })
   .catch(function(e){ btn.disabled = false; showToast('err','Upload Failed', e.message); });
 }
@@ -608,6 +652,30 @@ function execQApproval(){
   .catch(function(e){ showToast('err','Approval Failed', e.message); });
 }
 
+function execQRejection(){
+  var idx  = PENDING_APPROVAL.findIndex(function(i){return i.id===pendingQAId;});
+  var item = PENDING_APPROVAL[idx];
+  document.getElementById('qa-modal').classList.remove('show');
+  if(!item) return;
+
+  fetch('/quotation_desk/'+item.dbId+'/reject', {
+    method:'POST',
+    headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}
+  })
+  .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
+  .then(function(){
+    PENDING_APPROVAL.splice(idx,1);
+    REJECTED.unshift({
+      id:'QR-'+item.dbId, dbId:item.dbId, sr:item.sr, client:item.client, site:item.site,
+      ref:item.ref, rejected:'Just now', ago:'0m',
+      createdAt:item.createdAt || new Date().toISOString().slice(0,10)
+    });
+    qdFilter();
+    qdTab('rejected');
+    showToast('warn','Quotation Rejected',item.sr+' — status set to Quote Rejected.');
+  })
+  .catch(function(e){ showToast('err','Rejection Failed', e.message); });
+}
 function qdNext(){document.getElementById('q-success').classList.remove('show');document.getElementById('q-empty').style.display='';}
 
 function showValMsg(prefix,msg){
@@ -625,6 +693,36 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   renderQQueue();
   renderPA();
+  renderRJ();
 });
+
+function renderRJ(list){
+  list = list || RJ_FILTERED;
+  var tbody = document.getElementById('rj-tbody');
+  document.getElementById('rj-count').textContent = list.length;
+  if(!list.length){
+    tbody.innerHTML = '<tr><td colspan="7"><div class="pa-empty"><i class="bi bi-inbox"></i><p>No rejected quotations</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(item){
+    return '<tr>'+
+      '<td class="mono">'+item.sr+'</td>'+
+      '<td style="font-weight:500;">'+item.client+'</td>'+
+      '<td class="muted">'+item.site+'</td>'+
+      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+(item.ref||'—')+'</span></td>'+
+      '<td class="muted">'+(item.rejected||'—')+'</td>'+
+      '<td class="muted">'+(item.ago||'—')+'</td>'+
+      '<td style="text-align:center;"><span class="sbadge sb-rej"><i class="bi bi-x-circle-fill" style="font-size:.65rem;"></i>Rejected</span></td>'+
+    '</tr>';
+  }).join('');
+}
+
+function qdTab(which){
+  QD_TAB = which;
+  document.getElementById('tab-pending').classList.toggle('active', which==='pending');
+  document.getElementById('tab-rejected').classList.toggle('active', which==='rejected');
+  document.getElementById('pane-pending').classList.toggle('active', which==='pending');
+  document.getElementById('pane-rejected').classList.toggle('active', which==='rejected');
+}
 </script>
 @endpush
