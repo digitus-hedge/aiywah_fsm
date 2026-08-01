@@ -528,7 +528,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
                 <th>Site</th>
                 <th>Priority</th>
                 <th>Warranty</th>
-                <th style="text-align:center;"><i class="bi bi-clock" style="font-size:.85rem;"></i></th>
+                <th>SLA <i class="bi bi-clock" style="font-size:.85rem;"></i></th>
                 <th>Submitted</th>
               </tr>
             </thead>

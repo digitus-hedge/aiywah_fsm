@@ -328,7 +328,9 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
   </div>
   <div class="filter-actions">
     <button type="button" class="btn-ghost" onclick="resetFilters()"><i class="bi bi-x-circle"></i>Reset</button>
-    <a class="btn-gold" id="exportBtn" href="#"><i class="bi bi-download"></i>Export CSV</a>
+    <button type="button" class="btn-gold" id="exportBtn" onclick="exportCsv()">
+      <i class="bi bi-download"></i>Export CSV
+    </button>
   </div>
 </div>
 </form>
@@ -706,9 +708,6 @@ function applyFilters(){
   var params = new URLSearchParams(new FormData(form));
   params.set('page', currentPage);
 
-  var exportBtn = document.getElementById('exportBtn');
-  if (exportBtn) exportBtn.href = window.location.pathname + "?" + params.toString() + "&export=csv";
-
   fetch(window.location.pathname + "?" + params.toString() + "&frag=rows", {
     headers: { 'X-Requested-With': 'XMLHttpRequest' }
   })
@@ -740,6 +739,18 @@ function closePdfViewer(){
   document.getElementById('pdfViewer').classList.remove('show');
   document.getElementById('pdfViewerFrame').src = '';   // stops the PDF loading in the background
   document.body.style.overflow = '';
+}
+
+function buildParams(){
+  var params = new URLSearchParams(new FormData(document.getElementById('filterForm')));
+  params.set('page', currentPage);
+  return params;
+}
+
+function exportCsv(){
+  var p = buildParams();
+  p.set('export', 'csv');
+  window.location.href = window.location.pathname + '?' + p.toString();
 }
 </script>
 @endpush

@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\WhatsappLog;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class WhatsAppService
 {
@@ -14,10 +16,10 @@ class WhatsAppService
 
     private function endpoint(): string
     {
-        return "https://graph.facebook.com/" .
-            config('services.whatsapp.version') . "/" .
-            config('services.whatsapp.phone_number_id') .
-            "/messages";
+        return "https://graph.facebook.com/"
+            . config('services.whatsapp.version') . "/"
+            . config('services.whatsapp.phone_number_id')
+            . "/messages";
     }
 
     public function sendTemplate($phone, $template, $lang = 'en_US', $components = [])
@@ -36,12 +38,13 @@ class WhatsAppService
             $payload["template"]["components"] = $components;
         }
 
-        $response = Http::withToken(config('services.whatsapp.token'))
-            ->post($this->endpoint(), $payload);
-
-        return $response->json();
+        return Http::withToken(config('services.whatsapp.token'))
+            ->timeout(15)
+            ->post($this->endpoint(), $payload)
+            ->json();
     }
 
+    /** "971" + "0501234567" → "971501234567" (trunk zero stripped). */
     public function formatWhatsAppNumber(?string $country, ?string $mobile): ?string
     {
         if (!$mobile) {
@@ -49,78 +52,91 @@ class WhatsAppService
         }
 
         $country = preg_replace('/\D/', '', (string) $country);
-        $mobile  = preg_replace('/\D/', '', $mobile);
+        $mobile  = ltrim(preg_replace('/\D/', '', $mobile), '0');
 
-        return $country . $mobile;
+        $full = $country . $mobile;
+
+        return strlen($full) >= 10 ? $full : null;
     }
 
     public function buildRef(\App\Models\ServiceRequest $sr): string
     {
-        return $sr->erp_quote_ref
-            ?: 'SR-' . ($sr->created_at?->year ?? now()->year)
+        return 'SR-' . ($sr->created_at?->year ?? now()->year)
             . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
     }
 
-    /**
-     * Return [name => ..., phone => ...] for every secondary contact
-     * of the client that has notify = 1 and a usable mobile number.
-     * The client's primary contact is handled separately by the caller.
-     */
-    private function notifiableSecondaryContacts($client): array
-    {
-        if (!$client || !method_exists($client, 'mobiles')) {
-            return [];
-        }
-
-        $out = [];
-
-        foreach ($client->mobiles()->where('notify', 1)->get() as $m) {
-            $phone = $this->formatWhatsAppNumber($m->country, $m->mobile);
-            if (!$phone) {
-                continue;
-            }
-            $out[] = [
-                'name'  => $m->name ?: ($client->contact_name ?? ''),
-                'phone' => $phone,
-            ];
-        }
-
-        return $out;
-    }
-
-    /**
-     * Collapse whitespace — WhatsApp rejects body params containing
-     * newlines, tabs or runs of more than one space.
-     */
+    /** Collapse whitespace — Meta rejects params containing newlines or tabs. */
     private function cleanParam($value): string
     {
         return trim(preg_replace('/\s+/', ' ', (string) $value));
     }
 
+    private function txt($value): array
+    {
+        return ["type" => "text", "text" => (string) $value];
+    }
+
+    /* =========================================================
+       Recipients
+       ========================================================= */
+
     /**
-     * Shared field set for the project/request detail templates
-     * (warranty_approved, outside_warranty_quotation, quotation_approved,
-     *  sr_creation).
+     * Primary contact plus every notify=1 stakeholder, deduped by phone.
+     * Returns [['name' => ..., 'phone' => ...], ...]
      */
-    private function srTemplateContext(\App\Models\ServiceRequest $sr): array
+    private function recipients($client): array
+    {
+        $out  = [];
+        $seen = [];
+
+        $primary = $this->formatWhatsAppNumber(
+            $client->primary_country ?? null,
+            $client->primary_mobile ?? null
+        );
+
+        if ($primary) {
+            $out[]  = ['name' => $client->contact_name ?: 'Customer', 'phone' => $primary];
+            $seen[] = $primary;
+        }
+
+        if ($client && method_exists($client, 'mobiles')) {
+            foreach ($client->mobiles()->where('notify', 1)->get() as $m) {
+                $phone = $this->formatWhatsAppNumber($m->country, $m->mobile);
+                if (!$phone || in_array($phone, $seen, true)) {
+                    continue;
+                }
+                $seen[] = $phone;
+                $out[]  = [
+                    'name'  => $m->name ?: ($client->contact_name ?: 'Customer'),
+                    'phone' => $phone,
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /* =========================================================
+       Shared context builders
+       ========================================================= */
+
+    /** Fields shared by every SR-based template. */
+    private function srContext(\App\Models\ServiceRequest $sr): array
     {
         $sr->loadMissing('project');
         $project = $sr->project;
-
-        $date = fn ($d) => $d ? \Carbon\Carbon::parse($d)->format('d M Y') : 'N/A';
 
         return [
             'ref'      => $this->buildRef($sr),
             'project'  => $this->cleanParam(optional($project)->project_name) ?: 'N/A',
             'location' => $this->cleanParam($sr->project_site ?: optional($project)->site_name) ?: 'N/A',
-            'handover' => $date(optional($project)->handover_date),
-            'expiry'   => $date(optional($project)->warranty_end_date),
-            'issue'    => \Illuminate\Support\Str::limit($this->cleanParam($sr->issue_description), 400) ?: 'N/A',
+            'handover' => $this->fmtDate(optional($project)->completion_date),
+            'expiry'   => $this->fmtDate(optional($project)->warranty_end_date),
+            'issue'    => Str::limit($this->cleanParam($sr->issue_description), 400) ?: 'N/A',
         ];
     }
 
-    /** Technician name + best-available phone for the assigned user. */
-    private function technicianDetails(\App\Models\ServiceRequest $sr): array
+    private function techContext(\App\Models\ServiceRequest $sr): array
     {
         $sr->loadMissing('assignedUser');
         $tech = $sr->assignedUser;
@@ -135,10 +151,13 @@ class WhatsAppService
         ];
     }
 
+    private function fmtDate($d, string $fallback = 'N/A'): string
+    {
+        return $d ? Carbon::parse($d)->format('d M Y') : $fallback;
+    }
+
     /* =========================================================
-       Core logged sender — ONE definition only.
-       $refOverride lets callers supply an SR reference string
-       when they don't have the ServiceRequest model itself.
+       Core logged sender
        ========================================================= */
 
     public function sendLogged(
@@ -173,8 +192,7 @@ class WhatsAppService
 
         try {
             $result = $this->sendTemplate($phone, $template, $lang, $components);
-
-            $wamid = $result['messages'][0]['id'] ?? null;
+            $wamid  = $result['messages'][0]['id'] ?? null;
 
             $log?->update([
                 'status'   => $wamid ? WhatsappLog::STATUS_SENT : WhatsappLog::STATUS_FAILED,
@@ -184,21 +202,12 @@ class WhatsAppService
                 'sent_at'  => $wamid ? now() : null,
             ]);
 
-            Log::info('WhatsApp sent', [
-                'log_id' => $log?->id,
-                'event'  => $event,
-                'phone'  => $phone,
-                'wamid'  => $wamid,
-            ]);
-
-            // Surface Meta's rejection reason directly when the send didn't return a wamid.
             if (!$wamid) {
                 Log::warning('WhatsApp NOT accepted by Meta', [
                     'log_id'   => $log?->id,
                     'phone'    => $phone,
                     'template' => $template,
                     'error'    => $result['error'] ?? null,
-                    'response' => $result,
                 ]);
             }
         } catch (\Throwable $e) {
@@ -212,142 +221,105 @@ class WhatsAppService
         return $log?->fresh();
     }
 
+    /**
+     * Send one template to every notifiable contact of the client.
+     * $componentsFor and $previewFor each receive the recipient name.
+     */
+    private function fanOut(
+        ?\App\Models\ServiceRequest $sr,
+        $client,
+        string $event,
+        string $template,
+        callable $componentsFor,
+        callable $previewFor,
+        ?string $refOverride = null
+    ): void {
+        if (!$client) {
+            Log::warning('WhatsApp skipped — no client', ['sr_id' => $sr?->id]);
+            return;
+        }
+
+        $recipients = $this->recipients($client);
+
+        if (!$recipients) {
+            Log::warning('WhatsApp skipped — no usable phone', [
+                'sr_id'     => $sr?->id,
+                'client_id' => $client->id ?? null,
+            ]);
+            return;
+        }
+
+        foreach ($recipients as $r) {
+            $this->sendLogged(
+                $sr, $client, $r['phone'], $event, $template,
+                $componentsFor($r['name']),
+                $previewFor($r['name']),
+                'en_US',
+                $refOverride
+            );
+        }
+    }
+
     /* =========================================================
-       Public senders — prefer these; they populate the log fully.
+       SR lifecycle templates
        ========================================================= */
 
     /**
-     * SR status update → template: status_change
-     * Body vars: {{1}} name, {{2}} SR ref, {{3}} status
-     * Optional {{4}} link when the template variant carries one.
+     * SR received → service_request_received
+     * {{1}} name, {{2}} SR ref, {{3}} project, {{4}} location
+     */
+    public function notifyServiceRequestReceived(
+        \App\Models\ServiceRequest $sr,
+        string $event = 'SR Received'
+    ): void {
+        $c = $this->srContext($sr);
+
+        $this->fanOut($sr, $sr->client, $event, 'service_request_received',
+            fn ($name) => [[
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['ref']),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                ],
+            ]],
+            fn ($name) =>
+                "Hi {$name}, thank you for contacting Matter Mind Decor & General Maintenance LLC. "
+                . "We have successfully received your maintenance request. "
+                . "Service Request No: {$c['ref']} | Project: {$c['project']} | Location: {$c['location']}."
+        );
+    }
+
+    /**
+     * Generic status update → status_change
+     * {{1}} name, {{2}} SR ref, {{3}} status
      */
     public function notifyServiceStatus(
         \App\Models\ServiceRequest $sr,
         string $status,
-        string $event = 'SR Status Update',
-        ?string $link = null
+        string $event = 'SR Status Update'
     ): void {
-        $client = $sr->client;
-        if (!$client) {
-            Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
-            return;
-        }
+        $ref    = $this->buildRef($sr);
+        $status = $this->cleanParam($status);
 
-        $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-        if (!$phone) {
-            Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-            return;
-        }
-
-        $ref = $this->buildRef($sr);
-
-        $buildParams = function (string $name) use ($ref, $status, $link) {
-            $params = [
-                ["type" => "text", "text" => (string) $name],
-                ["type" => "text", "text" => (string) $ref],
-                ["type" => "text", "text" => (string) $status],
-            ];
-            if ($link) {
-                $params[] = ["type" => "text", "text" => (string) $link];
-            }
-            return [["type" => "body", "parameters" => $params]];
-        };
-
-        $suffix = $link ? " Share your feedback: {$link}" : '';
-
-        $this->sendLogged(
-            $sr,
-            $client,
-            $phone,
-            $event,
-            'status_change',
-            $buildParams($client->contact_name),
-            "Hi {$client->contact_name}, your request {$ref} status: {$status}.{$suffix}"
+        $this->fanOut($sr, $sr->client, $event, 'status_change',
+            fn ($name) => [[
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($ref),
+                    $this->txt($status),
+                ],
+            ]],
+            fn ($name) => "Hi {$name}, your request {$ref} status: {$status}."
         );
-
-        foreach ($this->notifiableSecondaryContacts($client) as $c) {
-            $this->sendLogged(
-                $sr,
-                $client,
-                $c['phone'],
-                $event,
-                'status_change',
-                $buildParams($c['name']),
-                "Hi {$c['name']}, request {$ref} status: {$status}.{$suffix}"
-            );
-        }
     }
 
     /**
-     * SR creation → template: sr_creation
-     * Body vars: {{1}} name, {{2}} SR ref, {{3}} project, {{4}} location
-     */
-    public function notifyServiceCreated(
-        \App\Models\ServiceRequest $sr,
-        string $status = 'Pending',
-        string $event = 'SR Created'
-    ): void {
-        $client = $sr->client;
-        if (!$client) {
-            Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
-            return;
-        }
-
-        $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-        if (!$phone) {
-            Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-            return;
-        }
-
-        $ctx = $this->srTemplateContext($sr);
-
-        $params = fn (string $name) => [[
-            "type"       => "body",
-            "parameters" => [
-                ["type" => "text", "text" => $this->cleanParam($name)],
-                ["type" => "text", "text" => $ctx['ref']],
-                ["type" => "text", "text" => $ctx['project']],
-                ["type" => "text", "text" => $ctx['location']],
-            ],
-        ]];
-
-        $preview = fn (string $name) =>
-            "Hi {$name}, thank you for contacting Matter Mind Decor & General Maintenance LLC. "
-            . "We have successfully received your maintenance request. "
-            . "Service Request No: {$ctx['ref']} | Project: {$ctx['project']} | Location: {$ctx['location']}. "
-            . "Our service team is reviewing your request and will update you shortly.";
-
-        $primaryName = $client->contact_name ?: 'Customer';
-
-        $this->sendLogged(
-            $sr,
-            $client,
-            $phone,
-            $event,
-            'sr_creation',
-            $params($primaryName),
-            $preview($primaryName)
-        );
-
-        foreach ($this->notifiableSecondaryContacts($client) as $c) {
-            $name = $c['name'] ?: 'Customer';
-            $this->sendLogged(
-                $sr,
-                $client,
-                $c['phone'],
-                $event,
-                'sr_creation',
-                $params($name),
-                $preview($name)
-            );
-        }
-    }
-
-    /**
-     * Shared builder for the 7-var warranty templates.
-     * Body vars: {{1}} name, {{2}} project, {{3}} location,
-     *            {{4}} handover date, {{5}} warranty expiry,
-     *            {{6}} SR ref, {{7}} issue description
+     * Shared builder for the 7-var warranty-scope templates.
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} handover,
+     * {{5}} warranty expiry, {{6}} SR ref, {{7}} issue
      */
     private function sendWarrantyScopeMessage(
         \App\Models\ServiceRequest $sr,
@@ -355,78 +327,65 @@ class WhatsAppService
         string $event,
         callable $previewFor
     ): void {
-        $client = $sr->client;
-        if (!$client) {
-            Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
-            return;
-        }
+        $c = $this->srContext($sr);
 
-        $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-        if (!$phone) {
-            Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-            return;
-        }
-
-        $ctx = $this->srTemplateContext($sr);
-
-        $params = fn (string $name) => [[
-            "type"       => "body",
-            "parameters" => [
-                ["type" => "text", "text" => $this->cleanParam($name)],
-                ["type" => "text", "text" => $ctx['project']],
-                ["type" => "text", "text" => $ctx['location']],
-                ["type" => "text", "text" => $ctx['handover']],
-                ["type" => "text", "text" => $ctx['expiry']],
-                ["type" => "text", "text" => $ctx['ref']],
-                ["type" => "text", "text" => $ctx['issue']],
-            ],
-        ]];
-
-        $primaryName = $client->contact_name ?: 'Customer';
-
-        $this->sendLogged(
-            $sr, $client, $phone, $event, $template,
-            $params($primaryName),
-            $previewFor($primaryName, $ctx)
+        $this->fanOut($sr, $sr->client, $event, $template,
+            fn ($name) => [[
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['handover']),
+                    $this->txt($c['expiry']),
+                    $this->txt($c['ref']),
+                    $this->txt($c['issue']),
+                ],
+            ]],
+            fn ($name) => $previewFor($name, $c)
         );
-
-        foreach ($this->notifiableSecondaryContacts($client) as $c) {
-            $name = $c['name'] ?: 'Customer';
-            $this->sendLogged(
-                $sr, $client, $c['phone'], $event, $template,
-                $params($name),
-                $previewFor($name, $ctx)
-            );
-        }
     }
 
-    /** In-warranty approval → template: warranty_approved */
+    /**
+     * In-warranty approval → template: warranty_approved
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} handover date,
+     * {{5}} warranty expiry, {{6}} SR ref, {{7}} issue
+     */
     public function notifyWarrantyApproved(
         \App\Models\ServiceRequest $sr,
         string $event = 'Warranty Approved'
     ): void {
-        $this->sendWarrantyScopeMessage(
-            $sr,
-            'warranty_approved',
-            $event,
-            fn (string $name, array $c) =>
-                "Hi {$name}, your maintenance request {$c['ref']} has been approved under the project warranty. "
+        $c = $this->srContext($sr);
+
+        $this->fanOut($sr, $sr->client, $event, 'warranty_approved',
+            fn ($name) => [[
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['handover']),
+                    $this->txt($c['expiry']),
+                    $this->txt($c['ref']),
+                    $this->txt($c['issue']),
+                ],
+            ]],
+            fn ($name) =>
+                "Hi {$name}, we have reviewed your maintenance request and it has been approved under the project warranty. "
                 . "Project: {$c['project']} | Location: {$c['location']} | Handover: {$c['handover']} | "
-                . "Warranty Expiry: {$c['expiry']} | Issue: {$c['issue']}. "
+                . "Warranty Expiry: {$c['expiry']} | Request: {$c['ref']} | Issue: {$c['issue']}. "
+                . "Our service team will schedule the maintenance visit shortly. "
                 . "No charges will apply for the approved work."
         );
     }
 
-    /** Out-of-warranty → template: outside_warranty_quotation */
+    /** Out-of-warranty → outside_warranty_quotation */
     public function notifyOutsideWarranty(
         \App\Models\ServiceRequest $sr,
         string $event = 'Outside Warranty — Quotation'
     ): void {
-        $this->sendWarrantyScopeMessage(
-            $sr,
-            'outside_warranty_quotation',
-            $event,
-            fn (string $name, array $c) =>
+        $this->sendWarrantyScopeMessage($sr, 'outside_warranty_quotation', $event,
+            fn ($name, $c) =>
                 "Hi {$name}, request {$c['ref']} falls outside the project warranty period. "
                 . "Project: {$c['project']} | Location: {$c['location']} | Handover: {$c['handover']} | "
                 . "Warranty Expiry: {$c['expiry']} | Issue: {$c['issue']}. "
@@ -434,281 +393,330 @@ class WhatsAppService
         );
     }
 
+    /** In-warranty project, out-of-scope issue → outside_warranty_scope */
+public function notifyOutsideScope(
+    \App\Models\ServiceRequest $sr,
+    string $event = 'Outside Warranty Scope'
+): void {
+    $this->sendWarrantyScopeMessage($sr, 'outside_warranty_scope', $event,
+        fn ($name, $c) =>
+            "Hi {$name}, request {$c['ref']} is within the warranty period but falls outside the agreed warranty scope. "
+            . "Project: {$c['project']} | Location: {$c['location']} | Handover: {$c['handover']} | "
+            . "Warranty Expiry: {$c['expiry']} | Issue: {$c['issue']}. "
+            . "Forwarded to our Estimation & Finance Team for quotation."
+    );
+}
     /**
-     * Quotation approved by client → template: quotation_approved
+     * Quotation approved by client → quotation_approved
      * Header: document (the approved quote PDF)
-     * Body vars: {{1}} name, {{2}} project, {{3}} location,
-     *            {{4}} handover date, {{5}} SR ref, {{6}} issue
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} handover, {{5}} SR ref, {{6}} issue
      */
     public function notifyQuotationApproved(
         \App\Models\ServiceRequest $sr,
         string $event = 'Quotation Approved'
     ): void {
-        $client = $sr->client;
-        if (!$client) {
-            Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
-            return;
-        }
-
-        $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-        if (!$phone) {
-            Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-            return;
-        }
-
-        // The template carries a document header — without a PDF Meta rejects the send.
         if (!$sr->quote_path) {
-            Log::warning('Quotation-approved WhatsApp skipped — no quote_path, falling back', [
-                'sr_id' => $sr->id,
-            ]);
+            Log::warning('Quotation-approved skipped — no quote_path, falling back', ['sr_id' => $sr->id]);
             $this->notifyServiceStatus($sr, 'Pending Invoice');
             return;
         }
 
-        $ctx     = $this->srTemplateContext($sr);
+        $c       = $this->srContext($sr);
         $docLink = asset('storage/' . $sr->quote_path);
 
-        $components = fn (string $name) => [
-            [
-                "type"       => "header",
-                "parameters" => [[
-                    "type"     => "document",
-                    "document" => [
-                        "link"     => $docLink,
-                        "filename" => 'Quotation-' . $ctx['ref'] . '.pdf',
+        $this->fanOut($sr, $sr->client, $event, 'quotation_approved',
+            fn ($name) => [
+                [
+                    "type" => "header",
+                    "parameters" => [[
+                        "type"     => "document",
+                        "document" => [
+                            "link"     => $docLink,
+                            "filename" => 'Quotation-' . $c['ref'] . '.pdf',
+                        ],
+                    ]],
+                ],
+                [
+                    "type" => "body",
+                    "parameters" => [
+                        $this->txt($this->cleanParam($name) ?: 'Customer'),
+                        $this->txt($c['project']),
+                        $this->txt($c['location']),
+                        $this->txt($c['handover']),
+                        $this->txt($c['ref']),
+                        $this->txt($c['issue']),
                     ],
-                ]],
-            ],
-            [
-                "type"       => "body",
-                "parameters" => [
-                    ["type" => "text", "text" => $this->cleanParam($name)],
-                    ["type" => "text", "text" => $ctx['project']],
-                    ["type" => "text", "text" => $ctx['location']],
-                    ["type" => "text", "text" => $ctx['handover']],
-                    ["type" => "text", "text" => $ctx['ref']],
-                    ["type" => "text", "text" => $ctx['issue']],
                 ],
             ],
-        ];
-
-        $preview = fn (string $name) =>
-            "Hi {$name}, thank you for approving the quotation for request {$ctx['ref']}. "
-            . "Project: {$ctx['project']} | Location: {$ctx['location']} | Handover: {$ctx['handover']} | "
-            . "Issue: {$ctx['issue']}. Accepted for maintenance — our Service Coordination Team "
-            . "will contact you shortly to schedule the visit.";
-
-        $primaryName = $client->contact_name ?: 'Customer';
-
-        $this->sendLogged(
-            $sr, $client, $phone, $event, 'quotation_approved',
-            $components($primaryName),
-            $preview($primaryName)
+            fn ($name) =>
+                "Hi {$name}, thank you for approving the quotation for request {$c['ref']}. "
+                . "Project: {$c['project']} | Location: {$c['location']} | Issue: {$c['issue']}. "
+                . "Our Service Coordination Team will contact you shortly to schedule the visit."
         );
-
-        foreach ($this->notifiableSecondaryContacts($client) as $c) {
-            $name = $c['name'] ?: 'Customer';
-            $this->sendLogged(
-                $sr, $client, $c['phone'], $event, 'quotation_approved',
-                $components($name),
-                $preview($name)
-            );
-        }
     }
 
-    /** Alias kept for existing call sites. */
-    public function notifyServiceStatusLogged(
+    /**
+     * Technician assigned → technician_assigned
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
+     * {{6}} technician, {{7}} tech phone, {{8}} visit date, {{9}} visit time
+     */
+    public function notifyTechnicianAssigned(
+        \App\Models\ServiceRequest $sr,
+        string $event = 'Technician Assigned'
+    ): void {
+        $c    = $this->srContext($sr);
+        $tech = $this->techContext($sr);
+
+        $eta       = $sr->eta_at ? Carbon::parse($sr->eta_at) : null;
+        $visitDate = $eta ? $eta->format('d M Y') : 'To be confirmed';
+        $visitTime = $eta ? $eta->format('h:i A') : 'To be confirmed';
+
+        $this->fanOut($sr, $sr->client, $event, 'technician_assigned',
+            fn ($name) => [[
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['ref']),
+                    $this->txt($c['issue']),
+                    $this->txt($tech['name']),
+                    $this->txt($tech['phone']),
+                    $this->txt($visitDate),
+                    $this->txt($visitTime),
+                ],
+            ]],
+            fn ($name) =>
+                "Hi {$name}, a technician has been assigned to request {$c['ref']}. "
+                . "Project: {$c['project']} | Location: {$c['location']} | Issue: {$c['issue']}. "
+                . "Technician: {$tech['name']} ({$tech['phone']}) — visiting {$visitDate} at {$visitTime}."
+        );
+    }
+
+    /**
+     * Work started on site → maintenance_started
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
+     * {{6}} technician, {{7}} tech phone, {{8}} arrival time
+     */
+    public function notifyMaintenanceStarted(
+        \App\Models\ServiceRequest $sr,
+        ?\App\Models\Punch $punch = null,
+        string $event = 'Maintenance Started'
+    ): void {
+        $punch ??= $sr->punches()->whereNotNull('punch_in_at')->latest('punch_in_at')->first();
+
+        $arrival = $punch?->punch_in_at
+            ? Carbon::parse($punch->punch_in_at)->format('d M Y, h:i A')
+            : now()->format('d M Y, h:i A');
+
+        $c    = $this->srContext($sr);
+        $tech = $this->techContext($sr);
+
+        $this->fanOut($sr, $sr->client, $event, 'maintenance_started',
+            fn ($name) => [[
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['ref']),
+                    $this->txt($c['issue']),
+                    $this->txt($tech['name']),
+                    $this->txt($tech['phone']),
+                    $this->txt($arrival),
+                ],
+            ]],
+            fn ($name) =>
+                "Hi {$name}, our technician has arrived and started work on request {$c['ref']}. "
+                . "Technician: {$tech['name']} ({$tech['phone']}) — arrived {$arrival}."
+        );
+    }
+
+    /**
+     * Visit incomplete → maintenance_on_hold
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
+     * {{6}} technician, {{7}} status, {{8}} reason
+     */
+    public function notifyMaintenanceOnHold(
         \App\Models\ServiceRequest $sr,
         string $status,
-        string $event = 'SR Status Update'
+        string $reason,
+        string $event = 'Maintenance On Hold'
     ): void {
-        $this->notifyServiceStatus($sr, $status, $event);
-    }
+        $c    = $this->srContext($sr);
+        $tech = $this->techContext($sr);
 
-    public function sendQuotation(\App\Models\ServiceRequest $sr, string $docLink = ''): void
-    {
-        $this->notifyServiceStatus($sr, 'Waiting for quotation approval', 'Invoice Finalized');
-    }
+        $statusLabel = $this->cleanParam($status) ?: 'On Hold';
+        $reasonText  = Str::limit($this->cleanParam($reason), 400) ?: 'N/A';
 
-    /**
-     * Registration → template: client_registration
-     * Body vars: {{1}} name   (only one variable)
-     */
-    public function sendRegistration(
-        $phone,
-        $contactName,
-        $token,
-        $lang = 'en_US',
-        ?\App\Models\ServiceRequest $sr = null,
-        $client = null,
-        string $status = 'Registered'
-    ) {
-        $log = $this->sendLogged(
-            $sr,
-            $client ?? (object) ['contact_name' => $contactName],
-            $phone,
-            'Client Registration',
-            'client_registration',
-            [[
-                "type"       => "body",
+        $this->fanOut($sr, $sr->client, $event, 'maintenance_on_hold',
+            fn ($name) => [[
+                "type" => "body",
                 "parameters" => [
-                    ["type" => "text", "text" => (string) $contactName],
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['ref']),
+                    $this->txt($c['issue']),
+                    $this->txt($tech['name']),
+                    $this->txt($statusLabel),
+                    $this->txt($reasonText),
                 ],
             ]],
-            "Registration confirmed for {$contactName}",
-            $lang
-        );
-
-        // Secondary contacts with notify = 1 (only when a real client model is passed)
-        if ($client instanceof \App\Models\Client) {
-            foreach ($this->notifiableSecondaryContacts($client) as $c) {
-                $this->sendLogged(
-                    $sr,
-                    $client,
-                    $c['phone'],
-                    'Client Registration',
-                    'client_registration',
-                    [[
-                        "type"       => "body",
-                        "parameters" => [
-                            ["type" => "text", "text" => (string) $c['name']],
-                        ],
-                    ]],
-                    "Registration confirmed for {$c['name']}",
-                    $lang
-                );
-            }
-        }
-
-        return $log;
-    }
-
-    /**
-     * Order confirmation test → template: sr_creation
-     *
-     * NOTE: sr_creation now has FOUR body variables. This method still sends
-     * two, so Meta will reject it with a parameter-count mismatch. Point it at
-     * its own template or extend the parameter list before using it again.
-     */
-    public function sendOrderTest(
-        $phone,
-        $contactName,
-        $uniqueCode,
-        $delivery,
-        $lang = 'en_US',
-        ?\App\Models\ServiceRequest $sr = null,
-        $client = null
-    ) {
-        return $this->sendLogged(
-            $sr,
-            $client ?? (object) ['contact_name' => $contactName],
-            $phone,
-            'Order Confirmation',
-            'sr_creation',
-            [[
-                "type"       => "body",
-                "parameters" => [
-                    ["type" => "text", "text" => (string) $contactName],
-                    ["type" => "text", "text" => (string) $uniqueCode],
-                ],
-            ]],
-            "Hi {$contactName}, order {$uniqueCode} — {$delivery}",
-            $lang,
-            $uniqueCode
+            fn ($name) =>
+                "Hi {$name}, our technician attended request {$c['ref']} but could not complete the work. "
+                . "Status: {$statusLabel} | Reason: {$reasonText}."
         );
     }
 
     /**
-     * Legacy signature → template: status_change
-     * Body vars: {{1}} name, {{2}} SR ref, {{3}} status
-     * Pass $sr and $client from the call site, otherwise
-     * service_request_id / client_id will be NULL.
+     * Work completed & QC passed → maintenance_completed
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
+     * {{6}} technician, {{7}} completion date, {{8}} completion time, {{9}} photos link
      */
-    public function sendServiceRequest(
-        $phone,
-        $contactName,
-        $srReference,
-        $status,
-        $lang = 'en_US',
-        ?\App\Models\ServiceRequest $sr = null,
-        $client = null
-    ) {
-        $log = $this->sendLogged(
-            $sr,
-            $client ?? (object) ['contact_name' => $contactName],
-            $phone,
-            'SR Status Update',
-            'status_change',
-            [[
-                "type"       => "body",
+    public function notifyMaintenanceCompleted(
+        \App\Models\ServiceRequest $sr,
+        ?\App\Models\Punch $punch = null,
+        ?string $photosLink = null,
+        string $event = 'Maintenance Completed'
+    ): void {
+        $punch ??= $sr->punches()->whereNotNull('punch_out_at')->latest('punch_out_at')->first();
+
+        $c    = $this->srContext($sr);
+        $tech = $this->techContext($sr);
+
+        $out  = $punch?->punch_out_at ? Carbon::parse($punch->punch_out_at) : now();
+        $link = $photosLink ?: url("/sr/{$sr->id}/photos");
+
+        $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
+            fn ($name) => [[
+                "type" => "body",
                 "parameters" => [
-                    ["type" => "text", "text" => (string) $contactName],
-                    ["type" => "text", "text" => (string) $srReference],
-                    ["type" => "text", "text" => (string) $status],
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['ref']),
+                    $this->txt($c['issue']),
+                    $this->txt($tech['name']),
+                    $this->txt($out->format('d M Y')),
+                    $this->txt($out->format('h:i A')),
+                    $this->txt($link),
                 ],
             ]],
-            "Hi {$contactName}, your request {$srReference} status: {$status}",
-            $lang,
-            $srReference
+            fn ($name) =>
+                "Hi {$name}, your maintenance request {$c['ref']} has been successfully completed. "
+                . "Technician: {$tech['name']} — completed {$out->format('d M Y')} at {$out->format('h:i A')}. "
+                . "Photos: {$link}"
         );
-
-        // Secondary contacts with notify = 1 (only when a real client model is passed)
-        if ($client instanceof \App\Models\Client) {
-            foreach ($this->notifiableSecondaryContacts($client) as $c) {
-                $this->sendLogged(
-                    $sr,
-                    $client,
-                    $c['phone'],
-                    'SR Status Update',
-                    'status_change',
-                    [[
-                        "type"       => "body",
-                        "parameters" => [
-                            ["type" => "text", "text" => (string) $c['name']],
-                            ["type" => "text", "text" => (string) $srReference],
-                            ["type" => "text", "text" => (string) $status],
-                        ],
-                    ]],
-                    "Hi {$c['name']}, request {$srReference} status: {$status}",
-                    $lang,
-                    $srReference
-                );
-            }
-        }
-
-        return $log;
     }
 
-    /** Raw (unlogged) template send with a document header. */
-    public function sendDocumentTemplate(
-        $phone,
-        $template,
-        array $bodyParams,
-        string $docLink,
-        ?string $filename = null,
-        $lang = 'en_US'
-    ) {
-        $components = [
-            [
-                "type"       => "header",
-                "parameters" => [[
-                    "type"     => "document",
-                    "document" => array_filter([
-                        "link"     => $docLink,
-                        "filename" => $filename ?? 'quotation.pdf',
-                    ]),
-                ]],
-            ],
-            [
-                "type"       => "body",
-                "parameters" => array_map(
-                    fn ($t) => ["type" => "text", "text" => (string) $t],
-                    $bodyParams
-                ),
-            ],
+    /**
+     * Post-completion survey → satisfaction_survey
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref,
+     * {{5}} completion date, {{6}} survey link
+     */
+    public function notifySatisfactionSurvey(
+        \App\Models\ServiceRequest $sr,
+        ?string $surveyLink = null,
+        string $event = 'Satisfaction Survey'
+    ): void {
+        $c = $this->srContext($sr);
+
+        $punch = $sr->punches()->whereNotNull('punch_out_at')->latest('punch_out_at')->first();
+        $completed = $this->fmtDate($punch?->punch_out_at ?? $sr->qc_reviewed_at);
+
+        $link = $surveyLink ?: \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'clients.feedback.show',
+            now()->addDays(30),
+            ['id' => $sr->id]
+        );
+
+        $this->fanOut($sr, $sr->client, $event, 'satisfaction_survey',
+            fn ($name) => [[
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['ref']),
+                    $this->txt($completed),
+                    $this->txt($link),
+                ],
+            ]],
+            fn ($name) =>
+                "Hi {$name}, we hope everything is working well after the maintenance visit. "
+                . "Request: {$c['ref']} | Completed: {$completed}. "
+                . "Please rate your experience: {$link}"
+        );
+    }
+
+    /* =========================================================
+       Client / project templates (no ServiceRequest)
+       ========================================================= */
+
+    /**
+     * Shared builder for client_welcome and project_added.
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} handover, {{5}} warranty expiry
+     */
+    private function sendProjectMessage(
+        \App\Models\Client $client,
+        \App\Models\Project $project,
+        string $template,
+        string $event,
+        callable $previewFor,
+        string $refPrefix
+    ): void {
+        $c = [
+            'project'  => $this->cleanParam($project->project_name) ?: 'N/A',
+            'location' => $this->cleanParam($project->site_name) ?: 'N/A',
+            'handover' => $this->fmtDate($project->completion_date, 'To be confirmed'),
+            'expiry'   => $this->fmtDate($project->warranty_end_date, 'To be confirmed'),
         ];
 
-        return $this->sendTemplate($phone, $template, $lang, $components);
+        $this->fanOut(null, $client, $event, $template,
+            fn ($name) => [[
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['handover']),
+                    $this->txt($c['expiry']),
+                ],
+            ]],
+            fn ($name) => $previewFor($name, $c),
+            $refPrefix . '-' . $project->id
+        );
+    }
+
+    /** First project onboarded → client_welcome */
+    public function notifyClientWelcome(
+        \App\Models\Client $client,
+        \App\Models\Project $project,
+        string $event = 'Client Welcome'
+    ): void {
+        $this->sendProjectMessage($client, $project, 'client_welcome', $event,
+            fn ($name, $c) =>
+                "Hi {$name}, welcome to Matter Mind's Post-Handover Maintenance Portal. "
+                . "Project: {$c['project']} | Location: {$c['location']} | "
+                . "Handover: {$c['handover']} | Warranty Expiry: {$c['expiry']}.",
+            'WELCOME'
+        );
+    }
+
+    /** Additional project on an existing account → project_added */
+    public function notifyProjectAdded(
+        \App\Models\Client $client,
+        \App\Models\Project $project,
+        string $event = 'Project Added'
+    ): void {
+        $this->sendProjectMessage($client, $project, 'project_added', $event,
+            fn ($name, $c) =>
+                "Hi {$name}, your new project has been added to the Matter Mind Post-Handover Maintenance Portal. "
+                . "Project: {$c['project']} | Location: {$c['location']} | "
+                . "Handover: {$c['handover']} | Warranty Expiry: {$c['expiry']}.",
+            'PROJECT'
+        );
     }
 
     /* =========================================================
@@ -746,382 +754,412 @@ class WhatsAppService
         return $log->fresh();
     }
 
+ /* =========================================================
+       internal messages
+       ========================================================= */
     /**
- * Technician assigned & visit scheduled → template: technician_assigned
- * Body vars: {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref,
- *            {{5}} issue, {{6}} technician, {{7}} tech phone,
- *            {{8}} visit date, {{9}} visit time
+ * Internal recipients for an SR: the creator, all Super Admins and
+ * Heads of Projects, plus the project engineer stored on the project.
+ * Deduped by phone so nobody gets it twice.
  */
-public function notifyTechnicianAssigned(
+private function internalRecipients(\App\Models\ServiceRequest $sr): array
+{
+    $sr->loadMissing(['creator', 'project']);
+
+    $out  = [];
+    $seen = [];
+
+    $add = function ($name, $country, $mobile) use (&$out, &$seen) {
+        $phone = $this->formatWhatsAppNumber($country, $mobile);
+        if (!$phone || in_array($phone, $seen, true)) {
+            return;
+        }
+        $seen[] = $phone;
+        $out[]  = ['name' => $this->cleanParam($name) ?: 'Team', 'phone' => $phone];
+    };
+
+    // 1. Whoever raised the SR
+    if ($sr->creator) {
+        $add($sr->creator->name, $sr->creator->country_code, $sr->creator->phone);
+    }
+
+    // 2 + 3. Super Admins and Heads of Projects
+    $codes = config('services.whatsapp.internal_role_codes', ['SA', 'HP']);
+
+    $staff = \App\Models\User::whereHas('role', fn ($q) => $q->whereIn('code', $codes))
+        ->get(['id', 'name', 'country_code', 'phone']);
+
+    foreach ($staff as $u) {
+        $add($u->name, $u->country_code, $u->phone);
+    }
+
+    // 4. Project engineer — stored on the project row, not a user account
+    if ($sr->project?->engineer_contact) {
+        $add(
+            $sr->project->project_engineer ?: 'Project Engineer',
+            $sr->project->engineer_country,
+            $sr->project->engineer_contact
+        );
+    }
+
+    return $out;
+}
+
+ /**
+ * Shared builder for the 8-var internal SR alerts.
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer,
+ * {{5}} created by, {{6}} issue, {{7}} priority, {{8}} date & time
+ */
+private function sendInternalSrAlert(
     \App\Models\ServiceRequest $sr,
-    string $event = 'Technician Assigned'
+    string $template,
+    string $event,
+    string $headline
 ): void {
-    $client = $sr->client;
-    if (!$client) {
-        Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+    $recipients = $this->internalRecipients($sr);
+
+    if (!$recipients) {
+        Log::warning('Internal alert skipped — no recipients resolved', [
+            'sr_id'    => $sr->id,
+            'template' => $template,
+        ]);
         return;
     }
 
-    $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-    if (!$phone) {
-        Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-        return;
-    }
+    $sr->loadMissing('client');
+    $c = $this->srContext($sr);
 
-    $tech = $this->technicianDetails($sr);
+    $customer  = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
+    $createdBy = $this->cleanParam(optional($sr->creator)->name ?: $sr->reported_by) ?: 'N/A';
+    $priority  = $this->cleanParam($sr->priority_level) ?: 'Normal';
+    $when      = ($sr->created_at ?? now())->format('d M Y, h:i A');
 
-    // eta_at drives the schedule; fall back gracefully if it wasn't captured.
-    $eta = $sr->eta_at ? \Carbon\Carbon::parse($sr->eta_at) : null;
-    $visitDate = $eta ? $eta->format('d M Y') : 'To be confirmed';
-    $visitTime = $eta ? $eta->format('h:i A') : 'To be confirmed';
-
-    $params = fn (string $name) => [[
-        "type"       => "body",
+    $components = [[
+        "type" => "body",
         "parameters" => [
-            ["type" => "text", "text" => $this->cleanParam($name)],
-            ["type" => "text", "text" => $ctx['project']],
-            ["type" => "text", "text" => $ctx['location']],
-            ["type" => "text", "text" => $ctx['ref']],
-            ["type" => "text", "text" => $ctx['issue']],
-            ["type" => "text", "text" => $techName],
-            ["type" => "text", "text" => $techPhone],
-            ["type" => "text", "text" => $visitDate],
-            ["type" => "text", "text" => $visitTime],
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($customer),
+            $this->txt($createdBy),
+            $this->txt($c['issue']),
+            $this->txt($priority),
+            $this->txt($when),
         ],
     ]];
 
-    $preview = fn (string $name) =>
-        "Hi {$name}, a technician has been assigned to request {$ctx['ref']}. "
-        . "Project: {$ctx['project']} | Location: {$ctx['location']} | Issue: {$ctx['issue']}. "
-        . "Technician: {$techName} ({$techPhone}) — visiting {$visitDate} at {$visitTime}.";
+    $preview = "{$headline} {$c['ref']} — {$customer} | {$c['project']} | Priority: {$priority} | {$when}";
 
-    $primaryName = $client->contact_name ?: 'Customer';
-
-    $this->sendLogged(
-        $sr, $client, $phone, $event, 'technician_assigned',
-        $params($primaryName),
-        $preview($primaryName)
-    );
-
-    foreach ($this->notifiableSecondaryContacts($client) as $c) {
-        $name = $c['name'] ?: 'Customer';
+    foreach ($recipients as $r) {
         $this->sendLogged(
-            $sr, $client, $c['phone'], $event, 'technician_assigned',
-            $params($name),
-            $preview($name)
+            $sr, $sr->client, $r['phone'], $event,
+            $template, $components, $preview
+        );
+    }
+}
+
+/** New SR raised → internal_new_service_request */
+public function notifyInternalNewRequest(
+    \App\Models\ServiceRequest $sr,
+    string $event = 'Internal - New SR'
+): void {
+    $this->sendInternalSrAlert($sr, 'internal_new_service_request', $event, 'New SR');
+}
+
+/** SR accepted by management → internal_sr_accepted */
+public function notifyInternalSrAccepted(
+    \App\Models\ServiceRequest $sr,
+    string $event = 'Internal - SR Accepted'
+): void {
+    $this->sendInternalSrAlert($sr, 'internal_sr_accepted', $event, 'Accepted');
+}
+
+/** SR falls outside warranty → internal_outside_warranty */
+public function notifyInternalOutsideWarranty(
+    \App\Models\ServiceRequest $sr,
+    string $event = 'Internal - Outside Warranty'
+): void {
+    $this->sendInternalSrAlert($sr, 'internal_outside_warranty', $event, 'Outside warranty');
+}
+
+/**
+ * Technician assigned → internal_technician_assigned
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer,
+ * {{5}} created by, {{6}} issue, {{7}} priority, {{8}} date & time,
+ * {{9}} technician, {{10}} technician phone
+ */
+public function notifyInternalTechnicianAssigned(
+    \App\Models\ServiceRequest $sr,
+    string $event = 'Internal - Technician Assigned'
+): void {
+    $recipients = $this->internalRecipients($sr);
+
+    if (!$recipients) {
+        Log::warning('Internal tech-assigned alert skipped — no recipients', ['sr_id' => $sr->id]);
+        return;
+    }
+
+    $sr->loadMissing('client');
+    $c    = $this->srContext($sr);
+    $tech = $this->techContext($sr);
+
+    $customer  = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
+    $createdBy = $this->cleanParam(optional($sr->creator)->name ?: $sr->reported_by) ?: 'N/A';
+    $priority  = $this->cleanParam($sr->priority_level) ?: 'Normal';
+    $when      = ($sr->created_at ?? now())->format('d M Y, h:i A');
+
+    $components = [[
+        "type" => "body",
+        "parameters" => [
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($customer),
+            $this->txt($createdBy),
+            $this->txt($c['issue']),
+            $this->txt($priority),
+            $this->txt($when),
+            $this->txt($tech['name']),
+            $this->txt($tech['phone']),
+        ],
+    ]];
+
+    $preview = "Technician assigned — {$c['ref']} | {$customer} | "
+        . "{$tech['name']} ({$tech['phone']})";
+
+    foreach ($recipients as $r) {
+        $this->sendLogged(
+            $sr, $sr->client, $r['phone'], $event,
+            'internal_technician_assigned', $components, $preview
         );
     }
 }
 
 /**
- * Technician on site, work started → template: maintenance_started
- * Body vars: {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref,
- *            {{5}} issue, {{6}} technician, {{7}} tech phone, {{8}} arrival time
+ * Technician punched in → internal_maintenance_started
+ * {{1}} project, {{2}} location, {{3}} SR ref,
+ * {{4}} technician, {{5}} arrival time
  */
-public function notifyMaintenanceStarted(
+public function notifyInternalMaintenanceStarted(
     \App\Models\ServiceRequest $sr,
     ?\App\Models\Punch $punch = null,
-    string $event = 'Maintenance Started'
+    string $event = 'Internal - Maintenance Started'
 ): void {
-    $client = $sr->client;
-    if (!$client) {
-        Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+    $recipients = $this->internalRecipients($sr);
+
+    if (!$recipients) {
+        Log::warning('Internal started alert skipped — no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
-    $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-    if (!$phone) {
-        Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-        return;
-    }
-
-    // Prefer the punch handed in by the caller; otherwise take the latest open one.
-    $punch ??= $sr->punches()
-        ->whereNotNull('punch_in_at')
-        ->latest('punch_in_at')
-        ->first();
+    $punch ??= $sr->punches()->whereNotNull('punch_in_at')->latest('punch_in_at')->first();
 
     $arrival = $punch?->punch_in_at
-        ? \Carbon\Carbon::parse($punch->punch_in_at)->format('d M Y, h:i A')
+        ? Carbon::parse($punch->punch_in_at)->format('d M Y, h:i A')
         : now()->format('d M Y, h:i A');
 
-    $ctx  = $this->srTemplateContext($sr);
-    $tech = $this->technicianDetails($sr);
+    $sr->loadMissing('client');
+    $c    = $this->srContext($sr);
+    $tech = $this->techContext($sr);
 
-    $params = fn (string $name) => [[
-        "type"       => "body",
+    $components = [[
+        "type" => "body",
         "parameters" => [
-            ["type" => "text", "text" => $this->cleanParam($name)],
-            ["type" => "text", "text" => $ctx['project']],
-            ["type" => "text", "text" => $ctx['location']],
-            ["type" => "text", "text" => $ctx['ref']],
-            ["type" => "text", "text" => $ctx['issue']],
-            ["type" => "text", "text" => $tech['name']],
-            ["type" => "text", "text" => $tech['phone']],
-            ["type" => "text", "text" => $arrival],
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($tech['name']),
+            $this->txt($arrival),
         ],
     ]];
 
-    $preview = fn (string $name) =>
-        "Hi {$name}, our technician has arrived and started work on request {$ctx['ref']}. "
-        . "Project: {$ctx['project']} | Location: {$ctx['location']} | Issue: {$ctx['issue']}. "
-        . "Technician: {$tech['name']} ({$tech['phone']}) — arrived {$arrival}.";
+    $preview = "Work started — {$c['ref']} | {$tech['name']} | arrived {$arrival}";
 
-    $primaryName = $client->contact_name ?: 'Customer';
-
-    $this->sendLogged(
-        $sr, $client, $phone, $event, 'maintenance_started',
-        $params($primaryName),
-        $preview($primaryName)
-    );
-
-    foreach ($this->notifiableSecondaryContacts($client) as $c) {
-        $name = $c['name'] ?: 'Customer';
+    foreach ($recipients as $r) {
         $this->sendLogged(
-            $sr, $client, $c['phone'], $event, 'maintenance_started',
-            $params($name),
-            $preview($name)
+            $sr, $sr->client, $r['phone'], $event,
+            'internal_maintenance_started', $components, $preview
         );
     }
 }
 
 /**
- * Visit incomplete → template: maintenance_on_hold
- * Body vars: {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref,
- *            {{5}} issue, {{6}} technician, {{7}} status, {{8}} reason
+ * Visit incomplete → internal_maintenance_on_hold
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} status,
+ * {{5}} reason, {{6}} next visit date, {{7}} next visit time
  */
-public function notifyMaintenanceOnHold(
+public function notifyInternalMaintenanceOnHold(
     \App\Models\ServiceRequest $sr,
     string $status,
     string $reason,
-    string $event = 'Maintenance On Hold'
+    string $event = 'Internal - Maintenance On Hold'
 ): void {
-    $client = $sr->client;
-    if (!$client) {
-        Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+    $recipients = $this->internalRecipients($sr);
+
+    if (!$recipients) {
+        Log::warning('Internal on-hold alert skipped — no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
-    $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-    if (!$phone) {
-        Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-        return;
-    }
-
-    $ctx  = $this->srTemplateContext($sr);
-    $tech = $this->technicianDetails($sr);
+    $sr->loadMissing('client');
+    $c = $this->srContext($sr);
 
     $statusLabel = $this->cleanParam($status) ?: 'On Hold';
-    $reasonText  = \Illuminate\Support\Str::limit($this->cleanParam($reason), 400) ?: 'N/A';
+    $reasonText  = Str::limit($this->cleanParam($reason), 400) ?: 'N/A';
 
-    $params = fn (string $name) => [[
-        "type"       => "body",
+    $eta       = $sr->eta_at ? Carbon::parse($sr->eta_at) : null;
+    $visitDate = $eta ? $eta->format('d M Y') : 'To be confirmed';
+    $visitTime = $eta ? $eta->format('h:i A') : 'To be confirmed';
+
+    $components = [[
+        "type" => "body",
         "parameters" => [
-            ["type" => "text", "text" => $this->cleanParam($name)],
-            ["type" => "text", "text" => $ctx['project']],
-            ["type" => "text", "text" => $ctx['location']],
-            ["type" => "text", "text" => $ctx['ref']],
-            ["type" => "text", "text" => $ctx['issue']],
-            ["type" => "text", "text" => $tech['name']],
-            ["type" => "text", "text" => $statusLabel],
-            ["type" => "text", "text" => $reasonText],
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($statusLabel),
+            $this->txt($reasonText),
+            $this->txt($visitDate),
+            $this->txt($visitTime),
         ],
     ]];
 
-    $preview = fn (string $name) =>
-        "Hi {$name}, our technician attended request {$ctx['ref']} but could not complete the work. "
-        . "Project: {$ctx['project']} | Location: {$ctx['location']} | Issue: {$ctx['issue']}. "
-        . "Technician: {$tech['name']} | Status: {$statusLabel} | Reason: {$reasonText}. "
-        . "Our Service Team is arranging the next steps.";
+    $preview = "On hold — {$c['ref']} | {$statusLabel} | {$reasonText} | next: {$visitDate} {$visitTime}";
 
-    $primaryName = $client->contact_name ?: 'Customer';
-
-    $this->sendLogged(
-        $sr, $client, $phone, $event, 'maintenance_on_hold',
-        $params($primaryName),
-        $preview($primaryName)
-    );
-
-    foreach ($this->notifiableSecondaryContacts($client) as $c) {
-        $name = $c['name'] ?: 'Customer';
+    foreach ($recipients as $r) {
         $this->sendLogged(
-            $sr, $client, $c['phone'], $event, 'maintenance_on_hold',
-            $params($name),
-            $preview($name)
+            $sr, $sr->client, $r['phone'], $event,
+            'internal_maintenance_on_hold', $components, $preview
         );
     }
 }
 
 /**
- * Work completed & QC passed → template: maintenance_completed
- * Header: document (signed Work Completion Report)
- * Body vars: {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref,
- *            {{5}} issue, {{6}} technician, {{7}} completion date,
- *            {{8}} completion time, {{9}} photos link
+ * QC passed → internal_maintenance_completed
+ * Header: document (signed completion certificate)
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} technician,
+ * {{5}} completed on, {{6}} photos link
  */
-public function notifyMaintenanceCompleted(
+public function notifyInternalMaintenanceCompleted(
     \App\Models\ServiceRequest $sr,
     ?\App\Models\Punch $punch = null,
     ?string $photosLink = null,
-    string $event = 'Maintenance Completed'
+    string $event = 'Internal - Maintenance Completed'
 ): void {
-    $client = $sr->client;
-    if (!$client) {
-        Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+    $recipients = $this->internalRecipients($sr);
+
+    if (!$recipients) {
+        Log::warning('Internal completed alert skipped — no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
-    $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-    if (!$phone) {
-        Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-        return;
-    }
+    $punch ??= $sr->punches()->whereNotNull('punch_out_at')->latest('punch_out_at')->first();
 
-    $punch ??= $sr->punches()
-        ->whereNotNull('punch_out_at')
-        ->latest('punch_out_at')
-        ->first();
-
-    // The template has a document header — no signed report means no valid send.
     if (!$punch?->customer_signature_path) {
-        Log::warning('Completion WhatsApp skipped — no signed report, falling back', [
-            'sr_id' => $sr->id,
-        ]);
-        $this->notifyServiceStatus($sr, 'Completed');
+        Log::warning('Internal completed alert skipped — no signed certificate', ['sr_id' => $sr->id]);
         return;
     }
 
-    $ctx  = $this->srTemplateContext($sr);
-    $tech = $this->technicianDetails($sr);
+    $sr->loadMissing('client');
+    $c    = $this->srContext($sr);
+    $tech = $this->techContext($sr);
 
-    $out  = \Carbon\Carbon::parse($punch->punch_out_at);
-    $link = $photosLink ?: url("/sr/{$sr->id}/photos");
+    $out  = Carbon::parse($punch->punch_out_at ?? now());
+    $link = $photosLink ?: \Illuminate\Support\Facades\URL::signedRoute(
+        'sr.photos', ['serviceRequest' => $sr->id]
+    );
 
-    $components = fn (string $name) => [
+    $components = [
         [
-            "type"       => "header",
+            "type" => "header",
             "parameters" => [[
                 "type"     => "document",
                 "document" => [
                     "link"     => asset('storage/' . $punch->customer_signature_path),
-                    "filename" => 'Work-Completion-Report-' . $ctx['ref'] . '.pdf',
+                    "filename" => 'Work-Completion-Certificate-' . $c['ref'] . '.pdf',
                 ],
             ]],
         ],
         [
-            "type"       => "body",
+            "type" => "body",
             "parameters" => [
-                ["type" => "text", "text" => $this->cleanParam($name)],
-                ["type" => "text", "text" => $ctx['project']],
-                ["type" => "text", "text" => $ctx['location']],
-                ["type" => "text", "text" => $ctx['ref']],
-                ["type" => "text", "text" => $ctx['issue']],
-                ["type" => "text", "text" => $tech['name']],
-                ["type" => "text", "text" => $out->format('d M Y')],
-                ["type" => "text", "text" => $out->format('h:i A')],
-                ["type" => "text", "text" => $link],
+                $this->txt($c['project']),
+                $this->txt($c['location']),
+                $this->txt($c['ref']),
+                $this->txt($tech['name']),
+                $this->txt($out->format('d M Y, h:i A')),
+                $this->txt($link),
             ],
         ],
     ];
 
-    $preview = fn (string $name) =>
-        "Hi {$name}, your maintenance request {$ctx['ref']} has been successfully completed. "
-        . "Project: {$ctx['project']} | Location: {$ctx['location']} | Issue: {$ctx['issue']}. "
-        . "Technician: {$tech['name']} — completed {$out->format('d M Y')} at {$out->format('h:i A')}. "
-        . "Signed report attached; photos: {$link}";
+    $preview = "Completed — {$c['ref']} | {$tech['name']} | {$out->format('d M Y, h:i A')}";
 
-    $primaryName = $client->contact_name ?: 'Customer';
-
-    $this->sendLogged(
-        $sr, $client, $phone, $event, 'maintenance_completed',
-        $components($primaryName),
-        $preview($primaryName)
-    );
-
-    foreach ($this->notifiableSecondaryContacts($client) as $c) {
-        $name = $c['name'] ?: 'Customer';
+    foreach ($recipients as $r) {
         $this->sendLogged(
-            $sr, $client, $c['phone'], $event, 'maintenance_completed',
-            $components($name),
-            $preview($name)
+            $sr, $sr->client, $r['phone'], $event,
+            'internal_maintenance_completed', $components, $preview
         );
     }
 }
 
 /**
- * Post-completion survey → template: satisfaction_survey
- * Body vars: {{1}} name, {{2}} project, {{3}} location,
- *            {{4}} SR ref, {{5}} completion date, {{6}} survey link
+ * Survey dispatched to customer → internal_survey_sent
+ * {{1}} created by, {{2}} customer, {{3}} project, {{4}} location,
+ * {{5}} handover, {{6}} warranty expiry, {{7}} SR ref, {{8}} issue,
+ * {{9}} priority, {{10}} sent date, {{11}} sent time, {{12}} survey link
  */
-public function notifySatisfactionSurvey(
+public function notifyInternalSurveySent(
     \App\Models\ServiceRequest $sr,
     ?string $surveyLink = null,
-    string $event = 'Satisfaction Survey'
+    string $event = 'Internal - Survey Sent'
 ): void {
-    $client = $sr->client;
-    if (!$client) {
-        Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+    $recipients = $this->internalRecipients($sr);
+
+    if (!$recipients) {
+        Log::warning('Internal survey-sent alert skipped — no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
-    $phone = $this->formatWhatsAppNumber($client->primary_country, $client->primary_mobile);
-    if (!$phone) {
-        Log::warning('WhatsApp skipped — no phone', ['sr_id' => $sr->id]);
-        return;
-    }
+    $sr->loadMissing('client');
+    $c = $this->srContext($sr);
 
-    $ctx = $this->srTemplateContext($sr);
+    $createdBy = $this->cleanParam(optional($sr->creator)->name ?: $sr->reported_by) ?: 'N/A';
+    $customer  = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
+    $priority  = $this->cleanParam($sr->priority_level) ?: 'Normal';
 
-    $punch = $sr->punches()
-        ->whereNotNull('punch_out_at')
-        ->latest('punch_out_at')
-        ->first();
+    $link = $surveyLink ?: \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'clients.feedback.show',
+        now()->addDays(30),
+        ['id' => $sr->id]
+    );
 
-    $completedAt = $punch?->punch_out_at ?? $sr->qc_reviewed_at;
-    $completed   = $completedAt
-        ? \Carbon\Carbon::parse($completedAt)->format('d M Y')
-        : 'N/A';
+    $now = now();
 
-    // $link = $surveyLink ?: url("/client_feedback/{$sr->id}");
-    $link = \Illuminate\Support\Facades\URL::temporarySignedRoute(
-    'clients.feedback.show',
-    now()->addDays(30),
-    ['id' => $sr->id]
-);
-
-$whatsapp->notifySatisfactionSurvey($sr, $link);
-    $params = fn (string $name) => [[
-        "type"       => "body",
+    $components = [[
+        "type" => "body",
         "parameters" => [
-            ["type" => "text", "text" => $this->cleanParam($name)],
-            ["type" => "text", "text" => $ctx['project']],
-            ["type" => "text", "text" => $ctx['location']],
-            ["type" => "text", "text" => $ctx['ref']],
-            ["type" => "text", "text" => $completed],
-            ["type" => "text", "text" => $link],
+            $this->txt($createdBy),
+            $this->txt($customer),
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['handover']),
+            $this->txt($c['expiry']),
+            $this->txt($c['ref']),
+            $this->txt($c['issue']),
+            $this->txt($priority),
+            $this->txt($now->format('d M Y')),
+            $this->txt($now->format('h:i A')),
+            $this->txt($link),
         ],
     ]];
 
-    $preview = fn (string $name) =>
-        "Hi {$name}, we hope everything is working well after the maintenance visit. "
-        . "Project: {$ctx['project']} | Location: {$ctx['location']} | "
-        . "Request: {$ctx['ref']} | Completed: {$completed}. "
-        . "Please rate your experience: {$link}";
+    $preview = "Survey sent — {$c['ref']} | {$customer} | {$now->format('d M Y, h:i A')}";
 
-    $primaryName = $client->contact_name ?: 'Customer';
-
-    $this->sendLogged(
-        $sr, $client, $phone, $event, 'satisfaction_survey',
-        $params($primaryName),
-        $preview($primaryName)
-    );
-
-    foreach ($this->notifiableSecondaryContacts($client) as $c) {
-        $name = $c['name'] ?: 'Customer';
+    foreach ($recipients as $r) {
         $this->sendLogged(
-            $sr, $client, $c['phone'], $event, 'satisfaction_survey',
-            $params($name),
-            $preview($name)
+            $sr, $sr->client, $r['phone'], $event,
+            'internal_survey_sent', $components, $preview
         );
     }
 }

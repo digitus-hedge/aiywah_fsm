@@ -299,6 +299,11 @@
               <div class="field-hint">Alphanumeric invoice reference from the external ERP system.</div>
             </div>
             <div class="form-group">
+              <label class="form-label-sm">Invoice Total (AED) <span class="req">*</span><span class="hint">Final billed amount</span></label>
+              <input type="number" class="fc" id="inv-total" placeholder="0.00" min="0" step="0.01"
+                    inputmode="decimal" oninput="inv_validate()"/>
+            </div>
+            <div class="form-group">
               <label class="form-label-sm">Invoice Document PDF <span class="req">*</span></label>
               <div class="dropzone" id="inv-dz" onclick="dz_click('inv-fi')"
                 ondragover="dz_dragover(event,'inv-dz')" ondragleave="dz_dragleave('inv-dz')"
@@ -485,10 +490,24 @@ function dz_remove(dzId,inputId,prefix,placeholder){
 
 /* ---------- VALIDATION ---------- */
 function inv_validate(){
-  var code = document.getElementById('inv-code').value.trim();
-  var btn  = document.getElementById('inv-btn');
-  var ok   = code.length >= 3 && inv_fileOk;
-  btn.disabled = !ok; btn.style.opacity = ok ? '1' : '.38';
+  var code  = document.getElementById('inv-code').value.trim();
+  var total = document.getElementById('inv-total').value.trim();
+  var btn   = document.getElementById('inv-btn');
+  var msg   = document.getElementById('inv-val-msg');
+
+  var totalNum = parseFloat(total);
+  var totalOk  = total !== '' && !isNaN(totalNum) && totalNum >= 0;
+
+  if(total !== '' && !totalOk){
+    msg.style.display = 'block';
+    msg.textContent   = 'Invoice total must be a number of 0 or more.';
+  } else {
+    msg.style.display = 'none';
+  }
+
+  var ok = code.length >= 3 && totalOk && inv_fileOk;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.38';
 }
 window.inv_validate = inv_validate;
 
@@ -522,6 +541,7 @@ function selectInv(id){
   inv_fileOk = false;
   dz_remove('inv-dz','inv-fi','inv','Drag & Drop Invoice PDF here or click to browse');
   document.getElementById('inv-code').value = '';
+  document.getElementById('inv-total').value = Number(selInv.totalExp || 0).toFixed(2);
   inv_validate();
   renderInvQueue();
   document.getElementById('inv-empty').style.display = 'none';

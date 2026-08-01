@@ -36,7 +36,7 @@ footer.footer { display: none; }
   font-size:.875rem;
   color:var(--text);
 }
-[data-bs-theme="dark"] #adminDash{
+[data-theme="dark"] #adminDash{
   --card:#1e1b18; --card2:#252220;
   --border:rgba(255,255,255,.07);
   --shadow:0 2px 20px rgba(0,0,0,.4);
@@ -124,7 +124,7 @@ footer.footer { display: none; }
 #adminDash .du{background:rgba(21,128,61,.1);color:var(--ok);}
 #adminDash .dd{background:rgba(220,38,38,.1);color:var(--danger);}
 #adminDash .dn{background:rgba(0,0,0,.06);color:var(--muted);}
-[data-bs-theme="dark"] #adminDash .dn{background:rgba(255,255,255,.07);}
+[data-theme="dark"] #adminDash .dn{background:rgba(255,255,255,.07);}
 #adminDash .big-num{font-size:2rem;font-weight:700;color:var(--text);line-height:1;}
 #adminDash .kpi-lbl{font-size:.73rem;color:var(--muted);font-weight:500;}
 #adminDash .kpi-sub{font-size:.69rem;color:var(--light);}
@@ -180,7 +180,7 @@ footer.footer { display: none; }
 #adminDash .sd-label{font-size:.73rem;color:var(--muted);width:110px;flex-shrink:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 #adminDash .sd-track{flex:1;height:7px;background:rgba(0,0,0,.06);border-radius:4px;overflow:hidden;}
-[data-bs-theme="dark"] #adminDash .sd-track{background:rgba(255,255,255,.07);}
+[data-theme="dark"] #adminDash .sd-track{background:rgba(255,255,255,.07);}
 #adminDash .sd-fill{height:100%;width:0;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1);}
 #adminDash .sd-n{font-size:.72rem;font-weight:600;color:var(--text);min-width:22px;text-align:right;flex-shrink:0;}
 
@@ -220,7 +220,7 @@ footer.footer { display: none; }
 #adminDash .t-domain{font-size:.69rem;color:var(--muted);}
 #adminDash .t-bar-wrap{height:6px;background:rgba(0,0,0,.06);border-radius:3px;
   overflow:hidden;min-width:70px;}
-[data-bs-theme="dark"] #adminDash .t-bar-wrap{background:rgba(255,255,255,.07);}
+[data-theme="dark"] #adminDash .t-bar-wrap{background:rgba(255,255,255,.07);}
 #adminDash .t-bar-fill{height:100%;width:0;background:linear-gradient(90deg,#9a8053,#b8975e);
   border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1);}
 #adminDash .t-stars{color:#f59e0b;font-size:.68rem;display:flex;gap:1px;}
@@ -250,7 +250,7 @@ footer.footer { display: none; }
 #adminDash .h-row:last-child{margin-bottom:0;}
 #adminDash .h-lbl{font-size:.7rem;color:var(--muted);width:18px;text-align:right;flex-shrink:0;}
 #adminDash .h-track{flex:1;height:8px;background:rgba(0,0,0,.06);border-radius:4px;overflow:hidden;}
-[data-bs-theme="dark"] #adminDash .h-track{background:rgba(255,255,255,.07);}
+[data-theme="dark"] #adminDash .h-track{background:rgba(255,255,255,.07);}
 #adminDash .h-fill{height:100%;width:0;background:linear-gradient(90deg,#f59e0b,#fbbf24);
   border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1);}
 #adminDash .h-n{font-size:.7rem;color:var(--muted);width:22px;flex-shrink:0;}
@@ -349,6 +349,46 @@ footer.footer { display: none; }
   #adminDash *,#adminDash *::before,#adminDash *::after{
     transition-duration:.01ms!important;animation-duration:.01ms!important;}
 }
+
+#adminDash{
+  --a1:#9a8053;   /* brand gold      */
+  --a2:#b8975e;   /* gold, lifted    */
+  --a3:#7d6742;   /* gold, deepened  */
+  --a4:#c7ab7c;   /* gold, softened  */
+  --a5:#6a583a;   /* gold, darkest   */
+}
+[data-theme="dark"] #adminDash{
+  --a1:#b8975e;
+  --a2:#c7ab7c;
+  --a3:#9a8053;
+  --a4:#d6c09a;
+  --a5:#8a7049;
+}
+ 
+/* ── KPI CORNER WASH ── */
+#adminDash .kpi.k1::after{background:var(--a1);}
+#adminDash .kpi.k2::after{background:var(--a2);}
+#adminDash .kpi.k3::after{background:var(--a3);}
+#adminDash .kpi.k4::after{background:var(--a4);}
+#adminDash .kpi.k5::after{background:var(--a5);}
+ 
+/* ── KPI ICON TILES ── */
+#adminDash .i1{background:var(--gold-bg);color:var(--a1);}
+#adminDash .i2{background:var(--gold-bg);color:var(--a2);}
+#adminDash .i3{background:var(--gold-bg);color:var(--a3);}
+#adminDash .i4{background:var(--gold-bg);color:var(--a4);}
+#adminDash .i5{background:var(--gold-bg);color:var(--a5);}
+ 
+/* ── RATING HISTOGRAM + STARS ──
+   Were amber (#f59e0b → #fbbf24), the only other warm hue on the page. */
+#adminDash .h-fill{background:linear-gradient(90deg,var(--a1),var(--a2));}
+#adminDash .t-stars{color:var(--a2);}
+ 
+/* ── SECTION HEADINGS + CARD LABEL ICONS ──
+   Already gold; restated so the whole theme lives in one block. */
+#adminDash .c-label i{color:var(--a1);}
+#adminDash .rank,
+#adminDash .avatar-sm{background:var(--gold-bg);color:var(--a1);}
 </style>
 @endpush
 
@@ -595,9 +635,10 @@ footer.footer { display: none; }
                 </div>
             </div>
 
-            <div class="leg-row" style="margin-bottom:12px;">
-                <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>In-warranty</span>
-                <span class="leg"><span class="leg-dot" style="background:#393837;"></span>Out-of-warranty</span>
+            <div class="leg-row" style="margin-bottom:8px;">
+                <span class="leg"><span class="leg-dot" style="background:var(--warn);"></span>Pending</span>
+                <span class="leg"><span class="leg-dot" style="background:var(--danger);"></span>Rejected</span>
+                <span class="leg"><span class="leg-dot" style="background:var(--ok);"></span>Completed</span>
             </div>
 
             <div class="ch-220"><canvas id="mmSrTrend"></canvas></div>
@@ -623,16 +664,7 @@ footer.footer { display: none; }
                     <div class="fin-lbl">Field expense</div>
                     <div class="fin-val r">{{ data_get($finance ?? [], 'expense_formatted', '—') }}</div>
                 </div>
-                <div class="fin-block">
-                    <div class="fin-lbl">Net recovery</div>
-                    <div class="fin-val gold">{{ data_get($finance ?? [], 'net_formatted', '—') }}</div>
-                </div>
-                <div class="fin-block">
-                    <div class="fin-lbl">Recovery rate</div>
-                    <div class="fin-val g">
-                        {{ ! is_null(data_get($finance ?? [], 'recovery_rate')) ? data_get($finance, 'recovery_rate') . '%' : '—' }}
-                    </div>
-                </div>
+                
             </div>
 
             <div class="ch-140"><canvas id="mmFinChart"></canvas></div>
@@ -649,36 +681,37 @@ footer.footer { display: none; }
             </div>
 
             <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                <div>
-                    <div class="ch-half"><canvas id="mmSlaGauge"></canvas></div>
-                    <div style="text-align:center;margin-top:-14px;">
-                        <div style="font-family:var(--font-body);font-size:1.6rem;font-weight:700;line-height:1;">
-                            {{ ! is_null(data_get($qc ?? [], 'sla_compliance')) ? data_get($qc, 'sla_compliance') . '%' : '—' }}
-                        </div>
-                        <div style="font-size:.7rem;color:var(--muted);">SLA compliance</div>
+            <div>
+                <div class="ch-half"><canvas id="mmSlaGauge"></canvas></div>
+                <div style="text-align:center;margin-top:-14px;">
+                    <div style="font-family:var(--font-body);font-size:1.6rem;font-weight:700;line-height:1;">
+                        {{ ! is_null(data_get($qc ?? [], 'qc_rate')) ? data_get($qc, 'qc_rate') . '%' : '—' }}
                     </div>
-                </div>
-
-                <div class="metric-stack">
-                    <div class="mini-metric">
-                        <div class="mm-label">First-pass QC</div>
-                        <div class="mm-val" style="color:var(--ok);">
-                            {{ ! is_null(data_get($qc ?? [], 'first_pass_rate')) ? data_get($qc, 'first_pass_rate') . '%' : '—' }}
-                        </div>
-                        <div class="mm-sub">{{ data_get($qc ?? [], 'first_pass_sub') }}</div>
-                    </div>
-                    <div class="mini-metric">
-                        <div class="mm-label">Rework this period</div>
-                        <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'rework_count', 0) }}</div>
-                        <div class="mm-sub">{{ data_get($qc ?? [], 'rework_sub') }}</div>
-                    </div>
-                    <div class="mini-metric">
-                        <div class="mm-label">SLA breaches</div>
-                        <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'sla_breaches', 0) }}</div>
-                        <div class="mm-sub">{{ data_get($qc ?? [], 'sla_breach_sub') }}</div>
+                    <div style="font-size:.7rem;color:var(--muted);">
+                        QC reviewed · {{ data_get($qc ?? [], 'qc_reviewed', 0) }} of {{ data_get($qc ?? [], 'qc_reached', 0) }}
                     </div>
                 </div>
             </div>
+
+            <div class="metric-stack">
+                <div class="mini-metric" data-panel="pending-qc" style="cursor:pointer;">
+                    <div class="mm-label">Pending QC</div>
+                    <div class="mm-val" style="color:var(--warn);">{{ data_get($qc ?? [], 'pending_qc', 0) }}</div>
+                    <div class="mm-sub">{{ data_get($qc ?? [], 'pending_qc_sub') }}</div>
+                </div>
+                <div class="mini-metric">
+                    <div class="mm-label">Rework this period</div>
+                    <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'rework_count', 0) }}</div>
+                    <div class="mm-sub">{{ data_get($qc ?? [], 'rework_sub') }}</div>
+                </div>
+                <div class="mini-metric" data-panel="sla-breach" style="cursor:pointer;"
+                    title="{{ collect(data_get($qc ?? [], 'stage_breaches', []))->map(fn ($s) => $s['label'].': '.$s['count'].' over '.$s['target'].'h')->implode("\n") }}">
+                    <div class="mm-label">SLA breaches</div>
+                    <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'sla_breaches', 0) }}</div>
+                    <div class="mm-sub">{{ data_get($qc ?? [], 'sla_breach_sub') }}</div>
+                </div>
+            </div>
+        </div>
         </div>
 
         {{-- WhatsApp --}}
@@ -751,7 +784,8 @@ footer.footer { display: none; }
                         <th>Field hours</th>
                         <th>Client rating</th>
                         <th>Rework</th>
-                        <th>Punch-in rate</th>
+                        <th>Pending</th>
+                        <th>SLA breaches</th>
                         <th>Field expenses</th>
                     </tr>
                 </thead>
@@ -760,7 +794,6 @@ footer.footer { display: none; }
                         @php
                             $jobs      = (int) data_get($tech, 'jobs');
                             $rework    = (int) data_get($tech, 'rework');
-                            $punchRate = (float) data_get($tech, 'punch_rate');
                             $rating    = (float) data_get($tech, 'rating');
                             $reworkCls = $rework === 0 ? 'p0' : ($rework <= 1 ? 'p1' : 'p2');
                         @endphp
@@ -791,8 +824,23 @@ footer.footer { display: none; }
                                 <span style="font-size:.69rem;color:var(--muted);">{{ number_format($rating, 1) }}</span>
                             </td>
                             <td><span class="t-pill {{ $reworkCls }}"><i class="bi bi-arrow-counterclockwise"></i>{{ $rework }}</span></td>
-                            <td style="font-size:.8rem;font-weight:600;color:{{ $punchRate >= 95 ? 'var(--ok)' : 'var(--warn)' }};">
-                                {{ $punchRate }}%
+                            <td title="{{ implode("\n", data_get($tech, 'pending_items', [])) ?: 'Nothing outstanding' }}"
+                                style="font-size:.8rem;font-weight:600;cursor:help;
+                                    color:{{ (int) data_get($tech, 'pending') === 0 ? 'var(--ok)' : 'var(--warn)' }};">
+                                {{ data_get($tech, 'pending', 0) }}
+                                @if ((int) data_get($tech, 'pending') > 0)
+                                    <i class="bi bi-info-circle" style="font-size:.7rem;opacity:.6;"></i>
+                                @endif
+                            </td>
+
+                            <td title="{{ implode("\n", data_get($tech, 'breach_items', [])) ?: 'No breaches' }}">
+                                <span class="t-pill {{ data_get($tech, 'critical') ? 'p2' : ((int) data_get($tech, 'sla_breaches') > 0 ? 'p1' : 'p0') }}"
+                                    style="cursor:help;">
+                                    @if (data_get($tech, 'critical'))
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                    @endif
+                                    {{ data_get($tech, 'sla_breaches', 0) }}
+                                </span>
                             </td>
                             <td style="font-size:.78rem;color:var(--muted);">{{ data_get($tech, 'expenses_formatted') }}</td>
                         </tr>
@@ -863,12 +911,12 @@ footer.footer { display: none; }
                         <span class="avatar-sm">{{ data_get($exec, 'initials') }}</span>
                         <span style="flex:1;">
                             <span style="font-size:.78rem;font-weight:500;color:var(--text);display:block;">{{ data_get($exec, 'name') }}</span>
-                            <span style="font-size:.68rem;color:var(--muted);">
-                                {{ data_get($exec, 'srs') }} SRs · {{ data_get($exec, 'completed') }} completed
-                            </span>
+                            <span style="font-size:.68rem;color:var(--muted);">{{ data_get($exec, 'srs') }} SRs logged</span>
                         </span>
-                        <span style="font-size:.7rem;font-weight:700;color:{{ (int) data_get($exec, 'pending') === 0 ? 'var(--ok)' : 'var(--warn)' }};">
-                            {{ data_get($exec, 'pending') }} pending
+                        <span style="display:flex;align-items:center;gap:10px;font-size:.7rem;font-weight:700;">
+                            <span style="color:var(--warn);"  title="Pending">{{ data_get($exec, 'pending', 0) }}</span>
+                            <span style="color:var(--danger);" title="Rejected">{{ data_get($exec, 'rejected', 0) }}</span>
+                            <span style="color:var(--ok);"    title="Completed">{{ data_get($exec, 'completed', 0) }}</span>
                         </span>
                     </div>
                 @empty
@@ -914,7 +962,34 @@ footer.footer { display: none; }
                     </div>
                 </div>
             </div>
+                @if (! empty($clientReviews))
+    <div class="sec-ttl" style="margin:4px 0 8px;">Latest reviews</div>
 
+    @foreach ($clientReviews as $review)
+        <div class="lrow lrow-rule" style="align-items:flex-start;padding:8px;">
+            <span class="avatar-sm">{{ data_get($review, 'initials') }}</span>
+            <span style="flex:1;min-width:0;">
+                <span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <strong style="font-size:.75rem;color:var(--text);">{{ data_get($review, 'client') }}</strong>
+                    <span style="font-size:.68rem;color:var(--gold);">{{ data_get($review, 'code') }}</span>
+                </span>
+                <span class="t-stars" style="margin:2px 0;">
+                    @for ($star = 1; $star <= 5; $star++)
+                        <i class="bi bi-star{{ $star <= data_get($review, 'stars') ? '-fill' : '' }}"></i>
+                    @endfor
+                </span>
+                @if (data_get($review, 'comment'))
+                    <span style="font-size:.7rem;color:var(--muted);display:block;">{{ data_get($review, 'comment') }}</span>
+                @endif
+                <span style="font-size:.66rem;color:var(--light);display:block;">
+                    ML: {{ data_get($review, 'ml') }} · {{ data_get($review, 'when') }}
+                </span>
+            </span>
+        </div>
+    @endforeach
+
+    <div class="sec-ttl" style="margin:12px 0 8px;">Rating distribution</div>
+@endif
             @forelse ($ratingBuckets as $bucket)
                 <div class="h-row">
                     <span class="h-lbl">{{ data_get($bucket, 'stars') }}</span>
@@ -984,11 +1059,12 @@ footer.footer { display: none; }
             ->values()
             ->all(),
 
-        'frontDesk' => collect($frontDesk ?? [])
+            'frontDesk' => collect($frontDesk ?? [])
             ->map(fn ($e) => [
                 'initials'  => data_get($e, 'initials'),
-                'completed' => (int) data_get($e, 'completed'),
                 'pending'   => (int) data_get($e, 'pending'),
+                'rejected'  => (int) data_get($e, 'rejected'),
+                'completed' => (int) data_get($e, 'completed'),
             ])
             ->values()
             ->all(),
@@ -1012,7 +1088,7 @@ window.MM_DASH = @json($mmChartData);
 
     /* ---------------------------------------------------------- theming */
     function palette() {
-        const dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const dark = document.documentElement.getAttribute('data-theme') === 'dark';
         return {
             grid : dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.05)',
             text : dark ? '#e8e0d4' : '#1a1614',
@@ -1164,8 +1240,8 @@ window.MM_DASH = @json($mmChartData);
 
         /* SLA gauge */
         const slaEl = document.getElementById('mmSlaGauge');
-        if (slaEl && DATA.qc && DATA.qc.sla_compliance !== null && DATA.qc.sla_compliance !== undefined) {
-            const met = Number(DATA.qc.sla_compliance);
+        if (slaEl && DATA.qc && DATA.qc.qc_rate !== null && DATA.qc.qc_rate !== undefined) {
+            const met = Number(DATA.qc.qc_rate);
             charts.sla = new Chart(slaEl, {
                 type: 'doughnut',
                 data: {
@@ -1217,7 +1293,8 @@ window.MM_DASH = @json($mmChartData);
                     labels: DATA.frontDesk.map((e) => e.initials),
                     datasets: [
                         { label: 'Completed', data: DATA.frontDesk.map((e) => e.completed), backgroundColor: 'rgba(154,128,83,.8)', borderRadius: 5, borderSkipped: false },
-                        { label: 'Pending',   data: DATA.frontDesk.map((e) => e.pending),   backgroundColor: 'rgba(220,38,38,.3)',  borderRadius: 5, borderSkipped: false },
+                        { label: 'Pending',   data: DATA.frontDesk.map((e) => e.pending),   backgroundColor: 'rgba(217,119,6,.45)', borderRadius: 5, borderSkipped: false },
+                        { label: 'Rejected',  data: DATA.frontDesk.map((e) => e.rejected),  backgroundColor: 'rgba(220,38,38,.35)', borderRadius: 5, borderSkipped: false },
                     ],
                 },
                 options: {
@@ -1248,7 +1325,7 @@ window.MM_DASH = @json($mmChartData);
     }
 
     new MutationObserver(refreshCharts).observe(document.documentElement, {
-        attributes: true, attributeFilter: ['data-bs-theme'],
+        attributes: true, attributeFilter: ['data-theme'],
     });
 
     /* ------------------------------------------------------------ toast */

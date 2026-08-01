@@ -1,823 +1,492 @@
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="light">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>Field Pipeline | Matter Mind</title>
-  <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
+@extends('worker.layouts.console')
 
-  <meta name="csrf-token" content="{{ csrf_token() }}"/>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
+@section('title', 'Field Pipeline')
+@section('heading', 'Field Pipeline')
+
+@push('head')
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+@endpush
 
-  <style>
-/* ═══════════════════════════════════════
-   THEME TOKENS
-   Brand: #9a8053 primary · #B8976A light · #8A6E47 dark
-═══════════════════════════════════════ */
-:root,
-[data-bs-theme="light"] {
-  --app-bg:#f0f4ff;      --surface-2:#f4f6fb;   --surface-3:#eaeff9;
-  --card-bg:#fff;        --card-border:#e4e8f5; --input-bg:#fff;
-  --text-primary:#1a2236; --text-heading:#0d1626;
-  --text-muted:#7987a1;   --text-light:#b0bac9;
-  --border-color:#e4e8f0;
-  --card-shadow:0 2px 14px rgba(80,100,160,.1);
-  --overlay-bg:rgba(9,15,35,.65);
-  --drawer-bg:#fff;
-  --bottom-bar:#fff;
-  --nav-active-bg:rgba(154,128,83,.1);
-}
-[data-bs-theme="dark"] {
-  --app-bg:#1c1b1a;      --surface-2:#2a2928;   --surface-3:#302f2e;
-  --card-bg:#242220;     --card-border:#3a3836; --input-bg:#2a2928;
-  --text-primary:#d4cfc8; --text-heading:#e8e3dc;
-  --text-muted:#7a756e;   --text-light:#4a4642;
-  --border-color:#3a3836;
-  --card-shadow:0 2px 16px rgba(0,0,0,.45);
-  --overlay-bg:rgba(0,0,0,.78);
-  --drawer-bg:#242220;
-  --bottom-bar:#1e1d1c;
-  --nav-active-bg:rgba(154,128,83,.15);
-}
+@push('styles')
+<style>
+/* ══════════════════════════════════════════════════════ FILTERS ═══ */
+.tab-filter{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:3px;}
+.tab-filter::-webkit-scrollbar{height:0;}
+.tf-btn{padding:6px 13px;font-size:.73rem;font-weight:600;border:1px solid var(--border);
+  background:var(--card);border-radius:20px;cursor:pointer;color:var(--muted);transition:all .18s;
+  flex:0 0 auto;white-space:nowrap;font-family:'SF Pro Display','Inter',sans-serif;}
+.tf-btn:hover{border-color:var(--gold-border);color:var(--gold);}
+.tf-btn.active{background:var(--gold);border-color:var(--gold);color:#fff;}
 
-/* ═══════════════════════════════════════ BASE ═══ */
-*,*::before,*::after { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-html,body { height:100%; margin:0; padding:0; }
-body {
-  font-size:.875rem; background:var(--app-bg); color:var(--text-primary);
-  transition:background .3s,color .3s; overflow-x:hidden;
-}
-.hidden { display:none !important; }
+/* ══════════════════════════════════════════════════════ JOB CARDS ═══ */
+.pl-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;
+  box-shadow:var(--shadow);overflow:hidden;transition:border-color .15s;}
+.pl-card.is-active{border-color:rgba(21,128,61,.45);}
+.pl-card.is-accepted{border-left:3px solid var(--blue);}
+.jc-main{padding:14px 15px;cursor:pointer;}
+.jc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px;}
+.jc-sr{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.02rem;font-weight:700;color:var(--gold);}
+.jc-client{font-size:.86rem;font-weight:600;color:var(--text);margin-bottom:2px;}
+.jc-contract{font-size:.7rem;color:var(--muted);margin-bottom:9px;}
+.jc-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.jc-meta-item{display:flex;align-items:center;gap:4px;font-size:.72rem;color:var(--muted);min-width:0;}
+.jc-meta-item i{color:var(--gold);font-size:.72rem;flex-shrink:0;}
+.jc-meta-item span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.jc-sla{font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:auto;flex-shrink:0;}
+.sla-ok{background:var(--green-bg);color:var(--green);}
+.sla-w{background:var(--amber-bg);color:var(--amber);}
+.sla-c{background:var(--red-bg);color:var(--red);}
+.jc-chevron{color:var(--light);font-size:.85rem;transition:transform .25s;flex-shrink:0;}
+.jc-chevron.open{transform:rotate(180deg);}
 
-.pg-title, .ajb-client, .tw-time { letter-spacing:-.01em; }
+.jc-expand{display:none;border-top:1px solid var(--border);background:var(--card2);}
+.jc-expand.open{display:block;}
+.jc-exp-section{padding:13px 15px;border-bottom:1px solid var(--border);}
+.jc-exp-section:last-child{border-bottom:none;}
+.exp-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--light);margin-bottom:7px;display:flex;align-items:center;gap:5px;}
+.exp-text{font-size:.77rem;color:var(--text);line-height:1.5;overflow-wrap:anywhere;
+  word-break:break-word;white-space:pre-wrap;max-width:100%;min-width:0;}
+.rework-note{font-size:.75rem;color:var(--red);background:var(--red-bg);border-radius:9px;
+  padding:9px 11px;margin-top:6px;line-height:1.5;border:1px solid rgba(220,38,38,.15);overflow-wrap:anywhere;}
+.hist-line{font-size:.72rem;color:var(--muted);padding:3px 0 3px 9px;
+  border-left:2px solid var(--border2);margin:0 0 4px 2px;overflow-wrap:anywhere;}
+.photo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.photo-thumb{width:64px;height:64px;border-radius:9px;background:var(--surface);
+  border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;cursor:pointer;overflow:hidden;flex-shrink:0;text-decoration:none;}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.photo-pdf iframe{pointer-events:none;width:100%;height:100%;border:0;}
 
-/* ═══════════════════════════════════════ SHELL ═══ */
-.app-shell {
-  display:flex; flex-direction:column; min-height:100vh;
-  max-width:480px; margin:0 auto; position:relative; background:var(--app-bg);
-}
+.eta-form{padding:13px 15px;background:var(--surface);border-top:1px solid var(--border);}
+.eta-title{font-size:.74rem;font-weight:700;color:var(--text);margin-bottom:11px;
+  display:flex;align-items:center;gap:6px;}
+.eta-title i{color:var(--gold);}
+.eta-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;}
+@media(max-width:340px){.eta-grid{grid-template-columns:1fr;}}
+.eta-field label{font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted);display:block;margin-bottom:4px;}
+.eta-input{width:100%;font-size:.82rem;border:1px solid var(--border2);border-radius:9px;
+  padding:.5rem .7rem;color:var(--text);background:var(--card);-webkit-appearance:none;appearance:none;
+  transition:border-color .15s,box-shadow .15s;font-family:'SF Pro Display','Inter',sans-serif;}
+.eta-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-bg);outline:none;}
+.eta-input.err{border-color:var(--red);}
+.accept-btn{width:100%;border:none;border-radius:11px;padding:.7rem 1rem;font-size:.85rem;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s;
+  background:linear-gradient(135deg,#9a8053,#b8975e);color:#fff;
+  font-family:'SF Pro Display','Inter',sans-serif;box-shadow:0 4px 14px rgba(154,128,83,.3);}
+.accept-btn:hover:not(:disabled){transform:translateY(-1px);}
+.accept-btn:disabled{opacity:.45;cursor:not-allowed;background:var(--surface);color:var(--muted);box-shadow:none;}
+.accept-btn.go{background:linear-gradient(135deg,#15803d,#16a34a);box-shadow:0 4px 14px rgba(21,128,61,.3);}
+.accept-btn.blue{background:linear-gradient(135deg,#2563eb,#3b82f6);box-shadow:0 4px 14px rgba(37,99,235,.3);}
+.accept-btn.ghost{background:none;box-shadow:none;border:1px dashed var(--gold-border);
+  color:var(--gold);margin-top:9px;font-weight:600;}
+.accept-btn.ghost:hover{background:var(--gold-bg);transform:none;}
+.wa-hint{font-size:.68rem;color:var(--muted);text-align:center;margin-top:8px;
+  display:flex;align-items:center;justify-content:center;gap:4px;}
+.wa-hint i{color:#25d366;}
+.err-msg{font-size:.68rem;color:var(--red);margin-top:4px;display:none;}
+.err-msg.show{display:block;}
+.jc-active-note{padding:13px 15px;text-align:center;font-size:.78rem;color:var(--green);
+  font-weight:600;background:var(--green-bg);border-top:1px solid var(--border);}
 
-.status-bar {
-  background:linear-gradient(135deg,#9a8053,#B8976A); color:#fff;
-  padding:10px 18px 8px; display:flex; align-items:center;
-  justify-content:space-between; flex-shrink:0;
-}
-.sb-left { display:flex; align-items:center; gap:10px; }
-.sb-avatar {
-  width:36px; height:36px; border-radius:50%;
-  background:rgba(255,255,255,.25); border:2px solid rgba(255,255,255,.5);
-  display:flex; align-items:center; justify-content:center;
-  font-size:.78rem; font-weight:700; flex-shrink:0;
-}
-.sb-name { font-size:.875rem; font-weight:600; line-height:1.2; }
-.sb-role { font-size:.65rem; opacity:.8; }
-.sb-right { display:flex; align-items:center; gap:10px; }
-.sb-time { font-size:.72rem; opacity:.85; }
-.th-btn {
-  background:rgba(255,255,255,.15); border:none; border-radius:6px; color:#fff;
-  width:30px; height:30px; display:flex; align-items:center;
-  justify-content:center; cursor:pointer; font-size:.9rem;
-}
-.th-btn:hover { background:rgba(255,255,255,.25); }
-.job-card.is-accepted { border-color:rgba(5,163,74,.45); border-left:3px solid #05a34a; }
-.page-band {
-  background:var(--card-bg); border-bottom:1px solid var(--card-border);
-  padding:12px 16px; display:flex; align-items:center;
-  justify-content:space-between; flex-shrink:0; box-shadow:0 1px 8px rgba(0,0,0,.06);
-}
-.pg-title {
-  font-size:.9375rem; font-weight:600; color:var(--text-heading);
-  display:flex; align-items:center; gap:7px;
-}
-.pg-sub { font-size:.7rem; color:var(--text-muted); }
-.pg-count {
-  font-size:.7rem; font-weight:700; padding:3px 10px; border-radius:20px;
-  background:rgba(154,128,83,.12); color:#9a8053;
-}
-.back-btn {
-  background:none; border:none; color:var(--text-muted); cursor:pointer;
-  font-size:1.2rem; padding:4px; display:flex; align-items:center;
-  justify-content:center; border-radius:6px;
-}
-.back-btn:hover { background:var(--surface-2); color:var(--text-heading); }
+/* ══════════════════════════════════════════════════════ TERMINAL ═══ */
+.ajb{background:linear-gradient(135deg,#8a6e47,#9a8053);border-radius:14px;padding:16px 18px;
+  margin-bottom:12px;color:#fff;position:relative;overflow:hidden;}
+.ajb::before{content:'';position:absolute;right:-24px;top:-24px;width:120px;height:120px;
+  border-radius:50%;background:rgba(255,255,255,.08);}
+.ajb-sr{font-size:.72rem;opacity:.8;margin-bottom:2px;position:relative;}
+.ajb-client{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.35rem;font-weight:700;
+  margin-bottom:2px;position:relative;}
+.ajb-site{font-size:.78rem;opacity:.85;display:flex;align-items:center;gap:5px;position:relative;}
+.ajb-meta{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;position:relative;}
+.ajb-chip{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:20px;
+  font-size:.65rem;padding:3px 10px;font-weight:500;display:flex;align-items:center;gap:4px;}
 
-.page-content { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:14px 14px 90px; }
-.page-content::-webkit-scrollbar { width:0; }
+.timer-widget{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;
+  margin-bottom:12px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);}
+.tw-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;
+  justify-content:center;font-size:1.2rem;flex-shrink:0;background:var(--surface);}
+.tw-time{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.7rem;font-weight:700;
+  font-variant-numeric:tabular-nums;color:var(--text);line-height:1;}
+.tw-lbl{font-size:.68rem;color:var(--muted);margin-top:3px;}
+.tw-status{margin-left:auto;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;}
+.status-idle{background:var(--surface);color:var(--muted);}
+.status-live{background:var(--green-bg);color:var(--green);animation:pulse 2s ease-in-out infinite;}
+.status-done{background:var(--gold-bg);color:var(--gold);}
 
-.bottom-nav {
-  background:var(--bottom-bar); border-top:1px solid var(--card-border);
-  display:flex; align-items:center; justify-content:space-around;
-  padding:6px 0 max(6px,env(safe-area-inset-bottom));
-  flex-shrink:0; box-shadow:0 -2px 12px rgba(0,0,0,.08);
-}
-.bn-item {
-  display:flex; flex-direction:column; align-items:center; gap:3px;
-  cursor:pointer; padding:4px 14px; border-radius:10px; transition:background .15s;
-  font-size:.62rem; color:var(--text-muted); background:none; border:none; min-width:60px;
-}
-.bn-item i { font-size:1.3rem; }
-.bn-item.active { color:#9a8053; background:var(--nav-active-bg); }
-.bn-item:hover { background:var(--surface-2); }
-.bn-badge { position:relative; display:inline-block; }
-.bn-dot {
-  position:absolute; top:-3px; right:-4px; width:9px; height:9px;
-  border-radius:50%; background:#ff3366; border:2px solid var(--bottom-bar);
-}
+.punch-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.punch-btn{border:none;border-radius:11px;padding:.75rem 1rem;font-size:.84rem;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s;
+  font-family:'SF Pro Display','Inter',sans-serif;color:#fff;}
+.punch-btn:active:not(:disabled){transform:scale(.97);}
+.punch-btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-punchin{background:linear-gradient(135deg,#15803d,#16a34a);box-shadow:0 4px 14px rgba(21,128,61,.3);}
+.btn-punchout{background:linear-gradient(135deg,#dc2626,#ef4444);box-shadow:0 4px 14px rgba(220,38,38,.3);}
 
-/* ═══════════════════════════════════════ PIPELINE ═══ */
-.tab-filter { display:flex; background:var(--surface-2); border-radius:10px; padding:3px; margin-bottom:14px;overflow-x:auto;  }
-.tab-filter::-webkit-scrollbar { height:0; }
-.tf-btn {
-  flex:1; padding:7px 6px; font-size:.75rem; font-weight:500;
-  border:none; background:none; border-radius:8px; cursor:pointer;
-  color:var(--text-muted); transition:all .2s;flex:0 0 auto; white-space:nowrap; padding:7px 10px;
-}
-.badge-hold { background:rgba(251,188,6,.12); color:#a8802a; }
-.tf-btn.active { background:var(--card-bg); color:#9a8053; box-shadow:0 1px 6px rgba(0,0,0,.1); }
+.compliance-card{background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:15px;margin-bottom:12px;box-shadow:var(--shadow);}
+.comp-title{font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:12px;
+  display:flex;align-items:center;gap:6px;}
+.comp-title i{color:var(--gold);}
+.comp-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);
+  flex-wrap:wrap;}
+.comp-item:last-of-type{border-bottom:none;}
+.comp-icon-wrap{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;
+  justify-content:center;font-size:1.1rem;flex-shrink:0;background:var(--surface);}
+.comp-info{flex:1;min-width:110px;}
+.comp-lbl{font-size:.78rem;font-weight:600;color:var(--text);}
+.comp-hint{font-size:.68rem;color:var(--muted);margin-top:1px;}
+.comp-status{font-size:.66rem;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0;white-space:nowrap;}
+.cs-done{background:var(--green-bg);color:var(--green);}
+.cs-pending{background:var(--surface);color:var(--muted);}
+.comp-upload-btn{background:none;border:1px solid var(--border2);border-radius:8px;color:var(--muted);
+  font-size:.72rem;padding:5px 11px;cursor:pointer;display:flex;align-items:center;gap:4px;
+  flex-shrink:0;transition:all .15s;font-family:'SF Pro Display','Inter',sans-serif;}
+.comp-upload-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+.comp-upload-btn:disabled{opacity:.4;cursor:not-allowed;}
+.upload-input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1;pointer-events:none;}
 
-.job-card {
-  background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-  margin-bottom:10px; box-shadow:var(--card-shadow); overflow:hidden;
-  transition:transform .15s,box-shadow .15s;
-}
-.job-card:active { transform:scale(.985); }
-.job-card.is-active { border-color:rgba(5,163,74,.4); }
-.jc-main { padding:13px 14px; cursor:pointer; }
-.jc-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; gap:8px; }
-.jc-sr { font-size:.8rem; font-weight:700; color:#9a8053; letter-spacing:.02em; }
-.jc-badge { font-size:.6rem; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; flex-shrink:0; }
-.badge-assigned { background:rgba(154,128,83,.12); color:#9a8053; }
-.badge-rework   { background:rgba(255,51,102,.12); color:#ff3366; }
-.badge-live     { background:rgba(5,163,74,.12);  color:#05a34a; }
-.badge-pending     { background:rgba(154,128,83,.12); color:#9a8053; }
-.badge-rescheduled { background:rgba(88,120,220,.12); color:#5878dc; }
-.badge-review      { background:rgba(251,188,6,.12);  color:#a8802a; }
-.badge-completed   { background:rgba(5,163,74,.12);   color:#05a34a; }
-.jc-client { font-size:.84rem; font-weight:600; color:var(--text-heading); margin-bottom:2px; }
-.jc-contract { font-size:.68rem; color:var(--text-muted); margin-bottom:8px; }
-.jc-meta { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.jc-meta-item { display:flex; align-items:center; gap:4px; font-size:.7rem; color:var(--text-muted); }
-.jc-sla { font-size:.68rem; font-weight:600; padding:2px 7px; border-radius:8px; margin-left:auto; flex-shrink:0; }
-.sla-ok { background:rgba(5,163,74,.1);  color:#05a34a; }
-.sla-w  { background:rgba(251,188,6,.1); color:#a8802a; }
-.sla-c  { background:rgba(255,51,102,.1); color:#ff3366; }
-.jc-chevron { color:var(--text-light); font-size:.9rem; margin-left:6px; transition:transform .25s; flex-shrink:0; }
-.jc-chevron.open { transform:rotate(180deg); }
+.photo-strip{display:flex;gap:8px;flex-wrap:wrap;padding:4px 0 10px;}
+.photo-strip:empty{display:none;}
+.ps-item{position:relative;width:64px;height:64px;border-radius:9px;overflow:hidden;
+  border:1px solid var(--border);flex-shrink:0;background:var(--surface);}
+.ps-item img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
+.ps-del{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;
+  background:rgba(0,0,0,.6);color:#fff;border:none;cursor:pointer;font-size:.6rem;
+  display:flex;align-items:center;justify-content:center;padding:0;line-height:1;}
+.ps-del:hover{background:var(--red);}
 
-.jc-expand { display:none; border-top:1px solid var(--card-border); background:var(--surface-2); }
-.jc-expand.open { display:block; }
-.jc-exp-section { padding:12px 14px; border-bottom:1px solid var(--card-border); }
-.jc-exp-section:last-child { border-bottom:none; }
-.exp-label {
-  font-size:.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em;
-  color:var(--text-muted); margin-bottom:7px; display:flex; align-items:center; gap:5px;
-}
-.exp-text { font-size:.76rem; color:var(--text-primary); line-height:1.5;overflow-wrap: anywhere;
-    word-break: break-word;
-    white-space: pre-wrap;
+.lock-info{background:var(--red-bg);border:1px solid rgba(220,38,38,.2);border-radius:10px;
+  padding:10px 12px;font-size:.73rem;color:var(--muted);display:flex;align-items:flex-start;
+  gap:7px;margin-bottom:12px;line-height:1.5;}
+.lock-info i{color:var(--red);flex-shrink:0;margin-top:1px;}
+.lock-info.amber{background:var(--amber-bg);border-color:rgba(217,119,6,.2);}
+.lock-info.amber i{color:var(--amber);}
 
-    max-width: 100%;
-    min-width: 0 }
-.rework-note {
-  background:rgba(255,51,102,.07); border:1px solid rgba(255,51,102,.2);
-  border-radius:8px; padding:9px 11px; font-size:.76rem;
-  color:var(--text-primary); line-height:1.5; margin-top:4px;
-}
-.hist-line {
-  font-size:.72rem; color:var(--text-muted); padding:3px 0 3px 8px;
-  border-left:2px solid var(--border-color); margin:0 0 4px 2px;
-}
-.photo-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
-.photo-thumb {
-  width:64px; height:64px; border-radius:8px; background:var(--surface-3);
-  border:1px solid var(--card-border); display:flex; align-items:center;
-  justify-content:center; font-size:1.4rem; cursor:pointer; overflow:hidden; flex-shrink:0;
-}
-.photo-strip { display:flex; gap:8px; flex-wrap:wrap; padding:4px 0 10px; }
-.photo-strip:empty { display:none; }
-.ps-item { position:relative; width:64px; height:64px; border-radius:8px; overflow:hidden;
-  border:1px solid var(--card-border); flex-shrink:0; background:var(--surface-3); }
-.ps-item img { width:100%; height:100%; object-fit:cover; cursor:pointer; display:block; }
-.ps-del { position:absolute; top:2px; right:2px; width:18px; height:18px; border-radius:50%;
-  background:rgba(0,0,0,.6); color:#fff; border:none; cursor:pointer; font-size:.6rem;
-  display:flex; align-items:center; justify-content:center; padding:0; line-height:1; }
-.ps-del:hover { background:#ff3366; }
+.location-badge{background:var(--card2);border:1px solid var(--border);border-radius:10px;
+  padding:9px 12px;font-size:.72rem;color:var(--muted);display:flex;align-items:center;
+  gap:7px;margin-bottom:12px;flex-wrap:wrap;}
+.location-badge i{color:var(--gold);}
+.location-badge .coords{font-size:.7rem;font-weight:600;color:var(--text);font-variant-numeric:tabular-nums;}
 
-.eta-form { padding:12px 14px; background:var(--surface-3); border-top:1px solid var(--card-border); }
-.eta-title { font-size:.72rem; font-weight:700; color:var(--text-heading); margin-bottom:10px; display:flex; align-items:center; gap:6px; }
-.eta-title i { color:#9a8053; }
-.eta-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:25px; }
-.eta-field label {
-  font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em;
-  color:var(--text-muted); display:block; margin-bottom:4px;
-}
-.eta-input {
-  width:100%; font-size:.82rem; border:1.5px solid var(--border-color); border-radius:8px;
-  padding:.45rem .7rem; color:var(--text-primary); background:var(--input-bg);
-  -webkit-appearance:none; appearance:none; transition:border-color .15s,box-shadow .15s;
-}
-.eta-input:focus { border-color:#9a8053; box-shadow:0 0 0 3px rgba(154,128,83,.15); outline:none; }
-.eta-input.err { border-color:#ff3366; }
-.eta-input::-webkit-calendar-picker-indicator { opacity:.6; }
-.accept-btn {
-  width:100%; border:none; border-radius:10px; padding:.62rem 1rem;
-  font-size:.875rem; font-weight:600; cursor:pointer; display:flex;
-  align-items:center; justify-content:center; gap:7px; transition:all .2s;
-  background:linear-gradient(135deg,#9a8053,#B8976A); color:#fff;
-}
-.accept-btn:hover:not(:disabled) { box-shadow:0 4px 16px rgba(154,128,83,.4); }
-.accept-btn:active:not(:disabled) { transform:scale(.97); }
-.accept-btn:disabled { opacity:.5; cursor:not-allowed; background:var(--surface-2); color:var(--text-muted); }
-.wa-hint {
-  font-size:.68rem; color:var(--text-muted); text-align:center; margin-top:7px;
-  display:flex; align-items:center; justify-content:center; gap:4px;
-}
-.wa-hint i { color:#25d366; }
-.err-msg { font-size:.68rem; color:#ff3366; margin-top:4px; display:none; }
-.err-msg.show { display:block; }
+.tx-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.76rem;}
+.tx-item:last-child{border-bottom:none;}
+.tx-item .body{min-width:0;flex:1;}
+.tx-item .en{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.tx-item .ec{font-size:.68rem;color:var(--muted);}
+.tx-item .ea{font-weight:700;color:var(--text);white-space:nowrap;}
+.tx-item .er{font-size:.68rem;color:var(--light);}
+.tx-receipt{width:30px;height:30px;border-radius:7px;object-fit:cover;border:1px solid var(--border);
+  cursor:pointer;flex-shrink:0;}
+.tx-total{text-align:right;font-size:.78rem;font-weight:700;color:var(--text);
+  padding-top:8px;margin-top:2px;border-top:1px solid var(--border);}
+.tx-empty{text-align:center;padding:14px;font-size:.78rem;color:var(--muted);}
 
-.jc-active-note {
-  padding:12px 14px; text-align:center; font-size:.78rem; color:#05a34a;
-  font-weight:600; background:rgba(5,163,74,.06); border-top:1px solid var(--card-border);
-}
+/* ══════════════════════════════════════════════════════ DRAWER EXTRAS ═══ */
+.rs-tabs{display:flex;background:var(--surface);border-radius:10px;padding:3px;margin-bottom:14px;}
+.rs-tab{flex:1;padding:8px;font-size:.78rem;font-weight:600;border:none;background:none;
+  border-radius:8px;cursor:pointer;color:var(--muted);transition:all .18s;
+  font-family:'SF Pro Display','Inter',sans-serif;}
+.rs-tab.active{background:var(--card);color:var(--gold);box-shadow:var(--shadow);}
+.rs-panel{display:none;}
+.rs-panel.show{display:block;}
+.receipt-zone{border:2px dashed var(--border2);border-radius:11px;padding:18px;text-align:center;
+  cursor:pointer;background:var(--card2);transition:all .2s;position:relative;margin-top:4px;}
+.receipt-zone:hover{border-color:var(--gold);background:var(--gold-bg);}
+.receipt-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.receipt-zone i{font-size:1.6rem;color:var(--muted);display:block;margin-bottom:5px;}
+.receipt-zone p{font-size:.75rem;color:var(--muted);margin:0;}
+.receipt-preview{display:none;background:var(--green-bg);border:1px solid rgba(21,128,61,.2);
+  border-radius:9px;padding:8px 11px;font-size:.75rem;color:var(--green);
+  align-items:center;gap:6px;margin-top:7px;}
+.receipt-preview.show{display:flex;}
+.terms-box{max-height:200px;overflow-y:auto;border:1px solid var(--border2);border-radius:10px;
+  padding:13px;font-size:.76rem;line-height:1.55;color:var(--text);background:var(--card2);}
+.terms-box p{margin:0 0 9px;}
+.terms-box p:last-child{margin-bottom:0;}
+.policy-check{display:flex;align-items:flex-start;gap:9px;margin-top:12px;font-size:.78rem;
+  cursor:pointer;color:var(--text);line-height:1.45;}
+.policy-check input{margin-top:2px;width:16px;height:16px;flex-shrink:0;accent-color:#9a8053;}
+.sig-pad{border:1px solid var(--border2);border-radius:10px;background:#fff;position:relative;}
+.sig-pad canvas{width:100%;height:170px;display:block;touch-action:none;border-radius:10px;}
 
-.empty-state { text-align:center; padding:50px 20px; color:var(--text-muted); }
-.empty-state i { font-size:3rem; display:block; margin-bottom:10px; opacity:.25; }
-.empty-state h6 { font-weight:600; color:var(--text-heading); margin-bottom:4px; }
+/* ══════════════════════════════════════════════════════ HISTORY / PROFILE ═══ */
+.hist-card{background:var(--card);border:1px solid var(--border);border-radius:13px;
+  padding:13px 15px;margin-bottom:10px;box-shadow:var(--shadow);}
+.hist-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;}
+.hist-ref{font-family:'Cormorant Garamond',Georgia,serif;font-size:.98rem;font-weight:700;color:var(--gold);}
+.hist-date{font-size:.68rem;color:var(--muted);}
+.hist-client{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:2px;}
+.hist-site{font-size:.7rem;color:var(--muted);margin-bottom:9px;}
+.hist-grid{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.hist-chip{font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:4px;
+  background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 9px;}
+.hist-total{margin-left:auto;font-family:'Cormorant Garamond',Georgia,serif;
+  font-size:1rem;font-weight:700;color:var(--text);}
 
-/* ═══════════════════════════════════════ TERMINAL ═══ */
-.ajb {
-  background:linear-gradient(135deg,#8A6E47,#9a8053); border-radius:12px;
-  padding:14px 16px; margin-bottom:14px; color:#fff; position:relative; overflow:hidden;
-}
-.ajb::before {
-  content:''; position:absolute; right:-20px; top:-20px; width:100px; height:100px;
-  border-radius:50%; background:rgba(255,255,255,.08);
-}
-.ajb-sr { font-size:.72rem; opacity:.8; margin-bottom:2px; }
-.ajb-client { font-size:1.15rem; font-weight:700; margin-bottom:2px; }
-.ajb-site { font-size:.78rem; opacity:.85; display:flex; align-items:center; gap:5px; }
-.ajb-meta { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-.ajb-chip {
-  background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.3);
-  border-radius:20px; font-size:.65rem; padding:3px 10px; font-weight:500;
-  display:flex; align-items:center; gap:4px;
-}
+.prof-hero{background:linear-gradient(135deg,#8a6e47,#9a8053);border-radius:16px;padding:24px 16px;
+  text-align:center;color:#fff;margin-bottom:14px;position:relative;overflow:hidden;}
+.prof-hero::before{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;
+  border-radius:50%;background:rgba(255,255,255,.08);}
+.prof-avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 10px;background:rgba(255,255,255,.22);
+  border:3px solid rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;font-weight:700;position:relative;}
+.prof-name{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.5rem;font-weight:700;position:relative;}
+.prof-role{font-size:.72rem;opacity:.85;margin-top:2px;position:relative;}
+.info-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);}
+.info-row:last-child{border-bottom:none;padding-bottom:0;}
+.info-ico{width:36px;height:36px;border-radius:10px;background:var(--gold-bg);display:flex;
+  align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;}
+.info-lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.info-val{font-size:.82rem;font-weight:500;color:var(--text);word-break:break-word;}
 
-.timer-widget {
-  background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-  padding:14px 16px; margin-bottom:12px; display:flex; align-items:center;
-  gap:14px; box-shadow:var(--card-shadow);
+/* Two columns once there is room — job list beside nothing else, so cards
+   simply get wider rather than stretching text lines. */
+@media(min-width:760px){
+  .punch-row{max-width:520px;}
+  #expenseBtn,#rsBtn{max-width:520px;}
 }
-.tw-icon {
-  width:44px; height:44px; border-radius:10px; display:flex; align-items:center;
-  justify-content:center; font-size:1.2rem; flex-shrink:0; background:rgba(174,183,197,.12);
-}
-.tw-time { font-size:1.6rem; font-weight:700; font-variant-numeric:tabular-nums; color:var(--text-heading); }
-.tw-lbl { font-size:.68rem; color:var(--text-muted); }
-.tw-status { margin-left:auto; font-size:.7rem; font-weight:600; padding:3px 10px; border-radius:20px; }
-.status-idle { background:rgba(174,183,197,.12); color:#5a6a7e; }
-.status-live { background:rgba(5,163,74,.12); color:#05a34a; animation:statusPulse 2s ease-in-out infinite; }
-.status-done { background:rgba(154,128,83,.12); color:#9a8053; }
-@keyframes statusPulse { 0%,100%{opacity:1;} 50%{opacity:.6;} }
+</style>
+@endpush
 
-.punch-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
-.punch-btn {
-  border:none; border-radius:10px; padding:.65rem 1rem; font-size:.84rem; font-weight:600;
-  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all .2s;
-}
-.punch-btn:active:not(:disabled) { transform:scale(.96); }
-.punch-btn:disabled { opacity:.45; cursor:not-allowed; }
-.btn-punchin { background:linear-gradient(135deg,#05a34a,#0abf56); color:#fff; }
-.btn-punchin:hover:not(:disabled) { box-shadow:0 4px 14px rgba(5,163,74,.4); }
-.btn-punchout { background:linear-gradient(135deg,#ff3366,#e02050); color:#fff; }
-.btn-punchout:hover:not(:disabled) { box-shadow:0 4px 14px rgba(255,51,102,.4); }
+{{-- ══════════════════════════════════════════════════════ TABS ═══ --}}
+@section('tabs')
+  <a class="tab-btn jump" href="{{ $routes['dashboard'] ?? route('worker.dashboard') }}">
+    <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+  </a>
+  <button class="tab-btn active" data-tab="pipeline">
+    <i class="bi bi-list-task"></i><span>Pipeline</span>
+  </button>
+  <button class="tab-btn" data-tab="terminal">
+    <i class="bi bi-broadcast"></i><span>Terminal</span>
+    <span class="tab-live hidden" id="activeDot"></span>
+  </button>
+  <button class="tab-btn" data-tab="history">
+    <i class="bi bi-clock-history"></i><span>History</span>
+  </button>
+  <button class="tab-btn" data-tab="profile">
+    <i class="bi bi-person-circle"></i><span>Profile</span>
+  </button>
+@endsection
 
-.btn-outline {
-  width:100%; border:1.5px dashed rgba(251,188,6,.5); border-radius:10px;
-  padding:.6rem 1rem; font-size:.82rem; font-weight:500; cursor:pointer;
-  display:flex; align-items:center; justify-content:center; gap:6px;
-  background:rgba(251,188,6,.05); color:#a8802a; transition:all .2s; margin-bottom:14px;
-}
-.btn-outline:hover:not(:disabled) { background:rgba(251,188,6,.1); border-color:#fbbc06; }
-.btn-outline:disabled { opacity:.45; cursor:not-allowed; }
-.btn-outline.brand {
-  border-color:rgba(154,128,83,.4); color:#9a8053; background:rgba(154,128,83,.04);
-}
-.btn-outline.brand:hover:not(:disabled) { background:rgba(154,128,83,.1); border-color:#9a8053; }
+{{-- ══════════════════════════════════════════════════════ CONTENT ═══ --}}
+@section('content')
 
-.compliance-card {
-  background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-  padding:14px; margin-bottom:12px; box-shadow:var(--card-shadow);
-}
-.comp-title { font-size:.78rem; font-weight:700; color:var(--text-heading); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
-.comp-title i { color:#9a8053; }
-.comp-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--card-border); }
-.comp-item:last-child { border-bottom:none; padding-bottom:0; }
-.comp-icon-wrap { width:40px; height:40px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
-.comp-info { flex:1; min-width:0; }
-.comp-lbl { font-size:.78rem; font-weight:500; color:var(--text-heading); }
-.comp-hint { font-size:.68rem; color:var(--text-muted); margin-top:1px; }
-.comp-status { font-size:.68rem; font-weight:700; padding:3px 9px; border-radius:20px; flex-shrink:0; white-space:nowrap; }
-.cs-done { background:rgba(5,163,74,.12); color:#05a34a; }
-.cs-pending { background:rgba(174,183,197,.12); color:#5a6a7e; }
-.comp-upload-btn {
-  background:none; border:1.5px solid var(--border-color); border-radius:7px;
-  color:var(--text-muted); font-size:.72rem; padding:4px 10px; cursor:pointer;
-  display:flex; align-items:center; gap:4px; flex-shrink:0; transition:all .15s;
-}
-.comp-upload-btn:hover:not(:disabled) { border-color:#9a8053; color:#9a8053; }
-.comp-upload-btn:disabled { opacity:.4; cursor:not-allowed; }
-/* .upload-input { display:none; } */
+<!-- ─────────── PIPELINE ─────────── -->
+<div class="tab-pane active" id="tab-pipeline">
+  <div class="pane-head">
+    <div>
+      <div class="pane-title cg"><i class="bi bi-list-task"></i>My pipeline</div>
+      <div class="pane-sub" id="pipelineSubtitle">Loading jobs&hellip;</div>
+    </div>
+    <span class="pane-count" id="pipelineCount">0 jobs</span>
+  </div>
 
-.upload-input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  overflow: hidden;
-  z-index: -1;
-  pointer-events: none;
-}
+  <div class="tab-filter" id="tabFilter">
+    <button class="tf-btn active" data-filter="Pending">Pending</button>
+    <button class="tf-btn" data-filter="Accepted">Accepted</button>
+    <button class="tf-btn" data-filter="Rework">Rework</button>
+    <button class="tf-btn" data-filter="Rescheduled">Rescheduled</button>
+    <button class="tf-btn" data-filter="On Hold">On hold</button>
+    <button class="tf-btn" data-filter="Review">Review</button>
+    <button class="tf-btn" data-filter="Completed">Completed</button>
+  </div>
 
-.lock-info {
-  background:rgba(255,51,102,.06); border:1px solid rgba(255,51,102,.2);
-  border-radius:8px; padding:9px 12px; font-size:.72rem; color:var(--text-muted);
-  display:flex; align-items:flex-start; gap:7px; margin-bottom:12px;
-}
-.lock-info i { color:#ff3366; flex-shrink:0; margin-top:1px; }
+  <div id="jobList"></div>
+</div>
 
-.location-badge {
-  background:var(--surface-2); border:1px solid var(--card-border); border-radius:8px;
-  padding:8px 11px; font-size:.72rem; color:var(--text-muted);
-  display:flex; align-items:center; gap:7px; margin-bottom:12px;
-}
-.location-badge i { color:#9a8053; }
-.location-badge .coords { font-size:.68rem; font-weight:600; color:var(--text-heading); }
+<!-- ─────────── TERMINAL ─────────── -->
+<div class="tab-pane" id="tab-terminal">
+  <div id="terminalEmpty" class="card">
+    <div class="empty-state">
+      <i class="bi bi-broadcast"></i>
+      <h6>No active job</h6>
+      <p>Make a job active from the pipeline and the terminal opens here.</p>
+      <a href="#" data-goto="pipeline">Back to my pipeline</a>
+    </div>
+  </div>
 
-.section-card {
-  background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-  margin-bottom:12px; overflow:hidden; box-shadow:var(--card-shadow);
-}
-.section-card-hdr {
-  padding:11px 14px; border-bottom:1px solid var(--card-border);
-  font-size:.78rem; font-weight:700; color:var(--text-heading);
-  display:flex; align-items:center; gap:7px;
-}
-.section-card-body { padding:12px 14px; }
-.exp-item { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--card-border); font-size:.75rem; }
-.exp-item:last-child { border-bottom:none; }
-.exp-item .ea { font-weight:700; color:var(--text-heading); }
-.exp-item .en { font-weight:500; color:var(--text-heading); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.exp-item .ec { font-size:.66rem; color:var(--text-muted); }
-.exp-item .er { font-size:.68rem; color:var(--text-light); }
-.exp-item .body { min-width:0; flex:1; }
-.exp-receipt {
-  width:28px; height:28px; border-radius:5px; object-fit:cover;
-  border:1px solid var(--card-border); cursor:pointer; flex-shrink:0;
-}
-.exp-total {
-  text-align:right; font-size:.75rem; font-weight:700; color:var(--text-heading);
-  padding-top:6px; border-top:1px solid var(--card-border);
-}
-.exp-empty { text-align:center; padding:14px; font-size:.78rem; color:var(--text-muted); }
+  <div id="terminalBody" class="hidden">
+    <div class="pane-head">
+      <div>
+        <div class="pane-title cg" id="termTitle"><i class="bi bi-broadcast"></i>Job terminal</div>
+        <div class="pane-sub" id="termSub">Active job</div>
+      </div>
+    </div>
 
-/* ═══════════════════════════════════════ DRAWERS ═══ */
-.overlay { display:none; position:fixed; inset:0; background:var(--overlay-bg); z-index:800; }
-.overlay.show { display:block; }
-.drawer {
-  position:fixed; bottom:0; left:50%; transform:translateX(-50%) translateY(100%);
-  width:100%; max-width:480px; background:var(--drawer-bg);
-  border-radius:20px 20px 0 0; z-index:900;
-  padding:0 0 max(20px,env(safe-area-inset-bottom));
-  box-shadow:0 -8px 40px rgba(0,0,0,.25);
-  transition:transform .32s cubic-bezier(.4,0,.2,1);
-  max-height:92vh; overflow-y:auto;
-}
-.drawer.open { transform:translateX(-50%) translateY(0); }
-.drawer-handle { width:36px; height:4px; background:var(--border-color); border-radius:2px; margin:10px auto 0; }
-.drawer-hdr {
-  padding:14px 18px 10px; border-bottom:1px solid var(--card-border);
-  display:flex; align-items:center; justify-content:space-between;
-}
-.drawer-hdr h6 { margin:0; font-size:.9rem; font-weight:600; color:var(--text-heading); display:flex; align-items:center; gap:7px; }
-.drawer-close {
-  background:none; border:none; color:var(--text-muted); cursor:pointer;
-  font-size:1.1rem; padding:4px; border-radius:6px; line-height:1;
-}
-.drawer-close:hover { color:var(--text-heading); background:var(--surface-2); }
-.drawer-body { padding:14px 18px; }
-.drawer-sr {
-  font-size:.7rem; color:var(--text-muted); background:var(--surface-2);
-  border-radius:7px; padding:7px 10px; margin-bottom:12px;
-  display:flex; align-items:center; gap:6px;
-}
-.drawer-sr i { color:#9a8053; }
-.drawer-sr strong { color:#9a8053; }
+    <div class="ajb" id="jobBanner"></div>
 
-.d-label {
-  font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em;
-  color:var(--text-muted); display:block; margin:12px 0 5px;
-}
-.d-label:first-of-type { margin-top:0; }
-.req { color:#ff3366; }
-.d-input, .d-select, .d-remark {
-  width:100%; font-size:.84rem; border:1.5px solid var(--border-color); border-radius:8px;
-  padding:.48rem .75rem; color:var(--text-primary); background:var(--input-bg);
-  -webkit-appearance:none; transition:border-color .15s,box-shadow .15s; 
-}
-.d-remark { resize:none; min-height:72px; }
-.d-input:focus, .d-select:focus, .d-remark:focus {
-  border-color:#9a8053; box-shadow:0 0 0 3px rgba(154,128,83,.15); outline:none;
-}
-.d-input::placeholder, .d-remark::placeholder { color:var(--text-light); }
-[data-bs-theme="dark"] .d-select option { background:#2a2928; color:#d4cfc8; }
+    <div class="timer-widget">
+      <div class="tw-icon" id="timerIcon"><i class="bi bi-clock" style="color:var(--muted);"></i></div>
+      <div>
+        <div class="tw-time" id="timerDisplay">00:00:00</div>
+        <div class="tw-lbl" id="timerLabel">Not started</div>
+      </div>
+      <div class="tw-status status-idle" id="timerStatus">Idle</div>
+    </div>
 
-.rs-tabs { display:flex; background:var(--surface-2); border-radius:8px; padding:3px; margin-bottom:14px; }
-.rs-tab {
-  flex:1; padding:8px; font-size:.78rem; font-weight:500; border:none; background:none;
-  border-radius:6px; cursor:pointer; color:var(--text-muted); transition:all .18s;
-}
-.rs-tab.active { background:var(--card-bg); color:#9a8053; box-shadow:0 1px 5px rgba(0,0,0,.1); }
-.rs-panel { display:none; }
-.rs-panel.show { display:block; }
-.hold-note {
-  background:rgba(251,188,6,.07); border:1px solid rgba(251,188,6,.2); border-radius:7px;
-  padding:9px 11px; font-size:.72rem; color:var(--text-muted);
-  display:flex; align-items:flex-start; gap:7px; margin-bottom:10px;
-}
-.hold-note i { color:#fbbc06; flex-shrink:0; margin-top:1px; }
+    <div class="location-badge" id="geoBadge">
+      <i class="bi bi-geo-alt"></i><span>Location not captured yet</span>
+    </div>
 
-.receipt-zone {
-  border:2px dashed var(--border-color); border-radius:10px; padding:18px;
-  text-align:center; cursor:pointer; background:var(--surface-2);
-  transition:all .2s; position:relative; margin-top:4px;
-}
-.receipt-zone:hover { border-color:#9a8053; background:rgba(154,128,83,.05); }
-.receipt-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
-.receipt-zone i { font-size:1.6rem; color:var(--text-muted); display:block; margin-bottom:5px; }
-.receipt-zone p { font-size:.75rem; color:var(--text-muted); margin:0; }
-.receipt-preview {
-  display:none; background:rgba(5,163,74,.07); border:1px solid rgba(5,163,74,.2);
-  border-radius:8px; padding:8px 11px; font-size:.75rem; color:#05a34a;
-  align-items:center; gap:6px; margin-top:6px;
-}
-.receipt-preview.show { display:flex; }
+    <div class="section-card">
+      <div class="section-card-hdr"><i class="bi bi-card-text" style="color:var(--gold);"></i>Work description</div>
+      <div class="section-card-body">
+        <textarea class="d-remark" id="workDesc" rows="3" placeholder="What work is being carried out&hellip;"></textarea>
+      </div>
+    </div>
 
-.drawer-actions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px; }
-.btn-save {
-  background:linear-gradient(135deg,#9a8053,#B8976A); color:#fff; border:none;
-  border-radius:9px; padding:.58rem 1rem; font-size:.84rem; font-weight:600;
-  cursor:pointer; transition:all .2s;
-}
-.btn-save:hover:not(:disabled) { box-shadow:0 4px 14px rgba(154,128,83,.4); }
-.btn-save:disabled { opacity:.6; cursor:not-allowed; }
-.btn-save.warn { background:linear-gradient(135deg,#fbbc06,#f59e0b); color:#1a2236; }
-.btn-cancel {
-  background:var(--surface-2); border:1.5px solid var(--border-color); border-radius:9px;
-  padding:.58rem 1rem; font-size:.84rem; color:var(--text-muted); cursor:pointer; transition:all .2s;
-}
-.btn-cancel:hover { border-color:var(--text-muted); color:var(--text-heading); }
+    <div class="lock-info amber hidden" id="etaNotice">
+      <i class="bi bi-clock-history"></i><span id="etaNoticeText"></span>
+    </div>
 
-/* ═══════════════════════════════════════ TOAST ═══ */
-.toast-wrap {
-  position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:9999;
-  width:calc(100% - 28px); max-width:440px; display:flex; flex-direction:column;
-  gap:7px; pointer-events:none;
-}
-.toast-item {
-  background:var(--card-bg); border-left:4px solid #9a8053; border-radius:10px;
-  padding:11px 14px; box-shadow:0 6px 24px rgba(0,0,0,.18);
-  display:flex; align-items:flex-start; gap:9px; animation:toastIn .3s ease; pointer-events:all;
-}
-.toast-item.success { border-color:#05a34a; }
-.toast-item.error   { border-color:#ff3366; }
-.toast-item.warning { border-color:#fbbc06; }
-@keyframes toastIn { from{transform:translateY(-20px);opacity:0;} to{transform:none;opacity:1;} }
-.ti-ico { font-size:1.05rem; flex-shrink:0; margin-top:1px; }
-.ti-ico.primary { color:#9a8053; }
-.ti-ico.success { color:#05a34a; }
-.ti-ico.error   { color:#ff3366; }
-.ti-ico.warning { color:#fbbc06; }
-.ti-t { font-size:.8rem; font-weight:600; margin:0 0 1px; color:var(--text-heading); }
-.ti-b { font-size:.7rem; margin:0; color:var(--text-muted); }
+    <div class="punch-row">
+      <button class="punch-btn btn-punchin" id="punchInBtn"><i class="bi bi-play-fill"></i>Start job</button>
+      <button class="punch-btn btn-punchout" id="punchOutBtn" disabled><i class="bi bi-check2-square"></i>Finish job</button>
+    </div>
 
+    <button class="btn-outline" id="expenseBtn" disabled><i class="bi bi-receipt"></i>Log material expense</button>
+    <button class="btn-outline brand hidden" id="rsBtn"><i class="bi bi-calendar2-event"></i>Reschedule / hold job</button>
 
+    <div class="lock-info hidden" id="lockInfo">
+      <i class="bi bi-lock-fill"></i>
+      <span>Finish job is locked. Upload at least one <strong>before</strong> and one <strong>after</strong> photo to unlock.</span>
+    </div>
 
-/* ═══════════════════════════════════════ LIGHTBOX ═══ */
-/* overlay */
-.lb-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.75);
-  z-index: 3000;
-  padding: 48px 24px 24px;
-  overflow: auto;
-}
-.lb-overlay.show {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+    <div class="compliance-card">
+      <div class="comp-title"><i class="bi bi-shield-check"></i>Compliance uploads</div>
 
-/* box */
-.lb-box {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  max-width: min(900px, 92vw);
-  max-height: 88vh;
-  margin: auto;
-}
+      <div class="comp-item">
+        <div class="comp-icon-wrap" id="beforeIcon"><i class="bi bi-camera-fill" style="color:var(--amber);"></i></div>
+        <div class="comp-info">
+          <div class="comp-lbl">Before photos</div>
+          <div class="comp-hint">Site condition before work</div>
+        </div>
+        <span class="comp-status cs-pending" id="beforeStatus">Pending</span>
+        <button class="comp-upload-btn" data-upload="before" disabled><i class="bi bi-camera"></i>Add</button>
+        <input type="file" id="beforeInput" class="upload-input" accept="image/*" capture="environment" multiple>
+      </div>
+      <div class="photo-strip" id="beforeStrip"></div>
 
-/* close button — top right, above the media */
-.lb-close {
-  position: absolute;
-  top: -34px;
-  right: 0;
-  background: none;
-  border: 0;
-  color: #fff;
-  font-size: 1.05rem;
-  line-height: 1;
-  padding: 4px 8px;
-  cursor: pointer;
-  z-index: 2;
-}
-.lb-close:hover { color: #fbbc06; }
+      <div class="comp-item">
+        <div class="comp-icon-wrap" id="afterIcon"><i class="bi bi-camera-fill" style="color:var(--gold);"></i></div>
+        <div class="comp-info">
+          <div class="comp-lbl">After photos</div>
+          <div class="comp-hint">Site condition after work</div>
+        </div>
+        <span class="comp-status cs-pending" id="afterStatus">Pending</span>
+        <button class="comp-upload-btn" data-upload="after" disabled><i class="bi bi-camera"></i>Add</button>
+        <input type="file" id="afterInput" class="upload-input" accept="image/*" capture="environment" multiple/>
+      </div>
+      <div class="photo-strip" id="afterStrip"></div>
+    </div>
 
-/* media */
-.lb-media {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;          /* lets the image shrink inside a flex column */
-  max-width: 100%;
-}
-.lb-media img {
-  max-width: 100%;
-  max-height: 78vh;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-  display: block;
-  margin: 0 auto;
-  border-radius: 6px;
-  background: #fff;
-}
-.lb-pdf iframe {
-  width: min(900px, 92vw);
-  height: 78vh;
-  border: 0;
-  border-radius: 6px;
-  background: #fff;
-  display: block;
-}
-
-/* caption bar */
-.lb-cap {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 10px;
-  color: #fff;
-  font-size: .78rem;
-}
-.lb-cap > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;           /* required or the filename won't ellipsis in flex */
-  opacity: .85;
-}
-.lb-open {
-  color: #fbbc06 !important;
-  text-decoration: none !important;
-  white-space: nowrap;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-.lb-open:hover { text-decoration: underline !important; }
-
-.spin {
-  display:inline-block; width:14px; height:14px;
-  border:2px solid rgba(255,255,255,.4); border-top-color:#fff;
-  border-radius:50%; animation:spin .7s linear infinite;
-}
-@keyframes spin { to { transform:rotate(360deg); } }
-
-/* ═══════════════════════════════════════ HISTORY ═══ */
-.stat-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
-.stat-box {
-  background:var(--card-bg); border:1px solid var(--card-border); border-radius:11px;
-  padding:11px 8px; text-align:center; box-shadow:var(--card-shadow);
-}
-.stat-val { font-size:1.35rem; font-weight:700; color:var(--text-heading); line-height:1.1; }
-.stat-lbl { font-size:.62rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-top:3px; }
-
-.hist-card {
-  background:var(--card-bg); border:1px solid var(--card-border); border-radius:12px;
-  padding:12px 14px; margin-bottom:10px; box-shadow:var(--card-shadow);
-}
-.hist-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; gap:8px; }
-.hist-ref { font-size:.78rem; font-weight:700; color:#9a8053; }
-.hist-date { font-size:.68rem; color:var(--text-muted); }
-.hist-client { font-size:.82rem; font-weight:600; color:var(--text-heading); margin-bottom:2px; }
-.hist-site { font-size:.68rem; color:var(--text-muted); margin-bottom:8px; }
-.hist-grid { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-.hist-chip {
-  font-size:.68rem; color:var(--text-muted); display:flex; align-items:center;
-  gap:4px; background:var(--surface-2); border-radius:7px; padding:3px 8px;
-}
-.hist-total { margin-left:auto; font-size:.76rem; font-weight:700; color:var(--text-heading); }
-.badge-submitted { background:rgba(154,128,83,.12); color:#9a8053; }
-.badge-approved  { background:rgba(5,163,74,.12);  color:#05a34a; }
-.badge-rejected  { background:rgba(255,51,102,.12); color:#ff3366; }
-
-/* ═══════════════════════════════════════ PROFILE ═══ */
-.prof-hero {
-  background:linear-gradient(135deg,#8A6E47,#9a8053); border-radius:14px;
-  padding:22px 16px; text-align:center; color:#fff; margin-bottom:14px;
-  position:relative; overflow:hidden;
-}
-.prof-hero::before {
-  content:''; position:absolute; right:-30px; top:-30px; width:120px; height:120px;
-  border-radius:50%; background:rgba(255,255,255,.08);
-}
-.prof-avatar {
-  width:72px; height:72px; border-radius:50%; margin:0 auto 10px;
-  background:rgba(255,255,255,.22); border:3px solid rgba(255,255,255,.45);
-  display:flex; align-items:center; justify-content:center;
-  font-size:1.5rem; font-weight:700; position:relative;
-}
-.prof-name {font-size:1.4rem; font-weight:700; }
-.prof-role { font-size:.72rem; opacity:.85; margin-top:2px; }
-
-.info-row { display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid var(--card-border); }
-.info-row:last-child { border-bottom:none; padding-bottom:0; }
-.info-ico {
-  width:36px; height:36px; border-radius:9px; background:rgba(154,128,83,.1);
-  display:flex; align-items:center; justify-content:center; color:#9a8053; flex-shrink:0;
-}
-.info-lbl { font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
-.info-val { font-size:.82rem; font-weight:500; color:var(--text-heading); word-break:break-word; }
-
-.skel { background:var(--surface-2); border-radius:8px; height:70px; margin-bottom:10px; animation:statusPulse 1.4s ease-in-out infinite; }
-
-@media (min-width:481px) {
-  body { background:#e8ecf8; }
-  [data-bs-theme="dark"] body { background:#030810; }
-  .app-shell { box-shadow:0 0 40px rgba(0,0,0,.15); }
-}
-
-/* Modal Form Data */
-
-.modal-backdrop{
-  position:fixed;
-  inset:0;
-  z-index:99999;
-  background:rgba(0,0,0,.55);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:16px;
-}
-.modal-card{
-  width:100%;
-  max-width:380px;
-  padding:20px;
-  border-radius:16px;
-  background:var(--bs-body-bg,#fff);
-  color:var(--bs-body-color,inherit);
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  box-shadow:0 18px 50px rgba(0,0,0,.35);
-}
-.modal-card .inp{
-  width:100%;
-  padding:11px 13px;
-  border-radius:9px;
-  font-size:14px;
-  border:1px solid rgba(128,128,128,.3);
-  background:transparent;
-  color:inherit;
-}
-.modal-card .inp:focus{
-  outline:none;
-  border-color:#b08d57;
-}
-.modal-actions{
-  display:flex;
-  gap:8px;
-  margin-top:6px;
-}
-.modal-actions button{
-  flex:1;
-}
-.pwd-msg{
-  font-size:13px;
-  padding:8px 10px;
-  border-radius:8px;
-}
-.pwd-err{color:#ff3366;background:rgba(255,51,102,.08);}
-.pwd-ok{color:#22c55e;background:rgba(34,197,94,.08);}
-
-.photo-pdf iframe{
-  pointer-events: none;    /* ← clicks pass through to the parent div */
-}
-  </style>
-</head>
-<body>
-
-<div class="toast-wrap" id="toastWrap"></div>
-
-<!-- ══════════ LIGHTBOX ══════════ -->
-<div class="lb-overlay" id="lbOverlay" onclick="if(event.target===this) closeLightbox()">
-  <div class="lb-box">
-    <button class="lb-close" onclick="closeLightbox()"><i class="bi bi-x-lg"></i></button>
-    <div id="lbContent"></div>
+    <div class="section-card">
+      <div class="section-card-hdr"><i class="bi bi-receipt" style="color:var(--amber);"></i>Material expenses</div>
+      <div class="section-card-body" id="expenseListWrap">
+        <div class="tx-empty">No expenses logged yet.</div>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- ══════════ RESCHEDULE / HOLD DRAWER ══════════ -->
-<div class="overlay" id="rsOverlay"></div>
-<div class="drawer" id="rsDrawer">
+<!-- ─────────── HISTORY ─────────── -->
+<div class="tab-pane" id="tab-history">
+  <div class="pane-head">
+    <div>
+      <div class="pane-title cg"><i class="bi bi-clock-history"></i>Work history</div>
+      <div class="pane-sub" id="histSub">Loading&hellip;</div>
+    </div>
+    <span class="pane-count" id="histCount">0 jobs</span>
+  </div>
+
+  <div class="mini-row">
+    <div class="mini-box"><div class="mini-val" id="statJobs">&mdash;</div><div class="mini-lbl">Jobs</div></div>
+    <div class="mini-box"><div class="mini-val" id="statHours">&mdash;</div><div class="mini-lbl">Hours</div></div>
+    <div class="mini-box"><div class="mini-val" id="statExp">&mdash;</div><div class="mini-lbl">AED mat.</div></div>
+  </div>
+
+  <div id="histList">
+    <div class="skel"></div><div class="skel"></div><div class="skel"></div>
+  </div>
+</div>
+
+<!-- ─────────── PROFILE ─────────── -->
+<div class="tab-pane" id="tab-profile">
+  <div class="pane-head">
+    <div>
+      <div class="pane-title cg"><i class="bi bi-person-circle"></i>My profile</div>
+      <div class="pane-sub">Account &amp; performance</div>
+    </div>
+    <button class="action-btn outline" id="profRefresh"><i class="bi bi-arrow-clockwise"></i>Refresh</button>
+  </div>
+
+  <div id="profBody">
+    <div class="skel" style="height:170px;"></div>
+    <div class="skel" style="height:120px;"></div>
+  </div>
+</div>
+
+@endsection
+
+{{-- ══════════════════════════════════════════════════════ DRAWERS ═══ --}}
+@section('drawers')
+
+<div class="overlay" data-overlay="rs"></div>
+<div class="drawer" data-drawer="rs">
   <div class="drawer-handle"></div>
   <div class="drawer-hdr">
-    <h6><i class="bi bi-calendar2-event" style="color:#9a8053;"></i>Reschedule or Hold Job</h6>
+    <h6><i class="bi bi-calendar2-event" style="color:var(--gold);"></i>Reschedule or hold</h6>
     <button class="drawer-close" data-close="rs"><i class="bi bi-x-lg"></i></button>
   </div>
   <div class="drawer-body">
-    <div class="drawer-sr">
-      <i class="bi bi-link-45deg"></i>Job: <strong id="rsSrRef">&mdash;</strong>
-    </div>
+    <div class="drawer-sr"><i class="bi bi-link-45deg"></i>Job: <strong id="rsSrRef">&mdash;</strong></div>
 
     <div class="rs-tabs">
-      <button class="rs-tab active" data-rstab="reschedule">
-        <i class="bi bi-calendar-check"></i> Reschedule
-      </button>
-      <button class="rs-tab" data-rstab="hold">
-        <i class="bi bi-pause-circle"></i> Keep on Hold
-      </button>
+      <button class="rs-tab active" data-rstab="reschedule"><i class="bi bi-calendar-check"></i> Reschedule</button>
+      <button class="rs-tab" data-rstab="hold"><i class="bi bi-pause-circle"></i> Keep on hold</button>
     </div>
 
     <div class="rs-panel show" id="rsPanel-reschedule">
-      <label class="d-label" for="rsDate">New Date <span class="req">*</span></label>
+      <label class="d-label" for="rsDate">New date <span class="req">*</span></label>
       <input type="date" class="d-input" id="rsDate"/>
-
-      <label class="d-label" for="rsTime">New Time <span class="req">*</span></label>
+      <label class="d-label" for="rsTime">New time <span class="req">*</span></label>
       <input type="time" class="d-input" id="rsTime"/>
-
-      <label class="d-label" for="rsRemark">Reason / Remark <span class="req">*</span></label>
-      <textarea class="d-remark" id="rsRemark" rows="3" placeholder="Reason for rescheduling&hellip;"></textarea>
-
+      <label class="d-label" for="rsRemark">Reason <span class="req">*</span></label>
+      <textarea class="d-remark" id="rsRemark" rows="3" placeholder="Why is this moving&hellip;"></textarea>
       <div class="drawer-actions">
         <button class="btn-cancel" data-close="rs">Cancel</button>
-        <button class="btn-save" id="rsConfirmBtn">
-          <i class="bi bi-calendar-check"></i> Reschedule
-        </button>
+        <button class="btn-save" id="rsConfirmBtn"><i class="bi bi-calendar-check"></i> Reschedule</button>
       </div>
     </div>
 
     <div class="rs-panel" id="rsPanel-hold">
       <div class="hold-note">
         <i class="bi bi-info-circle-fill"></i>
-        Job will be placed on hold and the client notified. You can re-activate it from your pipeline.
+        The job goes on hold and the client is notified. Resume it from the pipeline when you can attend.
       </div>
-
-      <label class="d-label" for="holdRemark">Reason for Hold <span class="req">*</span></label>
-      <textarea class="d-remark" id="holdRemark" rows="3" placeholder="Reason for placing job on hold&hellip;"></textarea>
-
+      <label class="d-label" for="holdRemark">Reason for hold <span class="req">*</span></label>
+      <textarea class="d-remark" id="holdRemark" rows="3" placeholder="Why is this on hold&hellip;"></textarea>
       <div class="drawer-actions">
         <button class="btn-cancel" data-close="rs">Cancel</button>
-        <button class="btn-save warn" id="holdConfirmBtn">
-          <i class="bi bi-pause-circle"></i> Confirm Hold
-        </button>
+        <button class="btn-save warn" id="holdConfirmBtn"><i class="bi bi-pause-circle"></i> Confirm hold</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ══════════ EXPENSE DRAWER ══════════ -->
-<div class="overlay" id="expOverlay"></div>
-<div class="drawer" id="expenseDrawer">
+<div class="overlay" data-overlay="exp"></div>
+<div class="drawer" data-drawer="exp">
   <div class="drawer-handle"></div>
   <div class="drawer-hdr">
-    <h6><i class="bi bi-receipt" style="color:#fbbc06;"></i>Log Material Expense</h6>
+    <h6><i class="bi bi-receipt" style="color:var(--amber);"></i>Log material expense</h6>
     <button class="drawer-close" data-close="exp"><i class="bi bi-x-lg"></i></button>
   </div>
   <div class="drawer-body">
-    <div class="drawer-sr">
-      <i class="bi bi-link-45deg"></i>Linked to SR: <strong id="expSrRef">&mdash;</strong>
-    </div>
+    <div class="drawer-sr"><i class="bi bi-link-45deg"></i>Linked to: <strong id="expSrRef">&mdash;</strong></div>
 
-    <label class="d-label" for="expCategory">Expense Category <span class="req">*</span></label>
+    <label class="d-label" for="expCategory">Category <span class="req">*</span></label>
     <select class="d-select" id="expCategory">
       <option value="">&mdash; Select category &mdash;</option>
       @foreach (($expenseCategories ?? []) as $cat)
@@ -825,15 +494,15 @@ body {
       @endforeach
     </select>
 
-    <div id="expNameWrap" class="hidden" style="margin-top: 13px;">
-      <label class="d-label" for="expName">Item Name <span class="req">*</span></label>
+    <div id="expNameWrap" class="hidden">
+      <label class="d-label" for="expName">Item name <span class="req">*</span></label>
       <input type="text" class="d-input" id="expName" placeholder="e.g. 20mm PVC elbow"/>
     </div>
 
     <label class="d-label" for="expAmount">Amount (AED) <span class="req">*</span></label>
     <input type="number" class="d-input" id="expAmount" placeholder="0.00" min="0" step="0.01" inputmode="decimal"/>
 
-    <span class="d-label" style="margin-top: 13px;">Receipt Photo</span>
+    <span class="d-label">Receipt photo</span>
     <div class="receipt-zone">
       <input type="file" id="expReceipt" accept="image/*" capture="environment"/>
       <i class="bi bi-camera-fill"></i>
@@ -845,366 +514,92 @@ body {
 
     <div class="drawer-actions">
       <button class="btn-cancel" data-close="exp">Cancel</button>
-      <button class="btn-save" id="expSaveBtn">Save Entry</button>
+      <button class="btn-save" id="expSaveBtn">Save entry</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════ FINISH JOB DRAWER ══════════ -->
-<div class="overlay" id="finOverlay"></div>
-<div class="drawer" id="finishDrawer">
+<div class="overlay" data-overlay="fin"></div>
+<div class="drawer" data-drawer="fin">
   <div class="drawer-handle"></div>
   <div class="drawer-hdr">
-    <h6><i class="bi bi-check2-square" style="color:#05a34a;"></i>Finish Job</h6>
+    <h6><i class="bi bi-check2-square" style="color:var(--green);"></i>Finish job</h6>
     <button class="drawer-close" data-close="fin"><i class="bi bi-x-lg"></i></button>
   </div>
   <div class="drawer-body">
-    <div class="drawer-sr">
-      <i class="bi bi-link-45deg"></i>Job: <strong id="finSrRef">&mdash;</strong>
-    </div>
-
-    <label class="d-label" for="finSummary">Completion Summary</label>
+    <div class="drawer-sr"><i class="bi bi-link-45deg"></i>Job: <strong id="finSrRef">&mdash;</strong></div>
+    <label class="d-label" for="finSummary">Completion summary</label>
     <textarea class="d-remark" id="finSummary" rows="3" placeholder="What was done, parts replaced, outcome&hellip;"></textarea>
     <div class="drawer-actions">
       <button class="btn-cancel" data-close="fin">Cancel</button>
-      <button class="btn-save" id="finConfirmBtn">
-        <i class="bi bi-check2-square"></i> Finish Job
-      </button>
+      <button class="btn-save" id="finConfirmBtn"><i class="bi bi-check2-square"></i> Finish job</button>
     </div>
   </div>
 </div>
 
-<!-- ══════════ CLIENT ACCEPTANCE + SIGNATURE DRAWER ══════════ -->
-<div class="overlay" id="signOverlay"></div>
-<div class="drawer" id="signDrawer">
+<div class="overlay" data-overlay="sign"></div>
+<div class="drawer" data-drawer="sign">
   <div class="drawer-handle"></div>
   <div class="drawer-hdr">
-    <h6><i class="bi bi-pen" style="color:#9a8053;"></i>Client Acceptance</h6>
+    <h6><i class="bi bi-pen" style="color:var(--gold);"></i>Client acceptance</h6>
     <button class="drawer-close" data-close="sign"><i class="bi bi-x-lg"></i></button>
   </div>
   <div class="drawer-body">
-    <div class="drawer-sr">
-      <i class="bi bi-link-45deg"></i>Job: <strong id="signSrRef">&mdash;</strong>
-    </div>
+    <div class="drawer-sr"><i class="bi bi-link-45deg"></i>Job: <strong id="signSrRef">&mdash;</strong></div>
 
     <div id="termsBlock">
-      <label class="d-label">Terms &amp; Policy</label>
-      <div id="termsScroll" style="max-height:200px;overflow-y:auto;border:1.5px solid var(--border-color);border-radius:8px;padding:12px;font-size:.76rem;line-height:1.55;color:var(--text-primary);background:var(--surface-2);">
-        <p style="margin-top:0;"><strong>Service Completion Acceptance</strong></p>
+      <span class="d-label">Terms &amp; policy</span>
+      <div id="termsScroll" class="terms-box">
+        <p><strong>Service completion acceptance</strong></p>
         <p>By signing below, the client confirms the work described has been carried out to a satisfactory standard and the site has been left in acceptable condition.</p>
         <p>The client acknowledges the materials logged against this job and agrees these were used in the course of the work.</p>
         <p>Signing does not waive any manufacturer or workmanship warranty applicable to the service.</p>
         <p>Any dispute regarding the completed work must be raised within the warranty window stated in the service agreement.</p>
-        <p style="margin-bottom:0;">This acceptance is recorded electronically with a timestamp and forms part of the service record.</p>
+        <p>This acceptance is recorded electronically with a timestamp and forms part of the service record.</p>
       </div>
 
-      <label style="display:flex;align-items:flex-start;gap:8px;margin-top:12px;font-size:.78rem;cursor:pointer;color:var(--text-heading);">
-        <input type="checkbox" id="policyCheck" style="margin-top:2px;width:16px;height:16px;flex-shrink:0;"/>
+      <label class="policy-check">
+        <input type="checkbox" id="policyCheck"/>
         <span>I have read and accept the terms and policy above on behalf of the client.</span>
       </label>
     </div>
 
-    <div id="signBlock" class="hidden" style="margin-top: 15px;">
-      <label class="d-label" for="clientNameInput">Client Name <span class="req">*</span></label>
+    <div id="signBlock" class="hidden" style="margin-top:15px;">
+      <label class="d-label" for="clientNameInput">Client name <span class="req">*</span></label>
       <input type="text" class="d-input" id="clientNameInput" placeholder="Name of person signing"/>
-
-      <span class="d-label" style="margin-top:12px;">Signature <span class="req">*</span></span>
-      <div style="border:1.5px solid var(--border-color);border-radius:8px;background:#fff;position:relative;">
-        <canvas id="sigCanvas" style="width:100%;height:170px;display:block;touch-action:none;border-radius:8px;"></canvas>
-      </div>
-      <button type="button" id="sigClearBtn"
-              style="margin-top:6px;background:none;border:1.5px solid var(--border-color);border-radius:7px;color:var(--text-muted);font-size:.72rem;padding:5px 12px;cursor:pointer;">
+      <span class="d-label">Signature <span class="req">*</span></span>
+      <div class="sig-pad"><canvas id="sigCanvas"></canvas></div>
+      <button type="button" class="action-btn outline" id="sigClearBtn" style="margin-top:7px;">
         <i class="bi bi-eraser"></i> Clear
       </button>
     </div>
 
     <div class="drawer-actions">
       <button class="btn-cancel" data-close="sign">Cancel</button>
-      <button class="btn-save" id="signSubmitBtn" disabled>
-        <i class="bi bi-check2-square"></i> Accept &amp; Sign
-      </button>
-    </div>
-  </div>
-</div>
-<!-- ══════════ APP SHELL ══════════ -->
-<div class="app-shell">
-
-  <div class="status-bar">
-    <div class="sb-left">
-      <div class="sb-avatar">{{ $userInitials ?? '' }}</div>
-      <div>
-        <div class="sb-name">{{ $userName ?? '' }}</div>
-        <div class="sb-role">
-          {{ $userRole ?? '' }}@if (!empty($userCode)) &middot; {{ $userCode }}@endif
-        </div>
-      </div>
-    </div>
-   <div class="sb-right">
-      <span class="sb-time" id="clock"></span>
-      <button class="th-btn" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
-        <i class="bi bi-sun-fill" id="themeIcon"></i>
-      </button>
-      <button class="th-btn" id="logoutBtn" title="Sign out" aria-label="Sign out">
-        <i class="bi bi-box-arrow-right"></i>
-      </button>
-    </div>
-  </div>
-
-<!-- ══════════ LOGOUT DRAWER ══════════ -->
-<div class="overlay" id="outOverlay"></div>
-<div class="drawer" id="logoutDrawer">
-  <div class="drawer-handle"></div>
-  <div class="drawer-hdr">
-    <h6><i class="bi bi-box-arrow-right" style="color:#ff3366;"></i>Sign Out</h6>
-    <button class="drawer-close" data-close="out"><i class="bi bi-x-lg"></i></button>
-  </div>
-  <div class="drawer-body">
-    <div class="hold-note" style="background:rgba(255,51,102,.07);border-color:rgba(255,51,102,.2);">
-      <i class="bi bi-question-circle-fill" style="color:#ff3366;"></i>
-      You'll need to sign in again to access your pipeline. Any unsaved work in the terminal will be lost.
-    </div>
-
-    <div class="drawer-actions">
-      <button class="btn-cancel" data-close="out">Stay Signed In</button>
-      <button class="btn-save" id="outConfirmBtn"
-              style="background:linear-gradient(135deg,#ff3366,#e02050);">
-        <i class="bi bi-box-arrow-right"></i> Sign Out
-      </button>
+      <button class="btn-save" id="signSubmitBtn" disabled><i class="bi bi-check2-square"></i> Accept &amp; sign</button>
     </div>
   </div>
 </div>
 
-  <!-- ── PIPELINE ── -->
-  <section id="pagePipeline">
-    <div class="page-band">
-      <div>
-        <div class="pg-title"><i class="bi bi-list-task" style="color:#9a8053;"></i>My Pipeline</div>
-        <div class="pg-sub" id="pipelineSubtitle">Loading jobs&hellip;</div>
-      </div>
-      <span class="pg-count" id="pipelineCount">0 jobs</span>
-    </div>
+@endsection
 
-    <div class="page-content">
-      <div class="tab-filter" id="tabFilter">
-      <button class="tf-btn active" data-filter="Pending">Pending</button>
-      <button class="tf-btn" data-filter="Accepted">Accepted</button>
-      <button class="tf-btn" data-filter="Rework">Rework</button>
-      <button class="tf-btn" data-filter="Rescheduled">Rescheduled</button>
-      <button class="tf-btn" data-filter="On Hold">On Hold</button>
-      <button class="tf-btn" data-filter="Review">Review</button>
-    </div>
-      <div id="jobList"></div>
-    </div>
-  </section>
-
-  <!-- ── JOB TERMINAL ── -->
-  <section id="pageTerminal" class="hidden">
-    <div class="page-band">
-      <button class="back-btn" id="backBtn" aria-label="Back"><i class="bi bi-arrow-left"></i></button>
-      <div>
-        <div class="pg-title" id="termTitle" style="font-size:.875rem;">
-          <i class="bi bi-broadcast" style="color:#8A6E47;"></i>Job Terminal
-        </div>
-        <div class="pg-sub" id="termSub">Active job dashboard</div>
-      </div>
-      <div style="width:32px;"></div>
-    </div>
-
-    <div class="page-content">
-      <div class="ajb" id="jobBanner"></div>
-
-      <div class="timer-widget">
-        <div class="tw-icon" id="timerIcon"><i class="bi bi-clock" style="color:#aeb7c5;"></i></div>
-        <div>
-          <div class="tw-time" id="timerDisplay">00:00:00</div>
-          <div class="tw-lbl" id="timerLabel">Not started</div>
-        </div>
-        <div class="tw-status status-idle" id="timerStatus">Idle</div>
-      </div>
-      <div class="location-badge" id="geoBadge" style="flex-wrap:wrap;">
-        <i class="bi bi-geo-alt"></i><span>Location not captured yet</span>
-      </div>
-
-      <div class="section-card">
-        <div class="section-card-hdr">
-          <i class="bi bi-card-text" style="color:#9a8053;"></i>Work Description
-        </div>
-        <div class="section-card-body">
-          <textarea class="d-remark" id="workDesc" rows="3"
-                    placeholder="What work is being carried out&hellip;"></textarea>
-        </div>
-      </div>
-      <div class="lock-info hidden" id="etaNotice"
-          style="background:rgba(251,188,6,.07);border-color:rgba(251,188,6,.2);">
-        <i class="bi bi-clock-history" style="color:#fbbc06;"></i>
-        <span id="etaNoticeText"></span>
-      </div>
-      <div class="punch-row">
-        <button class="punch-btn btn-punchin" id="punchInBtn">
-          <i class="bi bi-play-fill"></i>Start Job
-        </button>
-        <button class="punch-btn btn-punchout" id="punchOutBtn" disabled>
-          <i class="bi bi-check2-square"></i>Finish Job
-        </button>
-      </div>
-
-      <button class="btn-outline" id="expenseBtn" disabled>
-        <i class="bi bi-receipt"></i>Log Material Expense
-      </button>
-
-      <button class="btn-outline brand hidden" id="rsBtn">
-        <i class="bi bi-calendar2-event"></i>Reschedule / Hold Job
-      </button>
-
-      <div class="lock-info hidden" id="lockInfo">
-        <i class="bi bi-lock-fill"></i>
-       <span>
-          Finish Job is locked. Upload at least one <strong>Before</strong> and
-          one <strong>After</strong> photo to unlock.
-        </span>
-      </div>
-
-      <div class="compliance-card">
-        <div class="comp-title"><i class="bi bi-shield-check"></i>Compliance Uploads</div>
-
-        <div class="comp-item">
-          <div class="comp-icon-wrap" id="beforeIcon" style="background:rgba(251,188,6,.1);">
-            <i class="bi bi-camera-fill" style="color:#fbbc06;"></i>
-          </div>
-          <div class="comp-info">
-            <div class="comp-lbl">Before Photos</div>
-            <div class="comp-hint">Site condition before work</div>
-          </div>
-          <span class="comp-status cs-pending" id="beforeStatus">Pending</span>
-          <button class="comp-upload-btn" data-upload="before" disabled>
-            <i class="bi bi-camera"></i>Add
-          </button>
-          <input type="file" id="beforeInput" class="upload-input" accept="image/*" capture="environment" multiple>
-        </div>
-        <div class="photo-strip" id="beforeStrip"></div>
-
-        <div class="comp-item">
-          <div class="comp-icon-wrap" id="afterIcon" style="background:rgba(154,128,83,.1);">
-            <i class="bi bi-camera-fill" style="color:#9a8053;"></i>
-          </div>
-          <div class="comp-info">
-            <div class="comp-lbl">After Photos</div>
-            <div class="comp-hint">Site condition after work</div>
-          </div>
-          <span class="comp-status cs-pending" id="afterStatus">Pending</span>
-          <button class="comp-upload-btn" data-upload="after" disabled>
-            <i class="bi bi-camera"></i>Add
-          </button>
-          <input type="file" id="afterInput" class="upload-input" accept="image/*" capture="environment" multiple/>
-        </div>
-        <div class="photo-strip" id="afterStrip"></div>
-      </div>
-
-      <div class="section-card">
-        <div class="section-card-hdr">
-          <i class="bi bi-receipt" style="color:#fbbc06;"></i>Material Expenses
-        </div>
-        <div class="section-card-body" id="expenseListWrap">
-          <div class="exp-empty">No expenses logged yet.</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── HISTORY ── -->
-  <section id="pageHistory" class="hidden">
-    <div class="page-band">
-      <div>
-        <div class="pg-title"><i class="bi bi-clock-history" style="color:#9a8053;"></i>Work History</div>
-        <div class="pg-sub" id="histSub">Loading&hellip;</div>
-      </div>
-      <span class="pg-count" id="histCount">0 jobs</span>
-    </div>
-
-    <div class="page-content">
-      <div class="stat-row">
-        <div class="stat-box"><div class="stat-val" id="statJobs">&mdash;</div><div class="stat-lbl">Jobs</div></div>
-        <div class="stat-box"><div class="stat-val" id="statHours">&mdash;</div><div class="stat-lbl">Hours</div></div>
-        <div class="stat-box"><div class="stat-val" id="statExp">&mdash;</div><div class="stat-lbl">AED Mat.</div></div>
-      </div>
-      <div id="histList">
-        <div class="skel"></div><div class="skel"></div><div class="skel"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── PROFILE ── -->
-  <section id="pageProfile" class="hidden">
-    <div class="page-band">
-      <div>
-        <div class="pg-title"><i class="bi bi-person-circle" style="color:#9a8053;"></i>My Profile</div>
-        <div class="pg-sub">Account &amp; performance</div>
-      </div>
-      <button class="th-btn" id="profRefresh" style="background:var(--surface-2);color:var(--text-muted);"
-              title="Refresh" aria-label="Refresh">
-        <i class="bi bi-arrow-clockwise"></i>
-      </button>
-    </div>
-
-    <div class="page-content" id="profBody">
-      <div class="skel" style="height:170px;"></div>
-      <div class="skel" style="height:120px;"></div>
-    </div>
-  </section>
-
-  <nav class="bottom-nav" id="bottomNav">
-    <button class="bn-item active" data-nav="pipeline">
-      <i class="bi bi-list-task"></i>Pipeline
-    </button>
-    <button class="bn-item" data-nav="terminal">
-      <span class="bn-badge">
-        <i class="bi bi-broadcast"></i>
-        <span class="bn-dot hidden" id="activeDot"></span>
-      </span>
-      Active
-    </button>
-    <button class="bn-item" data-nav="history">
-      <i class="bi bi-clock-history"></i>History
-    </button>
-    <button class="bn-item" data-nav="profile">
-      <i class="bi bi-person-circle"></i>Profile
-    </button>
-  </nav>
-<form method="POST" action="{{ route('worker.logout') }}" id="logoutForm" style="display:none;">
-    @csrf
-  </form>
-</div><!-- /app-shell -->
-
+{{-- ══════════════════════════════════════════════════════ SCRIPT ═══ --}}
+@push('scripts')
 <script>
 'use strict';
 
 /* ══════════════════════════════════════════════════════
    BACKEND DATA
 ══════════════════════════════════════════════════════ */
-const JOBS      = @json($jobs ?? []);
-const ACTIVE    = @json($activeJob ?? null);
-const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
-const ROUTES = {
-  accept:     @json($routes['accept']     ?? ''),
-  punchIn:    @json($routes['punchIn']    ?? ''),
-  punchOut:   @json($routes['punchOut']   ?? ''),
-  upload:     @json($routes['upload']     ?? ''),
-  expense:    @json($routes['expense']    ?? ''),
-  reschedule: @json($routes['reschedule'] ?? ''),
-  hold:       @json($routes['hold']       ?? ''),
-  resume:     @json($routes['resume']     ?? ''),
-  history:    @json($routes['history']    ?? ''),
-  profile:    @json($routes['profile']    ?? ''),
-  signature:  @json($routes['signature'] ?? ''),
-  photoDelete: @json($routes['photoDelete'] ?? ''),
-  changePassword: @json($routes['changePassword'] ?? ''),
-};
+const JOBS   = @json($jobs ?? []);
+const ACTIVE = @json($activeJob ?? null);
+const ROUTES = @json($routes ?? []);
+const LETTERHEAD = @json($letterhead ?? ['header' => null, 'footer' => null, 'watermark' => null]);
 
-const LETTERHEAD = @json($letterhead ?? ['header'=>null,'footer'=>null,'watermark'=>null]);
 /* ══════════════════════════════════════════════════════
    STATE
    activeRef  = display ref ("SR-2026-0123") -> DOM ids
-   activeSrId = numeric primary key            -> API calls
+   activeSrId = numeric primary key          -> API calls
 ══════════════════════════════════════════════════════ */
 let activeRef      = null;
 let activeSrId     = null;
@@ -1217,28 +612,23 @@ let expenses       = [];
 let historyLoaded  = false;
 let profileLoaded  = false;
 let signatureUploaded = false;
-let activeEtaAt  = null;
-let etaGateTimer = null;
+let activeEtaAt    = null;
+let etaGateTimer   = null;
 const EARLY_START_GRACE_MS = 15 * 60 * 1000;
-/* ══════════════════════════════════════════════════════
-   HELPERS
-══════════════════════════════════════════════════════ */
-const $ = (id) => document.getElementById(id);
 
-/** Escape for HTML text and quoted attribute contexts. */
-function esc(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+/* Block sign-out while a punch is open — the layout checks this. */
+window.beforeSignOut = () => {
+  if (punchInTime) {
+    showToast('warning', 'Job in progress', 'Finish or hold the current job before signing out.');
+    return false;
+  }
+};
 
 /* ══════════════════════════════════════════════════════
    GEOLOCATION
 ══════════════════════════════════════════════════════ */
-let lastFix = null;   // { lat, lng, accuracy, address }
+let lastFix = null;                       // { lat, lng, accuracy, address }
+const MAX_ACCEPTABLE_ACCURACY = 100;      // metres
 
 /**
  * Ask the browser for a position. Resolves to null rather than rejecting —
@@ -1271,16 +661,12 @@ async function reverseGeocode(lat, lng) {
   } catch { return null; }
 }
 
-/** Capture a fix and (best-effort) its address. Always resolves. */
-const MAX_ACCEPTABLE_ACCURACY = 100;   // metres
-
 async function captureLocation() {
   const fix = await getPosition();
   if (!fix) { lastFix = null; renderLocationBadge(null); return null; }
 
   // A coarse fix on desktop is usually IP-based and can be hundreds of km off.
   fix.coarse = fix.accuracy != null && fix.accuracy > MAX_ACCEPTABLE_ACCURACY;
-
   fix.address = await reverseGeocode(fix.lat, fix.lng);
   lastFix = fix;
   renderLocationBadge(fix);
@@ -1308,19 +694,22 @@ function renderLocationBadge(fix) {
   if (!el) return;
 
   if (!fix) {
-    el.innerHTML =
-      '<i class="bi bi-geo-alt-slash"></i>' +
+    el.innerHTML = '<i class="bi bi-geo-alt-slash"></i>' +
       '<span>Location unavailable &mdash; enable GPS for site verification</span>';
     return;
   }
 
- el.innerHTML =
-    `<i class="bi bi-geo-alt-fill" style="color:${fix.coarse ? '#fbbc06' : '#9a8053'};"></i>` +
+  el.innerHTML =
+    `<i class="bi bi-geo-alt-fill" style="color:${fix.coarse ? 'var(--amber)' : 'var(--gold)'};"></i>` +
     `<span class="coords">${fix.lat.toFixed(5)}, ${fix.lng.toFixed(5)}</span>` +
     (fix.accuracy != null ? `<span style="margin-left:auto;">&plusmn;${Math.round(fix.accuracy)}m</span>` : '') +
-    (fix.coarse ? '<div style="flex-basis:100%;margin-top:4px;color:#a8802a;">Approximate — network-based fix, not GPS. Use the mobile app on site.</div>' : '') +
+    (fix.coarse ? '<div style="flex-basis:100%;margin-top:4px;color:var(--amber);">Approximate — network fix, not GPS. Use the phone on site.</div>' : '') +
     (fix.address ? `<div style="flex-basis:100%;margin-top:4px;">${esc(fix.address)}</div>` : '');
 }
+
+/* ══════════════════════════════════════════════════════
+   SMALL HELPERS
+══════════════════════════════════════════════════════ */
 
 /** Today as YYYY-MM-DD in the *local* timezone (toISOString would shift it). */
 function todayLocal() {
@@ -1330,206 +719,7 @@ function todayLocal() {
 }
 
 function hhmm(date) {
-  return date.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
-}
-
-/** POST helper. Surfaces the server's validation message rather than a bare status. */
-async function apiPost(url, payload, isForm = false) {
-  if (!url) throw new Error('Endpoint not configured.');
-
-  const opts = {
-    method: 'POST',
-    headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' },
-    body: isForm ? payload : JSON.stringify(payload),
-  };
-  if (!isForm) opts.headers['Content-Type'] = 'application/json';
-
-  const res = await fetch(url, opts);
-
-  if (!res.ok) {
-    let msg = `Request failed (${res.status})`;
-    try {
-      const body = await res.json();
-      // Laravel 422 puts field errors under `errors`, the summary under `message`.
-      if (body.errors) msg = Object.values(body.errors).flat()[0] ?? msg;
-      else if (body.message) msg = body.message;
-    } catch { /* non-JSON error body; keep the status message */ }
-    throw new Error(msg);
-  }
-  return res.json();
-}
-
-async function apiGet(url) {
-  if (!url) throw new Error('Endpoint not configured.');
-  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-  if (!res.ok) throw new Error(`Request failed (${res.status})`);
-  return res.json();
-}
-
-/** Swap a button into a busy state; returns a restore() closure. */
-function busy(btn, label) {
-  const original = btn.innerHTML;
-  const wasDisabled = btn.disabled;
-  btn.disabled = true;
-  btn.innerHTML = `<span class="spin"></span> ${esc(label)}`;
-  return () => { btn.innerHTML = original; btn.disabled = wasDisabled; };
-}
-
-function showToast(type, title, body) {
-  const icons = {
-    success: 'bi-check-circle-fill',
-    error:   'bi-x-circle-fill',
-    warning: 'bi-exclamation-circle-fill',
-    primary: 'bi-info-circle-fill',
-  };
-  const el = document.createElement('div');
-  el.className = `toast-item ${type}`;
-  el.innerHTML =
-    `<i class="bi ${icons[type] ?? icons.primary} ti-ico ${type}"></i>` +
-    `<div><p class="ti-t">${esc(title)}</p><p class="ti-b">${esc(body)}</p></div>`;
-  $('toastWrap').appendChild(el);
-  setTimeout(() => {
-    el.style.transition = 'opacity .3s';
-    el.style.opacity = '0';
-    setTimeout(() => el.remove(), 300);
-  }, 4000);
-}
-
-/* ══════════════════════════════════════════════════════
-   THEME + CLOCK
-══════════════════════════════════════════════════════ */
-function applyTheme(dark) {
-  document.documentElement.setAttribute('data-bs-theme', dark ? 'dark' : 'light');
-  $('themeIcon').className = dark ? 'bi bi-moon-stars-fill' : 'bi bi-sun-fill';
-  localStorage.setItem('ml_theme', dark ? 'dark' : 'light');
-}
-
-(function initTheme() {
-  const saved = localStorage.getItem('ml_theme');
-  applyTheme(saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme:dark)').matches);
-})();
-
-$('themeBtn').addEventListener('click', () => {
-  applyTheme(document.documentElement.getAttribute('data-bs-theme') !== 'dark');
-});
-
-$('logoutBtn').addEventListener('click', () => {
-  if (punchInTime) {
-    showToast('warning', 'Job in progress',
-      'Finish or hold the current job before signing out.');
-    return;
-  }
-  openDrawer('out');
-});
-
-$('outConfirmBtn').addEventListener('click', () => {
-  const btn = $('outConfirmBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span> Signing out\u2026';
-  $('logoutForm').submit();
-});
-
-(function initClock() {
-  const tick = () => { $('clock').textContent = hhmm(new Date()); };
-  tick();
-  setInterval(tick, 1000);
-})();
-
-/* ══════════════════════════════════════════════════════
-   NAVIGATION
-══════════════════════════════════════════════════════ */
-const PAGES = {
-  pipeline: 'pagePipeline',
-  terminal: 'pageTerminal',
-  history:  'pageHistory',
-  profile:  'pageProfile',
-};
-
-function setNav(target) {
-  document.querySelectorAll('.bn-item').forEach((b) => {
-    b.classList.toggle('active', b.dataset.nav === target);
-  });
-}
-
-function showPage(target) {
-  Object.values(PAGES).forEach((id) => $(id).classList.add('hidden'));
-  $(PAGES[target]).classList.remove('hidden');
-  setNav(target);
-}
-
-function goToPipeline() {
-  showPage('pipeline');
-  renderPipeline();
-}
-
-$('backBtn').addEventListener('click', goToPipeline);
-
-$('bottomNav').addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-nav]');
-  if (!btn) return;
-  const target = btn.dataset.nav;
-
-  if (target === 'pipeline') { goToPipeline(); return; }
-
-  if (target === 'terminal') {
-    if (!activeSrId) { showToast('warning', 'No Active Job', 'Accept a job first.'); return; }
-    showPage('terminal');
-    return;
-  }
-
-  if (target === 'history') { showPage('history'); loadHistory(); return; }
-  if (target === 'profile') { showPage('profile'); loadProfile(); }
-});
-
-/* ══════════════════════════════════════════════════════
-   DRAWERS
-══════════════════════════════════════════════════════ */
-const DRAWERS = {
-  exp: { drawer: 'expenseDrawer', overlay: 'expOverlay' },
-  rs:  { drawer: 'rsDrawer',      overlay: 'rsOverlay'  },
-  fin: { drawer: 'finishDrawer',  overlay: 'finOverlay' },
-  sign: { drawer: 'signDrawer',    overlay: 'signOverlay' },
-  out:  { drawer: 'logoutDrawer',  overlay: 'outOverlay' },
-};
-
-function openDrawer(name) {
-  $(DRAWERS[name].drawer).classList.add('open');
-  $(DRAWERS[name].overlay).classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeDrawer(name) {
-  $(DRAWERS[name].drawer).classList.remove('open');
-  $(DRAWERS[name].overlay).classList.remove('show');
-  document.body.style.overflow = '';
-}
-
-Object.entries(DRAWERS).forEach(([name, { overlay }]) => {
-  $(overlay).addEventListener('click', () => closeDrawer(name));
-});
-
-document.querySelectorAll('[data-close]').forEach((btn) => {
-  btn.addEventListener('click', () => closeDrawer(btn.dataset.close));
-});
-
-/* ══════════════════════════════════════════════════════
-   PIPELINE RENDER
-══════════════════════════════════════════════════════ */
-function renderPipeline() {
-  const list = $('jobList');
-  const visible = JOBS.filter((j) => j.status === currentFilter);
-  const reworkCount = JOBS.filter((j) => j.status === 'Rework').length;
-
-  $('pipelineCount').textContent = `${visible.length} job${visible.length === 1 ? '' : 's'}`;
-  $('pipelineSubtitle').textContent = `${JOBS.length} total \u00b7 ${reworkCount} need rework`;
-
-  if (!visible.length) {
-    list.innerHTML =
-      '<div class="empty-state"><i class="bi bi-check2-all"></i>' +
-      '<h6>All clear!</h6><p>No jobs in this category.</p></div>';
-    return;
-  }
-  list.innerHTML = visible.map(buildJobCard).join('');
+  return date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
 function fileUrl(a) {
@@ -1541,29 +731,54 @@ function fileUrl(a) {
   return '/' + p.replace(/\/{2,}/g, '/');
 }
 
+/** Show either the terminal or its empty state. */
+function setTerminalVisible(has) {
+  $('terminalBody').classList.toggle('hidden', !has);
+  $('terminalEmpty').classList.toggle('hidden', has);
+  $('activeDot').classList.toggle('hidden', !has);
+}
+
+/* ══════════════════════════════════════════════════════
+   PIPELINE RENDER
+══════════════════════════════════════════════════════ */
+const BADGE_MAP = {
+  'Pending': 'pill-amber', 'Accepted': 'pill-blue', 'Rework': 'pill-red',
+  'Rescheduled': 'pill-blue', 'On Hold': 'pill-amber',
+  'Review': 'pill-purple', 'Completed': 'pill-green',
+};
+
+function renderPipeline() {
+  const list = $('jobList');
+  const visible = JOBS.filter((j) => j.status === currentFilter);
+  const reworkCount = JOBS.filter((j) => j.status === 'Rework').length;
+
+  $('pipelineCount').textContent = `${visible.length} job${visible.length === 1 ? '' : 's'}`;
+  $('pipelineSubtitle').textContent = `${JOBS.length} total \u00b7 ${reworkCount} need rework`;
+
+  if (!visible.length) {
+    list.innerHTML =
+      '<div class="card"><div class="empty-state"><i class="bi bi-check2-all"></i>' +
+      '<h6>All clear</h6><p>No jobs in this category.</p></div></div>';
+    return;
+  }
+  list.innerHTML = visible.map(buildJobCard).join('');
+}
 
 function buildJobCard(job) {
-  const slaClass = job.hrsAgo > 24 ? 'sla-c' : job.hrsAgo > 8 ? 'sla-w' : 'sla-ok';
-  const isResched = job.status === 'Rescheduled';
+  const slaClass   = job.hrsAgo > 24 ? 'sla-c' : job.hrsAgo > 8 ? 'sla-w' : 'sla-ok';
+  const isResched  = job.status === 'Rescheduled';
   const isAccepted = job.status === 'Accepted';
-const BADGE_MAP = {
-  'Pending': 'badge-assigned',
-  'Rework': 'badge-rework',
-  'Rescheduled': 'badge-rescheduled',
-  'On Hold': 'badge-hold',
-  'Review': 'badge-review',
-  'Completed': 'badge-completed',
-};
-const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
+  const onHold     = job.status === 'On Hold';
+  const badgeClass = BADGE_MAP[job.status] ?? 'pill-gold';
   const isExpanded = expandedRef === job.id;
   const isActive   = activeRef === job.id;
-  const ref = esc(job.id);
-  const shortSite = String(job.site ?? '').split(',')[0];
+  const ref        = esc(job.id);
+  const shortSite  = String(job.site ?? '').split(',')[0];
 
   const reworkBlock = job.reworkNote
     ? `<div class="jc-exp-section">
          <div class="exp-label">
-           <i class="bi bi-exclamation-triangle-fill" style="color:#ff3366;"></i>Rework Instructions
+           <i class="bi bi-exclamation-triangle-fill" style="color:var(--red);"></i>Rework instructions
          </div>
          <div class="rework-note">${esc(job.reworkNote)}</div>
        </div>`
@@ -1571,116 +786,99 @@ const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
 
   const historyBlock = (job.history ?? []).length
     ? `<div class="jc-exp-section">
-         <div class="exp-label"><i class="bi bi-clock-history" style="color:#B8976A;"></i>History Log</div>
+         <div class="exp-label"><i class="bi bi-clock-history" style="color:var(--gold2);"></i>History log</div>
          ${job.history.map((h) => `<div class="hist-line">${esc(h)}</div>`).join('')}
        </div>`
     : '';
+
   const rescheduleBlock = job.rescheduleReason
-  ? `<div class="jc-exp-section">
-       <div class="exp-label">
-         <i class="bi bi-calendar2-event" style="color:#5878dc;"></i>Reschedule Details
-         ${job.rescheduleCount > 1 ? `<span style="margin-left:auto;font-weight:600;">×${Number(job.rescheduleCount)}</span>` : ''}
-       </div>
-       <div class="exp-text" style="margin-bottom:6px;">
-         ${job.previousEta ? `<span style="text-decoration:line-through;opacity:.6;">${esc(job.previousEta)}</span> &rarr; ` : ''}
-         <strong>${esc(job.eta ?? '—')}</strong>
-       </div>
-       <div class="rework-note" style="background:rgba(88,120,220,.07);border-color:rgba(88,120,220,.2);">
-         ${esc(job.rescheduleReason)}
-       </div>
-       <div style="font-size:.66rem;color:var(--text-muted);margin-top:5px;">
-         Logged ${esc(job.rescheduledAt ?? '—')}
-       </div>
-     </div>`
-  : '';
- const photoBlock = (job.attachments ?? []).length
-  ? `<div class="jc-exp-section">
-       <div class="exp-label"><i class="bi bi-images" style="color:#fbbc06;"></i>Attached Photos</div>
-       <div class="photo-row">
-         ${job.attachments.map((a) => {
-           const url  = fileUrl(a);
-           const name = url.split('/').pop().split('?')[0];
+    ? `<div class="jc-exp-section">
+         <div class="exp-label">
+           <i class="bi bi-calendar2-event" style="color:var(--blue);"></i>Reschedule details
+           ${job.rescheduleCount > 1 ? `<span style="margin-left:auto;font-weight:700;">&times;${Number(job.rescheduleCount)}</span>` : ''}
+         </div>
+         <div class="exp-text" style="margin-bottom:6px;">
+           ${job.previousEta ? `<span style="text-decoration:line-through;opacity:.6;">${esc(job.previousEta)}</span> &rarr; ` : ''}
+           <strong>${esc(job.eta ?? '—')}</strong>
+         </div>
+         <div class="rework-note" style="background:var(--blue-bg);border-color:rgba(37,99,235,.2);color:var(--blue);">
+           ${esc(job.rescheduleReason)}
+         </div>
+         <div style="font-size:.66rem;color:var(--muted);margin-top:5px;">
+           Logged ${esc(job.rescheduledAt ?? '—')}
+         </div>
+       </div>`
+    : '';
 
-           if (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url)) {
-             return `<div class="photo-thumb" title="${esc(name)}"
-                          onclick="openLightbox('image','${esc(url)}','${esc(name)}')">
-                       <img src="${esc(url)}" alt="" loading="lazy"
-                            onerror="this.parentNode.classList.add('thumb-fail')">
-                     </div>`;
-           }
-           if (/\.pdf(\?|$)/i.test(url)) {
-             return `<div class="photo-thumb photo-pdf" title="${esc(name)}"
-                          onclick="openLightbox('pdf','${esc(url)}','${esc(name)}')">
-                       <iframe src="${esc(url)}#toolbar=0&navpanes=0&view=FitH" scrolling="no"></iframe>
-                       <span class="pdf-tag"><i class="bi bi-filetype-pdf"></i></span>
-                     </div>`;
-           }
-           return `<a class="photo-thumb photo-doc" href="${esc(url)}" target="_blank" title="${esc(name)}">
-                     <i class="bi bi-file-earmark-arrow-down" style="color:#9a8053;"></i>
-                   </a>`;
-         }).join('')}
-       </div>
-     </div>`
-  : '';
-  const onHold = job.status === 'On Hold';
+  const photoBlock = (job.attachments ?? []).length
+    ? `<div class="jc-exp-section">
+         <div class="exp-label"><i class="bi bi-images" style="color:var(--amber);"></i>Attached files</div>
+         <div class="photo-row">
+           ${job.attachments.map((a) => {
+             const url  = fileUrl(a);
+             const name = url.split('/').pop().split('?')[0];
 
-   const footer = isActive
-   ? `<div class="jc-active-note">
-       <i class="bi bi-check2-circle"></i> This job is currently active in the terminal
-     </div>`
-  : onHold
-  ? `<div class="eta-form">
-       <div class="eta-title"><i class="bi bi-pause-circle"></i>Job On Hold</div>
-       <button class="accept-btn" data-resume="${ref}" data-srid="${Number(job.sr_id)}">
-         <i class="bi bi-play-circle"></i>Resume Job
-       </button>
-     </div>`
-  : isAccepted
-  ? `<div class="eta-form">
-       <div class="eta-title"><i class="bi bi-check2-circle" style="color:#05a34a;"></i>Accepted &middot; ETA ${esc(job.eta ?? '—')}</div>
-       <button class="accept-btn" style="background:linear-gradient(135deg,#05a34a,#0abf56);"
-               data-activate="${ref}" data-srid="${Number(job.sr_id)}">
-         <i class="bi bi-broadcast"></i>Make Active
-       </button>
+             if (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url)) {
+               return `<div class="photo-thumb" title="${esc(name)}"
+                            onclick="openLightbox('image','${esc(url)}','${esc(name)}')">
+                         <img src="${esc(url)}" alt="" loading="lazy">
+                       </div>`;
+             }
+             if (/\.pdf(\?|$)/i.test(url)) {
+               return `<div class="photo-thumb photo-pdf" title="${esc(name)}"
+                            onclick="openLightbox('pdf','${esc(url)}','${esc(name)}')">
+                         <iframe src="${esc(url)}#toolbar=0&navpanes=0&view=FitH" scrolling="no"></iframe>
+                       </div>`;
+             }
+             return `<a class="photo-thumb" href="${esc(url)}" target="_blank" title="${esc(name)}">
+                       <i class="bi bi-file-earmark-arrow-down" style="color:var(--gold);"></i>
+                     </a>`;
+           }).join('')}
+         </div>
+       </div>`
+    : '';
 
-         <button class="accept-btn" style="border-color: rgba(154, 128, 83, .4);
-    color: #9a8053;
-    background: rgba(154, 128, 83, .04);width: 100%;
-    border: 1.5px dashed rgba(251, 188, 6, .5);
-    border-radius: 10px;
-    padding: .6rem 1rem;
-    font-size: .82rem;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;transition: all .2s;
-    margin-bottom: 14px; margin-top: 20px;"
-             data-rsagain="${ref}" data-srid="${Number(job.sr_id)}">
-       <i class="bi bi-calendar2-event"></i>Reschedule
-     </button>
-
-     </div>`
+  const footer = isActive
+    ? `<div class="jc-active-note">
+         <i class="bi bi-check2-circle"></i> This job is live in the terminal
+       </div>`
+    : onHold
+    ? `<div class="eta-form">
+         <div class="eta-title"><i class="bi bi-pause-circle"></i>Job on hold</div>
+         <button class="accept-btn" data-resume="${ref}" data-srid="${Number(job.sr_id)}">
+           <i class="bi bi-play-circle"></i>Resume job
+         </button>
+       </div>`
+    : isAccepted
+    ? `<div class="eta-form">
+         <div class="eta-title"><i class="bi bi-check2-circle" style="color:var(--green);"></i>Accepted &middot; ETA ${esc(job.eta ?? '—')}</div>
+         <button class="accept-btn go" data-activate="${ref}" data-srid="${Number(job.sr_id)}">
+           <i class="bi bi-broadcast"></i>Make active
+         </button>
+         <button class="accept-btn ghost" data-rsagain="${ref}" data-srid="${Number(job.sr_id)}">
+           <i class="bi bi-calendar2-event"></i>Reschedule
+         </button>
+       </div>`
     : isResched
-? `<div class="eta-form">
-     <div class="eta-title"><i class="bi bi-calendar2-event" style="color:#5878dc;"></i>Rescheduled &middot; ETA ${esc(job.eta ?? '—')}</div>
-     <button class="accept-btn" style="background:linear-gradient(135deg,#5878dc,#7a95e8);"
-             data-activate="${ref}" data-srid="${Number(job.sr_id)}">
-       <i class="bi bi-broadcast"></i>Make Active
-     </button>
-     <button class="accept-btn" style="margin-top:8px;background:none;border:1.5px dashed rgba(88,120,220,.5);color:#5878dc;"
-             data-rsagain="${ref}" data-srid="${Number(job.sr_id)}">
-       <i class="bi bi-calendar2-event"></i>Reschedule Again
-     </button>
-   </div>`
+    ? `<div class="eta-form">
+         <div class="eta-title"><i class="bi bi-calendar2-event" style="color:var(--blue);"></i>Rescheduled &middot; ETA ${esc(job.eta ?? '—')}</div>
+         <button class="accept-btn blue" data-activate="${ref}" data-srid="${Number(job.sr_id)}">
+           <i class="bi bi-broadcast"></i>Make active
+         </button>
+         <button class="accept-btn ghost" data-rsagain="${ref}" data-srid="${Number(job.sr_id)}">
+           <i class="bi bi-calendar2-event"></i>Reschedule again
+         </button>
+       </div>`
+    : job.status === 'Completed'
+    ? `<div class="jc-active-note" style="color:var(--muted);background:var(--surface);">
+         <i class="bi bi-check2-all"></i> Submitted &mdash; nothing left to do here
+       </div>`
     : `<div class="eta-form">
-         <div class="eta-title"><i class="bi bi-calendar-check"></i>Set Expected Attendance (ETA)</div>
+         <div class="eta-title"><i class="bi bi-calendar-check"></i>Set expected attendance (ETA)</div>
          <div class="eta-grid">
            <div class="eta-field">
              <label for="etaDate-${ref}">Date <span class="req">*</span></label>
-             <input type="date" class="eta-input" id="etaDate-${ref}"
-                    min="${todayLocal()}" data-eta="${ref}"/>
+             <input type="date" class="eta-input" id="etaDate-${ref}" min="${todayLocal()}" data-eta="${ref}"/>
              <div class="err-msg" id="errDate-${ref}">Date required</div>
            </div>
            <div class="eta-field">
@@ -1689,47 +887,45 @@ const badgeClass = BADGE_MAP[job.status] ?? 'badge-assigned';
              <div class="err-msg" id="errTime-${ref}">Time required</div>
            </div>
          </div>
-         <button class="accept-btn" id="acceptBtn-${ref}"
-                 data-accept="${ref}" data-srid="${Number(job.sr_id)}" disabled>
-           <i class="bi bi-check2-circle"></i>Accept Job
+         <button class="accept-btn" id="acceptBtn-${ref}" data-accept="${ref}" data-srid="${Number(job.sr_id)}" disabled>
+           <i class="bi bi-check2-circle"></i>Accept job
          </button>
          <div class="wa-hint">
-           <i class="bi bi-whatsapp"></i>Client receives a live tracking link on acceptance
+           <i class="bi bi-whatsapp"></i>Client gets a live tracking link on acceptance
          </div>
        </div>`;
 
   return `
-    <article class="job-card${isActive ? ' is-active' : ''}${isAccepted && !isActive ? ' is-accepted' : ''}" id="jcard-${ref}">
+    <article class="pl-card${isActive ? ' is-active' : ''}${isAccepted && !isActive ? ' is-accepted' : ''}" id="jcard-${ref}">
       <div class="jc-main" data-toggle="${ref}">
         <div class="jc-top">
           <span class="jc-sr">${ref}</span>
           <div style="display:flex;gap:6px;align-items:center;">
-            <span class="jc-badge ${badgeClass}">${esc(job.status)}</span>
-            ${isActive ? '<span class="jc-badge badge-live">&#9679; Active</span>' : ''}
+            <span class="pill ${badgeClass}">${esc(job.status)}</span>
+            ${isActive ? '<span class="pill pill-green">&#9679; Live</span>' : ''}
             <i class="bi bi-chevron-down jc-chevron${isExpanded ? ' open' : ''}"></i>
           </div>
         </div>
         <div class="jc-client">${esc(job.client)}</div>
-        <div class="jc-contract">
-          <i class="bi bi-file-earmark-text"></i> ${esc(job.contract)}
-        </div>
+        <div class="jc-contract"><i class="bi bi-file-earmark-text"></i> ${esc(job.contract)}</div>
         <div class="jc-meta">
-          <span class="jc-meta-item"><i class="bi bi-tools"></i>${esc(job.domain)}</span>
-          <span class="jc-meta-item"><i class="bi bi-geo-alt"></i>${esc(shortSite)}</span>
-          <span class="jc-sla ${slaClass}"><i class="bi bi-clock"></i>${Number(job.hrsAgo)}h</span>
+          <span class="jc-meta-item"><i class="bi bi-tools"></i><span>${esc(job.domain)}</span></span>
+          <span class="jc-meta-item"><i class="bi bi-geo-alt"></i><span>${esc(shortSite)}</span></span>
+          <span class="jc-sla ${slaClass}"><i class="bi bi-clock"></i> ${Number(job.hrsAgo)}h</span>
         </div>
       </div>
 
       <div class="jc-expand${isExpanded ? ' open' : ''}" id="jexp-${ref}">
         <div class="jc-exp-section">
-          <div class="exp-label"><i class="bi bi-geo-alt-fill" style="color:#9a8053;"></i>Site Address</div>
+          <div class="exp-label"><i class="bi bi-geo-alt-fill" style="color:var(--gold);"></i>Site address</div>
           <div class="exp-text">${esc(job.site)}</div>
         </div>
         <div class="jc-exp-section">
-          <div class="exp-label"><i class="bi bi-card-text" style="color:#9a8053;"></i>Issue Description</div>
+          <div class="exp-label"><i class="bi bi-card-text" style="color:var(--gold);"></i>Issue description</div>
           <div class="exp-text">${esc(job.description)}</div>
         </div>
         ${reworkBlock}
+        ${rescheduleBlock}
         ${historyBlock}
         ${photoBlock}
         ${footer}
@@ -1760,12 +956,6 @@ function toggleExpand(ref) {
    DELEGATED EVENTS — PIPELINE
 ══════════════════════════════════════════════════════ */
 $('jobList').addEventListener('click', (e) => {
-  const toggle = e.target.closest('[data-toggle]');
-  if (toggle) { toggleExpand(toggle.dataset.toggle); return; }
-
-  const photo = e.target.closest('[data-photo]');
-  if (photo) { openLightbox(photo.dataset.photo, photo.dataset.ref); return; }
-
   const resume = e.target.closest('[data-resume]');
   if (resume) { resumeJob(resume.dataset.resume, Number(resume.dataset.srid), resume); return; }
 
@@ -1773,12 +963,7 @@ $('jobList').addEventListener('click', (e) => {
   if (rsAgain) {
     activeRef  = rsAgain.dataset.rsagain;
     activeSrId = Number(rsAgain.dataset.srid);
-    $('rsSrRef').textContent = activeRef;
-    $('rsDate').min = todayLocal();
-    $('rsDate').value = ''; $('rsTime').value = '';
-    $('rsRemark').value = ''; $('holdRemark').value = '';
-    switchRsTab('reschedule');
-    openDrawer('rs');
+    openRescheduleDrawer();
     return;
   }
 
@@ -1786,7 +971,10 @@ $('jobList').addEventListener('click', (e) => {
   if (activate) { activateJob(activate.dataset.activate, Number(activate.dataset.srid)); return; }
 
   const accept = e.target.closest('[data-accept]');
-  if (accept) { acceptJob(accept.dataset.accept, Number(accept.dataset.srid), accept); }
+  if (accept) { acceptJob(accept.dataset.accept, Number(accept.dataset.srid), accept); return; }
+
+  const toggle = e.target.closest('[data-toggle]');
+  if (toggle) { toggleExpand(toggle.dataset.toggle); }
 });
 
 $('jobList').addEventListener('change', (e) => {
@@ -1813,9 +1001,8 @@ $('tabFilter').addEventListener('click', (e) => {
   renderPipeline();
 });
 
-
 /* ══════════════════════════════════════════════════════
-   ACCEPT JOB
+   ACCEPT / RESUME / ACTIVATE
 ══════════════════════════════════════════════════════ */
 async function acceptJob(ref, srId, btn) {
   const date = $(`etaDate-${ref}`).value;
@@ -1830,12 +1017,7 @@ async function acceptJob(ref, srId, btn) {
     await apiPost(ROUTES.accept, { sr_id: srId, eta_date: date, eta_time: time });
 
     // Reset per-job terminal state so a second job never inherits the first's.
-    activeRef   = ref;
-    activeSrId  = srId;
-    punchInTime = null;
-    uploads     = { before: [], after: [] };
-    expenses    = [];
-    clearInterval(timerInterval);
+    resetJobState(ref, srId);
 
     const job = JOBS.find((j) => j.id === ref);
     job.status   = 'Accepted';
@@ -1843,7 +1025,7 @@ async function acceptJob(ref, srId, btn) {
     job.eta      = `${date} ${time}`;
     buildBanner(job, date, time);
 
-    renderPipeline();   // repaint the card so it shows the "active" footer
+    renderPipeline();
     openTerminal();
   } catch (err) {
     restore();
@@ -1856,23 +1038,15 @@ async function resumeJob(ref, srId, btn) {
 
   try {
     await apiPost(ROUTES.resume, { sr_id: srId });
-
-    activeRef   = ref;
-    activeSrId  = srId;
-    punchInTime = null;
-    uploads     = { before: [], after: [] };
-    expenses    = [];
-    clearInterval(timerInterval);
+    resetJobState(ref, srId);
 
     const job = JOBS.find((j) => j.id === ref);
-    job.status = 'Assigned';
+    job.status = 'Accepted';
 
     const [etaDate, etaTime] = String(job.eta ?? '').split(' ');
     buildBanner(job, etaDate || '\u2014', etaTime || '\u2014');
 
-    $('activeDot').classList.remove('hidden');
-    showToast('success', 'Job Resumed', 'Back in the terminal.');
-
+    showToast('success', 'Job resumed', 'Back in the terminal.');
     renderPipeline();
     openTerminal();
   } catch (err) {
@@ -1881,8 +1055,37 @@ async function resumeJob(ref, srId, btn) {
   }
 }
 
+function activateJob(ref, srId) {
+  if (activeRef === ref) { switchTab('terminal'); return; }
+
+  if (punchInTime) {
+    showToast('warning', 'Job in progress', 'Finish or hold the current job before switching.');
+    return;
+  }
+
+  resetJobState(ref, srId);
+
+  const job = JOBS.find((j) => j.id === ref);
+  const [etaDate, etaTime] = String(job.eta ?? '').split(' ');
+  buildBanner(job, etaDate || '\u2014', etaTime || '\u2014');
+
+  renderPipeline();
+  openTerminal();
+  renderExpenses();
+}
+
+function resetJobState(ref, srId) {
+  activeRef   = ref;
+  activeSrId  = srId;
+  punchInTime = null;
+  uploads     = { before: [], after: [] };
+  expenses    = [];
+  signatureUploaded = false;
+  clearInterval(timerInterval);
+}
+
 function buildBanner(job, etaDate, etaTime) {
-  const slaColor = job.hrsAgo > 24 ? '#ff5080' : job.hrsAgo > 8 ? '#fbbc06' : '#a8f0c0';
+  const slaColor  = job.hrsAgo > 24 ? '#fca5a5' : job.hrsAgo > 8 ? '#fcd34d' : '#a7f3d0';
   const shortSite = String(job.site ?? '').split(',')[0];
 
   $('jobBanner').innerHTML = `
@@ -1891,42 +1094,39 @@ function buildBanner(job, etaDate, etaTime) {
     <div class="ajb-site"><i class="bi bi-geo-alt-fill"></i>${esc(shortSite)}</div>
     <div class="ajb-meta">
       <span class="ajb-chip"><i class="bi bi-calendar3"></i>ETA ${esc(etaDate)} ${esc(etaTime)}</span>
-      <span class="ajb-chip"><i class="bi bi-exclamation-circle"></i>${esc(job.priority)} Priority</span>
-      <span class="ajb-chip" style="color:${slaColor};">
-        <i class="bi bi-clock"></i>${Number(job.hrsAgo)}h elapsed
-      </span>
+      <span class="ajb-chip"><i class="bi bi-exclamation-circle"></i>${esc(job.priority)} priority</span>
+      <span class="ajb-chip" style="color:${slaColor};"><i class="bi bi-clock"></i>${Number(job.hrsAgo)}h elapsed</span>
     </div>`;
 
-  $('termTitle').innerHTML =
-    `<i class="bi bi-broadcast" style="color:#8A6E47;"></i>${esc(job.id)}`;
+  $('termTitle').innerHTML = `<i class="bi bi-broadcast"></i>${esc(job.id)}`;
   $('termSub').textContent  = job.client;
   $('expSrRef').textContent = job.id;
   $('rsSrRef').textContent  = job.id;
   $('finSrRef').textContent = job.id;
-  activeEtaAt = parseEta(etaDate, etaTime); 
+  activeEtaAt = parseEta(etaDate, etaTime);
 }
 
 /* ══════════════════════════════════════════════════════
    TERMINAL
 ══════════════════════════════════════════════════════ */
 function openTerminal() {
-  showPage('terminal');
+  setTerminalVisible(true);
+  switchTab('terminal');
 
   // Fresh terminal: nothing punched, nothing uploaded.
   $('punchInBtn').disabled  = false;
-  $('punchInBtn').innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
+  $('punchInBtn').innerHTML = '<i class="bi bi-play-fill"></i>Start job';
   $('punchOutBtn').disabled  = true;
-  $('punchOutBtn').innerHTML = '<i class="bi bi-check2-square"></i>Finish Job';
+  $('punchOutBtn').innerHTML = '<i class="bi bi-check2-square"></i>Finish job';
   $('expenseBtn').disabled = true;
-   $('rsBtn').classList.remove('hidden'); 
+  $('rsBtn').classList.remove('hidden');
   $('lockInfo').classList.add('hidden');
 
   $('timerDisplay').textContent = '00:00:00';
   $('timerLabel').textContent   = 'Not started';
   $('timerStatus').textContent  = 'Idle';
   $('timerStatus').className    = 'tw-status status-idle';
-  $('timerIcon').innerHTML = '<i class="bi bi-clock" style="color:#aeb7c5;"></i>';
-  $('timerIcon').style.background = 'rgba(174,183,197,.12)';
+  $('timerIcon').innerHTML = '<i class="bi bi-clock" style="color:var(--muted);"></i>';
 
   uploads = { before: [], after: [] };
   ['before', 'after'].forEach((type) => {
@@ -1936,6 +1136,8 @@ function openTerminal() {
 
   $('workDesc').value = '';
   $('finSummary').value = '';
+  renderExpenses();
+  applyEtaGate();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1953,7 +1155,7 @@ async function punchIn() {
 
   if (!activeSrId) {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
+    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start job';
     showToast('error', 'No active job', 'Re-activate the job first.');
     return;
   }
@@ -1962,9 +1164,7 @@ async function punchIn() {
   const fix = await captureLocation();
   btn.innerHTML = '<span class="spin"></span> Starting\u2026';
 
-  if (!fix) {
-    showToast('warning', 'No GPS fix', 'Starting without location. Enable GPS if possible.');
-  }
+  if (!fix) showToast('warning', 'No GPS fix', 'Starting without location. Enable GPS if possible.');
 
   try {
     const res = await apiPost(ROUTES.punchIn, withGeo({
@@ -1978,29 +1178,26 @@ async function punchIn() {
     timerInterval = setInterval(updateTimer, 1000);
     updateTimer();
 
-    $('timerIcon').innerHTML = '<i class="bi bi-stopwatch-fill" style="color:#05a34a;"></i>';
-    $('timerIcon').style.background = 'rgba(5,163,74,.1)';
+    $('timerIcon').innerHTML = '<i class="bi bi-stopwatch-fill" style="color:var(--green);"></i>';
     $('timerStatus').textContent = 'Live';
     $('timerStatus').className   = 'tw-status status-live';
     $('timerLabel').textContent  = 'Time on site';
 
     document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
     $('expenseBtn').disabled = false;
-    $('rsBtn').classList.remove('hidden');
-    btn.innerHTML = '<i class="bi bi-check2"></i>Job Started';
+    btn.innerHTML = '<i class="bi bi-check2"></i>Job started';
 
-    showToast('success', 'Punched In', 'Job started.');
+    showToast('success', 'Punched in', 'Job started.');
     applyEtaGate();     // punch is open now — hides the notice, stops the ticker
     refreshLock();
   } catch (err) {
     btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start Job';
-    $('rsBtn').classList.remove('hidden');
+    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start job';
 
     if (/too early/i.test(err.message)) {
       showToast('warning', 'Too early to start', err.message);
-      openRescheduleFromTerminal();
-      $('rsRemark').value = 'Attending earlier than scheduled ETA.';   // after, not before
+      openRescheduleDrawer();
+      $('rsRemark').value = 'Attending earlier than the scheduled ETA.';
     } else {
       showToast('error', 'Punch-in failed', err.message);
     }
@@ -2037,7 +1234,7 @@ function compressImage(file, maxEdge = 1600, quality = 0.8) {
     img.onload = () => {
       let { width, height } = img;
       const scale = Math.min(1, maxEdge / Math.max(width, height));
-      width  = Math.round(width  * scale);
+      width  = Math.round(width * scale);
       height = Math.round(height * scale);
 
       const canvas = document.createElement('canvas');
@@ -2048,8 +1245,7 @@ function compressImage(file, maxEdge = 1600, quality = 0.8) {
       canvas.toBlob((blob) => {
         URL.revokeObjectURL(url);
         if (!blob) { resolve(file); return; }
-        resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg',
-                         { type: 'image/jpeg' }));
+        resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }));
       }, 'image/jpeg', quality);
     };
 
@@ -2063,7 +1259,7 @@ async function uploadFile(type, input) {
 
   const btn = document.querySelector(`[data-upload="${type}"]`);
   const restore = busy(btn, '');
-  const labels = { before: 'Before Photos', after: 'After Photos' };
+  const labels = { before: 'Before photos', after: 'After photos' };
 
   try {
     const form = new FormData();
@@ -2079,7 +1275,7 @@ async function uploadFile(type, input) {
     uploads[type].push(...res.photos);
     restore();
     renderPhotoStrip(type);
-    showToast('success', `${labels[type]} Uploaded`,
+    showToast('success', `${labels[type]} uploaded`,
       `${res.photos.length} photo${res.photos.length === 1 ? '' : 's'} added.`);
     refreshLock();
   } catch (err) {
@@ -2102,15 +1298,11 @@ function renderPhotoStrip(type) {
       </button>
     </div>`).join('');
 
-  const tints = { before:'rgba(251,188,6,.15)', after:'rgba(154,128,83,.15)' };
-  const done  = list.length > 0;
-
+  const done = list.length > 0;
   $(`${type}Status`).textContent = done ? `${list.length} \u2713` : 'Pending';
   $(`${type}Status`).className   = `comp-status ${done ? 'cs-done' : 'cs-pending'}`;
-  $(`${type}Icon`).style.background = done ? tints[type] : '';
 }
 
-/* Strip clicks: enlarge or delete. */
 ['before', 'after'].forEach((type) => {
   $(`${type}Strip`).addEventListener('click', async (e) => {
     const del = e.target.closest('[data-del]');
@@ -2129,10 +1321,7 @@ function renderPhotoStrip(type) {
     }
 
     const img = e.target.closest('[data-lb]');
-    if (img) {
-      $('lbContent').innerHTML = `<img src="${esc(img.dataset.lb)}" class="lb-img" alt="Photo"/>`;
-      $('lbOverlay').classList.add('show');
-    }
+    if (img) openLightbox('image', img.dataset.lb, 'Photo');
   });
 });
 
@@ -2152,10 +1341,7 @@ $('punchOutBtn').addEventListener('click', () => {
     showToast('error', 'Locked', 'Upload all compliance files first.');
     return;
   }
-  if (!signatureUploaded) {
-    openSignDrawer();
-    return;
-  }
+  if (!signatureUploaded) { openSignDrawer(); return; }
   $('finSrRef').textContent = activeRef ?? '\u2014';
   openDrawer('fin');
 });
@@ -2181,39 +1367,42 @@ $('finConfirmBtn').addEventListener('click', async () => {
     $('timerStatus').textContent = 'Completed';
     $('timerStatus').className   = 'tw-status status-done';
     $('timerLabel').textContent  = `Total: ${res.duration ?? '\u2014'}`;
-    $('punchOutBtn').innerHTML = '<i class="bi bi-check2"></i>Job Finished';
+    $('punchOutBtn').innerHTML = '<i class="bi bi-check2"></i>Job finished';
     $('punchOutBtn').disabled  = true;
 
-    showToast('success', 'Job Finished',
+    showToast('success', 'Job finished',
       `Duration ${res.duration ?? '\u2014'} \u00b7 AED ${res.grand_total ?? '0.00'} \u00b7 Sent for review.`);
 
     // Drop the finished job from the local list, then reset.
     const index = JOBS.findIndex((j) => j.id === activeRef);
     if (index > -1) JOBS.splice(index, 1);
 
-    activeRef = activeSrId = punchInTime = null;
-    activeEtaAt = null;
-  clearInterval(etaGateTimer);
-  $('etaNotice').classList.add('hidden');
-    uploads  = { before: [], after: [] };
-    expenses = [];
+    clearJobState();
     historyLoaded = false;
     profileLoaded = false;
 
-    $('activeDot').classList.add('hidden');
-    $('punchInBtn').disabled = true;
-    $('expenseBtn').disabled = true;
-    $('rsBtn').classList.add('hidden');
-
-    setTimeout(goToPipeline, 1800);
+    setTimeout(() => { switchTab('pipeline'); renderPipeline(); }, 1600);
   } catch (err) {
     restore();
     showToast('error', 'Could not finish job', err.message);
   }
 });
 
+/** Wipe everything tied to the job that just left the terminal. */
+function clearJobState() {
+  activeRef = activeSrId = punchInTime = null;
+  activeEtaAt = null;
+  signatureUploaded = false;
+  clearInterval(etaGateTimer);
+  clearInterval(timerInterval);
+  $('etaNotice').classList.add('hidden');
+  uploads  = { before: [], after: [] };
+  expenses = [];
+  setTerminalVisible(false);
+}
+
 /* ══════════════════════════════════════════════════════
-   EXPENSE DRAWER
+   EXPENSES
 ══════════════════════════════════════════════════════ */
 $('expenseBtn').addEventListener('click', () => openDrawer('exp'));
 
@@ -2251,8 +1440,7 @@ $('expSaveBtn').addEventListener('click', async () => {
     const res = await apiPost(ROUTES.expense, form, true);
 
     expenses.push({
-      category,
-      name,
+      category, name,
       amount: parseFloat(amount).toFixed(2),
       time: hhmm(new Date()),
       receiptUrl: res.receipt_url ?? null,
@@ -2262,7 +1450,7 @@ $('expSaveBtn').addEventListener('click', async () => {
     resetExpenseForm();
     closeDrawer('exp');
     renderExpenses();
-    showToast('success', 'Expense Saved', `AED ${parseFloat(amount).toFixed(2)} \u2014 ${name}`);
+    showToast('success', 'Expense saved', `AED ${parseFloat(amount).toFixed(2)} \u2014 ${name}`);
   } catch (err) {
     restore();
     showToast('error', 'Could not save expense', err.message);
@@ -2282,7 +1470,7 @@ function renderExpenses() {
   const wrap = $('expenseListWrap');
 
   if (!expenses.length) {
-    wrap.innerHTML = '<div class="exp-empty">No expenses logged yet.</div>';
+    wrap.innerHTML = '<div class="tx-empty">No expenses logged yet.</div>';
     return;
   }
 
@@ -2290,11 +1478,10 @@ function renderExpenses() {
 
   wrap.innerHTML =
     expenses.map((e) => `
-      <div class="exp-item">
+      <div class="tx-item">
         ${e.receiptUrl
-          ? `<img src="${esc(e.receiptUrl)}" class="exp-receipt" alt="Receipt"
-                  data-receipt="${esc(e.receiptUrl)}"/>`
-          : '<i class="bi bi-receipt" style="color:#fbbc06;"></i>'}
+          ? `<img src="${esc(e.receiptUrl)}" class="tx-receipt" alt="Receipt" data-receipt="${esc(e.receiptUrl)}"/>`
+          : '<i class="bi bi-receipt" style="color:var(--amber);font-size:1.1rem;"></i>'}
         <div class="body">
           <div class="en">${esc(e.name ?? e.category)}</div>
           <div class="ec">${esc(e.category)}</div>
@@ -2302,22 +1489,18 @@ function renderExpenses() {
         <span class="ea">AED ${esc(e.amount)}</span>
         <span class="er">${esc(e.time)}</span>
       </div>`).join('') +
-    `<div class="exp-total">Total: AED ${total}</div>`;
+    `<div class="tx-total">Total: AED ${total}</div>`;
 }
 
-/* Tap a receipt thumbnail in the expense list to enlarge it. */
 $('expenseListWrap').addEventListener('click', (e) => {
   const img = e.target.closest('[data-receipt]');
-  if (!img) return;
-  $('lbContent').innerHTML =
-    `<img src="${esc(img.dataset.receipt)}" class="lb-img" alt="Receipt"/>`;
-  $('lbOverlay').classList.add('show');
+  if (img) openLightbox('image', img.dataset.receipt, 'Receipt');
 });
 
 /* ══════════════════════════════════════════════════════
-   RESCHEDULE / HOLD DRAWER
+   RESCHEDULE / HOLD
 ══════════════════════════════════════════════════════ */
-function openRescheduleFromTerminal() {
+function openRescheduleDrawer() {
   $('rsSrRef').textContent = activeRef ?? '\u2014';
   $('rsDate').min = todayLocal();
   $('rsDate').value = '';
@@ -2328,7 +1511,7 @@ function openRescheduleFromTerminal() {
   openDrawer('rs');
 }
 
-$('rsBtn').addEventListener('click', openRescheduleFromTerminal);
+$('rsBtn').addEventListener('click', openRescheduleDrawer);
 
 document.querySelectorAll('[data-rstab]').forEach((tab) => {
   tab.addEventListener('click', () => switchRsTab(tab.dataset.rstab));
@@ -2346,7 +1529,6 @@ $('rsConfirmBtn').addEventListener('click', async () => {
   const date   = $('rsDate').value;
   const time   = $('rsTime').value;
   const remark = $('rsRemark').value.trim();
-  
 
   if (!date || !time) { showToast('warning', 'Required', 'Set a new date and time.'); return; }
   if (!remark)        { showToast('warning', 'Required', 'Enter a rescheduling reason.'); return; }
@@ -2358,14 +1540,6 @@ $('rsConfirmBtn').addEventListener('click', async () => {
     await apiPost(ROUTES.reschedule, { sr_id: activeSrId, eta_date: date, eta_time: time, remark });
     closeDrawer('rs');
 
-    const cameFromTerminal = !$('pageTerminal').classList.contains('hidden');
-    if (cameFromTerminal) {
-      clearInterval(timerInterval);
-      $('timerStatus').textContent = 'Rescheduled';
-      $('timerStatus').className   = 'tw-status status-idle';
-      $('timerLabel').textContent  = `ETA ${date} ${time}`;
-    }
-
     const index = JOBS.findIndex((j) => j.id === activeRef);
     if (index > -1) {
       JOBS[index].status           = 'Rescheduled';
@@ -2374,20 +1548,13 @@ $('rsConfirmBtn').addEventListener('click', async () => {
       JOBS[index].rescheduleReason = remark;
       JOBS[index].rescheduleCount  = (JOBS[index].rescheduleCount ?? 0) + 1;
       JOBS[index].rescheduledAt    = new Date().toLocaleString('en-GB', {
-        day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
       });
     }
 
-    activeRef = activeSrId = punchInTime = null;
-    activeEtaAt = null;
-    clearInterval(etaGateTimer);
-    $('etaNotice').classList.add('hidden');
-    uploads  = { before: [], after: [] };
-    expenses = [];
-    $('activeDot').classList.add('hidden');
-
-    showToast('success', 'Job Rescheduled', `New ETA: ${date} at ${time}.`);
-    setTimeout(goToPipeline, 1400);
+    clearJobState();
+    showToast('success', 'Job rescheduled', `New ETA: ${date} at ${time}.`);
+    setTimeout(() => { switchTab('pipeline'); renderPipeline(); }, 1200);
   } catch (err) {
     restore();
     showToast('error', 'Could not reschedule', err.message);
@@ -2405,8 +1572,7 @@ $('holdConfirmBtn').addEventListener('click', async () => {
     await apiPost(ROUTES.hold, { sr_id: activeSrId, remark });
 
     closeDrawer('rs');
-    clearInterval(timerInterval);
-    showToast('warning', 'Job On Hold', 'Placed on hold. Reason logged.');
+    showToast('warning', 'Job on hold', 'Placed on hold. Reason logged.');
 
     // Holding cancels the open punch server-side, so clear the terminal too.
     const index = JOBS.findIndex((j) => j.id === activeRef);
@@ -2414,15 +1580,9 @@ $('holdConfirmBtn').addEventListener('click', async () => {
       JOBS[index].status = 'On Hold';
       JOBS[index].accepted = false;
     }
-    activeRef = activeSrId = punchInTime = null;
-    activeEtaAt = null;
-    clearInterval(etaGateTimer);
-    $('etaNotice').classList.add('hidden');
-    uploads  = { before: [], after: [] };
-    expenses = [];
-    $('activeDot').classList.add('hidden');
 
-    setTimeout(goToPipeline, 1400);
+    clearJobState();
+    setTimeout(() => { switchTab('pipeline'); renderPipeline(); }, 1200);
   } catch (err) {
     restore();
     showToast('error', 'Could not hold job', err.message);
@@ -2449,20 +1609,19 @@ function initSigCanvas() {
   const canvas = $('sigCanvas');
   const ratio = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  canvas.width  = rect.width  * ratio;
+  canvas.width  = rect.width * ratio;
   canvas.height = rect.height * ratio;
   sigCtx = canvas.getContext('2d');
   sigCtx.scale(ratio, ratio);
   sigCtx.lineWidth = 2;
   sigCtx.lineCap = 'round';
   sigCtx.lineJoin = 'round';
-  sigCtx.strokeStyle = '#1a2236';
+  sigCtx.strokeStyle = '#1a1614';
   sigHasInk = false;
 }
 
 function sigPos(e) {
-  const canvas = $('sigCanvas');
-  const rect = canvas.getBoundingClientRect();
+  const rect = $('sigCanvas').getBoundingClientRect();
   const t = e.touches ? e.touches[0] : e;
   return { x: t.clientX - rect.left, y: t.clientY - rect.top };
 }
@@ -2476,8 +1635,8 @@ function sigEnd()    { sigDrawing = false; }
   canvas.addEventListener('mousedown', sigStart);
   canvas.addEventListener('mousemove', sigMove);
   window.addEventListener('mouseup', sigEnd);
-  canvas.addEventListener('touchstart', sigStart, { passive:false });
-  canvas.addEventListener('touchmove', sigMove, { passive:false });
+  canvas.addEventListener('touchstart', sigStart, { passive: false });
+  canvas.addEventListener('touchmove', sigMove, { passive: false });
   canvas.addEventListener('touchend', sigEnd);
 })();
 
@@ -2497,10 +1656,11 @@ $('policyCheck').addEventListener('change', (e) => {
 $('clientNameInput').addEventListener('input', refreshSignSubmit);
 
 function refreshSignSubmit() {
-  const ok = $('policyCheck').checked
-    && $('clientNameInput').value.trim().length > 1
-    && sigHasInk;
-  $('signSubmitBtn').disabled = !ok;
+  $('signSubmitBtn').disabled = !(
+    $('policyCheck').checked &&
+    $('clientNameInput').value.trim().length > 1 &&
+    sigHasInk
+  );
 }
 
 $('signSubmitBtn').addEventListener('click', async () => {
@@ -2517,8 +1677,7 @@ $('signSubmitBtn').addEventListener('click', async () => {
   btn.innerHTML = '<span class="spin"></span> Generating\u2026';
 
   try {
-    let pdfBlob = buildAcceptancePdf(clientName, fix);
-    pdfBlob = new Blob([pdfBlob], { type: 'application/pdf' });
+    const pdfBlob = new Blob([buildAcceptancePdf(clientName, fix)], { type: 'application/pdf' });
 
     const form = new FormData();
     form.append('sr_id', activeSrId);
@@ -2526,14 +1685,13 @@ $('signSubmitBtn').addEventListener('click', async () => {
     form.append('signature', pdfBlob, `acceptance-${activeRef}.pdf`);
     withGeo(form, fix);
 
-    const res = await apiPost(ROUTES.signature, form, true);
+    await apiPost(ROUTES.signature, form, true);
 
     signatureUploaded = true;
     restore();
     closeDrawer('sign');
-    showToast('success', 'Acceptance Recorded', 'Signature saved. You can finish the job.');
+    showToast('success', 'Acceptance recorded', 'Signature saved. You can finish the job.');
 
-    // Now open the finish drawer.
     $('finSrRef').textContent = activeRef ?? '\u2014';
     openDrawer('fin');
   } catch (err) {
@@ -2543,7 +1701,6 @@ $('signSubmitBtn').addEventListener('click', async () => {
 });
 
 /** Compose the terms + signature into a one-page PDF. Returns a Blob. */
-
 function buildAcceptancePdf(clientName, fix) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -2551,38 +1708,36 @@ function buildAcceptancePdf(clientName, fix) {
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 18;
 
-  // Match the source PNG aspect ratios so nothing stretches.
-  const HEADER_H = pageW * (280 / 1108);   // ~47.3mm  (tall contact block on top)
-  const FOOTER_H = pageW * (150 / 1600);   // ~17.5mm  (thin strip on bottom)
+  // Match the source image aspect ratios so nothing stretches.
+  const HEADER_H = pageW * (280 / 1108);
+  const FOOTER_H = pageW * (150 / 1600);
 
-function paintChrome() {
-  try {
-    if (LETTERHEAD && LETTERHEAD.watermark) {
-      const wmW = 110, wmH = 110;
-      if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.08 }));
-      doc.addImage(LETTERHEAD.watermark, 'PNG',
-        (pageW - wmW) / 2,                    // still horizontally centred
-        pageH - FOOTER_H - wmH - 6,           // sits 6mm above the footer strip
-        wmW, wmH);
-      if (doc.setGState) doc.setGState(new doc.GState({ opacity: 1 }));
-    }
-  } catch (e) { console.warn('watermark skipped:', e); }
+  function paintChrome() {
+    try {
+      if (LETTERHEAD && LETTERHEAD.watermark) {
+        const wmW = 110, wmH = 110;
+        if (doc.setGState) doc.setGState(new doc.GState({ opacity: 0.08 }));
+        doc.addImage(LETTERHEAD.watermark, 'PNG',
+          (pageW - wmW) / 2, pageH - FOOTER_H - wmH - 6, wmW, wmH);
+        if (doc.setGState) doc.setGState(new doc.GState({ opacity: 1 }));
+      }
+    } catch (e) { console.warn('watermark skipped:', e); }
 
-  try {
-    if (LETTERHEAD && LETTERHEAD.header) {
-      doc.addImage(LETTERHEAD.header, 'PNG', 0, 0, pageW, HEADER_H);
-    }
-  } catch (e) { console.warn('header skipped:', e); }
+    try {
+      if (LETTERHEAD && LETTERHEAD.header) {
+        doc.addImage(LETTERHEAD.header, 'PNG', 0, 0, pageW, HEADER_H);
+      }
+    } catch (e) { console.warn('header skipped:', e); }
 
-  try {
-    if (LETTERHEAD && LETTERHEAD.footer) {
-      doc.addImage(LETTERHEAD.footer, 'PNG', 0, pageH - FOOTER_H, pageW, FOOTER_H);
-    }
-  } catch (e) { console.warn('footer skipped:', e); }
-}
+    try {
+      if (LETTERHEAD && LETTERHEAD.footer) {
+        doc.addImage(LETTERHEAD.footer, 'PNG', 0, pageH - FOOTER_H, pageW, FOOTER_H);
+      }
+    } catch (e) { console.warn('footer skipped:', e); }
+  }
 
   paintChrome();
-  let y = HEADER_H + 10;   // start content below the header
+  let y = HEADER_H + 10;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(15);
@@ -2598,7 +1753,7 @@ function paintChrome() {
 
   doc.setTextColor(30);
   doc.setFontSize(10);
-  // Pull the terms text straight from the DOM so the PDF matches what was shown.
+  // Pull the terms straight from the DOM so the PDF matches what was shown.
   const termsText = $('termsScroll').innerText.replace(/\n{2,}/g, '\n\n').trim();
   const lines = doc.splitTextToSize(termsText, pageW - margin * 2);
   doc.text(lines, margin, y);
@@ -2616,7 +1771,6 @@ function paintChrome() {
   doc.text(clientName, margin, y);
   y += 6;
 
-  // Signature image from the canvas.
   const sigData = $('sigCanvas').toDataURL('image/png');
   doc.setFontSize(9);
   doc.setTextColor(90);
@@ -2633,64 +1787,13 @@ function paintChrome() {
     doc.setFontSize(8);
     doc.setTextColor(120);
     doc.text(`Signed at: ${fix.lat.toFixed(6)}, ${fix.lng.toFixed(6)}`
-      + (fix.accuracy != null ? ` (±${Math.round(fix.accuracy)}m)` : ''), margin, y);
+      + (fix.accuracy != null ? ` (\u00b1${Math.round(fix.accuracy)}m)` : ''), margin, y);
     y += 4;
-    if (fix.address) {
-      doc.text(doc.splitTextToSize(fix.address, pageW - margin * 2), margin, y);
-    }
+    if (fix.address) doc.text(doc.splitTextToSize(fix.address, pageW - margin * 2), margin, y);
   }
 
   return doc.output('blob');
 }
-
-
-/* ══════════════════════════════════════════════════════
-   LIGHTBOX
-══════════════════════════════════════════════════════ */
-function openLightbox(type, url, name) {
-  const overlay = document.getElementById('lbOverlay');
-  const content = document.getElementById('lbContent');
-  if (!overlay || !content) { console.warn('lightbox markup missing'); return; }
-
-  const openBtn = `<a href="${esc(url)}" target="_blank" rel="noopener" class="lb-open">
-                     <i class="bi bi-box-arrow-up-right"></i> Open in new tab
-                   </a>`;
-
-  content.innerHTML = type === 'pdf'
-    ? `<div class="lb-media lb-pdf">
-         <iframe src="${esc(url)}#view=FitH" title="${esc(name || '')}"></iframe>
-         <div class="lb-cap"><span>${esc(name || '')}</span>${openBtn}</div>
-       </div>`
-    : `<div class="lb-media">
-         <img src="${esc(url)}" alt="${esc(name || '')}">
-         <div class="lb-cap"><span>${esc(name || '')}</span>${openBtn}</div>
-       </div>`;
-
-  overlay.classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeLightbox() {
-  const overlay = document.getElementById('lbOverlay');
-  const content = document.getElementById('lbContent');
-  if (overlay) overlay.classList.remove('show');
-  if (content) content.innerHTML = '';
-  document.body.style.overflow = '';
-}
-
-window.openLightbox  = openLightbox;    // makes inline onclick work regardless of scope
-window.closeLightbox = closeLightbox;
-
-
-/* Escape closes whatever is on top. */
-document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
-  if ($('lbOverlay').classList.contains('show'))    { closeLightbox(); return; }
-  if ($('logoutDrawer').classList.contains('open')) { closeDrawer('out'); return; }
-  if ($('finishDrawer').classList.contains('open')) { closeDrawer('fin'); return; }
-  if ($('expenseDrawer').classList.contains('open')){ closeDrawer('exp'); return; }
-  if ($('rsDrawer').classList.contains('open'))     { closeDrawer('rs'); }
-});
 
 /* ══════════════════════════════════════════════════════
    HISTORY
@@ -2712,8 +1815,8 @@ async function loadHistory(force = false) {
     const list = $('histList');
     if (!res.items.length) {
       list.innerHTML =
-        '<div class="empty-state"><i class="bi bi-inbox"></i>' +
-        '<h6>Nothing yet</h6><p>Finished jobs will appear here.</p></div>';
+        '<div class="card"><div class="empty-state"><i class="bi bi-inbox"></i>' +
+        '<h6>Nothing yet</h6><p>Finished jobs will appear here.</p></div></div>';
       return;
     }
 
@@ -2722,7 +1825,7 @@ async function loadHistory(force = false) {
         <div class="hist-top">
           <span class="hist-ref">${esc(h.ref)}</span>
           <div style="display:flex;gap:6px;align-items:center;">
-            <span class="jc-badge badge-${esc(h.status)}">${esc(h.status)}</span>
+            <span class="pill pill-${esc(h.status)}">${esc(h.status)}</span>
             <span class="hist-date">${esc(h.date)}</span>
           </div>
         </div>
@@ -2737,8 +1840,8 @@ async function loadHistory(force = false) {
       </article>`).join('');
   } catch (err) {
     $('histList').innerHTML =
-      '<div class="empty-state"><i class="bi bi-wifi-off"></i>' +
-      `<h6>Could not load</h6><p>${esc(err.message)}</p></div>`;
+      '<div class="card"><div class="empty-state"><i class="bi bi-wifi-off"></i>' +
+      `<h6>Could not load</h6><p>${esc(err.message)}</p></div></div>`;
   }
 }
 
@@ -2756,20 +1859,18 @@ async function loadProfile(force = false) {
     $('profBody').innerHTML = `
       <div class="prof-hero">
         <div class="prof-avatar">${esc(u.initials)}</div>
-        <div class="prof-name">${esc(u.name)}</div>
-        <div class="prof-role">
-          ${esc(u.role)}${u.code ? ' \u00b7 ' + esc(u.code) : ''}
-        </div>
+        <div class="prof-name cg">${esc(u.name)}</div>
+        <div class="prof-role">${esc(u.role)}${u.code ? ' \u00b7 ' + esc(u.code) : ''}</div>
       </div>
 
-      <div class="stat-row">
-        <div class="stat-box"><div class="stat-val">${Number(s.open)}</div><div class="stat-lbl">Open</div></div>
-        <div class="stat-box"><div class="stat-val">${Number(s.completed)}</div><div class="stat-lbl">Done</div></div>
-        <div class="stat-box"><div class="stat-val">${Number(s.hours)}</div><div class="stat-lbl">Hours</div></div>
+      <div class="mini-row">
+        <div class="mini-box"><div class="mini-val">${Number(s.open)}</div><div class="mini-lbl">Open</div></div>
+        <div class="mini-box"><div class="mini-val">${Number(s.completed)}</div><div class="mini-lbl">Done</div></div>
+        <div class="mini-box"><div class="mini-val">${Number(s.hours)}</div><div class="mini-lbl">Hours</div></div>
       </div>
 
       <div class="compliance-card">
-        <div class="comp-title"><i class="bi bi-person-vcard"></i>Account Details</div>
+        <div class="comp-title"><i class="bi bi-person-vcard"></i>Account details</div>
         <div class="info-row">
           <div class="info-ico"><i class="bi bi-envelope-fill"></i></div>
           <div><div class="info-lbl">Email</div><div class="info-val">${esc(u.email)}</div></div>
@@ -2784,54 +1885,35 @@ async function loadProfile(force = false) {
         </div>
       </div>
 
-      <button class="btn-outline brand" id="profPwdBtn">
-        <i class="bi bi-key-fill"></i>Change Password
-      </button>
-
-      <button class="btn-outline brand" id="profThemeBtn">
-        <i class="bi bi-circle-half"></i>Toggle Theme
-      </button>
-
-      <button class="btn-outline" id="profLogoutBtn"
-              style="border-color:rgba(255,51,102,.5);color:#ff3366;background:rgba(255,51,102,.05);">
-        <i class="bi bi-box-arrow-right"></i>Sign Out
-      </button>`;
+      <button class="btn-outline brand" id="profPwdBtn"><i class="bi bi-key-fill"></i>Change password</button>
+      <button class="btn-outline danger" id="profLogoutBtn"><i class="bi bi-box-arrow-right"></i>Sign out</button>`;
 
     $('profPwdBtn').addEventListener('click', openPwdModal);
-
-    $('profThemeBtn').addEventListener('click', () => {
-      applyTheme(document.documentElement.getAttribute('data-bs-theme') !== 'dark');
-    });
-
     $('profLogoutBtn').addEventListener('click', () => $('logoutBtn').click());
-
   } catch (err) {
     profileLoaded = false;
     $('profBody').innerHTML =
-      '<div class="empty-state"><i class="bi bi-wifi-off"></i>' +
-      `<h6>Could not load</h6><p>${esc(err.message)}</p></div>`;
+      '<div class="card"><div class="empty-state"><i class="bi bi-wifi-off"></i>' +
+      `<h6>Could not load</h6><p>${esc(err.message)}</p></div></div>`;
   }
 }
 
+$('profRefresh').addEventListener('click', () => loadProfile(true));
 
-/* ---------- Change password modal ---------- */
-
+/* ---------- Change password ---------- */
 function openPwdModal() {
-  if (document.getElementById('pwdModal')) return;
+  if ($('pwdModal')) return;
 
   const m = document.createElement('div');
   m.className = 'modal-backdrop';
   m.id = 'pwdModal';
   m.innerHTML = `
     <div class="modal-card" role="dialog" aria-modal="true" aria-label="Change password">
-      <div class="comp-title"><i class="bi bi-key-fill"></i>Change Password</div>
-
+      <div class="comp-title"><i class="bi bi-key-fill"></i>Change password</div>
       <div id="pwdMsg" class="pwd-msg" style="display:none"></div>
-
       <input type="password" id="pwdCur"  class="inp" placeholder="Current password"     autocomplete="current-password">
       <input type="password" id="pwdNew"  class="inp" placeholder="New password"         autocomplete="new-password">
       <input type="password" id="pwdConf" class="inp" placeholder="Confirm new password" autocomplete="new-password">
-
       <div class="modal-actions">
         <button class="btn-outline" id="pwdCancel" type="button">Cancel</button>
         <button class="btn-outline brand" id="pwdSave" type="button">Update</button>
@@ -2851,7 +1933,7 @@ function openPwdModal() {
   }
 
   function onKey(e) {
-    if (e.key === 'Escape') close();
+    if (e.key === 'Escape') { e.stopPropagation(); close(); }
     if (e.key === 'Enter' && m.contains(document.activeElement)) submit();
   }
 
@@ -2877,132 +1959,30 @@ function openPwdModal() {
     if (nw === cur)           return show('New password must differ from the current one.');
 
     btn.disabled = true;
-    btn.textContent = 'Saving…';
+    btn.textContent = 'Saving\u2026';
 
     try {
       const r = await apiPost(ROUTES.changePassword, {
-        current_password: cur,
-        password: nw,
-        password_confirmation: conf,
+        current_password: cur, password: nw, password_confirmation: conf,
       });
-
       show(r.message || 'Password updated.', true);
       setTimeout(close, 1200);
-
     } catch (e) {
-      show(
-        (e.errors && (e.errors.current_password?.[0] || e.errors.password?.[0])) ||
-        e.message ||
-        'Could not update password.'
-      );
+      show(e.message || 'Could not update password.');
       btn.disabled = false;
       btn.textContent = 'Update';
     }
   }
 
   document.addEventListener('keydown', onKey);
-  m.addEventListener('click', e => { if (e.target === m) close(); });
+  m.addEventListener('click', (e) => { if (e.target === m) close(); });
   $('pwdCancel').addEventListener('click', close);
   $('pwdSave').addEventListener('click', submit);
 }
 
-
-
-$('profRefresh').addEventListener('click', () => loadProfile(true));
-
 /* ══════════════════════════════════════════════════════
-   INIT
+   ETA GATE
 ══════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    renderPipeline();          // always paint the list first
-    if (ACTIVE) restoreTerminal(ACTIVE);
-    else showPage('pipeline');
-  } catch (err) {
-    console.error('Init failed:', err);
-    showToast('error', 'Load error', err.message);
-  }
-});
-
-function activateJob(ref, srId) {
-  if (activeRef === ref) { showPage('terminal'); return; }
-
-  if (punchInTime) {
-    showToast('warning', 'Job in progress',
-      'Finish or hold the current job before switching.');
-    return;
-  }
-
-  activeRef   = ref;
-  activeSrId  = srId;
-  punchInTime = null;
-  uploads     = { before: [], after: [] };
-  expenses    = [];
-  clearInterval(timerInterval);
-
-  const job = JOBS.find((j) => j.id === ref);
-  const [etaDate, etaTime] = String(job.eta ?? '').split(' ');
-  buildBanner(job, etaDate || '\u2014', etaTime || '\u2014');
-
-  $('activeDot').classList.remove('hidden');
-  renderPipeline();
-  openTerminal();
-  renderExpenses();
-}
-
-/**
- * Rebuild the terminal from a server-supplied open punch. Runs instead of
- * the normal pipeline render so a reload mid-job doesn't lose the timer,
- * the uploads, or the logged expenses.
- */
-function restoreTerminal(state) {
-  const job = state.job;
-
-  activeRef  = job.id;
-  activeSrId = Number(job.sr_id);
-  uploads = {
-    before: Array.isArray(state.uploads?.before) ? state.uploads.before : [],
-    after:  Array.isArray(state.uploads?.after)  ? state.uploads.after  : [],
-  };
-  expenses   = state.expenses.map((e) => ({ ...e }));
-
-  buildBanner(job, state.etaDate ?? '\u2014', state.etaTime ?? '\u2014');
-  renderPipeline();
-  showPage('terminal');
-
-  $('activeDot').classList.remove('hidden');
-  $('workDesc').value = state.workDesc ?? '';
-  $('rsBtn').classList.remove('hidden'); 
-  // Punch already open: the timer is running, uploads are unlocked.
-  if (state.punchInAt) {
-    punchInTime = new Date(state.punchInAt);
-
-    clearInterval(timerInterval);
-    timerInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-
-    $('timerIcon').innerHTML = '<i class="bi bi-stopwatch-fill" style="color:#05a34a;"></i>';
-    $('timerIcon').style.background = 'rgba(5,163,74,.1)';
-    $('timerStatus').textContent = 'Live';
-    $('timerStatus').className   = 'tw-status status-live';
-    $('timerLabel').textContent  = 'Time on site';
-
-    $('punchInBtn').disabled  = true;
-    $('punchInBtn').innerHTML = '<i class="bi bi-check2"></i>Job Started';
-    if (state.punchInLocation) {
-      renderLocationBadge(state.punchInLocation);
-    }
-    document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
-    $('expenseBtn').disabled = false;
-  }
-
-  ['before', 'after'].forEach((type) => renderPhotoStrip(type));
-
-  renderExpenses();
-  refreshLock();
-  applyEtaGate();
-}
-
 function parseEta(dateStr, timeStr) {
   if (!dateStr || !timeStr || dateStr === '\u2014' || timeStr === '\u2014') return null;
   const d = new Date(`${dateStr}T${String(timeStr).slice(0, 5)}:00`);
@@ -3031,9 +2011,9 @@ function applyEtaGate() {
 
     $('etaNoticeText').innerHTML =
       `Scheduled for <strong>${esc(activeEtaAt.toLocaleString('en-GB', {
-        day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
       }))}</strong> — can start in ${esc(label)}. ` +
-      `Tap <strong>Reschedule / Hold Job</strong> if you need to start now.`;
+      `Tap <strong>Reschedule / hold job</strong> if you need to start now.`;
 
     notice.classList.remove('hidden');
     btn.disabled = true;
@@ -3042,6 +2022,132 @@ function applyEtaGate() {
   tick();
   etaGateTimer = setInterval(tick, 30000);
 }
+
+/* ══════════════════════════════════════════════════════
+   RESTORE AN OPEN PUNCH
+══════════════════════════════════════════════════════ */
+function restoreTerminal(state) {
+  const job = state.job;
+
+  activeRef  = job.id;
+  activeSrId = Number(job.sr_id);
+  uploads = {
+    before: Array.isArray(state.uploads?.before) ? state.uploads.before : [],
+    after:  Array.isArray(state.uploads?.after)  ? state.uploads.after  : [],
+  };
+  expenses = (state.expenses ?? []).map((e) => ({ ...e }));
+
+  buildBanner(job, state.etaDate ?? '\u2014', state.etaTime ?? '\u2014');
+  setTerminalVisible(true);
+  switchTab('terminal');
+
+  $('workDesc').value = state.workDesc ?? '';
+  $('rsBtn').classList.remove('hidden');
+
+  // Punch already open: the timer is running, uploads are unlocked.
+  if (state.punchInAt) {
+    punchInTime = new Date(state.punchInAt);
+
+    clearInterval(timerInterval);
+    timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+
+    $('timerIcon').innerHTML = '<i class="bi bi-stopwatch-fill" style="color:var(--green);"></i>';
+    $('timerStatus').textContent = 'Live';
+    $('timerStatus').className   = 'tw-status status-live';
+    $('timerLabel').textContent  = 'Time on site';
+
+    $('punchInBtn').disabled  = true;
+    $('punchInBtn').innerHTML = '<i class="bi bi-check2"></i>Job started';
+
+    if (state.punchInLocation) renderLocationBadge(state.punchInLocation);
+
+    document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
+    $('expenseBtn').disabled = false;
+  }
+
+  ['before', 'after'].forEach(renderPhotoStrip);
+  renderExpenses();
+  refreshLock();
+  applyEtaGate();
+}
+
+/* ══════════════════════════════════════════════════════
+   DEEP LINKS FROM THE DASHBOARD
+   ?filter=<status>  ?job=<ref>  #terminal|#history|#profile
+══════════════════════════════════════════════════════ */
+
+/** Select a status tab by name. Returns false if that tab doesn't exist. */
+function applyFilter(name) {
+  if (!name) return false;
+
+  const buttons = Array.from(document.querySelectorAll('.tf-btn'));
+  const target  = buttons.find((b) => b.dataset.filter.toLowerCase() === String(name).toLowerCase());
+  if (!target) return false;
+
+  currentFilter = target.dataset.filter;
+  buttons.forEach((b) => b.classList.remove('active'));
+  target.classList.add('active');
+  return true;
+}
+
+/** Open one SR's card: right filter, expanded, scrolled into view. */
+function focusJob(ref) {
+  if (!ref) return;
+
+  const job = JOBS.find((j) => j.id === ref);
+  if (!job) {
+    showToast('warning', 'Not in your pipeline', `${ref} is either closed or assigned to someone else.`);
+    return;
+  }
+
+  if (job.status !== currentFilter) applyFilter(job.status);
+  renderPipeline();
+  if (expandedRef !== ref) toggleExpand(ref);
+
+  const card = $(`jcard-${ref}`);
+  if (card) requestAnimationFrame(() => card.scrollIntoView({ block: 'center', behavior: 'smooth' }));
+}
+
+/* Lazy-load the two tabs that fetch. */
+onTabShow('history', () => loadHistory());
+onTabShow('profile', () => loadProfile());
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const params = new URLSearchParams(location.search);
+    const wanted = {
+      filter: params.get('filter'),
+      job:    params.get('job'),
+      page:   (location.hash || '').replace('#', '').toLowerCase(),
+    };
+
+    applyFilter(wanted.filter);
+    renderPipeline();
+
+    // Rehydrate an open punch first: it sets activeRef, uploads, expenses and
+    // the banner, and lands on the terminal.
+    if (ACTIVE) restoreTerminal(ACTIVE);
+    else setTerminalVisible(false);
+
+    // An explicit deep link wins over that default landing.
+    if (['history', 'profile'].includes(wanted.page)) {
+      switchTab(wanted.page);
+    } else if (wanted.page === 'terminal' && activeSrId) {
+      switchTab('terminal');
+    } else if (wanted.job) {
+      switchTab('pipeline');
+      focusJob(wanted.job);
+    } else if (!ACTIVE) {
+      switchTab('pipeline');
+    }
+  } catch (err) {
+    console.error('Init failed:', err);
+    showToast('error', 'Load error', err.message);
+  }
+});
 </script>
-</body>
-</html>
+@endpush

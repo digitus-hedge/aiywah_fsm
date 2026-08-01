@@ -417,53 +417,6 @@ class ClientController extends Controller
         ]);
     }
 
-    private function sendRegistrationMessage(Client $client): void
-    {
-        try {
-            $phone = $this->formatWhatsAppNumber(
-                $client->primary_country,
-                $client->primary_mobile
-            );
-
-            if (!$phone) {
-                return;
-            }
-
-            $result = app(\App\Services\WhatsAppService::class)->sendRegistration(
-                $phone,
-                $client->contact_name,   // {{1}} name
-                $client->unique_code,    // token (unused by template, kept for the log)
-                'en_US',
-                null,                    // no ServiceRequest tied to registration
-                $client                  // pass the model → enables notify=1 fan-out
-            );
-
-            \Log::info('WhatsApp registration sent', [
-                'client_id' => $client->id,
-                'phone'     => $phone,
-                'result'    => $result,
-            ]);
-        } catch (\Throwable $e) {
-            \Log::error('WhatsApp registration message failed', [
-                'client_id' => $client->id,
-                'error'     => $e->getMessage(),
-            ]);
-        }
-    }
-
-    private function formatWhatsAppNumber(?string $country, ?string $mobile): ?string
-    {
-        if (!$mobile) {
-            return null;
-        }
-
-        // Strip everything except digits from both parts and join
-        $country = preg_replace('/\D/', '', (string) $country); // "+91" -> "91"
-        $mobile  = preg_replace('/\D/', '', $mobile);           // "80 8677 2507" -> "8086772507"
-
-        return $country . $mobile; // "918086772507"
-    }
-
     public function store(Request $request)
     {
         $validated = $this->validateData($request);
@@ -472,6 +425,7 @@ class ClientController extends Controller
 
             $client = Client::create([
                 'company_name'    => $validated['company_name'],
+                'status'          => 'Active',
                 'unique_code'     => $validated['unique_code'],
                 'contact_name'    => $validated['contact_name'],
                 'designation'     => $validated['designation'] ?? null,
@@ -484,47 +438,74 @@ class ClientController extends Controller
             return $client;
         });
 
-        // Send WhatsApp registration confirmation (outside transaction)
-        $this->sendRegistrationMessage($client);
+        // Send WhatsApp welcome (outside transaction)
+        $firstProject = $client->projects()->oldest('id')->first();
+
+        try {
+            if ($firstProject) {
+                app(\App\Services\WhatsAppService::class)
+                    ->notifyClientWelcome($client, $firstProject);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Welcome WhatsApp failed', [
+                'client_id' => $client->id,
+                'error'     => $e->getMessage(),
+            ]);
+        }
         return redirect()
             ->route('clients.create')
             ->with('success', true)
             ->with('saved_token', $client->unique_code);
     }
 
-    public function update(Request $request, Client $client)
-    {
-        // Firm name + token are locked — ignore any posted changes, keep stored values
-        $validated = $this->validateData($request, $client->id, locked: true);
+   public function update(Request $request, Client $client)
+{
+    // Firm name + token are locked — ignore any posted changes, keep stored values
+    $validated = $this->validateData($request, $client->id, locked: true);
 
-        DB::transaction(function () use ($request, $validated, $client) {
+    $newProjectIds = [];
 
-            $client->update([
-                'company_name'    => $validated['company_name'],
-                'contact_name'    => $validated['contact_name'],
-                'designation'     => $validated['designation'] ?? null,
-                'primary_country' => $validated['primary_country'] ?? null,
-                'primary_mobile'  => $validated['primary_mobile'],
-            ]);
+    DB::transaction(function () use ($request, $validated, $client, &$newProjectIds) {
 
-            // Rebuild stakeholder mobiles + projects from the submitted form
-            // (primary mobile now lives on the clients table itself)
-            // $client->mobiles()->delete();
-            // $client->projects()->delete();
+        $client->update([
+            'company_name'    => $validated['company_name'],
+            'contact_name'    => $validated['contact_name'],
+            'designation'     => $validated['designation'] ?? null,
+            'primary_country' => $validated['primary_country'] ?? null,
+            'primary_mobile'  => $validated['primary_mobile'],
+        ]);
 
+        // Rebuild stakeholder mobiles + projects from the submitted form
+        // (primary mobile now lives on the clients table itself)
+        $client->mobiles()->forceDelete();
 
-            $client->mobiles()->forceDelete();
-            // $client->projects()->forceDelete();
+        $this->syncMobiles($client, $request, $validated);
+        $newProjectIds = $this->syncProjects($client, $validated);
+    });
 
-            $this->syncMobiles($client, $request, $validated);
-            $this->syncProjects($client, $validated);
-        });
+    // Notify only about projects created in this save (outside transaction)
+    if ($newProjectIds) {
+        $wa    = app(\App\Services\WhatsAppService::class);
+        $fresh = $client->fresh();
 
-        return redirect()
-            ->route('clients.edit', $client)
-            ->with('success', true)
-            ->with('saved_token', $client->unique_code);
+        foreach (Project::whereIn('id', $newProjectIds)->get() as $project) {
+            try {
+                $wa->notifyProjectAdded($fresh, $project);
+            } catch (\Throwable $e) {
+                \Log::error('Project-added WhatsApp failed', [
+                    'client_id'  => $client->id,
+                    'project_id' => $project->id,
+                    'error'      => $e->getMessage(),
+                ]);
+            }
+        }
     }
+
+    return redirect()
+        ->route('clients.edit', $client)
+        ->with('success', true)
+        ->with('saved_token', $client->unique_code);
+}
 
     /* ── Helpers ── */
 
@@ -616,9 +597,10 @@ class ClientController extends Controller
         }
     }
 
-    private function syncProjects(Client $client, array $validated): void
+    private function syncProjects(Client $client, array $validated): array
 {
-    $incomingIds = [];
+     $incomingIds = [];
+    $createdIds  = [];
 
     foreach ($validated['projects'] as $project) {
 
@@ -646,22 +628,23 @@ class ClientController extends Controller
         ];
         // note: project_code deliberately NOT in $data
 
-        if (!empty($project['id'])) {
+       if (!empty($project['id'])) {
             $model = $client->projects()->find($project['id']);
             if ($model) {
-                $model->update($data);          // existing row keeps its code
+                $model->update($data);
                 $incomingIds[] = $model->id;
                 continue;
             }
         }
 
-        $data['project_code'] = $this->generateProjectCode();   // only on create
-        $incomingIds[] = $client->projects()->create($data)->id;
+         $data['project_code'] = $this->generateProjectCode();
+        $new = $client->projects()->create($data);
+        $incomingIds[] = $new->id;
+        $createdIds[]  = $new->id; 
     }
 
-    $client->projects()
-        ->whereNotIn('id', $incomingIds)
-        ->forceDelete();
+    $client->projects()->whereNotIn('id', $incomingIds)->forceDelete();
+    return $createdIds;
 }
 
     public function showFeedback($id)
