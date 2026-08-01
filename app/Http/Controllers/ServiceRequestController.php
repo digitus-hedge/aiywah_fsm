@@ -981,11 +981,6 @@ class ServiceRequestController extends Controller
             'to_status'   => 'Quoted',
             'caused_by'   => auth()->id(),
         ]);
-
-        app(\App\Services\WhatsAppService::class)->sendQuotation(
-            $serviceRequest,
-            asset('storage/' . $serviceRequest->quote_path)
-        );
         return response()->json(['ok' => true, 'message' => 'Quote committed.']);
     }
 

@@ -22,6 +22,7 @@ use App\Http\Controllers\Auth\WorkerLoginController;
 use App\Http\Controllers\Auth\WorkerPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MlDashboardController;
+use App\Http\Controllers\FrontDashboardController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -75,6 +76,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/panel', [DashboardController::class, 'panel'])->name('dashboard.panel');
     
+      /* ---- Front Desk Executive Dashboard ---- */
+    Route::get('/front-desk/dashboard', [FrontDashboardController::class, 'index'])
+        ->middleware('role:FD')
+        ->name('frontdashboard');
+
     Route::get('/analytics', function () {
         return view('analytics_dashboard');
     })->name('analytics');
