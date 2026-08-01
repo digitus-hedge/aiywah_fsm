@@ -28,6 +28,7 @@ class DashboardController extends Controller
      * Tune these to your actual commitments; the numbers below are
      * placeholders that produce sensible output, nothing more.
      */
+        private const SLA_TARGET_HOURS = 48;
     private const STAGE_SLA_HOURS = [
         'approval' => 24,   // created_at      → hop_approved_at
         'dispatch' => 12,   // hop_approved_at → dispatched_at
@@ -93,6 +94,21 @@ class DashboardController extends Controller
         'Invoice Submitted' => '#d97706',
         'Completed'         => '#15803d',
         'On Hold'           => '#64748b',
+    ];
+
+
+     private const STATUS_GROUPS = [
+        'Intake'         => ['Pending', 'Approved', 'Forwarded', 'Additional', 'Quoted', 'Accepted'],
+        'Field / Active' => ['Assigned', 'In Progress', 'Qc Review', 'Rework', 'Reschedule'],
+        'Completed'      => ['Pending Invoice', 'Invoice Submitted', 'Completed'],
+        'Issues'         => ['Rejected', 'Quote Rejected', 'On Hold'],
+    ];
+
+    private const STATUS_LEGEND = [
+        'Intake'         => '#2563eb',
+        'Field / Active' => '#9a8053',
+        'Completed'      => '#15803d',
+        'Issues'         => '#dc2626',
     ];
 
     /** Cached once per request so the sparklines share a single query. */
@@ -805,7 +821,7 @@ class DashboardController extends Controller
     }
 
     /** Breached stages for one SR, as ['stage' => hours taken]. */
-    private function stageBreaches(ServiceRequest $sr): array
+ private function stageBreaches(ServiceRequest $sr): array
     {
         $breached = [];
 
@@ -819,8 +835,7 @@ class DashboardController extends Controller
 
         return $breached;
     }
-        $items = collect($punch->items)
-            ->sum(fn($item) => (float) ($item->line_total ?? ($item->qty * $item->rate)));
+      
 
     private function hasBreach(ServiceRequest $sr): bool
     {
@@ -1207,67 +1222,56 @@ class DashboardController extends Controller
      * First-pass rate is replaced by the pending queue.
      */
     private function qc(Collection $srs): array
-    {
-        $reviewed = $srs->filter(fn ($sr) => $sr->qc_reviewed_at);
+{
+    $reviewed  = $srs->filter(fn($sr) => $sr->qc_reviewed_at);
+    $firstPass = $reviewed->filter(fn($sr) => empty($sr->rework_notes));
 
-        // Waiting on QC: status says so, or a punch is sitting in the QC states.
-        $pending = $srs->filter(fn ($sr) => $sr->status === 'Qc Review'
-            || $sr->punches->contains(fn ($p) => in_array($p->status, self::QC_PUNCH_STATUSES, true)));
+    $rework     = $srs->filter(fn($sr) => !empty($sr->rework_notes))->count();
+    $reworkOpen = $srs->where('status', 'Rework')->count();
 
-        $reachedQc = $reviewed->count() + $pending->count();
-        $reviewed  = $srs->filter(fn($sr) => $sr->qc_reviewed_at);
-        $firstPass = $reviewed->filter(fn($sr) => empty($sr->rework_notes));
+    // SRs sitting in the QC queue
+    $pending = $srs->where('status', 'Qc Review');
 
-        $rework     = $srs->filter(fn($sr) => ! empty($sr->rework_notes))->count();
-        $reworkOpen = $srs->where('status', 'Rework')->count();
+    // SRs that have reached QC at all (queued or already reviewed)
+    $reachedQc = $pending->count() + $reviewed->count();
 
-        $breached = $srs->filter(fn ($sr) => $this->hasBreach($sr));
-        $critical = $breached->filter(fn ($sr) => $this->isCriticalBreach($sr))->count();
+    $oldest = $pending
+        ->sortBy(fn($sr) => $this->completedAt($sr) ?? $sr->updated_at)
+        ->first();
 
-        $oldest = $pending
-            ->sortBy(fn ($sr) => $this->completedAt($sr) ?? $sr->updated_at)
-            ->first();
+    $breached = $srs->filter(fn($sr) => $this->metSla($sr) === false);
 
-        return [
-            // Gauge
-            'qc_rate'     => $reachedQc > 0 ? round($reviewed->count() / $reachedQc * 100, 1) : null,
-            'qc_reviewed' => $reviewed->count(),
-            'qc_reached'  => $reachedQc,
+    return [
+        // Gauge
+        'qc_rate'     => $reachedQc > 0 ? round($reviewed->count() / $reachedQc * 100, 1) : null,
+        'qc_reviewed' => $reviewed->count(),
+        'qc_reached'  => $reachedQc,
 
-            // Mini metrics
-            'pending_qc'     => $pending->count(),
-            'pending_qc_sub' => $oldest
-                ? 'Oldest '.($this->completedAt($oldest) ?? $oldest->updated_at)?->diffForHumans()
-                : 'Queue clear',
+        // Used by the KPI card and the QC card header
+        'pending_review' => $pending->count(),
+        'pending_qc'     => $pending->count(),
+        'pending_qc_sub' => $oldest
+            ? 'Oldest ' . optional($this->completedAt($oldest) ?? $oldest->updated_at)->diffForHumans()
+            : 'Queue clear',
 
-            'rework_count' => $rework,
-            'rework_sub'   => $reworkOpen.' currently open',
+        'sla_compliance'  => $this->slaCompliance($srs),
 
-            'sla_breaches'   => $breached->count(),
-            'sla_breach_sub' => $critical > 0
-                ? $critical.' critical'
-                : ($breached->isEmpty() ? 'All within target' : 'None critical'),
+        'first_pass_rate' => $reviewed->isEmpty()
+            ? null
+            : round($firstPass->count() / $reviewed->count() * 100),
+        'first_pass_sub'  => $firstPass->count() . ' of ' . $reviewed->count() . ' reviewed',
 
-            // Per-stage detail, for a breakdown or tooltip
-            'stage_breaches' => $this->breachesByStage($srs),
+        'rework_count' => $rework,
+        'rework_sub'   => $reworkOpen . ' currently open',
 
-        $breaches = $srs->filter(fn($sr) => $this->metSla($sr) === false);
+        'sla_breaches'   => $breached->count(),
+        'sla_breach_sub' => $breached->isEmpty()
+            ? 'All within target'
+            : $breached->pluck('priority_level')->filter()->unique()->take(2)->implode(', ') . ' priority',
 
-        return [
-
-            'pending_review'  => $srs->where('status', 'Qc Review')->count(),   // ← here
-            'sla_compliance'  => $this->slaCompliance($srs),
-            'first_pass_rate' => $reviewed->isEmpty() ? null : round($firstPass->count() / $reviewed->count() * 100),
-            'first_pass_sub'  => $firstPass->count() . ' of ' . $reviewed->count() . ' reviewed',
-            'rework_count'    => $rework,
-            'rework_sub'      => $reworkOpen . ' currently open',
-            'sla_breaches'    => $breaches->count(),
-            'sla_breach_sub'  => $breaches->isEmpty()
-                ? 'All within target'
-                : $breaches->pluck('priority_level')->filter()->unique()->take(2)->implode(', ') . ' priority',
-        ];
-    }
-
+        'stage_breaches' => $this->breachesByStage($srs),
+    ];
+}
     /**
      * Technician scorecard.
      *
@@ -1535,101 +1539,121 @@ class DashboardController extends Controller
      | Slide-in detail panel
      ===================================================================== */
 
-    public function panel(Request $request): JsonResponse
-    {
-        [$start, $end] = $this->resolveRange($request->input('range', 'month'));
+ public function panel(Request $request): JsonResponse
+{
+    $filters = [
+        'range'   => $request->input('range', 'today'),
+        'from'    => $request->input('from'),
+        'to'      => $request->input('to'),
+        'status'  => $request->input('status'),
+        'client'  => $request->input('client'),
+        'service' => $request->input('service'),
+    ];
 
-        $filters = [
-            'status'  => $request->input('status'),
-            'client'  => $request->input('client'),
-            'service' => $request->input('service'),
-        ];
+    [$start, $end] = $this->resolveRange($filters);
 
-        $type = $request->input('type');
-        $id   = $request->input('id');
+    $type = $request->input('type');
+    $id   = $request->input('id');
 
-        [$title, $icon, $section] = match ($type) {
-            'active-srs'      => ['Active open SRs', 'bi-activity', 'Still in the workflow'],
-            'sla-breach'      => ['SLA breaches', 'bi-exclamation-triangle', 'Over ' . self::SLA_TARGET_HOURS . ' hours'],
-            'pending-actions' => ['Pending actions', 'bi-hourglass-split', 'Waiting on a decision'],
-            'slow-srs'        => ['Stalled requests', 'bi-clock-history', 'No movement in 24h'],
-            'pending-qc'      => ['Pending QC', 'bi-patch-check', 'Waiting on review'],
-            'invoices'        => ['Invoiced requests', 'bi-receipt', 'Billed this period'],
-            'month-srs'       => ['All SRs this period', 'bi-ticket-detailed', 'Every request logged'],
-            'technician'      => ['Technician detail', 'bi-person-badge', 'Recent assignments'],
-            'client'          => ['Client detail', 'bi-buildings', 'Service request history'],
-            'wa-failures'     => ['WhatsApp failures', 'bi-whatsapp', 'Undelivered messages'],
-            default           => ['Details', 'bi-list', null],
-        };
+    [$title, $icon, $section] = match ($type) {
+        'active-srs'      => ['Active open SRs', 'bi-activity', 'Still in the workflow'],
+        'sla-breach'      => ['SLA breaches', 'bi-exclamation-triangle', 'Over ' . self::SLA_TARGET_HOURS . ' hours'],
+        'pending-actions' => ['Pending actions', 'bi-hourglass-split', 'Waiting on a decision'],
+        'slow-srs'        => ['Stalled requests', 'bi-clock-history', 'No movement in 24h'],
+        'pending-qc'      => ['Pending QC', 'bi-patch-check', 'Waiting on review'],
+        'invoices'        => ['Invoiced requests', 'bi-receipt', 'Billed this period'],
+        'month-srs'       => ['All SRs this period', 'bi-ticket-detailed', 'Every request logged'],
+        'technician'      => ['Technician detail', 'bi-person-badge', 'Recent assignments'],
+        'client'          => ['Client detail', 'bi-buildings', 'Service request history'],
+        'wa-failures'     => ['WhatsApp failures', 'bi-whatsapp', 'Undelivered messages'],
+        default           => ['Details', 'bi-list', null],
+    };
 
-        $all = $this->load($filters, $start, $end);
+    $all = $this->load($filters, $start, $end);
 
-        $srs = match ($type) {
-            'active-srs'      => $all->filter(fn($sr) => $this->isOpen($sr)),
-            'sla-breach'      => $all->filter(fn($sr) => $this->metSla($sr) === false),
-            'pending-actions' => $all->whereIn('status', self::AWAITING_ACTION),
-            'slow-srs'        => $all->filter(fn($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay())),
-            'invoices'        => $all->filter(fn($sr) => $sr->invoice_submitted_at),
-            'technician'      => $all->where('assigned_user_id', $id),
-            'client'          => $all->where('client_id', $id),
-            default           => $all,
-        };
+    $srs = match ($type) {
+        'active-srs'      => $all->filter(fn($sr) => $this->isOpen($sr)),
+        'sla-breach'      => $all->filter(fn($sr) => $this->metSla($sr) === false),
+        'pending-actions' => $all->whereIn('status', self::AWAITING_ACTION),
+        'slow-srs'        => $all->filter(fn($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay())),
+        'invoices'        => $all->filter(fn($sr) => $sr->invoice_submitted_at),
+        'technician'      => $all->where('assigned_user_id', $id),
+        'client'          => $all->filter(fn($sr) => optional($sr->project)->client_id == $id),
+        default           => $all,
+    };
 
-        if ($type === 'technician' && $id) {
-            $title = $srs->first()?->assignedUser?->name ?? $title;
-        }
+    if ($type === 'technician' && $id) {
+        $title = $srs->first()?->assignedUser?->name ?? $title;
+    }
 
-        if ($type === 'client' && $id) {
-            $title = $srs->first()?->client?->company_name ?? $title;
-        }
+    if ($type === 'client' && $id) {
+        $title = $srs->first()?->project?->client?->company_name ?? $title;
+    }
 
-        // On the breach panel, sort worst first and show which stage failed.
-        if ($type === 'sla-breach') {
-            $srs = $srs->sortByDesc(fn ($sr) => $this->isCriticalBreach($sr) ? 1 : 0);
-        }
+    // On the breach panel, sort worst first.
+    if ($type === 'sla-breach') {
+        $srs = $srs->sortByDesc(fn($sr) => $this->isCriticalBreach($sr) ? 1 : 0);
+    }
 
-        $items = $srs
-            ->sortByDesc('created_at')
-            ->take(25)
-            ->map(fn($sr) => [
-                'reference' => $sr->code,
-                'badge'     => $sr->status,
-                'color'     => self::STATUS_COLORS[$sr->status] ?? '#9a8053',
-                'title'     => $sr->client?->company_name ?? '—',
-                'meta'      => collect([
+    $items = $srs
+        ->sortByDesc('created_at')
+        ->take(25)
+        ->map(function ($sr) use ($type) {
+            $isCritical = $type === 'sla-breach' && $this->isCriticalBreach($sr);
+
+            if ($type === 'sla-breach') {
+                $stages = $this->stageBreaches($sr);
+                $meta = collect($stages)
+                    ->map(fn($hours, $stage) => (self::STAGE_LABELS[$stage] ?? $stage) . ' — ' . $hours . 'h')
+                    ->values()
+                    ->push($sr->assignedUser?->name);
+            } else {
+                $meta = collect([
                     $sr->category?->category_name,
                     $this->isInWarranty($sr) ? 'In warranty' : 'Out of warranty',
                     $sr->project?->site_name,
                     $sr->assignedUser?->name,
                 ]);
+            }
 
-                if ($type === 'sla-breach') {
-                    $meta = collect(array_map(
-                        fn ($stage, $hours) => self::STAGE_LABELS[$stage].' — '.$hours.'h',
-                        array_keys($this->stageBreaches($sr)),
-                        $this->stageBreaches($sr)
-                    ))->merge([$sr->assignedUser?->name]);
-                }
+            return [
+                'reference' => $sr->code,
+                'badge'     => $isCritical ? 'Critical' : $sr->status,
+                'color'     => $isCritical ? '#dc2626' : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
+                'title'     => $sr->project?->client?->company_name ?? '—',
+                'meta'      => $meta->filter()->implode(' · '),
+            ];
+        })
+        ->values();
 
-                return [
-                    'reference' => $sr->code,
-                    'badge'     => $type === 'sla-breach' && $this->isCriticalBreach($sr) ? 'Critical' : $sr->status,
-                    'color'     => $type === 'sla-breach' && $this->isCriticalBreach($sr)
-                        ? '#dc2626'
-                        : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
-                    'title'     => $sr->client?->company_name ?? '—',
-                    'meta'      => $meta->filter()->implode(' · '),
-                ];
+    return response()->json([
+        'title'    => $title,
+        'subtitle' => $items->count() . ' ' . Str::plural('record', $items->count()),
+        'icon'     => $icon,
+        'section'  => $section,
+        'items'    => $items->all(),
+    ]);
+}
+
+  private function activeSrs(array $filters, $start, $end)
+    {
+        // "Active" means "not rejected" — it ignores the status dropdown
+        $f = $filters;
+        unset($f['status']);
+
+        return $this->scoped($f, $start, $end)
+            ->where(function ($q) {
+                $q->whereNull('service_requests.status')
+                    ->orWhere('service_requests.status', '!=', 'Rejected');
             })
-            ->values();
+            ->get();
+    }
 
-        return response()->json([
-            'title'    => $title,
-            'subtitle' => $items->count() . ' ' . Str::plural('record', $items->count()),
-            'icon'     => $icon,
-            'section'  => $section,
-            'items'    => $items->all(),
-        ]);
+      private function metSla(ServiceRequest $sr): ?bool
+    {
+        $hours = $this->turnaroundHours($sr);
+
+        return is_null($hours) ? null : $hours <= self::SLA_TARGET_HOURS;
     }
 
     /* =====================================================================
