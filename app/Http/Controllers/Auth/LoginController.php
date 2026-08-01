@@ -50,7 +50,7 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('sr_explorer'))
+        return redirect()->intended(route('dashboard'))
             ->with('success', 'Welcome back, ' . $user->name . '!');
     }
 

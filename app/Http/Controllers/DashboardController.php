@@ -227,7 +227,10 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
-        $filters = [
+        if (strtoupper((string) optional($request->user()->role)->code) === 'FD') {
+            return redirect()->route('frontdashboard');
+        }
+    $filters = [
     'range'   => $request->input('range', 'today'),   // ← changed
     'from'    => $request->input('from'),
     'to'      => $request->input('to'),

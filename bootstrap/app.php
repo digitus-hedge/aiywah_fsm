@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'worker'       => \App\Http\Middleware\EnsureWorker::class,
             'worker.reset' => \App\Http\Middleware\EnsurePasswordIsReset::class,
+            'role'         => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
