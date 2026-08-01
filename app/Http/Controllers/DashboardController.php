@@ -110,89 +110,87 @@ class DashboardController extends Controller
     ];
 
 
-
-
-    private function activeSrs()
+    private function activeSrs(array $filters, $start, $end)
     {
-        return ServiceRequest::query()
-            ->select(
-                'service_requests.*',
-                'sc.category_name',
-                'u.name as assigned_name',
+        // "Active" means "not rejected" — it ignores the status dropdown
+        $f = $filters;
+        unset($f['status']);
 
-            )
-            ->leftJoin('service_categories as sc', 'sc.id', '=', 'service_requests.service_type_id')
-            ->leftJoin('users as u',              'u.id',  '=', 'service_requests.assigned_user_id')
-            ->leftJoin('projects as p',           'p.id',  '=', 'service_requests.project_id')
-            ->with('client:id,company_name')
+        return $this->scoped($f, $start, $end)
             ->where(function ($q) {
                 $q->whereNull('service_requests.status')
                     ->orWhere('service_requests.status', '!=', 'Rejected');
             })
-
-            ->orderByDesc('service_requests.id')
             ->get();
     }
 
-
-    private function qcSrs()
+    /**
+     * Base filtered query. Every card-level SR list starts here.
+     */
+    private function scoped(array $filters, $start, $end)
     {
-        return ServiceRequest::query()
+        $q = ServiceRequest::query()
             ->select(
                 'service_requests.*',
                 'sc.category_name',
-                'u.name as assigned_name',
-
+                'u.name as assigned_name'
             )
             ->leftJoin('service_categories as sc', 'sc.id', '=', 'service_requests.service_type_id')
-            ->leftJoin('users as u',              'u.id',  '=', 'service_requests.assigned_user_id')
-            ->leftJoin('projects as p',           'p.id',  '=', 'service_requests.project_id')
+            ->leftJoin('users as u',               'u.id',  '=', 'service_requests.assigned_user_id')
+            ->leftJoin('projects as p',            'p.id',  '=', 'service_requests.project_id')
             ->with('client:id,company_name')
-            ->where('service_requests.status', 'QC Review')
-            // ->whereNull('service_requests.deleted_at')
-            ->orderByDesc('service_requests.id')
+            ->whereBetween('service_requests.created_at', [$start, $end]);
+
+        if (!empty($filters['status'])) {
+            $q->where('service_requests.status', $filters['status']);
+        }
+        if (!empty($filters['client'])) {
+            $q->where('service_requests.client_id', $filters['client']);
+        }
+        if (!empty($filters['service'])) {
+            $q->where('service_requests.service_type_id', $filters['service']);
+        }
+
+        return $q->orderByDesc('service_requests.id');
+    }
+
+
+
+    /**
+     * Base filtered query used by every card-level SR list.
+     * Mirrors the joins in the existing helpers.
+     */
+
+
+
+    private function qcSrs(array $filters, $start, $end)
+    {
+        $f = $filters;
+        unset($f['status']);
+        return $this->scoped($f, $start, $end)
+            ->where('service_requests.status', 'Qc Review')
             ->get();
     }
 
-    private function approvedSrs()
+    private function approvedSrs(array $filters, $start, $end)
     {
-        return ServiceRequest::query()
-            ->select(
-                'service_requests.*',
-                'sc.category_name',
-                'u.name as assigned_name',
-
-            )
-            ->leftJoin('service_categories as sc', 'sc.id', '=', 'service_requests.service_type_id')
-            ->leftJoin('users as u',              'u.id',  '=', 'service_requests.assigned_user_id')
-            ->leftJoin('projects as p',           'p.id',  '=', 'service_requests.project_id')
-            ->with('client:id,company_name')
+        $f = $filters;
+        unset($f['status']);
+        return $this->scoped($f, $start, $end)
             ->where('service_requests.status', 'Approved')
-            // ->whereNull('service_requests.deleted_at')
-            ->orderByDesc('service_requests.id')
             ->get();
     }
 
 
-
-    private function reworkSrs()
+    private function reworkSrs(array $filters, $start, $end)
     {
-        return ServiceRequest::query()
-            ->select(
-                'service_requests.*',
-                'sc.category_name',
-                'u.name as assigned_name',
-
-            )
-            ->leftJoin('service_categories as sc', 'sc.id', '=', 'service_requests.service_type_id')
-            ->leftJoin('users as u',              'u.id',  '=', 'service_requests.assigned_user_id')
-            ->leftJoin('projects as p',           'p.id',  '=', 'service_requests.project_id')
-            ->with('client:id,company_name')
+        $f = $filters;
+        unset($f['status']);
+        return $this->scoped($f, $start, $end)
             ->where('service_requests.status', 'Rework')
-            // ->whereNull('service_requests.deleted_at')
-            ->orderByDesc('service_requests.id')
             ->get();
     }
+
 
     private function srItems($rows): array
     {
@@ -218,48 +216,61 @@ class DashboardController extends Controller
 
     public function index(Request $request)
     {
-        [$start, $end]         = $this->resolveRange($request->input('range', 'month'));
+        $filters = [
+    'range'   => $request->input('range', 'today'),   // ← changed
+    'from'    => $request->input('from'),
+    'to'      => $request->input('to'),
+    'status'  => $request->input('status'),
+    'client'  => $request->input('client'),
+    'service' => $request->input('service'),
+    'period'  => $request->input('period', '6M'),
+];
+
+        [$start, $end]         = $this->resolveRange($filters);
         [$prevStart, $prevEnd] = $this->previousRange($start, $end);
 
-        $filters = [
-            'range'   => $request->input('range', 'month'),
-            'status'  => $request->input('status'),
-            'client'  => $request->input('client'),
-            'service' => $request->input('service'),
-            'period'  => $request->input('period', '6M'),
-        ];
-
-        // One load per window; every card below reads from these collections.
+        // One load per window; the collection-based cards read from these.
         $current  = $this->load($filters, $start, $end);
         $previous = $this->load($filters, $prevStart, $prevEnd);
 
+        // ---- Card-level SR lists (now filter-aware) ----
+        $activeSRs   = $this->activeSrs($filters, $start, $end);
+        $qcSRs       = $this->qcSrs($filters, $start, $end);
+        $approvedSRs = $this->approvedSrs($filters, $start, $end);
+        $reworkSRs   = $this->reworkSrs($filters, $start, $end);
+        $allSRs      = $this->allSrs($filters, $start, $end);
+        $inquirySRs  = $this->inquirySrs($filters, $start, $end);
+        $slaBreaches = $this->slaBreachItems($filters, $start, $end);
 
-        // Card 1 — everything not rejected
-        // $activeCount = ServiceRequest::where(function ($q) {
-        //     $q->whereNull('status')->orWhere('status', '!=', 'Rejected');
-        // })->count();
+        // ---- Client Satisfaction ----
+        $satisfaction2  = $this->satisfaction2($filters, $start, $end);
+        $ratedRows      = $satisfaction2['rows'];
+        unset($satisfaction2['rows']);          // don't ship Eloquent models to the view
 
-        // Card 2 — QC queue (still excluding rejected)
-        // $qcPendingCount = ServiceRequest::where('status', 'QC Review')->count();
+        $ratingBuckets2 = $this->ratingBuckets2($ratedRows);
+        $feedbackItems2 = $this->feedbackItems2($ratedRows, $ratingBuckets2, $satisfaction2);
 
-        $activeSRs      = $this->activeSrs();
-        $qcSRs          = $this->qcSrs();
-        $approvedSRs    = $this->approvedSrs();
-        $reworkSRs      = $this->reworkSrs();
-        $allSRs         = $this->allSrs();
-
-        $inquirySRs = $this->inquirySrs();
-
-        $slaBreaches = $this->slaBreachItems();
+        $feedbackPanel = [
+            'title' => 'Client Feedback',
+            'icon'  => 'bi-star-half',
+            'sub'   => sprintf(
+                '%d responses · %s★ average · %d%% response rate · %s',
+                $satisfaction2['responses'],
+                number_format($satisfaction2['avg'], 1),
+                $satisfaction2['response_rate'],
+                $this->rangeLabel($filters)
+            ),
+            'items' => $feedbackItems2,
+        ];
 
         return view($this->dashboardView(), [
-            // return view('dashboard', [
             'greeting'    => $this->greeting(),
             'greetingSub' => "Here's your complete operations overview",
             'today'       => now()->format('l, d F Y'),
             'panelUrl'    => Route::has('dashboard.panel') ? route('dashboard.panel') : null,
 
             'filters'        => $filters,
+            'rangeLabel'     => $this->rangeLabel($filters),
             'rangeOptions'   => ['today' => 'Today', 'month' => 'This month', 'quarter' => 'This quarter'],
             'trendPeriods'   => ['1M' => '1M', '6M' => '6M', '1Y' => '1Y'],
             'statusOptions'  => collect(array_keys(self::STATUS_COLORS))->mapWithKeys(fn($s) => [$s => $s]),
@@ -270,6 +281,7 @@ class DashboardController extends Controller
             'alertCounts'     => $this->alertCounts($current, $start, $end),
             'statusBreakdown' => $this->statusBreakdown($current),
             'srTrend'         => $this->srTrend($filters),
+            'srTrend2'        => $this->srTrend2($filters),
             'finance'         => $this->finance($current, $filters, $start, $end),
             'qc'              => $this->qc($current),
             'whatsapp'        => $this->whatsapp($start, $end),
@@ -280,36 +292,241 @@ class DashboardController extends Controller
             'satisfaction'    => $this->satisfaction($current),
             'ratingBuckets'   => $this->ratingBuckets($current),
 
-            'activeCount' => $activeSRs->count(),
-            'activeItems' => $this->srItems($activeSRs),
+            'satisfaction2'   => $satisfaction2,
+            'ratingBuckets2'  => $ratingBuckets2,
+            'feedbackItems2'  => $feedbackItems2,
+            'feedbackPanel'   => $feedbackPanel,
 
-            'qcPendingCount' => $qcSRs->count(),
-            'qcItems'        => $this->srItems($qcSRs),
+            'activeCount'     => $activeSRs->count(),
+            'activeItems'     => $this->srItems($activeSRs),
 
-            'dispatchCount' => $approvedSRs->count(),
-            'dispatchItems'  => $this->srItems($approvedSRs),
-            'reworkCount' => $reworkSRs->count(),
-            'reworkItems'  => $this->srItems($reworkSRs),
+            'qcPendingCount'  => $qcSRs->count(),
+            'qcItems'         => $this->srItems($qcSRs),
 
-            'allCount'       => $allSRs->count(),
-            'allItems'       => $this->srItems($allSRs),
+            'dispatchCount'   => $approvedSRs->count(),
+            'dispatchItems'   => $this->srItems($approvedSRs),
+
+            'reworkCount'     => $reworkSRs->count(),
+            'reworkItems'     => $this->srItems($reworkSRs),
+
+            'allCount'        => $allSRs->count(),
+            'allItems'        => $this->srItems($allSRs),
             'statusLegend'    => self::STATUS_LEGEND,
 
-            'srTrend2'         => $this->srTrend2($filters),
+            'inquiryCount'    => $inquirySRs->count(),
+            'inquiryItems'    => $this->srItems($inquirySRs),
 
-            'inquiryCount' => $inquirySRs->count(),
-            'inquiryItems' => $this->srItems($inquirySRs),
+            'slaBreachCount'  => count($slaBreaches),
+            'slaBreachItems'  => $slaBreaches,
 
-            'slaBreachCount' => count($slaBreaches),
-            'slaBreachItems' => $slaBreaches,
-            'workforce' => $this->workforce(),
+            'workforce'       => $this->workforce($filters, $start, $end),
         ]);
     }
 
 
-    private function allSrs()
+    private function allSrs(array $filters, $start, $end)
     {
-        return $this->srQuery()->get();
+        // This one DOES respect the status dropdown
+        return $this->scoped($filters, $start, $end)->get();
+    }
+
+    /**
+     * Human-readable label for the active date filter.
+     * Used in card headers and panel subtitles.
+     */
+    private function rangeLabel(array $filters): string
+    {
+        if (($filters['range'] ?? null) === 'custom'
+            && !empty($filters['from']) && !empty($filters['to'])
+        ) {
+            return Carbon::parse($filters['from'])->format('d M')
+                . ' – ' . Carbon::parse($filters['to'])->format('d M Y');
+        }
+
+        return match ($filters['range'] ?? 'today') {
+            'month'   => 'this month',
+            'quarter' => 'this quarter',
+            default   => 'today',
+        };
+    }
+    /**
+     * Client Satisfaction headline stats.
+     * Reads from the already-loaded $current collection.
+     */
+    private function satisfaction2(array $filters, $start, $end): array
+    {
+        // Ratings land in the window based on when feedback was submitted,
+        // not when the SR was created.
+        $rated = ServiceRequest::query()
+            ->with(['assignedUser', 'domain', 'category', 'client'])
+            ->whereNotNull('performance_score')
+            ->whereBetween('feedback_submitted_at', [$start, $end])
+            ->when(!empty($filters['status']),  fn($q) => $q->where('status', $filters['status']))
+            ->when(!empty($filters['client']),  fn($q) => $q->where('client_id', $filters['client']))
+            ->when(!empty($filters['service']), fn($q) => $q->where('service_type_id', $filters['service']))
+            ->get();
+
+        // Denominator: completed SRs in the window (by created_at, like the rest
+        // of the dashboard). Status dropdown is ignored here — "completed" is fixed.
+        $completedCount = ServiceRequest::query()
+            ->where('status', 'Completed')
+            ->whereBetween('created_at', [$start, $end])
+            ->when(!empty($filters['client']),  fn($q) => $q->where('client_id', $filters['client']))
+            ->when(!empty($filters['service']), fn($q) => $q->where('service_type_id', $filters['service']))
+            ->count();
+
+        $fbCount  = $rated->count();
+        $avgScore = $fbCount ? round($rated->avg('performance_score'), 1) : 0.0;
+        $respRate = $completedCount ? (int) round($fbCount / $completedCount * 100) : 0;
+
+        $flagged = $rated->filter(fn($sr) => $sr->performance_score <= 2)
+            ->sortByDesc('feedback_submitted_at')
+            ->first();
+
+        return [
+            'avg'           => $avgScore,
+            'avg_display'   => $fbCount ? number_format($avgScore, 1) : '—',
+            'stars'         => $this->starIcons($avgScore),
+            'responses'     => $fbCount,
+            'response_rate' => min(100, $respRate),   // clamp — feedback can outpace the window
+            'completed'     => $completedCount,
+            'rows'          => $rated,                // consumed by the two methods below
+            'flagged'       => $flagged ? [
+                'id'    => $flagged->id,
+                'code'  => $this->srCode($flagged),
+                'score' => (int) $flagged->performance_score,
+            ] : null,
+        ];
+    }
+
+    /**
+     * Rating histogram, 5★ first. 'max' scales the bar widths.
+     */
+    private function ratingBuckets2(Collection $rated): array
+    {
+        $counts = collect(range(1, 5))->mapWithKeys(fn($s) => [$s => 0])->all();
+
+        foreach ($rated as $sr) {
+            $s = (int) $sr->performance_score;
+            if ($s >= 1 && $s <= 5) {
+                $counts[$s]++;
+            }
+        }
+
+        return [
+            'rows'  => collect([5, 4, 3, 2, 1])
+                ->map(fn($s) => ['s' => $s, 'c' => $counts[$s]])
+                ->values()->all(),
+            'max'   => max(1, max($counts)),
+            'total' => array_sum($counts),
+            'label' => collect([5, 4, 3, 2, 1])
+                ->map(fn($s) => $s . '★:' . $counts[$s])
+                ->implode(' · '),
+        ];
+    }
+
+    /**
+     * Rows for PANEL_DATA['feedback'] — mirrors your srItems() shape.
+     */
+    private function feedbackItems2(Collection $rated, array $buckets, array $sat): array
+    {
+        $items = $rated
+            ->sortBy([
+                ['performance_score', 'asc'],
+                ['feedback_submitted_at', 'desc'],
+            ])
+            ->take(20)
+            ->map(function ($sr) {
+                $score = (int) $sr->performance_score;
+
+                $meta = [$this->shortName(optional($sr->assignedUser)->name)];
+
+                // Prefer the domain (specific trade), fall back to the category
+                if ($sr->domain) {
+                    $meta[] = $sr->domain->name;
+                } elseif ($sr->category) {
+                    $meta[] = $sr->category->category_name;
+                }
+
+                if ($sr->evaluation_comment) $meta[] = '"' . $sr->evaluation_comment . '"';
+                if ($score <= 2)             $meta[] = 'Flagged for QC review';
+
+                return [
+                    'id'     => $this->srCode($sr),
+                    'client' => optional($sr->client)->company_name ?: ($sr->project_site ?: '—'),
+                    'badge'  => $score . '★',
+                    'bc'     => $this->ratingColor($score),
+                    'meta'   => implode(' · ', $meta),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $items[] = $sat['responses'] > 0
+            ? [
+                'id'     => 'Rating breakdown',
+                'client' => $buckets['label'],
+                'badge'  => $sat['responses'] . ' total',
+                'bc'     => '#9a8053',
+                'meta'   => 'Distribution of all ratings in the selected period',
+            ]
+            : [
+                'id'     => 'No feedback yet',
+                'client' => '—',
+                'badge'  => '0',
+                'bc'     => '#94a3b8',
+                'meta'   => 'No ratings match the current filters',
+            ];
+
+        return $items;
+    }
+
+
+
+    private function srCode($sr): string
+    {
+        $yr = $sr->feedback_submitted_at
+            ? Carbon::parse($sr->feedback_submitted_at)->format('Y')
+            : now()->format('Y');
+
+        return 'SR-' . $yr . '-' . str_pad((string) $sr->id, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function ratingColor(int $s): string
+    {
+        return match (true) {
+            $s >= 5 => '#15803d',
+            $s === 4 => '#16a34a',
+            $s === 3 => '#d97706',
+            default  => '#dc2626',
+        };
+    }
+
+    private function shortName(?string $full): string
+    {
+        $full = trim((string) $full);
+        if ($full === '') return 'Unassigned';
+
+        $p = preg_split('/\s+/', $full);
+        return count($p) > 1
+            ? $p[0] . ' ' . Str::upper(Str::substr(end($p), 0, 1)) . '.'
+            : $p[0];
+    }
+
+    /** Returns ['full' => n, 'half' => 0|1, 'empty' => n] for the star row. */
+    private function starIcons(float $score): array
+    {
+        $full = (int) floor($score);
+        $frac = $score - $full;
+        $half = 0;
+
+        if ($frac >= 0.75) {
+            $full++;
+        } elseif ($frac >= 0.25) {
+            $half = 1;
+        }
+
+        return ['full' => $full, 'half' => $half, 'empty' => max(0, 5 - $full - $half)];
     }
 
 
@@ -317,33 +534,47 @@ class DashboardController extends Controller
     private const ACTIVE_STATUSES = ['Assigned', 'In Progress', 'Qc Review', 'Rework', 'Reschedule'];
     private const TRADE_COLORS    = ['#9a8053', '#393837', '#b8975e', '#64748b', '#7c3aed'];
 
-    private function workforce(): array
+    private function workforce(array $filters, $start, $end): array
     {
-        // Every technician on the roster
+        // Every technician on the roster (never filtered — this is live state)
         $techs = DB::table('users')
             ->where('role_id', 4)
             ->where('status', 'active')
-          
             ->pluck('name', 'id');
 
-        // Assignments, with the category resolved
-        $rows = DB::table('service_requests as sr')
+        // --- LIVE assignments: who is busy right now, unfiltered by date ---
+        $live = DB::table('service_requests as sr')
             ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
             ->whereNotNull('sr.assigned_user_id')
-  
+            ->whereIn('sr.status', self::ACTIVE_STATUSES)
             ->get(['sr.assigned_user_id', 'sr.status', 'sc.category_name']);
 
-        // Which technicians are currently busy
-        $busy = $rows->whereIn('status', self::ACTIVE_STATUSES)
-            ->pluck('assigned_user_id')
-            ->unique();
+        // --- PERIOD assignments: job volume inside the selected window ---
+        $period = DB::table('service_requests as sr')
+            ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
+            ->whereNotNull('sr.assigned_user_id')
+            ->whereBetween('sr.created_at', [$start, $end])
+            ->when(!empty($filters['status']),  fn($q) => $q->where('sr.status', $filters['status']))
+            ->when(!empty($filters['client']),  fn($q) => $q->where('sr.client_id', $filters['client']))
+            ->when(!empty($filters['service']), fn($q) => $q->where('sr.service_type_id', $filters['service']))
+            ->get(['sr.assigned_user_id', 'sr.status', 'sc.category_name']);
 
-        // Primary trade per technician = the category they work in most
-        $tradeOf = $rows->filter(fn($r) => $r->category_name)
+        // Currently busy technicians (live)
+        $busy = $live->pluck('assigned_user_id')->unique();
+
+        // Primary trade per technician — use ALL history, not just the window,
+        // otherwise a narrow filter leaves most techs with no trade at all.
+        $allAssignments = DB::table('service_requests as sr')
+            ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
+            ->whereNotNull('sr.assigned_user_id')
+            ->whereNotNull('sc.category_name')
+            ->get(['sr.assigned_user_id', 'sc.category_name']);
+
+        $tradeOf = $allAssignments
             ->groupBy('assigned_user_id')
             ->map(fn($g) => $g->countBy('category_name')->sortDesc()->keys()->first());
 
-        // Capacity per trade
+        // Capacity per trade (live availability)
         $capacity = collect($tradeOf)
             ->groupBy(fn($trade) => $trade)
             ->map(function ($group, $trade) use ($busy) {
@@ -357,37 +588,43 @@ class DashboardController extends Controller
             })
             ->values();
 
-        // Job volume per trade
-        $trades = $rows->filter(fn($r) => $r->category_name)
+        // Job volume per trade — FILTERED to the selected period
+        $trades = $period->filter(fn($r) => $r->category_name)
             ->countBy('category_name')
             ->map(fn($n, $name) => ['n' => $name, 'v' => $n])
             ->values()
             ->map(fn($t, $i) => $t + ['c' => self::TRADE_COLORS[$i % count(self::TRADE_COLORS)]]);
 
-        $onSite    = $rows->where('status', 'In Progress')->pluck('assigned_user_id')->unique()->count();
-        $enRoute   = $rows->where('status', 'Assigned')->pluck('assigned_user_id')->unique()->count();
+        $onSite    = $live->where('status', 'In Progress')->pluck('assigned_user_id')->unique()->count();
+        $enRoute   = $live->where('status', 'Assigned')->pluck('assigned_user_id')->unique()->count();
         $total     = $techs->count();
         $available = max(0, $total - $busy->count());
 
         return [
-            'total'       => $total,
-            'on_site'     => $onSite,
-            'en_route'    => $enRoute,
-            'available'   => $available,
-            'utilization' => $total > 0 ? (int) round($busy->count() / $total * 100) : 0,
-            'capacity'    => $capacity->all(),
-            'trades'      => $trades->all(),
+            'total'         => $total,
+            'on_site'       => $onSite,
+            'en_route'      => $enRoute,
+            'available'     => $available,
+            'utilization'   => $total > 0 ? (int) round($busy->count() / $total * 100) : 0,
+            'capacity'      => $capacity->all(),
+            'trades'        => $trades->all(),
+            'trades_total'  => $period->filter(fn($r) => $r->category_name)->count(),
         ];
     }
 
-    private function inquirySrs()
+    private function inquirySrs(array $filters, $start, $end)
     {
-        return $this->srQuery()->where('service_requests.status', 'Pending')->get();
+        $f = $filters;
+        unset($f['status']);
+        return $this->scoped($f, $start, $end)
+            ->where('service_requests.status', 'Pending')
+            ->get();
     }
 
-    private function slaBreachItems(): array
+    private function slaBreachItems(array $filters, $start, $end): array
     {
-        $rows = $this->srQuery()->get()
+        $rows = $this->scoped($filters, $start, $end)
+            ->get()
             ->filter(fn($sr) => $this->metSla($sr) === false)
             ->sortByDesc('id');
 
@@ -441,12 +678,27 @@ class DashboardController extends Controller
             ->when($filters['service'] ?? null, fn($q, $v) => $q->where('service_requests.service_type_id', $v));
     }
 
-    private function resolveRange(string $range): array
+    private function resolveRange(array $filters): array
     {
+        $range = $filters['range'] ?? 'today';
+
+        if ($range === 'custom' && !empty($filters['from']) && !empty($filters['to'])) {
+            try {
+                $from = Carbon::parse($filters['from'])->startOfDay();
+                $to   = Carbon::parse($filters['to'])->endOfDay();
+                if ($from->gt($to)) {
+                    [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
+                }
+                return [$from, $to];
+            } catch (\Exception $e) {
+                // fall through
+            }
+        }
+
         return match ($range) {
-            'today'   => [today()->startOfDay(), today()->endOfDay()],
+            'month'   => [now()->startOfMonth(), now()->endOfMonth()],
             'quarter' => [now()->startOfQuarter(), now()->endOfQuarter()],
-            default   => [now()->startOfMonth(), now()->endOfMonth()],
+            default   => [today()->startOfDay(), today()->endOfDay()],   // ← today is now default
         };
     }
 
@@ -900,24 +1152,54 @@ class DashboardController extends Controller
             ->all();
     }
 
-    private function clients(Collection $srs): array
-    {
-        return $srs
-            ->filter(fn($sr) => $sr->client)
-            ->groupBy('client_id')
-            ->map(fn(Collection $group) => [
-                'id'           => $group->first()->client->id,
-                'name'         => $group->first()->client->company_name,
-                'short_name'   => Str::before($group->first()->client->company_name, ' '),
-                'srs'          => $group->count(),
-                'in_warranty'  => $group->filter(fn($sr) => $this->isInWarranty($sr))->count(),
-                'out_warranty' => $group->reject(fn($sr) => $this->isInWarranty($sr))->count(),
-            ])
-            ->sortByDesc('srs')
-            ->take(6)
-            ->values()
-            ->all();
-    }
+    // private function clients(Collection $srs): array
+    // {
+    //     return $srs
+    //         ->filter(fn($sr) => $sr->client)
+    //         ->groupBy('client_id')
+    //         ->map(fn(Collection $group) => [
+    //             'id'           => $group->first()->client->id,
+    //             'name'         => $group->first()->client->company_name,
+    //             'short_name'   => Str::before($group->first()->client->company_name, ' '),
+    //             'srs'          => $group->count(),
+    //             'in_warranty'  => $group->filter(fn($sr) => $this->isInWarranty($sr))->count(),
+    //             'out_warranty' => $group->reject(fn($sr) => $this->isInWarranty($sr))->count(),
+    //         ])
+    //         ->sortByDesc('srs')
+    //         ->take(6)
+    //         ->values()
+    //         ->all();
+    // }
+
+
+    private function clients(Collection $current): array
+{
+    return $current
+        ->filter(fn($sr) => $sr->client_id)
+        ->groupBy('client_id')
+        ->map(function ($group, $clientId) {
+            $first = $group->first();
+            $rated = $group->whereNotNull('performance_score');
+
+            $iw = $group->filter(fn($sr) =>
+                in_array($sr->warranty_scope, ['In-warranty', 'IW', 'in_warranty'], true)
+            )->count();
+
+            return [
+                'id'     => (int) $clientId,
+                'n'      => optional($first->client)->company_name ?: '—',
+                'srs'    => $group->count(),
+                'iw'     => $iw,
+                'oow'    => $group->count() - $iw,
+                'rating' => $rated->count() ? round($rated->avg('performance_score'), 1) : 0,
+                'exp'    => 'AED ' . number_format((float) $group->sum('invoice_total'), 0),
+            ];
+        })
+        ->sortByDesc('srs')
+        ->take(6)
+        ->values()
+        ->all();
+}
 
     private function frontDesk(Collection $srs): array
     {

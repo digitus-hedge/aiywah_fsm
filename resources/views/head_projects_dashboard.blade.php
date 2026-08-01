@@ -1,7 +1,8 @@
 
 @extends('layouts.layout')
 
-@section('title', 'Admin Dashboard')
+@section('title', 'Head of Project')
+@section('page_title', 'Admin - Head of Project')
 @push('styles')
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
@@ -419,13 +420,175 @@ letter-spacing:-.01em;
 {
     padding:unset;
 }
+
+
+
+/* ── FILTER LAYOUT ── */
+.filter-wrap{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  align-items:flex-start;
+}
+.filter-bar{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  flex-wrap:wrap;
+}
+
+/* ── DATE RANGE PILL ── */
+.f-daterange{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  height:32px;
+  padding:0 14px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:var(--card);
+  transition:border-color .15s, background .15s;
+  box-sizing:border-box;
+}
+.f-daterange.active{ border-color:var(--gold); background:var(--gold-bg); }
+.f-daterange:focus-within{ border-color:var(--gold); }
+.f-daterange > i.bi-calendar-range{
+  font-size:.82rem;
+  color:var(--gold);
+  flex-shrink:0;
+  line-height:1;
+}
+
+.f-daterange input[type="date"]{
+  -webkit-appearance:none;
+  appearance:none;
+  border:0 !important;
+  outline:0;
+  background:transparent !important;
+  box-shadow:none !important;
+  color:var(--text);
+  font-family:inherit;
+  font-size:.75rem;
+  line-height:1;
+  padding:0;
+  margin:0;
+  width:88px;
+  height:100%;
+  cursor:pointer;
+}
+.f-daterange input[type="date"]:focus{ outline:none; box-shadow:none; }
+.f-daterange input[type="date"]:not(:valid){ color:var(--muted); }
+
+.f-daterange input[type="date"]::-webkit-calendar-picker-indicator{
+  opacity:.45;
+  cursor:pointer;
+  padding:0;
+  margin:0;
+  width:13px;
+  height:13px;
+  transition:opacity .15s;
+}
+.f-daterange input[type="date"]::-webkit-calendar-picker-indicator:hover{ opacity:.9; }
+[data-bs-theme="dark"] .f-daterange input[type="date"]::-webkit-calendar-picker-indicator{
+  filter:invert(1);
+}
+
+.f-date-sep{
+  font-size:.72rem;
+  color:var(--muted);
+  flex-shrink:0;
+  line-height:1;
+}
+
+/* ── RESET ── */
+.fq-reset{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  height:32px;
+  padding:0 14px;
+  border-radius:20px;
+  border:1px solid rgba(220,38,38,.22);
+  background:rgba(220,38,38,.07);
+  color:#dc2626;
+  font-size:.76rem;
+  font-weight:500;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:background .15s, border-color .15s;
+  box-sizing:border-box;
+}
+.fq-reset:hover{ background:rgba(220,38,38,.14); border-color:rgba(220,38,38,.35); }
+.fq-reset i{ font-size:.8rem; line-height:1; }
+
+/* ── GREETING SUB ── */
+.greeting-sub{
+  font-size:.82rem;
+  color:var(--muted);
+  display:flex;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.greeting-sub > i{ color:var(--gold); font-size:.8rem; }
+.gs-dot{ opacity:.35; }
+.gs-range{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:2px 10px;
+  border-radius:20px;
+  background:var(--gold-bg);
+  color:var(--gold);
+  font-size:.72rem;
+  font-weight:500;
+}
+.gs-range i{ font-size:.68rem; color:var(--gold); }
+
+@media(max-width:600px){
+  .f-daterange{ width:100%; justify-content:space-between; }
+  .f-daterange input[type="date"]{ width:auto; flex:1; }
+}
+
+
+.leg-row{ display:flex; flex-wrap:wrap; gap:12px; margin-top:9px; }
+.client-list{ margin-top:12px; display:flex; flex-direction:column; gap:2px; }
+
+.lrow{
+  display:flex; align-items:center; justify-content:space-between;
+  width:100%; padding:6px 9px;
+  background:transparent; border:0; border-radius:8px;
+  font-size:.75rem; text-align:left; cursor:pointer;
+  transition:background .12s;
+}
+.lrow:hover{ background:var(--gold-bg); }
+.lrow-l{ display:flex; align-items:center; gap:8px; min-width:0; }
+.lrow-name{
+  font-weight:500; color:var(--text);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.lrow-r{ display:flex; align-items:center; gap:5px; flex-shrink:0; }
+.lrow-r strong{ color:var(--text); font-weight:700; }
+.lrow-unit{ color:var(--muted); }
+
+.rank{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:22px; height:22px; border-radius:6px;
+  background:var(--gold-bg); color:var(--gold);
+  font-size:.6rem; font-weight:700; flex-shrink:0;
+}
+
+.empty{ padding:22px 14px; text-align:center; color:var(--muted); font-size:.78rem; }
+.empty i{ display:block; font-size:1.4rem; margin-bottom:6px; opacity:.4; }
+
+
 </style>
 @endpush
 
 <div class="sb-overlay" id="sbOverlay" onclick="closeSB()"></div>
 
 
-<header class="topbar">
+<header class="topbar" style="display:none;">
   <div class="tb-l">
     <button class="hamburger" onclick="toggleSB()"><i class="bi bi-list"></i></button>
     <div>
@@ -455,26 +618,102 @@ letter-spacing:-.01em;
     <div>
      
 <div class="greeting">{{ $greeting }}</div>
-      <div class="greeting-sub"><i class="bi bi-calendar3" style="color:var(--gold);margin-right:4px;"></i>Wednesday, 15 July 2026 &nbsp;·&nbsp; Here's your projects &amp; field operations overview</div>
-    </div>
-    <div class="filter-bar">
+<div class="greeting-sub">
+  <i class="bi bi-calendar3"></i>{{ $today }}
+  <span class="gs-dot">·</span>{{ $greetingSub }}
+  <span class="gs-range"><i class="bi bi-funnel"></i>{{ $rangeLabel }}</span>
+</div>    </div>
+    <!-- <div class="filter-bar">
       <button class="fq-pill" onclick="setDateFilter(this,'Today')">Today</button>
       <button class="fq-pill active" onclick="setDateFilter(this,'This Month')">This Month</button>
       <button class="fq-pill" onclick="setDateFilter(this,'This Quarter')">This Quarter</button>
       <select class="f-sel"><option>All Leads</option><option>Rashid Al-Habsi</option><option>Salim Nasser</option><option>Yousuf Rahman</option><option>Kareem Adel</option><option>Nadia Faris</option></select>
       <select class="f-sel"><option>All Trades</option><option>Electrical</option><option>Mechanical</option><option>HVAC</option><option>Plumbing</option></select>
       <select class="f-sel"><option>All Zones</option><option>Dubai</option><option>Abu Dhabi</option><option>Sharjah</option><option>Northern</option></select>
-    </div>
-  </div>
+    </div> -->
 
+   <form method="GET" action="{{ url()->current() }}" class="filter-bar" id="dashFilters">
+    <input type="hidden" name="period" value="{{ $filters['period'] ?? '6M' }}">
+    <input type="hidden" name="range" id="rangeField" value="{{ $filters['range'] ?? 'month' }}">
+
+    <button type="button" onclick="setRange(this,'today')"
+            class="fq-pill {{ ($filters['range'] ?? null) === 'today' ? 'active' : '' }}">Today</button>
+    <button type="button" onclick="setRange(this,'month')"
+            class="fq-pill {{ ($filters['range'] ?? null) === 'month' ? 'active' : '' }}">This Month</button>
+    <button type="button" onclick="setRange(this,'quarter')"
+            class="fq-pill {{ ($filters['range'] ?? null) === 'quarter' ? 'active' : '' }}">This Quarter</button>
+
+    <div class="f-daterange {{ ($filters['range'] ?? null) === 'custom' ? 'active' : '' }}">
+        <i class="bi bi-calendar-range"></i>
+        <input type="date" name="from" value="{{ $filters['from'] ?? '' }}"
+               max="{{ now()->toDateString() }}" onchange="applyCustomRange(this)" aria-label="From date">
+        <span class="f-date-sep">→</span>
+        <input type="date" name="to" value="{{ $filters['to'] ?? '' }}"
+               max="{{ now()->toDateString() }}" onchange="applyCustomRange(this)" aria-label="To date">
+    </div>
+
+    <select class="f-sel" name="status" onchange="this.form.submit()" aria-label="Filter by status">
+        <option value="">All Statuses</option>
+        @foreach (($statusOptions ?? []) as $value => $label)
+            <option value="{{ $value }}" @selected(($filters['status'] ?? null) == $value)>{{ $label }}</option>
+        @endforeach
+    </select>
+
+    <select class="f-sel" name="client" onchange="this.form.submit()" aria-label="Filter by client">
+        <option value="">All Clients</option>
+        @foreach (($clientOptions ?? []) as $value => $label)
+            <option value="{{ $value }}" @selected(($filters['client'] ?? null) == $value)>{{ $label }}</option>
+        @endforeach
+    </select>
+
+    <select class="f-sel" name="service" onchange="this.form.submit()" aria-label="Filter by service">
+        <option value="">All Services</option>
+        @foreach (($serviceOptions ?? []) as $value => $label)
+            <option value="{{ $value }}" @selected(($filters['service'] ?? null) == $value)>{{ $label }}</option>
+        @endforeach
+    </select>
+
+    @php
+        $hasFilters = ($filters['range'] ?? 'month') !== 'month' || array_filter([
+            $filters['status']  ?? null, $filters['client'] ?? null,
+            $filters['service'] ?? null, $filters['from']   ?? null,
+            $filters['to']      ?? null,
+        ]);
+    @endphp
+    @if ($hasFilters)
+        <a href="{{ url()->current() }}" class="fq-reset" title="Clear all filters">
+            <i class="bi bi-arrow-counterclockwise"></i>Reset
+        </a>
+    @endif
+</form>
+</div>
   <!-- ALERT STRIP -->
   <div class="alert-row">
-    <div class="a-chip a-red" onclick="openPanel('qc-queue',null)"><i class="bi bi-patch-check-fill"></i>3 SRs awaiting your QC review</div>
-    <div class="a-chip a-amb" onclick="openPanel('dispatch-queue',null)"><i class="bi bi-person-gear"></i>2 approved SRs need technician assignment</div>
-    <div class="a-chip a-amb" onclick="openPanel('inquiry-triage',null)"><i class="bi bi-clipboard-check"></i>4 new inquiries awaiting triage</div>
-    <div class="a-chip a-red" onclick="openPanel('sla-breach',null)"><i class="bi bi-exclamation-triangle-fill"></i>3 SLA breaches this month</div>
-    <div class="a-chip a-blu"><i class="bi bi-people-fill"></i>5 technicians currently on-site</div>
-  </div>
+        <button type="button" class="a-chip a-red" data-panel="sla-breach">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            {{ $alertCounts['breaches'] ?? 0 }} SLA {{ \Illuminate\Support\Str::plural('breach', $alertCounts['breaches'] ?? 0) }} this period
+        </button>
+
+        <button type="button" class="a-chip a-amb" data-panel="pending-actions">
+            <i class="bi bi-hourglass-split"></i>
+            {{ $alertCounts['pending'] ?? 0 }} {{ \Illuminate\Support\Str::plural('action', $alertCounts['pending'] ?? 0) }} pending across roles
+        </button>
+
+        <button type="button" class="a-chip a-amb" data-panel="slow-srs">
+            <i class="bi bi-clock-history"></i>
+            {{ $alertCounts['stalled'] ?? 0 }} SRs stalled 24h+
+        </button>
+
+        <button type="button" class="a-chip a-grn" data-panel="wa-failures">
+            <i class="bi bi-whatsapp"></i>
+            {{ $alertCounts['wa_failures'] ?? 0 }} WA delivery failures this period
+        </button>
+
+        <span class="a-chip a-blu">
+            <i class="bi bi-people-fill"></i>
+            {{ $alertCounts['on_site'] ?? 0 }} technicians currently on-site
+        </span>
+    </div>
 
   <!-- KPI ROW -->
   <div class="kpi-row" style="margin-bottom:20px;" id="kpiRow"></div>
@@ -622,7 +861,7 @@ letter-spacing:-.01em;
 
   <div class="card" style="margin-bottom:16px;">
     <div class="c-hdr" style="padding:14px 18px 14px;">
-      <div class="c-label"><i class="bi bi-tools"></i>Technicians Ranked · July 2026</div>
+      <div class="c-label"><i class="bi bi-tools"></i>Technicians Ranked</div>
       <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;"><div class="c-more" onclick="openPanel('all-techs',null)" style="margin-right:4px;">View all <i class="bi bi-arrow-right"></i></div>
         <div class="leg"><span class="leg-dot" style="background:#9a8053;"></span>Jobs bar</div>
         <div class="leg"><span class="leg-dot" style="background:#15803d;"></span>0 rework</div>
@@ -779,55 +1018,87 @@ letter-spacing:-.01em;
     </div>
 
     <!-- SLA BY LEAD -->
-    <div class="card card-pad">
-      <div class="c-hdr">
-        <div class="c-label"><i class="bi bi-speedometer2"></i>Team SLA by Lead</div>
-        <div class="c-more" onclick="openPanel('all-leads',null)">View all <i class="bi bi-arrow-right"></i></div>
-      </div>
-      <div class="ch-180"><canvas id="leadSlaChart"></canvas></div>
-      <div style="margin-top:10px;font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:6px;">
-        <i class="bi bi-info-circle" style="color:var(--gold);"></i>Target SLA compliance: 90%
-      </div>
+ <div class="card card-pad">
+    <div class="c-hdr">
+        <div class="c-label"><i class="bi bi-buildings"></i>Top clients by SR volume</div>
+        <!-- <div class="c-more" onclick="openPanel('clients',null)">All clients <i class="bi bi-arrow-right"></i></div> -->
     </div>
+
+    @if (count($clients))
+        <div class="ch-180"><canvas id="mmClientChart"></canvas></div>
+        <div class="leg-row">
+            <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>In-warranty</span>
+            <span class="leg"><span class="leg-dot" style="background:#39383788;"></span>Out-of-warranty</span>
+        </div>
+    @endif
+
+    <div class="client-list">
+        @forelse ($clients as $client)
+            <button type="button" class="lrow"
+                    onclick="openPanel('clients',null)">
+                <span class="lrow-l">
+                    <span class="rank">{{ $loop->iteration }}</span>
+                    <span class="lrow-name">{{ data_get($client, 'n') }}</span>
+                </span>
+                <span class="lrow-r">
+                    <strong>{{ data_get($client, 'srs') }}</strong>
+                    <span class="lrow-unit">SRs</span>
+                </span>
+            </button>
+        @empty
+            <p class="empty"><i class="bi bi-building"></i>No client activity in this period.</p>
+        @endforelse
+    </div>
+</div>
+
+
 
     <!-- SATISFACTION -->
     <div class="card card-pad">
-      <div class="c-hdr">
-        <div class="c-label"><i class="bi bi-star-half"></i>Client Satisfaction</div>
-        <div class="c-more" onclick="openPanel('feedback',null)">View all <i class="bi bi-arrow-right"></i></div>
+  <div class="c-hdr">
+    <div class="c-label"><i class="bi bi-star-half"></i>Client Satisfaction</div>
+    <div class="c-more" onclick="openPanel('feedback',null)">View all <i class="bi bi-arrow-right"></i></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;
+    padding-bottom:14px;border-bottom:1px solid var(--border);">
+    <div>
+      <div style="font-size:3rem;font-weight:700;color:#9a8053;line-height:1;">
+        {{ $satisfaction2['avg_display'] }}
       </div>
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;
-        padding-bottom:14px;border-bottom:1px solid var(--border);">
-        <div>
-          <div style="font-size:3rem;
-            font-weight:700;color:#9a8053;line-height:1;">4.6</div>
-          <div style="display:flex;gap:2px;color:#f59e0b;font-size:.85rem;margin-bottom:3px;">
-            <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
-            <i class="bi bi-star-half"></i>
-          </div>
-          <div style="font-size:.7rem;color:var(--muted);">31 responses · 66% rate</div>
-        </div>
-        <div style="flex:1;">
-          <div class="mini-metric" style="margin-bottom:6px;">
-            <div class="mm-label">Completed SRs</div>
-            <div class="mm-val">43</div>
-          </div>
-          <div class="mini-metric">
-            <div class="mm-label">Feedback Submitted</div>
-            <div class="mm-val" style="color:#9a8053;">31</div>
-          </div>
-        </div>
+      <div style="display:flex;gap:2px;color:#f59e0b;font-size:.85rem;margin-bottom:3px;">
+        @for ($i = 0; $i < $satisfaction2['stars']['full']; $i++)<i class="bi bi-star-fill"></i>@endfor
+        @if ($satisfaction2['stars']['half'])<i class="bi bi-star-half"></i>@endif
+        @for ($i = 0; $i < $satisfaction2['stars']['empty']; $i++)<i class="bi bi-star"></i>@endfor
       </div>
-      <div id="ratingHist"></div>
-      <div style="margin-top:12px;padding:9px 12px;background:rgba(217,119,6,.07);
-        border:1px solid rgba(217,119,6,.15);border-radius:8px;
-        font-size:.74rem;color:#d97706;display:flex;align-items:center;gap:6px;cursor:pointer;"
-        onclick="openPanel('qc-queue',null)">
-        <i class="bi bi-exclamation-triangle-fill"></i>
-        SR-2025-0033 rated 2★ — flagged for QC review
+      <div style="font-size:.7rem;color:var(--muted);">
+        {{ $satisfaction2['responses'] }} responses · {{ $satisfaction2['response_rate'] }}% rate
       </div>
     </div>
+    <div style="flex:1;">
+      <div class="mini-metric" style="margin-bottom:6px;">
+        <div class="mm-label">Completed SRs</div>
+        <div class="mm-val">{{ $satisfaction2['completed'] }}</div>
+      </div>
+      <div class="mini-metric">
+        <div class="mm-label">Feedback Submitted</div>
+        <div class="mm-val" style="color:#9a8053;">{{ $satisfaction2['responses'] }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ratingHist"></div>
+
+  @if ($satisfaction2['flagged'])
+  <div style="margin-top:12px;padding:9px 12px;background:rgba(217,119,6,.07);
+    border:1px solid rgba(217,119,6,.15);border-radius:8px;
+    font-size:.74rem;color:#d97706;display:flex;align-items:center;gap:6px;cursor:pointer;"
+    onclick="openPanel('qc-queue',{{ $satisfaction2['flagged']['id'] }})">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    {{ $satisfaction2['flagged']['code'] }} rated {{ $satisfaction2['flagged']['score'] }}★ — flagged for QC review
+  </div>
+  @endif
+</div>
   </div>
 
 
@@ -914,7 +1185,8 @@ var WF       = @json($workforce);
 
 
 
-var RATINGS=[{s:5,c:18},{s:4,c:8},{s:3,c:3},{s:2,c:1},{s:1,c:1}];
+var RATINGS    = @json($ratingBuckets2['rows']);
+var RATING_MAX = {{ $ratingBuckets2['max'] }};
 
 /* Job/SR lists per technician (for tech panel) */
 var TECH_JOBS={
@@ -957,6 +1229,7 @@ var DISPATCH_QUEUE = @json(array_slice($dispatchItems, 0, 4));
 var INQUIRY_QUEUE = @json(array_slice($inquiryItems, 0, 4));
 
 /* PANEL DATA */
+var CLIENTS = @json($clients);
 
   var PANEL_DATA = {
   'active-srs': {
@@ -1060,18 +1333,8 @@ PANEL_DATA['dispatch']={
     {id:'Reassignments',client:'6 this month',badge:'Watch',bc:'#d97706',meta:'Dispatches changed after initial assignment (availability / skills mismatch)'}
   ]
 };
-PANEL_DATA['feedback']={
-  title:'Client Feedback',icon:'bi-star-half',
-  sub:'31 responses · 4.6\u2605 average · 66% response rate',
-  items:[
-    {id:'SR-2025-0016',client:'Emaar Properties',badge:'5\u2605',bc:'#15803d',meta:'Yusuf A. · HVAC · "Fast, professional, fixed first time." · IW'},
-    {id:'SR-2025-0042',client:'Emirates NBD',badge:'5\u2605',bc:'#15803d',meta:'Yusuf A. · HVAC · "Excellent communication and clean work."'},
-    {id:'SR-2025-0046',client:'Dubai Airports',badge:'5\u2605',bc:'#15803d',meta:'Nasser H. · Mechanical · "Arrived on time, great service."'},
-    {id:'SR-2025-0027',client:'ADNOC Distribution',badge:'3\u2605',bc:'#d97706',meta:'Ahmed R. · Electrical · "Job done but took longer than expected."'},
-    {id:'SR-2025-0033',client:'Emaar Properties',badge:'2\u2605',bc:'#dc2626',meta:'Ahmed R. · Electrical · "Issue recurred after visit." · Flagged for QC review'},
-    {id:'Rating breakdown',client:'5\u2605:18 · 4\u2605:8 · 3\u2605:3 · 2\u2605:1 · 1\u2605:1',badge:'31 total',bc:'#9a8053',meta:'Distribution of all submitted client ratings this month'}
-  ]
-};
+
+PANEL_DATA['feedback'] = @json($feedbackPanel);
 
 /* ============ CHARTS ============ */
 var CHARTS={};
@@ -1142,6 +1405,31 @@ function buildCharts(){
         tooltip:{backgroundColor:'rgba(15,15,15,.9)',cornerRadius:8,padding:10,callbacks:{label:function(x){return ' '+x.parsed.y+'% SLA';}}}},
         scales:{x:{grid:{display:false},ticks:{color:C.muted,font:{size:11}}},y:{grid:{color:C.grid},ticks:{color:C.muted,font:{size:10},callback:function(v){return v+'%';}},suggestedMin:70,suggestedMax:100}}}});
   }
+
+
+  var c7 = document.getElementById('mmClientChart');
+if (c7 && CLIENTS.length) {
+  CHARTS.mmClient = new Chart(c7, {
+    type:'bar',
+    data:{
+      labels: CLIENTS.map(function(c){ return c.n.split(' ')[0]; }),
+      datasets:[
+        {label:'In-warranty', data:CLIENTS.map(function(c){return c.iw;}),
+         backgroundColor:'rgba(154,128,83,.75)', borderRadius:4, borderSkipped:false},
+        {label:'Out-of-warranty', data:CLIENTS.map(function(c){return c.oow;}),
+         backgroundColor:'rgba(57,56,55,.45)', borderRadius:4, borderSkipped:false},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{legend:{display:false}, tooltip:TT},
+      scales:{
+        x:{stacked:true, grid:{color:C.grid}, ticks:{color:C.muted, font:{size:10}, precision:0}},
+        y:{stacked:true, grid:{display:false}, ticks:{color:C.text, font:{size:10}}}
+      }
+    }
+  });
+}
 
   buildSparks();
 }
@@ -1253,12 +1541,39 @@ function renderLeadTable(){
   });
 }
 
+
+
+function setRange(el, val){
+  var f = el.form;
+  document.getElementById('rangeField').value = val;
+  var from = f.querySelector('[name=from]');
+  var to   = f.querySelector('[name=to]');
+  if (from) from.value = '';
+  if (to)   to.value   = '';
+  f.submit();
+}
+
+function applyCustomRange(el){
+  var f    = el.form;
+  var from = f.querySelector('[name=from]').value;
+  var to   = f.querySelector('[name=to]').value;
+  if (!from || !to) return;
+
+  if (from > to) {                                  // user picked them backwards
+    f.querySelector('[name=from]').value = to;
+    f.querySelector('[name=to]').value   = from;
+  }
+
+  document.getElementById('rangeField').value = 'custom';
+  f.submit();
+}
+
 function renderTechTable(){
   var tbody = document.getElementById('techTbl');
   if(!tbody) return;
 
   if(!TECHS.length){
-    tbody.innerHTML = '<tr><td colspan="8"><p class="empty">'+
+    tbody.innerHTML = '<tr><td colspan="8"><p class="empty" style=">'+
       '<i class="bi bi-person-badge"></i>No technician activity in this period.</p></td></tr>';
     return;
   }
@@ -1324,15 +1639,21 @@ function renderCapacity(){
 }
 
 function renderRatings(){
-  var max=18;
-  document.getElementById('ratingHist').innerHTML=RATINGS.map(function(r){
-    var w=Math.round((r.c/max)*100);
-    return '<div class="h-row"><div class="h-lbl">'+r.s+'</div>'+
-      '<div class="h-track"><div class="h-fill" data-w="'+w+'%" style="width:0;"></div></div>'+
-      '<div class="h-n">'+r.c+'</div></div>';
+  var max = RATING_MAX || 1;
+  document.getElementById('ratingHist').innerHTML = RATINGS.map(function(r){
+    var w = Math.round((r.c / max) * 100);
+    return '<div class="h-row"><div class="h-lbl">' + r.s + '</div>' +
+      '<div class="h-track"><div class="h-fill" data-w="' + w + '%" style="width:0;"></div></div>' +
+      '<div class="h-n">' + r.c + '</div></div>';
   }).join('');
-  setTimeout(function(){document.querySelectorAll('.h-fill').forEach(function(el){el.style.transition='width 1s cubic-bezier(.4,0,.2,1)';el.style.width=el.dataset.w;});},800);
+  setTimeout(function(){
+    document.querySelectorAll('.h-fill').forEach(function(el){
+      el.style.transition = 'width 1s cubic-bezier(.4,0,.2,1)';
+      el.style.width = el.dataset.w;
+    });
+  }, 800);
 }
+renderRatings();
 
 /* ============ SLIDE-IN PANEL ============ */
 function prCard(id,badge,bc,client,meta){
