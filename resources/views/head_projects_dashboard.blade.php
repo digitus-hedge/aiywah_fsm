@@ -49,6 +49,9 @@ body{font-size:.875rem;
   transition:background .3s,color .3s;}
 a{text-decoration:none;}
 
+
+
+
 .cg,h1,h2,h3,h4,h5,h6,.brand-name,.greeting,.big-num,.stat-big,.panel-heading
 {
 letter-spacing:-.01em;
@@ -581,7 +584,27 @@ letter-spacing:-.01em;
 .empty{ padding:22px 14px; text-align:center; color:var(--muted); font-size:.78rem; }
 .empty i{ display:block; font-size:1.4rem; margin-bottom:6px; opacity:.4; }
 
+/* workforce split cells */
+.wf-split{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.wf-cell{ background:var(--card2); border-radius:8px; padding:8px 10px; }
+.wf-cell-val{ font-size:1.15rem; font-weight:700; color:var(--text); line-height:1; }
+.wf-cell-lbl{ font-size:.66rem; color:var(--muted); margin-top:3px; }
 
+.wf-sec-lbl{
+  font-size:.68rem; font-weight:700; text-transform:uppercase;
+  letter-spacing:.08em; color:var(--light); margin-bottom:9px;
+}
+
+/* capacity rows */
+.util-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 0; border-bottom:1px solid var(--border); font-size:.76rem;
+}
+.util-row:last-child{ border-bottom:none; }
+.util-dot{
+  width:9px; height:9px; border-radius:50%;
+  flex-shrink:0; display:inline-block; margin-right:7px;
+}
 </style>
 @endpush
 
@@ -674,12 +697,12 @@ letter-spacing:-.01em;
     </select>
 
     @php
-        $hasFilters = ($filters['range'] ?? 'month') !== 'month' || array_filter([
-            $filters['status']  ?? null, $filters['client'] ?? null,
-            $filters['service'] ?? null, $filters['from']   ?? null,
-            $filters['to']      ?? null,
-        ]);
-    @endphp
+    $hasFilters = ($filters['range'] ?? 'today') !== 'today' || array_filter([
+        $filters['status']  ?? null, $filters['client'] ?? null,
+        $filters['service'] ?? null, $filters['from']   ?? null,
+        $filters['to']      ?? null,
+    ]);
+@endphp
     @if ($hasFilters)
         <a href="{{ url()->current() }}" class="fq-reset" title="Clear all filters">
             <i class="bi bi-arrow-counterclockwise"></i>Reset
@@ -782,6 +805,19 @@ letter-spacing:-.01em;
     </div>
   </div>
 
+
+
+  @php
+    $carry = array_filter([
+        'range'   => $filters['range']   ?? null,
+        'from'    => $filters['from']    ?? null,
+        'to'      => $filters['to']      ?? null,
+        'client'  => $filters['client']  ?? null,
+        'service' => $filters['service'] ?? null,
+    ]);
+@endphp
+
+
   <!-- MY ACTION CENTER -->
   <div class="sec-row">
     <div class="sec-line"></div>
@@ -791,30 +827,42 @@ letter-spacing:-.01em;
 
   <div class="g3" style="margin-bottom:16px;">
     <!-- QC REVIEW QUEUE -->
-    <div class="card card-pad">
+      <div class="card card-pad">
       <div class="c-hdr">
-        <div class="c-label"><i class="bi bi-patch-check"></i>QC Review Queue</div>
-        <div class="c-more" onclick="openPanel('qc-queue',null)">Open all <i class="bi bi-arrow-right"></i></div>
-      </div>
+      <div class="c-label"><i class="bi bi-patch-check"></i>QC Review Queue</div>
+      <a href="{{ route('qc_review', $carry) }}" class="c-more">
+      Open all <i class="bi bi-arrow-right"></i>
+      </a>      </div>
       <div id="qcQueue"></div>
-    </div>
-    <!-- DISPATCH QUEUE -->
-    <div class="card card-pad">
+      </div>
+      <!-- DISPATCH QUEUE -->
+      <div class="card card-pad">
       <div class="c-hdr">
-        <div class="c-label"><i class="bi bi-person-gear"></i>Dispatch Queue</div>
-        <div class="c-more" onclick="openPanel('dispatch-queue',null)">Open all <i class="bi bi-arrow-right"></i></div>
+      <div class="c-label"><i class="bi bi-person-gear"></i>Dispatch Queue</div>
+      <!-- <div class="c-more" onclick="openPanel('dispatch-queue',null)">Open all <i class="bi bi-arrow-right"></i> -->
+
+
+      <a href="{{ route('dispatch_engine',$carry) }}" class="c-more">
+      Open all <i class="bi bi-arrow-right"></i>
+      </a>    
+
+
       </div>
       <div id="dispatchQueue"></div>
-    </div>
-    <!-- INQUIRY TRIAGE -->
-    <div class="card card-pad">
+      </div>
+      <!-- INQUIRY TRIAGE -->
+      <div class="card card-pad">
       <div class="c-hdr">
-        <div class="c-label"><i class="bi bi-clipboard-check"></i>Inquiry Triage</div>
-        <div class="c-more" onclick="openPanel('inquiry-triage',null)">Open all <i class="bi bi-arrow-right"></i></div>
+      <div class="c-label"><i class="bi bi-clipboard-check"></i>Inquiry Triage</div>
+      <!-- <div class="c-more" onclick="openPanel('inquiry-triage',null)">Open all <i class="bi bi-arrow-right"></i></div> -->
+
+      <a href="{{ route('inquiry-approval.index',$carry) }}" class="c-more">
+      Open all <i class="bi bi-arrow-right"></i>
+      </a>    
       </div>
       <div id="inquiryQueue"></div>
-    </div>
-  </div>
+      </div>
+      </div>
 
   <!-- MAINTENANCE LEAD SCORECARD -->
   <!-- <div class="sec-row">
@@ -978,23 +1026,35 @@ letter-spacing:-.01em;
 
     <!-- WORKFORCE UTILIZATION -->
     <div class="card card-pad">
-      <div class="c-hdr">
+    <div class="c-hdr">
         <div class="c-label"><i class="bi bi-people"></i>Workforce Utilization</div>
         <div class="c-more" onclick="openPanel('workforce',null)">View all <i class="bi bi-arrow-right"></i></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
-        <div class="ch-d-sm"><canvas id="workforceDonut"></canvas></div>
-        <div>
-          <div style="font-size:1.6rem;font-weight:700;color:#9a8053;line-height:1;">{{ $workforce['utilization'] }}%</div>
-<div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;">Utilization rate</div>
-<div class="leg" style="margin-bottom:4px;"><span class="leg-dot" style="background:#9a8053;"></span>On-site: {{ $workforce['on_site'] }}</div>
-<div class="leg" style="margin-bottom:4px;"><span class="leg-dot" style="background:#2563eb;"></span>En-route / assigned: {{ $workforce['en_route'] }}</div>
-<div class="leg"><span class="leg-dot" style="background:rgba(0,0,0,.2);"></span>Available: {{ $workforce['available'] }}</div>
-        </div>
-      </div>
-      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--light);margin-bottom:7px;">Field Capacity</div>
-      <div id="capacityList"></div>
     </div>
+
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+        <div class="ch-d-sm"><canvas id="workforceDonut"></canvas></div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:1.6rem;font-weight:700;color:#9a8053;line-height:1;">
+                {{ $workforce['utilization'] }}%
+            </div>
+            <div style="font-size:.72rem;color:var(--muted);margin-bottom:10px;">Assigned rate</div>
+
+            <div class="wf-split">
+                <div class="wf-cell">
+                    <div class="wf-cell-val">{{ $workforce['total'] }}</div>
+                    <div class="wf-cell-lbl">Total SRs</div>
+                </div>
+                <div class="wf-cell">
+                    <div class="wf-cell-val" style="color:#15803d;">{{ $workforce['available'] }}</div>
+                    <div class="wf-cell-lbl">Unassigned</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="wf-sec-lbl">Capacity by Category</div>
+    <div id="capacityList"></div>
+</div>
 
   </div>
 
@@ -1308,20 +1368,23 @@ PANEL_DATA['trades']={
         meta:'Field trade volume for July 2026 · '+t.v+' service requests handled'};
     });})()
 };
-PANEL_DATA['workforce']={
-  title:'Workforce & Field Capacity',icon:'bi-people',
-  sub:'12 technicians · 5 on-site · 3 en-route · 4 available now',
-  items:[
-    {id:'On-site',client:'5 technicians',badge:'Active',bc:'#9a8053',meta:'Currently punched-in and performing field work across active SRs'},
-    {id:'En-route / Assigned',client:'3 technicians',badge:'Dispatched',bc:'#2563eb',meta:'Assigned with confirmed ETA, travelling to site'},
-    {id:'Available',client:'4 technicians',badge:'Free',bc:'#15803d',meta:'Idle and ready for immediate dispatch'}
-  ].concat(CAPACITY.map(function(c){
-    return {id:c.t+' capacity',client:c.avail+' of '+c.total+' free',
-      badge:(c.avail===0?'Full':c.avail<=1?'Tight':'Open'),
-      bc:(c.avail===0?'#dc2626':c.avail<=1?'#d97706':'#15803d'),
-      meta:c.total+' '+c.t.toLowerCase()+' technicians on roster · '+c.avail+' available for new jobs'};
-  }))
+
+PANEL_DATA['workforce'] = {
+  title: 'SR Assignment Capacity',
+  icon:  'bi-people',
+  sub:   WF.total + ' SRs · ' + WF.taken + ' assigned · ' + WF.available + ' unassigned',
+  items: CAPACITY.map(function(c){
+    return {
+      id:     c.t,
+      client: c.avail + ' of ' + c.total + ' unassigned',
+      badge:  (c.avail === 0 ? 'All assigned' : c.avail <= 1 ? 'Tight' : 'Open'),
+      bc:     (c.avail === 0 ? '#dc2626' : c.avail <= 1 ? '#d97706' : '#15803d'),
+      meta:   c.total + ' ' + c.t.toLowerCase() + ' SRs in this period · '
+              + c.taken + ' assigned to a technician'
+    };
+  })
 };
+
 PANEL_DATA['dispatch']={
   title:'Dispatch Efficiency',icon:'bi-send',
   sub:'Field dispatch performance · July 2026',
@@ -1372,12 +1435,36 @@ function buildCharts(){
   }
 
   /* Workforce donut */
-  var c3=document.getElementById('workforceDonut');
-  if(c3){
-    CHARTS.wf=new Chart(c3,{type:'doughnut',data:{labels:['On-site','En-route','Available'],
-      datasets:[{data:[5,3,4],backgroundColor:['#9a8053','#2563eb','rgba(0,0,0,.12)'],borderColor:['#9a8053','#2563eb','rgba(0,0,0,.18)'],borderWidth:2,hoverOffset:4}]},
-      options:{responsive:true,maintainAspectRatio:false,cutout:'72%',plugins:{legend:{display:false},tooltip:TT}}});
-  }
+  var c3 = document.getElementById('workforceDonut');
+if (c3 && CAPACITY.length) {
+  CHARTS.wf = new Chart(c3, {
+    type: 'doughnut',
+    data: {
+      labels: CAPACITY.map(function(c){ return c.t; }),
+      datasets: [{
+        data: CAPACITY.map(function(c){ return c.total; }),
+        backgroundColor: CAPACITY.map(function(c){ return c.c; }),
+        borderColor: 'rgba(0,0,0,0)',
+        borderWidth: 2,
+        hoverOffset: 5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '72%',
+      plugins: {
+        legend: { display: false },
+        tooltip: Object.assign({}, TT, {
+          callbacks: {
+            label: function(ctx){
+              var c = CAPACITY[ctx.dataIndex];
+              return ' ' + c.total + ' SRs · ' + c.avail + ' free';
+            }
+          }
+        })
+      }
+    }
+  });
+}
 
   /* SLA gauge */
   var c4=document.getElementById('slaG');
@@ -1631,13 +1718,36 @@ function renderTradeList(){
 }
 
 function renderCapacity(){
-  document.getElementById('capacityList').innerHTML=CAPACITY.map(function(c){
-    var col=c.avail===0?'#dc2626':c.avail<=1?'#d97706':'#15803d';
-    return '<div class="util-row"><span style="color:var(--muted);"><span class="util-dot" style="background:'+col+';"></span>'+c.t+'</span>'+
-      '<span style="color:var(--text);font-weight:600;">'+c.avail+' / '+c.total+' free</span></div>';
-  }).join('');
-}
+  var box = document.getElementById('capacityList');
+  if (!box) return;
 
+  if (!CAPACITY.length) {
+    box.innerHTML = '<p class="empty" style="padding:14px 0;">No SRs in this period.</p>';
+    return;
+  }
+
+  box.innerHTML = CAPACITY.map(function(c){
+    var dot = c.c || '#9a8053';
+    var num = c.avail === 0 ? '#dc2626' : c.avail <= 1 ? '#d97706' : '#15803d';
+
+    return '<div style="display:flex;align-items:center;justify-content:space-between;'
+      +   'padding:8px 0;border-bottom:1px solid var(--border);font-size:.76rem;">'
+      + '<span style="display:flex;align-items:center;gap:7px;color:var(--muted);min-width:0;">'
+      +   '<span style="width:9px;height:9px;border-radius:50%;background:' + dot + ';'
+      +     'flex-shrink:0;display:inline-block;"></span>'
+      +   '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.t + '</span>'
+      + '</span>'
+      + '<span style="color:var(--text);font-weight:600;white-space:nowrap;flex-shrink:0;">'
+      +   '<span style="color:' + num + ';">' + c.avail + '</span> / ' + c.total + ' free'
+      + '</span>'
+      + '</div>';
+  }).join('');
+
+  // remove the border from the last row
+  var rows = box.children;
+  if (rows.length) rows[rows.length - 1].style.borderBottom = 'none';
+}
+console.log(CAPACITY);
 function renderRatings(){
   var max = RATING_MAX || 1;
   document.getElementById('ratingHist').innerHTML = RATINGS.map(function(r){
@@ -1662,6 +1772,7 @@ function prCard(id,badge,bc,client,meta){
     (client?'<div class="pr-client">'+client+'</div>':'')+
     '<div class="pr-meta"><i class="bi bi-geo-alt"></i>'+meta+'</div></div>';
 }
+
 function openPanel(type,id){
   var heading='',icon='bi-list',sub='',body='';
 

@@ -550,82 +550,64 @@ class DashboardController extends Controller
     private const TRADE_COLORS    = ['#9a8053', '#393837', '#b8975e', '#64748b', '#7c3aed'];
 
     private function workforce(array $filters, $start, $end): array
-    {
-        // Every technician on the roster (never filtered — this is live state)
-        $techs = DB::table('users')
-            ->where('role_id', 4)
-            ->where('status', 'active')
-            ->pluck('name', 'id');
+{
+    // All SRs in the window, with their category
+    $rows = DB::table('service_requests as sr')
+        ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
+        ->whereBetween('sr.created_at', [$start, $end])
+        ->when(!empty($filters['status']),  fn($q) => $q->where('sr.status', $filters['status']))
+        ->when(!empty($filters['client']),  fn($q) => $q->where('sr.client_id', $filters['client']))
+        ->when(!empty($filters['service']), fn($q) => $q->where('sr.service_type_id', $filters['service']))
+        ->get(['sr.assigned_user_id', 'sr.status', 'sc.category_name']);
 
-        // --- LIVE assignments: who is busy right now, unfiltered by date ---
-        $live = DB::table('service_requests as sr')
-            ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
-            ->whereNotNull('sr.assigned_user_id')
-            ->whereIn('sr.status', self::ACTIVE_STATUSES)
-            ->get(['sr.assigned_user_id', 'sr.status', 'sc.category_name']);
-
-        // --- PERIOD assignments: job volume inside the selected window ---
-        $period = DB::table('service_requests as sr')
-            ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
-            ->whereNotNull('sr.assigned_user_id')
-            ->whereBetween('sr.created_at', [$start, $end])
-            ->when(!empty($filters['status']),  fn($q) => $q->where('sr.status', $filters['status']))
-            ->when(!empty($filters['client']),  fn($q) => $q->where('sr.client_id', $filters['client']))
-            ->when(!empty($filters['service']), fn($q) => $q->where('sr.service_type_id', $filters['service']))
-            ->get(['sr.assigned_user_id', 'sr.status', 'sc.category_name']);
-
-        // Currently busy technicians (live)
-        $busy = $live->pluck('assigned_user_id')->unique();
-
-        // Primary trade per technician — use ALL history, not just the window,
-        // otherwise a narrow filter leaves most techs with no trade at all.
-        $allAssignments = DB::table('service_requests as sr')
-            ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
-            ->whereNotNull('sr.assigned_user_id')
-            ->whereNotNull('sc.category_name')
-            ->get(['sr.assigned_user_id', 'sc.category_name']);
-
-        $tradeOf = $allAssignments
-            ->groupBy('assigned_user_id')
-            ->map(fn($g) => $g->countBy('category_name')->sortDesc()->keys()->first());
-
-        // Capacity per trade (live availability)
-        $capacity = collect($tradeOf)
-            ->groupBy(fn($trade) => $trade)
-            ->map(function ($group, $trade) use ($busy) {
-                $ids   = collect($group)->keys();
-                $total = $ids->count();
-                return [
-                    't'     => $trade,
-                    'total' => $total,
-                    'avail' => $total - $ids->intersect($busy)->count(),
-                ];
-            })
-            ->values();
-
-        // Job volume per trade — FILTERED to the selected period
-        $trades = $period->filter(fn($r) => $r->category_name)
-            ->countBy('category_name')
-            ->map(fn($n, $name) => ['n' => $name, 'v' => $n])
-            ->values()
-            ->map(fn($t, $i) => $t + ['c' => self::TRADE_COLORS[$i % count(self::TRADE_COLORS)]]);
-
-        $onSite    = $live->where('status', 'In Progress')->pluck('assigned_user_id')->unique()->count();
-        $enRoute   = $live->where('status', 'Assigned')->pluck('assigned_user_id')->unique()->count();
-        $total     = $techs->count();
-        $available = max(0, $total - $busy->count());
+    // Capacity per category: total SRs vs unassigned ("free")
+ $capacity = $rows
+    ->filter(fn($r) => $r->category_name)
+    ->groupBy('category_name')
+    ->map(function ($group, $category) {
+        $total = $group->count();
+        $free  = $group->filter(fn($r) => empty($r->assigned_user_id))->count();
 
         return [
-            'total'         => $total,
-            'on_site'       => $onSite,
-            'en_route'      => $enRoute,
-            'available'     => $available,
-            'utilization'   => $total > 0 ? (int) round($busy->count() / $total * 100) : 0,
-            'capacity'      => $capacity->all(),
-            'trades'        => $trades->all(),
-            'trades_total'  => $period->filter(fn($r) => $r->category_name)->count(),
+            't'     => $category,
+            'total' => $total,
+            'avail' => $free,
+            'taken' => $total - $free,
         ];
-    }
+    })
+    ->sortByDesc('total')
+    ->values()
+    ->map(fn($c, $i) => $c + ['c' => self::TRADE_COLORS[$i % count(self::TRADE_COLORS)]]);
+
+    // Overall totals
+    $totalSrs = $rows->count();
+    $freeSrs  = $rows->filter(fn($r) => empty($r->assigned_user_id))->count();
+    $takenSrs = $totalSrs - $freeSrs;
+
+    // Live technician state (unfiltered — this is "right now")
+    $assigned = $rows->filter(fn($r) => !empty($r->assigned_user_id));
+    $onSite   = $assigned->where('status', 'In Progress')->count();
+    $enRoute  = $assigned->where('status', 'Assigned')->count();
+
+    // Job volume per trade — feeds the "Jobs by Trade" donut
+    $trades = $rows->filter(fn($r) => $r->category_name)
+        ->countBy('category_name')
+        ->map(fn($n, $name) => ['n' => $name, 'v' => $n])
+        ->values()
+        ->map(fn($t, $i) => $t + ['c' => self::TRADE_COLORS[$i % count(self::TRADE_COLORS)]]);
+
+    return [
+        'total'        => $totalSrs,
+        'available'    => $freeSrs,
+        'taken'        => $takenSrs,
+        'on_site'      => $onSite,
+        'en_route'     => $enRoute,
+        'utilization'  => $totalSrs > 0 ? (int) round($takenSrs / $totalSrs * 100) : 0,
+        'capacity'     => $capacity->all(),
+        'trades'       => $trades->all(),
+        'trades_total' => $rows->filter(fn($r) => $r->category_name)->count(),
+    ];
+}
 
     private function inquirySrs(array $filters, $start, $end)
     {

@@ -215,7 +215,7 @@ class ServiceRequestController extends Controller
 
         $categories = ServiceCategory::orderBy('category_name')->get(['id', 'category_name']);
 
-        $query = ServiceRequest::with(['client', 'project', 'assignedUser','category']);
+        $query = ServiceRequest::with(['client', 'project', 'assignedUser', 'category']);
 
         if ($request->filled('search')) {
             $s = trim($request->search);
@@ -282,28 +282,52 @@ class ServiceRequestController extends Controller
         ];
 
         if ($request->ajax() && $request->filled('frag')) {
-            return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats','categories'))
+            return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats', 'categories'))
                 ->fragment($request->frag);
         }
 
-        return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats','categories'));
+        return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats', 'categories'));
     }
 
     /* ============================================================
      |  INQUIRY APPROVAL (approve / forward / reject) + WhatsApp
      * ============================================================ */
 
-    public function approvalIndex()
+    public function approvalIndex(Request $request)
     {
-        $inquiries = ServiceRequest::with('client', 'project', 'creator', 'category')
-            ->where('status', 'Pending')
-            ->latest()
-            ->get();
+        $filters = [
+            'range'   => $request->input('range'),
+            'from'    => $request->input('from'),
+            'to'      => $request->input('to'),
+            'client'  => $request->input('client'),
+            'service' => $request->input('service'),
+        ];
+
+        $query = ServiceRequest::with('client', 'project', 'creator', 'category')
+            ->where('status', 'Pending');
+
+        // Only window when the dashboard sent a range — a direct visit shows everything pending.
+        if (!empty($filters['range'])) {
+            [$start, $end] = $this->resolveRange($filters);
+            $query->whereBetween('created_at', [$start, $end]);
+        }
+
+        if (!empty($filters['client'])) {
+            $query->where('client_id', $filters['client']);
+        }
+
+        if (!empty($filters['service'])) {
+            $query->where('service_type_id', $filters['service']);
+        }
+
+        $inquiries = $query->latest()->get();
 
         $priorities = Priority::where('status', 1)
             ->orderBy('display_order')
             ->get();
 
+        // Today's throughput — deliberately NOT windowed by the dashboard filter.
+        // These read "what happened today", so a past date range shouldn't zero them.
         $stats = [
             'pending'   => $inquiries->count(),
             'approved'  => ServiceRequest::where('status', 'Approved')->whereDate('updated_at', today())->count(),
@@ -311,7 +335,7 @@ class ServiceRequestController extends Controller
             'rejected'  => ServiceRequest::where('status', 'Rejected')->whereDate('updated_at', today())->count(),
         ];
 
-        return view('inquiry_approval', compact('inquiries', 'stats', 'priorities'));
+        return view('inquiry_approval', compact('inquiries', 'stats', 'priorities', 'filters'));
     }
 
     public function approve(ServiceRequest $serviceRequest)
@@ -453,14 +477,35 @@ class ServiceRequestController extends Controller
      |  DISPATCH ENGINE
      * ============================================================ */
 
-    public function dispatch_engine()
+    public function dispatch_engine(Request $request)
     {
+        $filters = [
+            'range'   => $request->input('range'),
+            'from'    => $request->input('from'),
+            'to'      => $request->input('to'),
+            'client'  => $request->input('client'),
+            'service' => $request->input('service'),
+        ];
 
+        $query = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
+            ->where('status', 'Approved');
 
-        $inquiries = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
-            ->where('status', 'Approved')
-            ->latest()
-            ->get();
+        // Only window when the dashboard sent a range — a direct visit shows the full queue.
+        if (!empty($filters['range'])) {
+            [$start, $end] = $this->resolveRange($filters);
+            $query->whereBetween('created_at', [$start, $end]);
+        }
+
+        if (!empty($filters['client'])) {
+            $query->where('client_id', $filters['client']);
+        }
+
+        if (!empty($filters['service'])) {
+            $query->where('service_type_id', $filters['service']);
+        }
+
+        $inquiries = $query->latest()->get();
+
         $tickets = $inquiries->map(function ($sr) {
             return [
                 'id'                => $this->buildSrRef($sr),
@@ -493,12 +538,13 @@ class ServiceRequestController extends Controller
             ->get();
 
         // --- Today's ETA workload count per technician (assigned_user_id) ---
+        // Deliberately NOT filtered: this is live capacity, not a period metric.
         $loadCounts = DB::table('service_requests')
             ->select('assigned_user_id', DB::raw('COUNT(*) as cnt'))
             ->whereNotNull('assigned_user_id')
             ->whereDate('eta_at', now()->toDateString())
             ->groupBy('assigned_user_id')
-            ->pluck('cnt', 'assigned_user_id');   // [3 => 5, 2 => 2, ...]
+            ->pluck('cnt', 'assigned_user_id');
 
         $technicians = DB::table('user_service_domain as usd')
             ->join('users as u', 'u.id', '=', 'usd.user_id')
@@ -509,11 +555,17 @@ class ServiceRequestController extends Controller
                 'name'        => $r->name,
                 'category_id' => $r->service_category_id,
                 'domain_id'   => $r->service_domain_id,
-                'count'       => (int) ($loadCounts[$r->id] ?? 0),   // today's ETA load
+                'count'       => (int) ($loadCounts[$r->id] ?? 0),
             ])
             ->values();
 
-        return view('dispatch_engine', compact('inquiries', 'tickets', 'categories', 'technicians'));
+        return view('dispatch_engine', compact(
+            'inquiries',
+            'tickets',
+            'categories',
+            'technicians',
+            'filters'
+        ));
     }
 
 
@@ -667,9 +719,17 @@ class ServiceRequestController extends Controller
      |  QC REVIEW
      * ============================================================ */
 
-    public function qcReview()
+    public function qcReview(Request $request)
     {
-        $requests = ServiceRequest::with([
+        $filters = [
+            'range'   => $request->input('range'),
+            'from'    => $request->input('from'),
+            'to'      => $request->input('to'),
+            'client'  => $request->input('client'),
+            'service' => $request->input('service'),
+        ];
+
+        $query = ServiceRequest::with([
             'client',
             'project',
             'assignedUser',
@@ -677,63 +737,70 @@ class ServiceRequestController extends Controller
                 ->latest('id')
                 ->with(['items', 'photos']),
         ])
-            ->where('status', 'Qc Review')
-            ->latest('updated_at')
-            ->get();
+            ->where('status', 'Qc Review');
+
+        // Only window the results when the dashboard actually sent a range —
+        // visiting this page directly should show the whole queue.
+        if (!empty($filters['range'])) {
+            [$start, $end] = $this->resolveRange($filters);
+            $query->whereBetween('created_at', [$start, $end]);
+        }
+
+        if (!empty($filters['client'])) {
+            $query->where('client_id', $filters['client']);
+        }
+
+        if (!empty($filters['service'])) {
+            $query->where('service_type_id', $filters['service']);
+        }
+
+        $requests = $query->latest('updated_at')->get();
 
         $queue = $requests->map(function ($sr) {
             $punch = $sr->punches->first();
 
-            $scope = $this->srScope($sr);
-            $sla   = $punch ? $this->srSla($sr, $punch)
+            $sla = $punch ? $this->srSla($sr, $punch)
                 : ['label' => '—', 'cls' => '', 'fill' => 0, 'color' => '#9ca3af'];
-            $exp   = $punch ? $this->srExpenses($punch)
+            $exp = $punch ? $this->srExpenses($punch)
                 : ['rows' => [], 'total' => 0];
 
-
-            $warrantyEnd = optional($sr->project)->warranty_end_date;
-
+            $warrantyEnd  = optional($sr->project)->warranty_end_date;
             $isInWarranty = $warrantyEnd
                 && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
 
             return [
-                'id'           => $this->buildSrRef($sr),
-                'dbId'         => $sr->id,
-                'client'       => optional($sr->client)->company_name ?? '—',
-                'site'         => $punch?->site_location
+                'id'         => $this->buildSrRef($sr),
+                'dbId'       => $sr->id,
+                'client'     => optional($sr->client)->company_name ?? '—',
+                'site'       => $punch?->site_location
                     ?? optional($sr->project)->site_name ?? '—',
-                'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
-
-                // 'scope'        => $scope,
-                // 'scopeLabel'   => $scope === 'iw' ? 'In Warranty' : 'Out of Warranty',
+                'tech'       => optional($sr->assignedUser)->name ?? 'Unassigned',
 
                 'scope'      => $isInWarranty ? 'iw' : 'oow',
                 'scopeLabel' => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
                 'warranty'   => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
 
-                'punchIn'      => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
-                'punchOut'     => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
-                'sla'          => $sla,
-                'slaFill'      => $sla['fill'],
-                'slaColor'     => $sla['color'],
-                // 'expenses'     => $exp['rows'],
+                'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
+                'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
+                'sla'        => $sla,
+                'slaFill'    => $sla['fill'],
+                'slaColor'   => $sla['color'],
 
                 'expenses' => collect($exp['rows'])->map(fn($r) => [
-                    'cat'     => $r['cat']     ?? $r['category'] ?? '—',
-                    'icon'    => $r['icon']    ?? 'bi-receipt',
-                    'amt'     => $r['amt']     ?? $r['amount']   ?? 0,
+                    'cat'     => $r['cat']  ?? $r['category'] ?? '—',
+                    'icon'    => $r['icon'] ?? 'bi-receipt',
+                    'amt'     => $r['amt']  ?? $r['amount']   ?? 0,
                     'receipt' => (bool) ($r['receipt'] ?? $r['receipt_path'] ?? false),
                 ])->values(),
 
                 'totalExpense' => 'AED ' . number_format($exp['total'], 0),
+
                 'proof' => [
                     'before' => $punch
-                        ? $punch->photos->where('type', 'before')
-                        ->map(fn($p) => $p->url)->values()->all()
+                        ? $punch->photos->where('type', 'before')->map(fn($p) => $p->url)->values()->all()
                         : [],
                     'after'  => $punch
-                        ? $punch->photos->where('type', 'after')
-                        ->map(fn($p) => $p->url)->values()->all()
+                        ? $punch->photos->where('type', 'after')->map(fn($p) => $p->url)->values()->all()
                         : [],
                     'signature' => $punch?->customer_signature_path
                         ? asset('storage/' . $punch->customer_signature_path) : null,
@@ -766,7 +833,41 @@ class ServiceRequestController extends Controller
                 ->avg() ?? 0
         );
 
-        return view('qc_review', compact('queue', 'passedToday', 'returnedRework', 'avgReviewTime'));
+        return view('qc_review', compact(
+            'queue',
+            'passedToday',
+            'returnedRework',
+            'avgReviewTime',
+            'filters'
+        ));
+    }
+
+
+    private function resolveRange(array $filters): array
+    {
+        $range = $filters['range'] ?? 'today';
+
+        if ($range === 'custom' && !empty($filters['from']) && !empty($filters['to'])) {
+            try {
+                $from = \Carbon\Carbon::parse($filters['from'])->startOfDay();
+                $to   = \Carbon\Carbon::parse($filters['to'])->endOfDay();
+
+                // user picked them backwards
+                if ($from->gt($to)) {
+                    [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
+                }
+
+                return [$from, $to];
+            } catch (\Exception $e) {
+                // unparseable date — fall through to the presets
+            }
+        }
+
+        return match ($range) {
+            'month'   => [now()->startOfMonth(), now()->endOfMonth()],
+            'quarter' => [now()->startOfQuarter(), now()->endOfQuarter()],
+            default   => [today()->startOfDay(), today()->endOfDay()],
+        };
     }
 
     public function qcPass(ServiceRequest $serviceRequest)
@@ -820,12 +921,12 @@ class ServiceRequestController extends Controller
             $wa = app(\App\Services\WhatsAppService::class);
             $wa->notifyMaintenanceCompleted($serviceRequest, null, $photosLink);
             $wa->notifyInternalMaintenanceCompleted($serviceRequest, null, $photosLink);
-            } catch (\Throwable $e) {
-                Log::error('QC-pass WhatsApp failed', [
-                    'sr_id' => $serviceRequest->id,
-                    'error' => $e->getMessage(),
-                ]);
-            }
+        } catch (\Throwable $e) {
+            Log::error('QC-pass WhatsApp failed', [
+                'sr_id' => $serviceRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
         $ref = $this->buildSrRef($serviceRequest);
 
         return response()->json([
@@ -949,7 +1050,11 @@ class ServiceRequestController extends Controller
         $quoteRejected  = ServiceRequest::where('status', 'Quote Rejected')->count();
 
         return view('quotation_desk', compact(
-            'qQueue', 'pendingApproval', 'rejectedQuotes', 'clientApproved', 'quoteRejected'
+            'qQueue',
+            'pendingApproval',
+            'rejectedQuotes',
+            'clientApproved',
+            'quoteRejected'
         ));
     }
 

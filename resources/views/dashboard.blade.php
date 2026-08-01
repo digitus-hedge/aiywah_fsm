@@ -570,21 +570,21 @@ footer.footer { display: none; }
                 <button type="button" class="c-more" data-panel="active-srs">View all <i class="bi bi-arrow-right"></i></button>
             </div>
 
-            <div class="status-dist" style="margin-bottom:14px;">
-                @forelse ($statusBreakdown as $row)
-                    <div class="sd-row">
-                        <span class="sd-label" title="{{ data_get($row, 'label') }}">{{ data_get($row, 'label') }}</span>
-                        <span class="sd-track">
-                            <span class="sd-fill"
-                                  data-width="{{ round((int) data_get($row, 'count') / $maxStatus * 100) }}%"
-                                  style="background:{{ data_get($row, 'color', '#9a8053') }};"></span>
-                        </span>
-                        <span class="sd-n">{{ data_get($row, 'count') }}</span>
-                    </div>
-                @empty
-                    <p class="empty"><i class="bi bi-inbox"></i>No service requests in this period.</p>
-                @endforelse
-            </div>
+          <div class="status-dist" style="margin-bottom:14px;">
+    @forelse ($statusBreakdown as $row)
+        <div class="sd-row" style="opacity:{{ data_get($row, 'n') ? 1 : .38 }}">
+            <span class="sd-label" title="{{ data_get($row, 'lbl') }}">{{ data_get($row, 'lbl') }}</span>
+            <span class="sd-track">
+                <span class="sd-fill"
+                      data-width="{{ data_get($row, 'w') }}%"
+                      style="background:{{ data_get($row, 'c', '#9a8053') }};"></span>
+            </span>
+            <span class="sd-n">{{ data_get($row, 'n') }}</span>
+        </div>
+    @empty
+        <p class="empty"><i class="bi bi-inbox"></i>No service requests in this period.</p>
+    @endforelse
+</div>
 
             <div class="leg-row" style="padding-top:12px;border-top:1px solid var(--border);">
                 <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>Operations</span>
@@ -865,37 +865,37 @@ footer.footer { display: none; }
 
         {{-- Clients --}}
         <div class="card card-pad">
-            <div class="c-hdr">
-                <div class="c-label"><i class="bi bi-buildings"></i>Top clients by SR volume</div>
-                @isset($clientsIndexUrl)
-                    <a href="{{ $clientsIndexUrl }}" class="c-more">All clients <i class="bi bi-arrow-right"></i></a>
-                @endisset
-            </div>
+    <div class="c-hdr">
+        <div class="c-label"><i class="bi bi-buildings"></i>Top clients by SR volume</div>
+        <!-- <div class="c-more" onclick="openPanel('clients',null)">All clients <i class="bi bi-arrow-right"></i></div> -->
+    </div>
 
-            <div class="ch-180"><canvas id="mmClientChart"></canvas></div>
-            <div class="leg-row" style="margin-top:9px;">
-                <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>In-warranty</span>
-                <span class="leg"><span class="leg-dot" style="background:#39383788;"></span>Out-of-warranty</span>
-            </div>
-
-            <div style="margin-top:12px;display:flex;flex-direction:column;gap:2px;">
-                @forelse ($clients as $client)
-                    <button type="button" class="lrow clickable"
-                            data-panel="client" data-panel-id="{{ data_get($client, 'id') }}">
-                        <span style="display:flex;align-items:center;gap:7px;">
-                            <span class="rank">{{ $loop->iteration }}</span>
-                            <span style="font-weight:500;color:var(--text);">{{ data_get($client, 'name') }}</span>
-                        </span>
-                        <span style="display:flex;align-items:center;gap:6px;">
-                            <strong style="color:var(--text);">{{ data_get($client, 'srs') }}</strong>
-                            <span style="color:var(--muted);">SRs</span>
-                        </span>
-                    </button>
-                @empty
-                    <p class="empty"><i class="bi bi-building"></i>No client activity in this period.</p>
-                @endforelse
-            </div>
+    @if (count($clients))
+        <div class="ch-180"><canvas id="mmClientChart"></canvas></div>
+        <div class="leg-row">
+            <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>In-warranty</span>
+            <span class="leg"><span class="leg-dot" style="background:#39383788;"></span>Out-of-warranty</span>
         </div>
+    @endif
+
+    <div class="client-list">
+        @forelse ($clients as $client)
+            <button type="button" class="lrow"
+                    onclick="openPanel('clients',null)">
+                <span class="lrow-l">
+                    <span class="rank">{{ $loop->iteration }}</span>
+                    <span class="lrow-name">{{ data_get($client, 'n') }}</span>
+                </span>
+                <span class="lrow-r">
+                    <strong>{{ data_get($client, 'srs') }}</strong>
+                    <span class="lrow-unit">SRs</span>
+                </span>
+            </button>
+        @empty
+            <p class="empty"><i class="bi bi-building"></i>No client activity in this period.</p>
+        @endforelse
+    </div>
+</div>
 
         {{-- Front desk --}}
         <div class="card card-pad">
@@ -1051,13 +1051,13 @@ footer.footer { display: none; }
         'qc'        => $qc       ?? null,
 
         'clients'   => collect($clients ?? [])
-            ->map(fn ($c) => [
-                'name' => data_get($c, 'short_name') ?? data_get($c, 'name'),
-                'iw'   => (int) data_get($c, 'in_warranty'),
-                'oow'  => (int) data_get($c, 'out_warranty'),
-            ])
-            ->values()
-            ->all(),
+    ->map(fn ($c) => [
+        'name' => data_get($c, 'n'),
+        'iw'   => (int) data_get($c, 'iw'),
+        'oow'  => (int) data_get($c, 'oow'),
+    ])
+    ->values()
+    ->all(),
 
             'frontDesk' => collect($frontDesk ?? [])
             ->map(fn ($e) => [
@@ -1184,6 +1184,48 @@ window.MM_DASH = @json($mmChartData);
             });
         }
 
+
+
+       /* Top clients by SR volume */
+/* Top clients by SR volume */
+const clientEl = document.getElementById('mmClientChart');
+const clientRows = DATA.clients || [];
+
+if (clientEl && clientRows.length) {
+    charts.mmClient = new Chart(clientEl, {
+        type: 'bar',
+        data: {
+            labels: clientRows.map(c => String(c.name || '—').split(' ')[0]),
+            datasets: [
+                {
+                    label: 'In-warranty',
+                    data: clientRows.map(c => c.iw),
+                    backgroundColor: 'rgba(154,128,83,.75)',
+                    borderRadius: 4, borderSkipped: false,
+                },
+                {
+                    label: 'Out-of-warranty',
+                    data: clientRows.map(c => c.oow),
+                    backgroundColor: 'rgba(57,56,55,.45)',
+                    borderRadius: 4, borderSkipped: false,
+                },
+            ],
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            plugins: { legend: { display: false }, tooltip: tooltipStyle },
+            scales: {
+                x: { stacked: true, grid: { color: C.grid },
+                     ticks: { color: C.muted, font: { size: 10 }, precision: 0 } },
+                y: { stacked: true, grid: { display: false },
+                     ticks: { color: C.text, font: { size: 10 } } },
+            },
+        },
+    });
+}
+
+
+
         /* Invoiced vs expense */
         const finEl = document.getElementById('mmFinChart');
         if (finEl && DATA.finance && DATA.finance.labels) {
@@ -1262,27 +1304,27 @@ window.MM_DASH = @json($mmChartData);
         }
 
         /* Clients (stacked horizontal) */
-        const clientEl = document.getElementById('mmClientChart');
-        if (clientEl && (DATA.clients || []).length) {
-            charts.clients = new Chart(clientEl, {
-                type: 'bar',
-                data: {
-                    labels: DATA.clients.map((c) => c.name),
-                    datasets: [
-                        { label: 'In-warranty',     data: DATA.clients.map((c) => c.iw),  backgroundColor: 'rgba(154,128,83,.75)', borderRadius: 4, borderSkipped: false },
-                        { label: 'Out-of-warranty', data: DATA.clients.map((c) => c.oow), backgroundColor: 'rgba(57,56,55,.45)',  borderRadius: 4, borderSkipped: false },
-                    ],
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-                    plugins: { legend: { display: false }, tooltip: tooltipStyle },
-                    scales: {
-                        x: { stacked: true, grid: { color: C.grid }, ticks: { color: C.muted, font: { size: 10 } } },
-                        y: { stacked: true, grid: { display: false }, ticks: { color: C.text, font: { size: 10 } } },
-                    },
-                },
-            });
-        }
+        // const clientEl = document.getElementById('mmClientChart');
+        // if (clientEl && (DATA.clients || []).length) {
+        //     charts.clients = new Chart(clientEl, {
+        //         type: 'bar',
+        //         data: {
+        //             labels: DATA.clients.map((c) => c.name),
+        //             datasets: [
+        //                 { label: 'In-warranty',     data: DATA.clients.map((c) => c.iw),  backgroundColor: 'rgba(154,128,83,.75)', borderRadius: 4, borderSkipped: false },
+        //                 { label: 'Out-of-warranty', data: DATA.clients.map((c) => c.oow), backgroundColor: 'rgba(57,56,55,.45)',  borderRadius: 4, borderSkipped: false },
+        //             ],
+        //         },
+        //         options: {
+        //             responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        //             plugins: { legend: { display: false }, tooltip: tooltipStyle },
+        //             scales: {
+        //                 x: { stacked: true, grid: { color: C.grid }, ticks: { color: C.muted, font: { size: 10 } } },
+        //                 y: { stacked: true, grid: { display: false }, ticks: { color: C.text, font: { size: 10 } } },
+        //             },
+        //         },
+        //     });
+        // }
 
         /* Front desk */
         const fdEl = document.getElementById('mmFrontDeskChart');
