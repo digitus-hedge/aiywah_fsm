@@ -20,6 +20,7 @@ class ServiceRequest extends Model
         'issue_description',
         'internal_remark',
         'status',
+        'created_by',
         'attachments',
         'assigned_user_id',
         'service_domain_id',

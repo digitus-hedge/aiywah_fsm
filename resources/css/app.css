@@ -5,8 +5,32 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+
+@font-face {
+    font-family: 'DM Sans';
+    src: url('./DMSans-Regular.woff2') format('woff2-variations');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
 @theme {
-    --font-sans: 'SF Pro Display', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+    --font-sans: 'DM Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-serif: 'Cormorant Garamond', Georgia, serif;
+    --font-serif: 'DM Sans', Georgia, serif;
+}
+
+@layer base {
+    body {
+        font-family: var(--font-sans);
+        font-feature-settings: 'cv02' 1, 'cv03' 1, 'cv04' 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    .data-table, .sla-tbl, .pa-tbl,
+    .sla-inp, .stat-num, .rb-val, .rb-total,
+    .meta-chip-value, .qi-time, .sla-wrap {
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum' 1;
+    }
 }

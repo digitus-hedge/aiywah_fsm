@@ -35,18 +35,25 @@ return [
         ],
     ],
 
-    'whatsapp' => [
-    'token' => env('WHATSAPP_ACCESS_TOKEN'),
+   'whatsapp' => [
+    'token'           => env('WHATSAPP_ACCESS_TOKEN'),
     'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
-    'version' => env('WHATSAPP_API_VERSION', 'v23.0'),
-],
+    'version'         => env('WHATSAPP_API_VERSION', 'v23.0'),
 
+    // Role codes that receive internal SR alerts (see roles.code)
+    'internal_role_codes' => ['SA', 'HP'],
+
+    // Optional extras not tied to a user account — "Name:Phone" pairs,
+    // comma-separated. e.g. WHATSAPP_INTERNAL_NUMBERS="Ops Desk:971501112233"
     'internal_recipients' => array_values(array_filter(array_map(
-    function ($pair) {
-        [$name, $phone] = array_pad(explode(':', trim($pair), 2), 2, null);
-        return $phone ? ['name' => trim($name), 'phone' => preg_replace('/\D/', '', $phone)] : null;
-    },
-    explode(',', (string) env('WHATSAPP_INTERNAL_NUMBERS', ''))
-))),
+        function ($pair) {
+            [$name, $phone] = array_pad(explode(':', trim($pair), 2), 2, null);
+            return $phone
+                ? ['name' => trim($name), 'phone' => preg_replace('/\D/', '', $phone)]
+                : null;
+        },
+        explode(',', (string) env('WHATSAPP_INTERNAL_NUMBERS', ''))
+    ))),
+],
 
 ];

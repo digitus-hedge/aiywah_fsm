@@ -536,57 +536,59 @@ textarea.form-control{resize:vertical;min-height:72px;}
        PANEL 4: SLA MATRIX (dynamic, one row per priority)
   ════════════════════════════════ -->
   <div class="master-panel" id="panel-sla">
-    <div class="simple-card">
-      <div class="simple-card-hdr">
-        <div class="card-hdr-icon" style="background:rgba(8,145,178,.1);"><i class="bi bi-stopwatch" style="color:#0891b2;"></i></div>
-        <div>
-          <h6 style="font-size:.875rem;font-weight:600;color:var(--text-heading);margin:0 0 1px;">SLA Duration Matrix</h6>
-          <div class="csub" style="font-size:.72rem;color:var(--text-muted);">Response and resolution time targets per priority. All values in <strong>minutes</strong>.</div>
-        </div>
-        <div class="card-hdr-actions">
-          <button class="btn-primary-gold" onclick="saveSLA()"><i class="bi bi-floppy"></i>Save Changes</button>
-        </div>
+  <div class="simple-card">
+    <div class="simple-card-hdr">
+      <div class="card-hdr-icon" style="background:rgba(8,145,178,.1);"><i class="bi bi-stopwatch" style="color:#0891b2;"></i></div>
+      <div>
+        <h6 style="font-size:.875rem;font-weight:600;color:var(--text-heading);margin:0 0 1px;">SLA Duration Matrix</h6>
+        <div class="csub" style="font-size:.72rem;color:var(--text-muted);">Approve, dispatch and QC targets per criticality. All values in <strong>hours</strong>.</div>
       </div>
-      <div style="padding:14px 18px 4px;">
-        <div class="info-banner blue">
-          <i class="bi bi-info-circle"></i>
-          <span>Edit targets directly in the table. The <strong>Alert Threshold</strong> controls when a row turns warning colour on the SR Explorer — e.g. 80% means alert when 80% of the target time has elapsed.</span>
-        </div>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="sla-tbl">
-          <thead>
-            <tr>
-              <th>Priority</th>
-              <th>First Response (mins)</th>
-              <th>Assignment (mins)</th>
-              <th>Resolution (mins)</th>
-              <th>Alert at (%)</th>
-              <th>Row Colour</th>
-            </tr>
-          </thead>
-          <tbody>
-            @forelse($priorities as $p)
-              <tr data-priority-id="{{ $p->id }}">
-                <td><span style="display:inline-flex;align-items:center;gap:7px;"><span class="pdot" style="background:{{ $p->color }};"></span><strong>{{ $p->name }}</strong></span></td>
-                <td><input class="sla-inp" type="number" min="1" value="{{ optional($slaMatrix->firstWhere('priority_id', $p->id))->response_time ?? 60 }}"/></td>
-                <td><input class="sla-inp" type="number" min="1" value="{{ optional($slaMatrix->firstWhere('priority_id', $p->id))->assignment_time ?? 180 }}"/></td>
-                <td><input class="sla-inp" type="number" min="1" value="{{ optional($slaMatrix->firstWhere('priority_id', $p->id))->resolution_time ?? 480 }}"/></td>
-                <td><div style="display:inline-flex;align-items:center;gap:4px;"><input class="sla-inp" type="number" min="1" max="100" style="width:60px;" value="{{ optional($slaMatrix->firstWhere('priority_id', $p->id))->alert_percentage ?? 80 }}"/>%</div></td>
-                <td><span style="display:inline-block;width:22px;height:22px;border-radius:6px;background:{{ $p->color }};"></span></td>
-              </tr>
-            @empty
-              <tr><td colspan="6" class="muted" style="text-align:center;padding:20px;">Add priority levels first to configure SLA targets.</td></tr>
-            @endforelse
-          </tbody>
-        </table>
-      </div>
-      <div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;align-items:center;gap:8px;">
-        <i class="bi bi-lightbulb" style="color:#9A7B4F;font-size:.85rem;"></i>
-        <span style="font-size:.72rem;color:var(--text-muted);">1440 mins = 24 hrs · 2880 mins = 48 hrs · 4320 mins = 72 hrs</span>
+      <div class="card-hdr-actions">
+        <button class="btn-primary-gold" onclick="saveSLA()"><i class="bi bi-floppy"></i>Save Changes</button>
       </div>
     </div>
-  </div> 
+
+    <div style="padding:14px 18px 4px;">
+      <div class="info-banner blue">
+        <i class="bi bi-info-circle"></i>
+        <span>Each stage clock starts when the previous one closes — <strong>Approve</strong> from SR creation, <strong>Dispatch</strong> from approval, <strong>QC</strong> from job completion. Values are whole hours (1–8760).</span>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table class="sla-tbl">
+        <thead>
+          <tr>
+            <th>Criticality</th>
+            <th>Approve (hrs)</th>
+            <th>Dispatch (hrs)</th>
+            <th>QC (hrs)</th>
+            <th>Row Colour</th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($priorities as $p)
+            @php $row = $slaMatrix->firstWhere('priority_id', $p->id); @endphp
+            <tr data-priority-id="{{ $p->id }}">
+              <td><span style="display:inline-flex;align-items:center;gap:7px;"><span class="pdot" style="background:{{ $p->color }};"></span><strong>{{ $p->name }}</strong></span></td>
+              <td><input class="sla-inp" type="number" min="1" max="8760" step="1" data-field="response_time"   value="{{ optional($row)->response_time   ?? 4 }}"/></td>
+              <td><input class="sla-inp" type="number" min="1" max="8760" step="1" data-field="assignment_time" value="{{ optional($row)->assignment_time ?? 8 }}"/></td>
+              <td><input class="sla-inp" type="number" min="1" max="8760" step="1" data-field="resolution_time" value="{{ optional($row)->resolution_time ?? 24 }}"/></td>
+              <td><span style="display:inline-block;width:22px;height:22px;border-radius:6px;background:{{ $p->color }};"></span></td>
+            </tr>
+          @empty
+            <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">Add criticality levels first to configure SLA targets.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding:12px 18px;border-top:1px solid var(--border-color);display:flex;align-items:center;gap:8px;">
+      <i class="bi bi-lightbulb" style="color:#9A7B4F;font-size:.85rem;"></i>
+      <span style="font-size:.72rem;color:var(--text-muted);">24 hrs = 1 day · 72 hrs = 3 days · 168 hrs = 1 week</span>
+    </div>
+  </div>
+</div>
  
 <!-- ════ MODAL: SERVICE CATEGORY ════ -->
 <div class="modal-overlay" id="modal-cat" onclick="handleOverlayClick(event,'modal-cat')">
@@ -1248,22 +1250,39 @@ async function toggleStatus(type,id){
  
 /* ─── SAVE SLA (whole table) ─── */
 async function saveSLA(){
-  const rows=[...document.querySelectorAll('.sla-tbl tbody tr')].map(tr=>{
-    const inp=tr.querySelectorAll('input.sla-inp');
-    if(!inp.length) return null;
-    return {
-      priority_id:      parseInt(tr.dataset.priorityId,10),
-      response_time:    parseInt(inp[0].value,10),
-      assignment_time:  parseInt(inp[1].value,10),
-      resolution_time:  parseInt(inp[2].value,10),
-      alert_percentage: parseFloat(inp[3].value),
+  const trs = [...document.querySelectorAll('.sla-tbl tbody tr[data-priority-id]')];
+  const rows = [];
+
+  for (const tr of trs) {
+    const read = f => {
+      const el = tr.querySelector(`input[data-field="${f}"]`);
+      return el ? parseInt(el.value, 10) : NaN;
     };
-  }).filter(r=>r && !isNaN(r.priority_id));
-  if(!rows.length){showToast('err','Nothing to save','Add priority levels first.');return;}
+    const row = {
+      priority_id:     parseInt(tr.dataset.priorityId, 10),
+      response_time:   read('response_time'),
+      assignment_time: read('assignment_time'),
+      resolution_time: read('resolution_time'),
+    };
+
+    const bad = ['response_time','assignment_time','resolution_time']
+      .find(k => isNaN(row[k]) || row[k] < 1 || row[k] > 8760);
+
+    if (bad) {
+      const name = tr.querySelector('strong')?.textContent || 'this row';
+      showToast('err','Invalid Value',`Enter 1–8760 hours for every field in "${name}".`);
+      tr.querySelector(`input[data-field="${bad}"]`)?.focus();
+      return;
+    }
+    rows.push(row);
+  }
+
+  if(!rows.length){ showToast('err','Nothing to save','Add criticality levels first.'); return; }
+
   try{
     await api(window.M_ROUTES.slaSaveAll,'POST',{rows});
     showToast('ok','SLA Updated','SLA Duration Matrix saved successfully.');
-  }catch(e){showToast('err','Error',e.message);}
+  }catch(e){ showToast('err','Error', e.message); }
 }
  
 /* ─── DELETE ─── */

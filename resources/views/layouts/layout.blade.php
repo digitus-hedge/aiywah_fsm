@@ -19,6 +19,10 @@
     {{-- Google Fonts Roboto — can now remove, or keep as a fallback --}}
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+    
     {{-- Bootstrap 5 CSS --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -42,6 +46,7 @@
 
     {{-- ⑤ Per-page styles --}}
     @stack('styles')
+    
 </head>
 
 <body>

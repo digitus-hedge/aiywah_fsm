@@ -14,8 +14,8 @@
   --color-primary-rgb: 154, 128, 83;
 
   /* Body = SF Pro Display. Headings = Cormorant Garamond (serif display face). */
-  --font-body:   'SF Pro Display', 'Roboto', Helvetica, Arial, sans-serif;
-  --font-header: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-body:   'DM Sans', 'Roboto', Helvetica, Arial, sans-serif;
+  --font-header: 'DM Sans', Georgia, 'Times New Roman', serif;
 }
 
 /* ─────────────────────────────────────────
@@ -264,7 +264,7 @@ h1, h2, h3, h4, h5, h6,
 .sidebar-nav a,
 .sidebar .sidebar-nav a {
   color: var(--nav-link) !important;
-  font-family: var(--font-body);
+  font-family: var(--font-header);
 }
 
 /* ─────────────────────────────────────────

@@ -215,8 +215,14 @@ private function imageToBase64(string $path): ?string
     'caused_by'   => auth()->id(),
     ]);
 
-    app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'Accepted');
-
+    try {
+    app(\App\Services\WhatsAppService::class)->notifyTechnicianAssigned($sr);
+    } catch (\Throwable $e) {
+        Log::error('Technician-assigned WhatsApp failed', [
+            'sr_id' => $sr->id,
+            'error' => $e->getMessage(),
+        ]);
+    }
     return response()->json([
         'ok'     => true,
         'sr_id'  => $sr->id,

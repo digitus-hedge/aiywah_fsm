@@ -153,6 +153,7 @@ class ServiceRequestController extends Controller
                 'issue_description' => $data['issue_description'],
                 'internal_remark'   => $data['internal_remark'] ?? null,
                 'status'            => 'Pending',
+                'created_by'        => auth()->id(),
                 'attachments'       => $paths ?: null,
             ]);
         });
@@ -170,7 +171,14 @@ class ServiceRequestController extends Controller
 
         // Send WhatsApp notification (outside transaction)
         // $this->sendServiceRequestMessage($sr, $this->buildSrRef($sr), 'Pending');
-        app(\App\Services\WhatsAppService::class)->notifyServiceCreated($sr, 'Pending');
+        try {
+            $sr->load(['client', 'project', 'creator']);
+            $wa = app(\App\Services\WhatsAppService::class);
+            $wa->notifyServiceRequestReceived($sr);
+            $wa->notifyInternalNewRequest($sr);
+        } catch (\Throwable $e) {
+            Log::error('SR created WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+        }
         return response()->json([
             'success'      => true,
             'id'           => $sr->id,
@@ -233,27 +241,28 @@ class ServiceRequestController extends Controller
         if ($request->filled('date_from')) $query->whereDate('created_at', '>=', $request->date_from);
         if ($request->filled('date_to'))   $query->whereDate('created_at', '<=', $request->date_to);
 
-        if ($request->export === 'csv') {
+        if ($request->query('export') === 'csv') {
             $rows = (clone $query)->latest()->get();
-            $headers = [
-                'Content-Type'        => 'text/csv',
-                'Content-Disposition' => 'attachment; filename="service_requests.csv"',
-            ];
-            return response()->stream(function () use ($rows) {
+
+            return response()->streamDownload(function () use ($rows) {
                 $out = fopen('php://output', 'w');
-                fputcsv($out, ['SR ID', 'Client', 'Site', 'Assigned To', 'Status', 'Created']);
+                fwrite($out, "\xEF\xBB\xBF");
+                fputcsv($out, ['SR ID', 'Client', 'Site', 'Assigned To', 'Category', 'Status', 'Created']);
                 foreach ($rows as $sr) {
                     fputcsv($out, [
                         $this->buildSrRef($sr),
                         optional($sr->client)->company_name,
-                        $sr->project_site ?? optional($sr->project)->project_name,
+                        optional($sr->project)->site_name ?? $sr->project_site,
                         optional($sr->assignedUser)->name ?? 'Unassigned',
+                        optional($sr->category)->category_name ?? '-',
                         $sr->status,
-                        \Carbon\Carbon::parse($sr->created_at)->format('Y-m-d H:i'),
+                        $sr->created_at?->format('Y-m-d H:i'),
                     ]);
                 }
                 fclose($out);
-            }, 200, $headers);
+            }, 'service_requests_' . now()->format('Ymd_His') . '.csv', [
+                'Content-Type' => 'text/csv; charset=UTF-8',
+            ]);
         }
 
         $sortCol = $request->query('sort', 'id');
@@ -338,7 +347,7 @@ class ServiceRequestController extends Controller
             // no live warranty on the project — fall back to the generic status message
             $wa->notifyServiceStatus($serviceRequest, 'Approved');
         }
-
+        $wa->notifyInternalSrAccepted($serviceRequest);
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -367,8 +376,9 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        app(\App\Services\WhatsAppService::class)->notifyOutsideWarranty($serviceRequest);
-
+        $wa = app(\App\Services\WhatsAppService::class);
+        $wa->notifyOutsideWarranty($serviceRequest);
+        $wa->notifyInternalOutsideWarranty($serviceRequest);
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -394,7 +404,7 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        $this->sendServiceRequestMessage($serviceRequest, $ref, 'Additional Work');
+        app(\App\Services\WhatsAppService::class)->notifyOutsideScope($serviceRequest);
 
         return response()->json([
             'ok'      => true,
@@ -570,8 +580,15 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-    // app(\App\Services\WhatsAppService::class)->notifyTechnicianAssigned($serviceRequest);
-
+        try {
+            app(\App\Services\WhatsAppService::class)
+                ->notifyInternalTechnicianAssigned($serviceRequest);
+        } catch (\Throwable $e) {
+            Log::error('Internal tech-assigned WhatsApp failed', [
+                'sr_id' => $serviceRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -796,14 +813,19 @@ class ServiceRequestController extends Controller
             ['serviceRequest' => $serviceRequest->id]
         );
 
-        app(\App\Services\WhatsAppService::class)
-            ->notifyMaintenanceCompleted($serviceRequest, null, $photosLink);
 
         \App\Jobs\SendSatisfactionSurvey::dispatch($serviceRequest)
             ->delay(now()->addDay());
-
-
-
+        try {
+            $wa = app(\App\Services\WhatsAppService::class);
+            $wa->notifyMaintenanceCompleted($serviceRequest, null, $photosLink);
+            $wa->notifyInternalMaintenanceCompleted($serviceRequest, null, $photosLink);
+            } catch (\Throwable $e) {
+                Log::error('QC-pass WhatsApp failed', [
+                    'sr_id' => $serviceRequest->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         $ref = $this->buildSrRef($serviceRequest);
 
         return response()->json([

@@ -486,129 +486,102 @@ public function updateWarrantyCategory(Request $request, $id)
     /* ============================================================
      |  SLA MATRIX
      ============================================================ */
-    public function storeSlaMatrix(Request $request)
-    {
-        $request->validate([
-            'priority_id'      => 'required|exists:priorities,id',
-            'response_time'    => 'required|integer|min:1',
-            'assignment_time'  => 'required|integer|min:1',
-            'resolution_time'  => 'required|integer|min:1',
-            'alert_percentage' => 'required|numeric|min:1|max:100',
-            'status'           => 'nullable|in:0,1',
-        ]);
+        /** Shared rules — all times are HOURS now. */
+private function slaRules(string $prefix = ''): array
+{
+    return [
+        $prefix.'priority_id'     => 'required|exists:priorities,id',
+        $prefix.'response_time'   => 'required|integer|min:1|max:8760',   // Approve
+        $prefix.'assignment_time' => 'required|integer|min:1|max:8760',   // Dispatch
+        $prefix.'resolution_time' => 'required|integer|min:1|max:8760',   // QC
+        $prefix.'status'          => 'nullable|in:0,1',
+    ];
+}
 
-        if (SlaMatrix::where('priority_id', $request->priority_id)->exists()) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'SLA already exists for this priority.',
-            ], 422);
-        }
+public function storeSlaMatrix(Request $request)
+{
+    $request->validate($this->slaRules());
 
-        $sla = SlaMatrix::create([
-            'priority_id'      => $request->priority_id,
-            'response_time'    => $request->response_time,
-            'assignment_time'  => $request->assignment_time,
-            'resolution_time'  => $request->resolution_time,
-            'alert_percentage' => $request->alert_percentage,
-            'status'           => $request->status ?? 1,
-        ]);
-
+    if (SlaMatrix::where('priority_id', $request->priority_id)->exists()) {
         return response()->json([
-            'status'  => true,
-            'message' => 'SLA Matrix created successfully.',
-            'data'    => $sla,
-        ]);
+            'status'  => false,
+            'message' => 'SLA already exists for this criticality.',
+        ], 422);
     }
 
-    public function updateSlaMatrix(Request $request, $id)
-    {
-        $sla = SlaMatrix::findOrFail($id);
+    $sla = SlaMatrix::create([
+        'priority_id'     => $request->priority_id,
+        'response_time'   => $request->response_time,
+        'assignment_time' => $request->assignment_time,
+        'resolution_time' => $request->resolution_time,
+        'status'          => $request->status ?? 1,
+    ]);
 
-        $request->validate([
-            'priority_id'      => 'required|exists:priorities,id',
-            'response_time'    => 'required|integer|min:1',
-            'assignment_time'  => 'required|integer|min:1',
-            'resolution_time'  => 'required|integer|min:1',
-            'alert_percentage' => 'required|numeric|min:1|max:100',
-            'status'           => 'nullable|in:0,1',
-        ]);
+    return response()->json([
+        'status'  => true,
+        'message' => 'SLA Matrix created successfully.',
+        'data'    => $sla,
+    ]);
+}
 
-        $dupe = SlaMatrix::where('priority_id', $request->priority_id)
-            ->where('id', '!=', $id)->exists();
+public function updateSlaMatrix(Request $request, $id)
+{
+    $sla = SlaMatrix::findOrFail($id);
+    $request->validate($this->slaRules());
 
-        if ($dupe) {
-            return response()->json([
-                'status'  => false,
-                'message' => 'SLA already exists for this priority.',
-            ], 422);
-        }
+    $dupe = SlaMatrix::where('priority_id', $request->priority_id)
+        ->where('id', '!=', $id)->exists();
 
-        $sla->update([
-            'priority_id'      => $request->priority_id,
-            'response_time'    => $request->response_time,
-            'assignment_time'  => $request->assignment_time,
-            'resolution_time'  => $request->resolution_time,
-            'alert_percentage' => $request->alert_percentage,
-            'status'           => $request->status ?? 1,
-        ]);
-
+    if ($dupe) {
         return response()->json([
-            'status'  => true,
-            'message' => 'SLA Matrix updated successfully.',
-            'data'    => $sla,
-        ]);
+            'status'  => false,
+            'message' => 'SLA already exists for this criticality.',
+        ], 422);
     }
 
-    public function deleteSlaMatrix($id)
-    {
-        $sla = SlaMatrix::findOrFail($id);
-        $sla->delete();
+    $sla->update([
+        'priority_id'     => $request->priority_id,
+        'response_time'   => $request->response_time,
+        'assignment_time' => $request->assignment_time,
+        'resolution_time' => $request->resolution_time,
+        'status'          => $request->status ?? 1,
+    ]);
 
-        return response()->json([
-            'status'  => true,
-            'message' => 'SLA Matrix deleted successfully.',
-        ]);
-    }
+    return response()->json([
+        'status'  => true,
+        'message' => 'SLA Matrix updated successfully.',
+        'data'    => $sla,
+    ]);
+}
 
-    /**
-     * Save the whole SLA table at once (the "Save Changes" button).
-     * Expects: rows = [ {priority_id, response_time, assignment_time,
-     *                    resolution_time, alert_percentage}, ... ]
-     */
-    public function saveAllSla(Request $request)
-    {
-        $request->validate([
-            'rows'                    => 'required|array|min:1',
-            'rows.*.priority_id'      => 'required|exists:priorities,id',
-            'rows.*.response_time'    => 'required|integer|min:1',
-            'rows.*.assignment_time'  => 'required|integer|min:1',
-            'rows.*.resolution_time'  => 'required|integer|min:1',
-            'rows.*.alert_percentage' => 'required|numeric|min:1|max:100',
-        ]);
+public function saveAllSla(Request $request)
+{
+    $request->validate(array_merge(
+        ['rows' => 'required|array|min:1'],
+        $this->slaRules('rows.*.')
+    ));
 
-        DB::beginTransaction();
-        try {
-            foreach ($request->rows as $row) {
-                SlaMatrix::updateOrCreate(
-                    ['priority_id' => $row['priority_id']],
-                    [
-                        'response_time'    => $row['response_time'],
-                        'assignment_time'  => $row['assignment_time'],
-                        'resolution_time'  => $row['resolution_time'],
-                        'alert_percentage' => $row['alert_percentage'],
-                        'status'           => $row['status'] ?? 1,
-                    ]
-                );
-            }
-            DB::commit();
-
-            return response()->json(['status' => true, 'message' => 'SLA Matrix saved successfully.']);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
+    DB::beginTransaction();
+    try {
+        foreach ($request->rows as $row) {
+            SlaMatrix::updateOrCreate(
+                ['priority_id' => $row['priority_id']],
+                [
+                    'response_time'   => $row['response_time'],
+                    'assignment_time' => $row['assignment_time'],
+                    'resolution_time' => $row['resolution_time'],
+                    'status'          => $row['status'] ?? 1,
+                ]
+            );
         }
-    }
+        DB::commit();
 
+        return response()->json(['status' => true, 'message' => 'SLA Matrix saved successfully.']);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
+    }
+}
     
     /* ============================================================
      |  AJAX READ ENDPOINTS

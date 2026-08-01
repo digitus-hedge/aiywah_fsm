@@ -19,10 +19,34 @@ use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
-    /** Field-completion target, matching srSla() in ServiceRequestController. */
-    private const SLA_TARGET_HOURS = 48;
-
     private const CURRENCY = 'AED';
+
+    /**
+     * Per-stage SLA targets in hours. A breach is one stage running long,
+     * not the request as a whole — so a single SR can breach more than once.
+     *
+     * Tune these to your actual commitments; the numbers below are
+     * placeholders that produce sensible output, nothing more.
+     */
+    private const STAGE_SLA_HOURS = [
+        'approval' => 24,   // created_at      → hop_approved_at
+        'dispatch' => 12,   // hop_approved_at → dispatched_at
+        'accept'   => 6,    // dispatched_at   → accepted_at
+        'closeout' => 24,   // qc_reviewed_at  → completed
+    ];
+
+    private const STAGE_LABELS = [
+        'approval' => 'Pending → Approval',
+        'dispatch' => 'Approval → Dispatch',
+        'accept'   => 'Dispatch → Accept',
+        'closeout' => 'QC → Completed',
+    ];
+
+    /** A breach on one of these priorities is flagged critical. */
+    private const CRITICAL_PRIORITIES = ['High', 'Critical', 'Urgent'];
+
+    /** Field-time target per service request, in hours. */
+    private const FIELD_HOURS_TARGET = 8;
 
     /**
      * Set this once you tell me the WhatsApp log table. Left null, the WhatsApp
@@ -34,10 +58,16 @@ class DashboardController extends Controller
     /** Statuses that mean the request is finished, one way or another. */
     private const CLOSED_STATUSES = ['Completed', 'Rejected', 'Quote Rejected'];
 
+    /** Statuses that mean the request was turned down. */
+    private const REJECTED_STATUSES = ['Rejected', 'Quote Rejected'];
+
     /** Statuses sitting in someone's queue waiting on a decision. */
     private const AWAITING_ACTION = [
         'Pending', 'Forwarded', 'Quoted', 'Qc Review', 'Pending Invoice', 'Invoice Submitted',
     ];
+
+    /** Punch states that mean the work is with QC. */
+    private const QC_PUNCH_STATUSES = ['submitted', 'qc_review'];
 
     /** Colour per status for the distribution bars. */
     private const STATUS_COLORS = [
@@ -60,31 +90,29 @@ class DashboardController extends Controller
         'On Hold'           => '#64748b',
     ];
 
-    /** Cached once per request so the four sparklines share a single query. */
+    /** Cached once per request so the sparklines share a single query. */
     private ?Collection $sparkWeek = null;
 
     /* =====================================================================
      | Page
      ===================================================================== */
 
+    private function dashboardView(): string
+    {
+        $role = optional(Auth::user()?->role)->name;
 
+        $map = [
+            'Head of Projects' => 'head_projects_dashboard',
+            'Front Desk'       => 'front_desk_dashboard',
+            'Accounts'         => 'accounts_dashboard',
+            'QC'               => 'qc_dashboard',
+        ];
 
-private function dashboardView(): string
-{
-    $role = optional(Auth::user()?->role)->name;
+        $view = $map[$role] ?? 'dashboard';
 
-    $map = [
-        'Head of Projects' => 'head_projects_dashboard',
-        'Front Desk'       => 'front_desk_dashboard',
-        'Accounts'         => 'accounts_dashboard',
-        'QC'               => 'qc_dashboard',
-    ];
+        return view()->exists($view) ? $view : 'dashboard';
+    }
 
-    $view = $map[$role] ?? 'dashboard';
-
-    return view()->exists($view) ? $view : 'dashboard';
-}
-     
     public function index(Request $request)
     {
         [$start, $end]         = $this->resolveRange($request->input('range', 'month'));
@@ -102,8 +130,7 @@ private function dashboardView(): string
         $current  = $this->load($filters, $start, $end);
         $previous = $this->load($filters, $prevStart, $prevEnd);
 
-         return view($this->dashboardView(), [
-        // return view('dashboard', [
+        return view($this->dashboardView(), [
             'greeting'    => $this->greeting(),
             'greetingSub' => "Here's your complete operations overview",
             'today'       => now()->format('l, d F Y'),
@@ -129,6 +156,7 @@ private function dashboardView(): string
             'frontDesk'       => $this->frontDesk($current),
             'satisfaction'    => $this->satisfaction($current),
             'ratingBuckets'   => $this->ratingBuckets($current),
+            'clientReviews'   => $this->clientReviews($current),
         ]);
     }
 
@@ -148,6 +176,7 @@ private function dashboardView(): string
                 'creator:id,name',
                 'category:id,category_name',
                 'punches.items',
+                'punches.user:id,name',   // the ML on each punch
             ])
             ->get();
     }
@@ -210,7 +239,24 @@ private function dashboardView(): string
         return ! in_array($sr->status, self::CLOSED_STATUSES, true);
     }
 
-    /** When the job actually finished: last punch-out, else the QC stamp. */
+    /**
+     * When the request was actually closed out.
+     *
+     * There is no completed_at column, so this approximates: an invoice
+     * timestamp if one exists, otherwise the last time the row was touched.
+     * Add a real completed_at and change this to return it — the fourth
+     * stage SLA is only as accurate as this method.
+     */
+    private function closedAt(ServiceRequest $sr): ?Carbon
+    {
+        if ($sr->status !== 'Completed') {
+            return null;
+        }
+
+        return $sr->invoice_submitted_at ?? $sr->updated_at;
+    }
+
+    /** When the field work finished: last punch-out, else the QC stamp. */
     private function completedAt(ServiceRequest $sr): ?Carbon
     {
         $punchOut = $sr->punches
@@ -232,12 +278,116 @@ private function dashboardView(): string
         return round(abs($sr->created_at->diffInMinutes($done)) / 60, 1);
     }
 
-    private function metSla(ServiceRequest $sr): ?bool
-    {
-        $hours = $this->turnaroundHours($sr);
+    /* ---------------------------------------------------------------------
+     | Stage SLAs
+     |
+     | Each stage is a pair of timestamps. A stage with either end missing
+     | is not judged — an SR still awaiting approval hasn't breached the
+     | approval SLA, it simply hasn't finished that stage yet.
+     --------------------------------------------------------------------- */
 
-        return is_null($hours) ? null : $hours <= self::SLA_TARGET_HOURS;
+    private function stageHours(ServiceRequest $sr, string $stage): ?float
+    {
+        [$from, $to] = match ($stage) {
+            'approval' => [$sr->created_at,      $sr->hop_approved_at],
+            'dispatch' => [$sr->hop_approved_at, $sr->dispatched_at],
+            'accept'   => [$sr->dispatched_at,   $sr->accepted_at],
+            'closeout' => [$sr->qc_reviewed_at,  $this->closedAt($sr)],
+            default    => [null, null],
+        };
+
+        if (! $from || ! $to) {
+            return null;
+        }
+
+        return round(abs($from->diffInMinutes($to)) / 60, 1);
     }
+
+    /** Breached stages for one SR, as ['stage' => hours taken]. */
+    private function stageBreaches(ServiceRequest $sr): array
+    {
+        $breached = [];
+
+        foreach (self::STAGE_SLA_HOURS as $stage => $target) {
+            $hours = $this->stageHours($sr, $stage);
+
+            if (! is_null($hours) && $hours > $target) {
+                $breached[$stage] = $hours;
+            }
+        }
+
+        return $breached;
+    }
+
+    private function hasBreach(ServiceRequest $sr): bool
+    {
+        return $this->stageBreaches($sr) !== [];
+    }
+
+    private function isCriticalBreach(ServiceRequest $sr): bool
+    {
+        return $this->hasBreach($sr)
+            && in_array($sr->priority_level, self::CRITICAL_PRIORITIES, true);
+    }
+
+    /** Breach counts per stage across a collection. */
+    private function breachesByStage(Collection $srs): array
+    {
+        $counts = array_fill_keys(array_keys(self::STAGE_SLA_HOURS), 0);
+
+        foreach ($srs as $sr) {
+            foreach (array_keys($this->stageBreaches($sr)) as $stage) {
+                $counts[$stage]++;
+            }
+        }
+
+        return collect($counts)
+            ->map(fn ($count, $stage) => [
+                'stage'  => $stage,
+                'label'  => self::STAGE_LABELS[$stage],
+                'target' => self::STAGE_SLA_HOURS[$stage],
+                'count'  => $count,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /* ---------------------------------------------------------------------
+     | Field hours — drives SLA compliance
+     --------------------------------------------------------------------- */
+
+    /** Total time an ML spent on site for this SR, across all punches. */
+    private function fieldHours(ServiceRequest $sr): ?float
+    {
+        $minutes = $sr->punches
+            ->filter(fn ($p) => $p->punch_in_at && $p->punch_out_at)
+            ->sum(fn ($p) => abs($p->punch_in_at->diffInMinutes($p->punch_out_at)));
+
+        return $minutes > 0 ? round($minutes / 60, 1) : null;
+    }
+
+    private function metFieldSla(ServiceRequest $sr): ?bool
+    {
+        $hours = $this->fieldHours($sr);
+
+        return is_null($hours) ? null : $hours <= self::FIELD_HOURS_TARGET;
+    }
+
+    /** Share of completed field work that came in at or under target. */
+    private function slaCompliance(Collection $srs): ?float
+    {
+        $judged = $srs->map(fn ($sr) => $this->metFieldSla($sr))->filter(fn ($v) => ! is_null($v));
+
+        if ($judged->isEmpty()) {
+            return null;
+        }
+
+        return round($judged->filter()->count() / $judged->count() * 100, 1);
+    }
+
+    /* ---------------------------------------------------------------------
+     | Money
+     --------------------------------------------------------------------- */
 
     /** Field spend on one punch: grand total if set, else items plus labour. */
     private function punchExpense(Punch $punch): float
@@ -255,17 +405,6 @@ private function dashboardView(): string
     private function expenseFor(ServiceRequest $sr): float
     {
         return $sr->punches->sum(fn ($punch) => $this->punchExpense($punch));
-    }
-
-    private function slaCompliance(Collection $srs): ?float
-    {
-        $judged = $srs->map(fn ($sr) => $this->metSla($sr))->filter(fn ($v) => ! is_null($v));
-
-        if ($judged->isEmpty()) {
-            return null;
-        }
-
-        return round($judged->filter()->count() / $judged->count() * 100, 1);
     }
 
     /* =====================================================================
@@ -296,7 +435,8 @@ private function dashboardView(): string
         $turnaround     = $this->avgTurnaround($current);
         $prevTurnaround = $this->avgTurnaround($previous);
 
-        $breaches  = $current->filter(fn ($sr) => $this->metSla($sr) === false)->count();
+        $breaches = $current->filter(fn ($sr) => $this->hasBreach($sr))->count();
+
         $oowClosed = $current->where('status', 'Completed')
             ->reject(fn ($sr) => $this->isInWarranty($sr))
             ->count();
@@ -318,7 +458,7 @@ private function dashboardView(): string
             ],
             'sla' => [
                 'value'      => $sla ? $sla.'%' : '—',
-                'sub'        => $breaches.' '.Str::plural('breach', $breaches).' over '.self::SLA_TARGET_HOURS.'h',
+                'sub'        => 'Field work under '.self::FIELD_HOURS_TARGET.'h · '.$breaches.' stage '.Str::plural('breach', $breaches),
                 'delta'      => $prevSla ? $this->pointLabel($sla, $prevSla) : null,
                 'delta_tone' => $this->tone($sla, $prevSla),
                 'spark'      => $this->spark($filters, fn (Collection $srs) => $this->slaCompliance($srs) ?? 0),
@@ -350,7 +490,7 @@ private function dashboardView(): string
 
     /**
      * Seven daily points ending today. The week is loaded once and reused
-     * across all four sparklines.
+     * across all the sparklines.
      */
     private function spark(array $filters, callable $measure): array
     {
@@ -373,18 +513,17 @@ private function dashboardView(): string
      | Alerts
      ===================================================================== */
 
-    /**
-     * Counts behind the five alert chips. The blade renders all five, so this
-     * returns raw numbers rather than a filtered list.
-     */
     private function alertCounts(Collection $srs, Carbon $start, Carbon $end): array
     {
+        $breached = $srs->filter(fn ($sr) => $this->hasBreach($sr));
+
         return [
-            'breaches' => $srs->filter(fn ($sr) => $this->metSla($sr) === false)->count(),
+            'breaches'          => $breached->count(),
+            'critical_breaches' => $breached->filter(fn ($sr) => $this->isCriticalBreach($sr))->count(),
 
-            'pending'  => $srs->whereIn('status', self::AWAITING_ACTION)->count(),
+            'pending' => $srs->whereIn('status', self::AWAITING_ACTION)->count(),
 
-            'stalled'  => $srs
+            'stalled' => $srs
                 ->filter(fn ($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay()))
                 ->count(),
 
@@ -501,29 +640,65 @@ private function dashboardView(): string
         ];
     }
 
+    /**
+     * QC & quality.
+     *
+     * The gauge now shows QC throughput — reviewed against everything that
+     * has reached QC — instead of SLA compliance, which moved to the KPI row.
+     * First-pass rate is replaced by the pending queue.
+     */
     private function qc(Collection $srs): array
     {
-        $reviewed  = $srs->filter(fn ($sr) => $sr->qc_reviewed_at);
-        $firstPass = $reviewed->filter(fn ($sr) => empty($sr->rework_notes));
+        $reviewed = $srs->filter(fn ($sr) => $sr->qc_reviewed_at);
+
+        // Waiting on QC: status says so, or a punch is sitting in the QC states.
+        $pending = $srs->filter(fn ($sr) => $sr->status === 'Qc Review'
+            || $sr->punches->contains(fn ($p) => in_array($p->status, self::QC_PUNCH_STATUSES, true)));
+
+        $reachedQc = $reviewed->count() + $pending->count();
 
         $rework     = $srs->filter(fn ($sr) => ! empty($sr->rework_notes))->count();
         $reworkOpen = $srs->where('status', 'Rework')->count();
 
-        $breaches = $srs->filter(fn ($sr) => $this->metSla($sr) === false);
+        $breached = $srs->filter(fn ($sr) => $this->hasBreach($sr));
+        $critical = $breached->filter(fn ($sr) => $this->isCriticalBreach($sr))->count();
+
+        $oldest = $pending
+            ->sortBy(fn ($sr) => $this->completedAt($sr) ?? $sr->updated_at)
+            ->first();
 
         return [
-            'sla_compliance'  => $this->slaCompliance($srs),
-            'first_pass_rate' => $reviewed->isEmpty() ? null : round($firstPass->count() / $reviewed->count() * 100),
-            'first_pass_sub'  => $firstPass->count().' of '.$reviewed->count().' reviewed',
-            'rework_count'    => $rework,
-            'rework_sub'      => $reworkOpen.' currently open',
-            'sla_breaches'    => $breaches->count(),
-            'sla_breach_sub'  => $breaches->isEmpty()
-                ? 'All within target'
-                : $breaches->pluck('priority_level')->filter()->unique()->take(2)->implode(', ').' priority',
+            // Gauge
+            'qc_rate'     => $reachedQc > 0 ? round($reviewed->count() / $reachedQc * 100, 1) : null,
+            'qc_reviewed' => $reviewed->count(),
+            'qc_reached'  => $reachedQc,
+
+            // Mini metrics
+            'pending_qc'     => $pending->count(),
+            'pending_qc_sub' => $oldest
+                ? 'Oldest '.($this->completedAt($oldest) ?? $oldest->updated_at)?->diffForHumans()
+                : 'Queue clear',
+
+            'rework_count' => $rework,
+            'rework_sub'   => $reworkOpen.' currently open',
+
+            'sla_breaches'   => $breached->count(),
+            'sla_breach_sub' => $critical > 0
+                ? $critical.' critical'
+                : ($breached->isEmpty() ? 'All within target' : 'None critical'),
+
+            // Per-stage detail, for a breakdown or tooltip
+            'stage_breaches' => $this->breachesByStage($srs),
         ];
     }
 
+    /**
+     * Technician scorecard.
+     *
+     * Punch-in rate is gone. In its place: how much work each ML still has
+     * open (with the SR list for the hover), and their breach count with a
+     * critical flag.
+     */
     private function technicians(Collection $srs): array
     {
         return $srs
@@ -538,8 +713,9 @@ private function dashboardView(): string
                         : 0
                 ));
 
-                $rated   = $jobs->filter(fn ($sr) => $sr->performance_score);
-                $punched = $jobs->filter(fn ($sr) => $sr->punches->contains(fn ($p) => $p->punch_in_at))->count();
+                $rated    = $jobs->filter(fn ($sr) => $sr->performance_score);
+                $open     = $jobs->filter(fn ($sr) => $this->isOpen($sr));
+                $breached = $jobs->filter(fn ($sr) => $this->hasBreach($sr));
 
                 return [
                     'id'                 => $tech->id,
@@ -550,8 +726,32 @@ private function dashboardView(): string
                     'hours'              => round($minutes / 60),
                     'rating'             => $rated->isEmpty() ? 0 : round($rated->avg('performance_score'), 1),
                     'rework'             => $jobs->filter(fn ($sr) => ! empty($sr->rework_notes))->count(),
-                    'punch_rate'         => $jobs->count() ? round($punched / $jobs->count() * 100) : 0,
                     'expenses_formatted' => self::CURRENCY.' '.number_format($jobs->sum(fn ($sr) => $this->expenseFor($sr))),
+
+                    // Pending work — count for the cell, list for the hover
+                    'pending'       => $open->count(),
+                    'pending_items' => $open
+                        ->sortBy('created_at')
+                        ->take(6)
+                        ->map(fn ($sr) => $sr->code.' · '.$sr->status
+                            .' · '.($sr->client?->company_name ?? '—'))
+                        ->values()
+                        ->all(),
+
+                    // Breaches, flagged critical on high-priority work
+                    'sla_breaches' => $breached->count(),
+                    'critical'     => $breached->contains(fn ($sr) => $this->isCriticalBreach($sr)),
+                    'breach_items' => $breached
+                        ->take(6)
+                        ->map(function ($sr) {
+                            $stages = collect($this->stageBreaches($sr))
+                                ->map(fn ($hours, $stage) => self::STAGE_LABELS[$stage].' '.$hours.'h')
+                                ->implode(', ');
+
+                            return $sr->code.' · '.$stages;
+                        })
+                        ->values()
+                        ->all(),
                 ];
             })
             ->sortByDesc('jobs')
@@ -578,22 +778,26 @@ private function dashboardView(): string
             ->all();
     }
 
+    /** Front desk: pending, rejected and completed per person. */
     private function frontDesk(Collection $srs): array
     {
         return $srs
             ->filter(fn ($sr) => $sr->creator)
             ->groupBy('created_by')
             ->map(function (Collection $group) {
-                $user      = $group->first()->creator;
+                $user = $group->first()->creator;
+
                 $completed = $group->where('status', 'Completed')->count();
+                $rejected  = $group->whereIn('status', self::REJECTED_STATUSES)->count();
 
                 return [
                     'id'        => $user->id,
                     'name'      => $user->name,
                     'initials'  => $this->initials($user->name),
                     'srs'       => $group->count(),
+                    'pending'   => $group->filter(fn ($sr) => $this->isOpen($sr))->count(),
+                    'rejected'  => $rejected,
                     'completed' => $completed,
-                    'pending'   => $group->count() - $completed,
                 ];
             })
             ->sortByDesc('srs')
@@ -616,6 +820,39 @@ private function dashboardView(): string
                 ? $lowest->code." rated {$lowest->performance_score} stars — flagged for review"
                 : null,
         ];
+    }
+
+    /**
+     * The five most recent client reviews: client, SR code, the ML who did
+     * the work, the star score and the comment.
+     */
+    private function clientReviews(Collection $srs): array
+    {
+        return $srs
+            ->filter(fn ($sr) => $sr->performance_score)
+            ->sortByDesc(fn ($sr) => $sr->feedback_submitted_at ?? $sr->updated_at)
+            ->take(5)
+            ->map(function ($sr) {
+                // Prefer the ML who actually punched; fall back to the assignee.
+                $ml = $sr->punches
+                    ->filter(fn ($p) => $p->user)
+                    ->sortByDesc('punch_out_at')
+                    ->first()?->user?->name
+                    ?? $sr->assignedUser?->name;
+
+                return [
+                    'id'       => $sr->id,
+                    'code'     => $sr->code,
+                    'client'   => $sr->client?->company_name ?? '—',
+                    'ml'       => $ml ?? '—',
+                    'initials' => $this->initials($ml),
+                    'stars'    => (int) $sr->performance_score,
+                    'comment'  => $sr->evaluation_comment,
+                    'when'     => ($sr->feedback_submitted_at ?? $sr->updated_at)?->diffForHumans(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function ratingBuckets(Collection $srs): array
@@ -702,9 +939,10 @@ private function dashboardView(): string
 
         [$title, $icon, $section] = match ($type) {
             'active-srs'      => ['Active open SRs', 'bi-activity', 'Still in the workflow'],
-            'sla-breach'      => ['SLA breaches', 'bi-exclamation-triangle', 'Over '.self::SLA_TARGET_HOURS.' hours'],
+            'sla-breach'      => ['SLA breaches', 'bi-exclamation-triangle', 'Stages over target'],
             'pending-actions' => ['Pending actions', 'bi-hourglass-split', 'Waiting on a decision'],
             'slow-srs'        => ['Stalled requests', 'bi-clock-history', 'No movement in 24h'],
+            'pending-qc'      => ['Pending QC', 'bi-patch-check', 'Waiting on review'],
             'invoices'        => ['Invoiced requests', 'bi-receipt', 'Billed this period'],
             'month-srs'       => ['All SRs this period', 'bi-ticket-detailed', 'Every request logged'],
             'technician'      => ['Technician detail', 'bi-person-badge', 'Recent assignments'],
@@ -717,9 +955,11 @@ private function dashboardView(): string
 
         $srs = match ($type) {
             'active-srs'      => $all->filter(fn ($sr) => $this->isOpen($sr)),
-            'sla-breach'      => $all->filter(fn ($sr) => $this->metSla($sr) === false),
+            'sla-breach'      => $all->filter(fn ($sr) => $this->hasBreach($sr)),
             'pending-actions' => $all->whereIn('status', self::AWAITING_ACTION),
             'slow-srs'        => $all->filter(fn ($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay())),
+            'pending-qc'      => $all->filter(fn ($sr) => $sr->status === 'Qc Review'
+                                    || $sr->punches->contains(fn ($p) => in_array($p->status, self::QC_PUNCH_STATUSES, true))),
             'invoices'        => $all->filter(fn ($sr) => $sr->invoice_submitted_at),
             'technician'      => $all->where('assigned_user_id', $id),
             'client'          => $all->where('client_id', $id),
@@ -734,21 +974,40 @@ private function dashboardView(): string
             $title = $srs->first()?->client?->company_name ?? $title;
         }
 
+        // On the breach panel, sort worst first and show which stage failed.
+        if ($type === 'sla-breach') {
+            $srs = $srs->sortByDesc(fn ($sr) => $this->isCriticalBreach($sr) ? 1 : 0);
+        }
+
         $items = $srs
             ->sortByDesc('created_at')
             ->take(25)
-            ->map(fn ($sr) => [
-                'reference' => $sr->code,
-                'badge'     => $sr->status,
-                'color'     => self::STATUS_COLORS[$sr->status] ?? '#9a8053',
-                'title'     => $sr->client?->company_name ?? '—',
-                'meta'      => collect([
+            ->map(function ($sr) use ($type) {
+                $meta = collect([
                     $sr->category?->category_name,
                     $this->isInWarranty($sr) ? 'In warranty' : 'Out of warranty',
                     $sr->project?->site_name,
                     $sr->assignedUser?->name,
-                ])->filter()->implode(' · '),
-            ])
+                ]);
+
+                if ($type === 'sla-breach') {
+                    $meta = collect(array_map(
+                        fn ($stage, $hours) => self::STAGE_LABELS[$stage].' — '.$hours.'h',
+                        array_keys($this->stageBreaches($sr)),
+                        $this->stageBreaches($sr)
+                    ))->merge([$sr->assignedUser?->name]);
+                }
+
+                return [
+                    'reference' => $sr->code,
+                    'badge'     => $type === 'sla-breach' && $this->isCriticalBreach($sr) ? 'Critical' : $sr->status,
+                    'color'     => $type === 'sla-breach' && $this->isCriticalBreach($sr)
+                        ? '#dc2626'
+                        : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
+                    'title'     => $sr->client?->company_name ?? '—',
+                    'meta'      => $meta->filter()->implode(' · '),
+                ];
+            })
             ->values();
 
         return response()->json([

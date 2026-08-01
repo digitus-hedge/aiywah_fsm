@@ -21,6 +21,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\Auth\WorkerLoginController;
 use App\Http\Controllers\Auth\WorkerPasswordController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MlDashboardController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -272,7 +273,8 @@ Route::prefix('worker')->name('worker.')->group(function () {
         // Forced reset — outside the gate, or you get a redirect loop
         Route::get('/set-password',  [WorkerPasswordController::class, 'showForcedResetForm'])->name('password.forced');
         Route::post('/set-password', [WorkerPasswordController::class, 'forcedReset'])->name('password.forced.update');
-
+        // worker dashboard
+        Route::get('/dashboard', [MlDashboardController::class, 'index'])->name('dashboard');
         // Everything else sits behind the reset gate
         Route::middleware('worker.reset')->group(function () {
             Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');

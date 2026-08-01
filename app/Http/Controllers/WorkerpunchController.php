@@ -108,7 +108,13 @@ class WorkerpunchController extends Controller
             return $p;
         });
         
-        app(\App\Services\WhatsAppService::class)->notifyMaintenanceStarted($sr, $punch);
+        try {
+            $wa = app(\App\Services\WhatsAppService::class);
+            $wa->notifyMaintenanceStarted($sr, $punch);          // customer
+            $wa->notifyInternalMaintenanceStarted($sr, $punch);  // internal
+        } catch (\Throwable $e) {
+            Log::error('Punch-in WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+        }
         return response()->json([
             'ok'          => true,
             'punch_id'    => $punch->id,
@@ -275,11 +281,13 @@ public function hold(Request $request)
         ]);
     });
 
-    app(\App\Services\WhatsAppService::class)->notifyMaintenanceOnHold(
-        $sr,
-        $data['status'] === 'Reschedule' ? 'Rescheduled' : 'On Hold',
-        $data['reason']
-    );
+   try {
+    $wa = app(\App\Services\WhatsAppService::class);
+    $wa->notifyMaintenanceOnHold($sr, $sr->status, $sr->hold_reason ?? 'Further work required');
+    $wa->notifyInternalMaintenanceOnHold($sr, $sr->status, $sr->hold_reason ?? 'Further work required');
+} catch (\Throwable $e) {
+    Log::error('On-hold WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+}
 
     return response()->json([
         'ok'     => true,
