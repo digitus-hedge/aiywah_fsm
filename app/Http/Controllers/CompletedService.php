@@ -83,38 +83,43 @@ class CompletedService extends Controller
             $s = trim($request->query('search'));
             $q->where(function ($w) use ($s) {
                 $w->where('id', 'like', "%{$s}%")
-                  ->orWhereHas('client', fn ($c) => $c->where('company_name', 'like', "%{$s}%"))
-                  ->orWhereHas('punch.user', fn ($u) => $u->where('name', 'like', "%{$s}%"));
+                    ->orWhereHas('client', fn($c) => $c->where('company_name', 'like', "%{$s}%"))
+                    ->orWhereHas('punch.user', fn($u) => $u->where('name', 'like', "%{$s}%"));
             });
         });
 
         // Warranty scope filter.
-       $query->when($request->filled('warranty'), function ($q) use ($request) {
-    $now = now()->endOfDay();
+        $query->when($request->filled('warranty'), function ($q) use ($request) {
+            $now = now()->endOfDay();
 
-    if ($request->query('warranty') === 'iw') {
-        // has a project with a warranty end date still in the future
-        $q->whereHas('project', fn ($p) =>
-            $p->whereNotNull('warranty_end_date')
-              ->where('warranty_end_date', '>=', $now)
-        );
-    } elseif ($request->query('warranty') === 'oow') {
-        // expired, no end date recorded, or no project at all
-        $q->where(fn ($w) =>
-            $w->whereHas('project', fn ($p) =>
-                  $p->whereNull('warranty_end_date')
-                    ->orWhere('warranty_end_date', '<', $now)
-              )
-              ->orWhereDoesntHave('project')
-        );
-    }
-});
+            if ($request->query('warranty') === 'iw') {
+                // has a project with a warranty end date still in the future
+                $q->whereHas(
+                    'project',
+                    fn($p) =>
+                    $p->whereNotNull('warranty_end_date')
+                        ->where('warranty_end_date', '>=', $now)
+                );
+            } elseif ($request->query('warranty') === 'oow') {
+                // expired, no end date recorded, or no project at all
+                $q->where(
+                    fn($w) =>
+                    $w->whereHas(
+                        'project',
+                        fn($p) =>
+                        $p->whereNull('warranty_end_date')
+                            ->orWhere('warranty_end_date', '<', $now)
+                    )
+                        ->orWhereDoesntHave('project')
+                );
+            }
+        });
 
         // Completion date range (using updated_at as the close timestamp).
-        $query->when($request->filled('date_from'), fn ($q) =>
-            $q->whereDate('updated_at', '>=', $request->query('date_from')));
-        $query->when($request->filled('date_to'), fn ($q) =>
-            $q->whereDate('updated_at', '<=', $request->query('date_to')));
+        $query->when($request->filled('date_from'), fn($q) =>
+        $q->whereDate('updated_at', '>=', $request->query('date_from')));
+        $query->when($request->filled('date_to'), fn($q) =>
+        $q->whereDate('updated_at', '<=', $request->query('date_to')));
 
         return $query;
     }
@@ -130,13 +135,13 @@ class CompletedService extends Controller
         return [
             'total'     => $completedIds->count(),
             'thisMonth' => ServiceRequest::whereIn('status', $this->completedStatuses)
-                                ->whereMonth('updated_at', now()->month)
-                                ->whereYear('updated_at', now()->year)
-                                ->count(),
+                ->whereMonth('updated_at', now()->month)
+                ->whereYear('updated_at', now()->year)
+                ->count(),
             'revenue'   => Punch::whereIn('service_request_id', $completedIds)->sum('grand_total'),
             'signed'    => Punch::whereIn('service_request_id', $completedIds)
-                                ->whereNotNull('customer_signature_path')
-                                ->count(),
+                ->whereNotNull('customer_signature_path')
+                ->count(),
         ];
     }
 
@@ -167,7 +172,7 @@ class CompletedService extends Controller
         $punch = $this->resolvePunch($sr);
 
         $srCode = 'SR-' . Carbon::parse($sr->created_at)->format('Y')
-                . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
+            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
 
         $completedAt = $punch && $punch->punch_out_at
             ? Carbon::parse($punch->punch_out_at)
@@ -182,13 +187,13 @@ class CompletedService extends Controller
             'issue'       => $sr->issue_description ?? '—',
             'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
             'contact'     => optional($sr->client)->primary_mobile
-                             ?? optional($sr->client)->contact_number ?? '—',
+                ?? optional($sr->client)->contact_number ?? '—',
             'cust_name'   => $punch->customer_name ?? '—',
             'summary'     => $punch->completion_summary ?? '—',
             'punch_in'    => $punch && $punch->punch_in_at
-                             ? Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A') : '—',
+                ? Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A') : '—',
             'punch_out'   => $punch && $punch->punch_out_at
-                             ? Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '—',
+                ? Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '—',
             'duration'    => $punch->duration_label ?? '—',
             'materials'   => number_format($punch->materials_subtotal ?? 0, 2),
             'labour'      => number_format($punch->labour_charge ?? 0, 2),
@@ -196,11 +201,11 @@ class CompletedService extends Controller
             'completed'   => $completedAt->format('d M Y · h:i A'),
             'completed_h' => $completedAt->diffForHumans(),
             'before'      => $punch && $punch->start_photo_path
-                             ? Storage::url($punch->start_photo_path) : null,
+                ? Storage::url($punch->start_photo_path) : null,
             'after'       => $punch && $punch->finish_photo_path
-                             ? Storage::url($punch->finish_photo_path) : null,
+                ? Storage::url($punch->finish_photo_path) : null,
             'signature'   => $punch && $punch->customer_signature_path
-                             ? Storage::url($punch->customer_signature_path) : null,
+                ? Storage::url($punch->customer_signature_path) : null,
         ];
     }
 
@@ -216,21 +221,52 @@ class CompletedService extends Controller
 
         return response()->streamDownload(function () use ($rows) {
             $out = fopen('php://output', 'w');
+
+            // UTF-8 BOM so Excel reads · , ★ , AED etc. correctly
+            fwrite($out, "\xEF\xBB\xBF");
+
             fputcsv($out, [
-                'SR Code', 'Client', 'Site', 'Worker', 'Warranty',
-                'Signed By', 'Punch In', 'Punch Out', 'Duration',
-                'Materials', 'Labour', 'Grand Total', 'Completed',
+                'SR Code',
+                'Client',
+                'Site',
+                'Worker',
+                'Warranty',
+                'Signed By',
+                'Punch In',
+                'Punch Out',
+                'Duration',
+                'Materials',
+                'Labour',
+                'Grand Total',
+                'Completed',
             ]);
 
             foreach ($rows as $sr) {
                 $p = $this->payload($sr);
                 fputcsv($out, [
-                    $p['code'], $p['client'], $p['site'], $p['worker'], $p['warranty'],
-                    $p['cust_name'], $p['punch_in'], $p['punch_out'], $p['duration'],
-                    $p['materials'], $p['labour'], $p['total'], $p['completed'],
+                    $p['code'],
+                    $p['client'],
+                    $p['site'],
+                    $p['worker'],
+                    $p['warranty'],
+                    $p['cust_name'],
+                    $p['punch_in'],
+                    $p['punch_out'],
+                    $p['duration'],
+                    $p['materials'],
+                    $p['labour'],
+                    $p['total'],
+                    $p['completed'],
                 ]);
             }
+
             fclose($out);
-        }, $filename, ['Content-Type' => 'text/csv']);
+        }, $filename, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control'       => 'no-store, no-cache',
+            'Pragma'              => 'no-cache',
+        ]);
     }
+    
 }

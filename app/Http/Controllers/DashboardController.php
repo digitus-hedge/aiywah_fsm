@@ -28,7 +28,7 @@ class DashboardController extends Controller
      * Tune these to your actual commitments; the numbers below are
      * placeholders that produce sensible output, nothing more.
      */
-        private const SLA_TARGET_HOURS = 48;
+    private const SLA_TARGET_HOURS = 48;
     private const STAGE_SLA_HOURS = [
         'approval' => 24,   // created_at      → hop_approved_at
         'dispatch' => 12,   // hop_approved_at → dispatched_at
@@ -97,7 +97,7 @@ class DashboardController extends Controller
     ];
 
 
-     private const STATUS_GROUPS = [
+    private const STATUS_GROUPS = [
         'Intake'         => ['Pending', 'Approved', 'Forwarded', 'Additional', 'Quoted', 'Accepted'],
         'Field / Active' => ['Assigned', 'In Progress', 'Qc Review', 'Rework', 'Reschedule'],
         'Completed'      => ['Pending Invoice', 'Invoice Submitted', 'Completed'],
@@ -134,7 +134,7 @@ class DashboardController extends Controller
         return view()->exists($view) ? $view : 'dashboard';
     }
 
-   
+
     /**
      * Base filtered query. Every card-level SR list starts here.
      */
@@ -230,15 +230,15 @@ class DashboardController extends Controller
         if (strtoupper((string) optional($request->user()->role)->code) === 'FD') {
             return redirect()->route('frontdashboard');
         }
-    $filters = [
-    'range'   => $request->input('range', 'today'),   // ← changed
-    'from'    => $request->input('from'),
-    'to'      => $request->input('to'),
-    'status'  => $request->input('status'),
-    'client'  => $request->input('client'),
-    'service' => $request->input('service'),
-    'period'  => $request->input('period', '6M'),
-];
+        $filters = [
+            'range'   => $request->input('range', 'today'),   // ← changed
+            'from'    => $request->input('from'),
+            'to'      => $request->input('to'),
+            'status'  => $request->input('status'),
+            'client'  => $request->input('client'),
+            'service' => $request->input('service'),
+            'period'  => $request->input('period', '6M'),
+        ];
 
         [$start, $end]         = $this->resolveRange($filters);
         [$prevStart, $prevEnd] = $this->previousRange($start, $end);
@@ -550,64 +550,64 @@ class DashboardController extends Controller
     private const TRADE_COLORS    = ['#9a8053', '#393837', '#b8975e', '#64748b', '#7c3aed'];
 
     private function workforce(array $filters, $start, $end): array
-{
-    // All SRs in the window, with their category
-    $rows = DB::table('service_requests as sr')
-        ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
-        ->whereBetween('sr.created_at', [$start, $end])
-        ->when(!empty($filters['status']),  fn($q) => $q->where('sr.status', $filters['status']))
-        ->when(!empty($filters['client']),  fn($q) => $q->where('sr.client_id', $filters['client']))
-        ->when(!empty($filters['service']), fn($q) => $q->where('sr.service_type_id', $filters['service']))
-        ->get(['sr.assigned_user_id', 'sr.status', 'sc.category_name']);
+    {
+        // All SRs in the window, with their category
+        $rows = DB::table('service_requests as sr')
+            ->leftJoin('service_categories as sc', 'sc.id', '=', 'sr.service_type_id')
+            ->whereBetween('sr.created_at', [$start, $end])
+            ->when(!empty($filters['status']),  fn($q) => $q->where('sr.status', $filters['status']))
+            ->when(!empty($filters['client']),  fn($q) => $q->where('sr.client_id', $filters['client']))
+            ->when(!empty($filters['service']), fn($q) => $q->where('sr.service_type_id', $filters['service']))
+            ->get(['sr.assigned_user_id', 'sr.status', 'sc.category_name']);
 
-    // Capacity per category: total SRs vs unassigned ("free")
- $capacity = $rows
-    ->filter(fn($r) => $r->category_name)
-    ->groupBy('category_name')
-    ->map(function ($group, $category) {
-        $total = $group->count();
-        $free  = $group->filter(fn($r) => empty($r->assigned_user_id))->count();
+        // Capacity per category: total SRs vs unassigned ("free")
+        $capacity = $rows
+            ->filter(fn($r) => $r->category_name)
+            ->groupBy('category_name')
+            ->map(function ($group, $category) {
+                $total = $group->count();
+                $free  = $group->filter(fn($r) => empty($r->assigned_user_id))->count();
+
+                return [
+                    't'     => $category,
+                    'total' => $total,
+                    'avail' => $free,
+                    'taken' => $total - $free,
+                ];
+            })
+            ->sortByDesc('total')
+            ->values()
+            ->map(fn($c, $i) => $c + ['c' => self::TRADE_COLORS[$i % count(self::TRADE_COLORS)]]);
+
+        // Overall totals
+        $totalSrs = $rows->count();
+        $freeSrs  = $rows->filter(fn($r) => empty($r->assigned_user_id))->count();
+        $takenSrs = $totalSrs - $freeSrs;
+
+        // Live technician state (unfiltered — this is "right now")
+        $assigned = $rows->filter(fn($r) => !empty($r->assigned_user_id));
+        $onSite   = $assigned->where('status', 'In Progress')->count();
+        $enRoute  = $assigned->where('status', 'Assigned')->count();
+
+        // Job volume per trade — feeds the "Jobs by Trade" donut
+        $trades = $rows->filter(fn($r) => $r->category_name)
+            ->countBy('category_name')
+            ->map(fn($n, $name) => ['n' => $name, 'v' => $n])
+            ->values()
+            ->map(fn($t, $i) => $t + ['c' => self::TRADE_COLORS[$i % count(self::TRADE_COLORS)]]);
 
         return [
-            't'     => $category,
-            'total' => $total,
-            'avail' => $free,
-            'taken' => $total - $free,
+            'total'        => $totalSrs,
+            'available'    => $freeSrs,
+            'taken'        => $takenSrs,
+            'on_site'      => $onSite,
+            'en_route'     => $enRoute,
+            'utilization'  => $totalSrs > 0 ? (int) round($takenSrs / $totalSrs * 100) : 0,
+            'capacity'     => $capacity->all(),
+            'trades'       => $trades->all(),
+            'trades_total' => $rows->filter(fn($r) => $r->category_name)->count(),
         ];
-    })
-    ->sortByDesc('total')
-    ->values()
-    ->map(fn($c, $i) => $c + ['c' => self::TRADE_COLORS[$i % count(self::TRADE_COLORS)]]);
-
-    // Overall totals
-    $totalSrs = $rows->count();
-    $freeSrs  = $rows->filter(fn($r) => empty($r->assigned_user_id))->count();
-    $takenSrs = $totalSrs - $freeSrs;
-
-    // Live technician state (unfiltered — this is "right now")
-    $assigned = $rows->filter(fn($r) => !empty($r->assigned_user_id));
-    $onSite   = $assigned->where('status', 'In Progress')->count();
-    $enRoute  = $assigned->where('status', 'Assigned')->count();
-
-    // Job volume per trade — feeds the "Jobs by Trade" donut
-    $trades = $rows->filter(fn($r) => $r->category_name)
-        ->countBy('category_name')
-        ->map(fn($n, $name) => ['n' => $name, 'v' => $n])
-        ->values()
-        ->map(fn($t, $i) => $t + ['c' => self::TRADE_COLORS[$i % count(self::TRADE_COLORS)]]);
-
-    return [
-        'total'        => $totalSrs,
-        'available'    => $freeSrs,
-        'taken'        => $takenSrs,
-        'on_site'      => $onSite,
-        'en_route'     => $enRoute,
-        'utilization'  => $totalSrs > 0 ? (int) round($takenSrs / $totalSrs * 100) : 0,
-        'capacity'     => $capacity->all(),
-        'trades'       => $trades->all(),
-        'trades_total' => $rows->filter(fn($r) => $r->category_name)->count(),
-    ];
-}
+    }
 
     private function inquirySrs(array $filters, $start, $end)
     {
@@ -806,7 +806,7 @@ class DashboardController extends Controller
     }
 
     /** Breached stages for one SR, as ['stage' => hours taken]. */
- private function stageBreaches(ServiceRequest $sr): array
+    private function stageBreaches(ServiceRequest $sr): array
     {
         $breached = [];
 
@@ -820,7 +820,7 @@ class DashboardController extends Controller
 
         return $breached;
     }
-      
+
 
     private function hasBreach(ServiceRequest $sr): bool
     {
@@ -845,7 +845,7 @@ class DashboardController extends Controller
         }
 
         return collect($counts)
-            ->map(fn ($count, $stage) => [
+            ->map(fn($count, $stage) => [
                 'stage'  => $stage,
                 'label'  => self::STAGE_LABELS[$stage],
                 'target' => self::STAGE_SLA_HOURS[$stage],
@@ -863,8 +863,8 @@ class DashboardController extends Controller
     private function fieldHours(ServiceRequest $sr): ?float
     {
         $minutes = $sr->punches
-            ->filter(fn ($p) => $p->punch_in_at && $p->punch_out_at)
-            ->sum(fn ($p) => abs($p->punch_in_at->diffInMinutes($p->punch_out_at)));
+            ->filter(fn($p) => $p->punch_in_at && $p->punch_out_at)
+            ->sum(fn($p) => abs($p->punch_in_at->diffInMinutes($p->punch_out_at)));
 
         return $minutes > 0 ? round($minutes / 60, 1) : null;
         return $sr->punches->sum(fn($punch) => $this->punchExpense($punch));
@@ -901,14 +901,14 @@ class DashboardController extends Controller
         }
 
         $items = collect($punch->items)
-            ->sum(fn ($item) => (float) ($item->line_total ?? ($item->qty * $item->rate)));
+            ->sum(fn($item) => (float) ($item->line_total ?? ($item->qty * $item->rate)));
 
         return $items + (float) $punch->labour_charge;
     }
 
     private function expenseFor(ServiceRequest $sr): float
     {
-        return $sr->punches->sum(fn ($punch) => $this->punchExpense($punch));
+        return $sr->punches->sum(fn($punch) => $this->punchExpense($punch));
     }
 
     /* =====================================================================
@@ -1018,7 +1018,7 @@ class DashboardController extends Controller
 
     private function alertCounts(Collection $srs, Carbon $start, Carbon $end): array
     {
-        $breached = $srs->filter(fn ($sr) => $this->hasBreach($sr));
+        $breached = $srs->filter(fn($sr) => $this->hasBreach($sr));
 
         return [
             'breaches' => $srs->filter(fn($sr) => $this->metSla($sr) === false)->count(),
@@ -1207,56 +1207,56 @@ class DashboardController extends Controller
      * First-pass rate is replaced by the pending queue.
      */
     private function qc(Collection $srs): array
-{
-    $reviewed  = $srs->filter(fn($sr) => $sr->qc_reviewed_at);
-    $firstPass = $reviewed->filter(fn($sr) => empty($sr->rework_notes));
+    {
+        $reviewed  = $srs->filter(fn($sr) => $sr->qc_reviewed_at);
+        $firstPass = $reviewed->filter(fn($sr) => empty($sr->rework_notes));
 
-    $rework     = $srs->filter(fn($sr) => !empty($sr->rework_notes))->count();
-    $reworkOpen = $srs->where('status', 'Rework')->count();
+        $rework     = $srs->filter(fn($sr) => !empty($sr->rework_notes))->count();
+        $reworkOpen = $srs->where('status', 'Rework')->count();
 
-    // SRs sitting in the QC queue
-    $pending = $srs->where('status', 'Qc Review');
+        // SRs sitting in the QC queue
+        $pending = $srs->where('status', 'Qc Review');
 
-    // SRs that have reached QC at all (queued or already reviewed)
-    $reachedQc = $pending->count() + $reviewed->count();
+        // SRs that have reached QC at all (queued or already reviewed)
+        $reachedQc = $pending->count() + $reviewed->count();
 
-    $oldest = $pending
-        ->sortBy(fn($sr) => $this->completedAt($sr) ?? $sr->updated_at)
-        ->first();
+        $oldest = $pending
+            ->sortBy(fn($sr) => $this->completedAt($sr) ?? $sr->updated_at)
+            ->first();
 
-    $breached = $srs->filter(fn($sr) => $this->metSla($sr) === false);
+        $breached = $srs->filter(fn($sr) => $this->metSla($sr) === false);
 
-    return [
-        // Gauge
-        'qc_rate'     => $reachedQc > 0 ? round($reviewed->count() / $reachedQc * 100, 1) : null,
-        'qc_reviewed' => $reviewed->count(),
-        'qc_reached'  => $reachedQc,
+        return [
+            // Gauge
+            'qc_rate'     => $reachedQc > 0 ? round($reviewed->count() / $reachedQc * 100, 1) : null,
+            'qc_reviewed' => $reviewed->count(),
+            'qc_reached'  => $reachedQc,
 
-        // Used by the KPI card and the QC card header
-        'pending_review' => $pending->count(),
-        'pending_qc'     => $pending->count(),
-        'pending_qc_sub' => $oldest
-            ? 'Oldest ' . optional($this->completedAt($oldest) ?? $oldest->updated_at)->diffForHumans()
-            : 'Queue clear',
+            // Used by the KPI card and the QC card header
+            'pending_review' => $pending->count(),
+            'pending_qc'     => $pending->count(),
+            'pending_qc_sub' => $oldest
+                ? 'Oldest ' . optional($this->completedAt($oldest) ?? $oldest->updated_at)->diffForHumans()
+                : 'Queue clear',
 
-        'sla_compliance'  => $this->slaCompliance($srs),
+            'sla_compliance'  => $this->slaCompliance($srs),
 
-        'first_pass_rate' => $reviewed->isEmpty()
-            ? null
-            : round($firstPass->count() / $reviewed->count() * 100),
-        'first_pass_sub'  => $firstPass->count() . ' of ' . $reviewed->count() . ' reviewed',
+            'first_pass_rate' => $reviewed->isEmpty()
+                ? null
+                : round($firstPass->count() / $reviewed->count() * 100),
+            'first_pass_sub'  => $firstPass->count() . ' of ' . $reviewed->count() . ' reviewed',
 
-        'rework_count' => $rework,
-        'rework_sub'   => $reworkOpen . ' currently open',
+            'rework_count' => $rework,
+            'rework_sub'   => $reworkOpen . ' currently open',
 
-        'sla_breaches'   => $breached->count(),
-        'sla_breach_sub' => $breached->isEmpty()
-            ? 'All within target'
-            : $breached->pluck('priority_level')->filter()->unique()->take(2)->implode(', ') . ' priority',
+            'sla_breaches'   => $breached->count(),
+            'sla_breach_sub' => $breached->isEmpty()
+                ? 'All within target'
+                : $breached->pluck('priority_level')->filter()->unique()->take(2)->implode(', ') . ' priority',
 
-        'stage_breaches' => $this->breachesByStage($srs),
-    ];
-}
+            'stage_breaches' => $this->breachesByStage($srs),
+        ];
+    }
     /**
      * Technician scorecard.
      *
@@ -1278,9 +1278,9 @@ class DashboardController extends Controller
                         : 0
                 ));
 
-                $rated    = $jobs->filter(fn ($sr) => $sr->performance_score);
-                $open     = $jobs->filter(fn ($sr) => $this->isOpen($sr));
-                $breached = $jobs->filter(fn ($sr) => $this->hasBreach($sr));
+                $rated    = $jobs->filter(fn($sr) => $sr->performance_score);
+                $open     = $jobs->filter(fn($sr) => $this->isOpen($sr));
+                $breached = $jobs->filter(fn($sr) => $this->hasBreach($sr));
                 $rated   = $jobs->filter(fn($sr) => $sr->performance_score);
                 $punched = $jobs->filter(fn($sr) => $sr->punches->contains(fn($p) => $p->punch_in_at))->count();
 
@@ -1292,30 +1292,30 @@ class DashboardController extends Controller
                     'jobs'               => $jobs->count(),
                     'hours'              => round($minutes / 60),
                     'rating'             => $rated->isEmpty() ? 0 : round($rated->avg('performance_score'), 1),
-                    'rework'             => $jobs->filter(fn ($sr) => ! empty($sr->rework_notes))->count(),
-                    'expenses_formatted' => self::CURRENCY.' '.number_format($jobs->sum(fn ($sr) => $this->expenseFor($sr))),
+                    'rework'             => $jobs->filter(fn($sr) => ! empty($sr->rework_notes))->count(),
+                    'expenses_formatted' => self::CURRENCY . ' ' . number_format($jobs->sum(fn($sr) => $this->expenseFor($sr))),
 
                     // Pending work — count for the cell, list for the hover
                     'pending'       => $open->count(),
                     'pending_items' => $open
                         ->sortBy('created_at')
                         ->take(6)
-                        ->map(fn ($sr) => $sr->code.' · '.$sr->status
-                            .' · '.($sr->client?->company_name ?? '—'))
+                        ->map(fn($sr) => $sr->code . ' · ' . $sr->status
+                            . ' · ' . ($sr->client?->company_name ?? '—'))
                         ->values()
                         ->all(),
 
                     // Breaches, flagged critical on high-priority work
                     'sla_breaches' => $breached->count(),
-                    'critical'     => $breached->contains(fn ($sr) => $this->isCriticalBreach($sr)),
+                    'critical'     => $breached->contains(fn($sr) => $this->isCriticalBreach($sr)),
                     'breach_items' => $breached
                         ->take(6)
                         ->map(function ($sr) {
                             $stages = collect($this->stageBreaches($sr))
-                                ->map(fn ($hours, $stage) => self::STAGE_LABELS[$stage].' '.$hours.'h')
+                                ->map(fn($hours, $stage) => self::STAGE_LABELS[$stage] . ' ' . $hours . 'h')
                                 ->implode(', ');
 
-                            return $sr->code.' · '.$stages;
+                            return $sr->code . ' · ' . $stages;
                         })
                         ->values()
                         ->all(),
@@ -1329,54 +1329,68 @@ class DashboardController extends Controller
             ->all();
     }
 
-    // private function clients(Collection $srs): array
-    // {
-    //     return $srs
-    //         ->filter(fn($sr) => $sr->client)
-    //         ->groupBy('client_id')
-    //         ->map(fn(Collection $group) => [
-    //             'id'           => $group->first()->client->id,
-    //             'name'         => $group->first()->client->company_name,
-    //             'short_name'   => Str::before($group->first()->client->company_name, ' '),
-    //             'srs'          => $group->count(),
-    //             'in_warranty'  => $group->filter(fn($sr) => $this->isInWarranty($sr))->count(),
-    //             'out_warranty' => $group->reject(fn($sr) => $this->isInWarranty($sr))->count(),
-    //         ])
-    //         ->sortByDesc('srs')
-    //         ->take(6)
-    //         ->values()
-    //         ->all();
-    // }
-
 
     private function clients(Collection $current): array
-{
-    return $current
-        ->filter(fn($sr) => $sr->client_id)
-        ->groupBy('client_id')
-        ->map(function ($group, $clientId) {
-            $first = $group->first();
-            $rated = $group->whereNotNull('performance_score');
+    {
+        // return $current
+        //     ->filter(fn($sr) => $sr->client_id)
+        //     ->groupBy('client_id')
+        //     ->map(function ($group, $clientId) {
+        //         $first = $group->first();
+        //         $rated = $group->whereNotNull('performance_score');
 
-            $iw = $group->filter(fn($sr) =>
-                in_array($sr->warranty_scope, ['In-warranty', 'IW', 'in_warranty'], true)
-            )->count();
+        //         $iw = $group->filter(
+        //             fn($sr) =>
+        //             in_array($sr->warranty_scope, ['In-warranty', 'IW', 'in_warranty'], true)
+        //         )->count();
 
-            return [
-                'id'     => (int) $clientId,
-                'n'      => optional($first->client)->company_name ?: '—',
-                'srs'    => $group->count(),
-                'iw'     => $iw,
-                'oow'    => $group->count() - $iw,
-                'rating' => $rated->count() ? round($rated->avg('performance_score'), 1) : 0,
-                'exp'    => 'AED ' . number_format((float) $group->sum('invoice_total'), 0),
-            ];
-        })
-        ->sortByDesc('srs')
-        ->take(6)
-        ->values()
-        ->all();
-}
+        //         return [
+        //             'id'     => (int) $clientId,
+        //             'n'      => optional($first->client)->company_name ?: '—',
+        //             'srs'    => $group->count(),
+        //             'iw'     => $iw,
+        //             'oow'    => $group->count() - $iw,
+        //             'rating' => $rated->count() ? round($rated->avg('performance_score'), 1) : 0,
+        //             'exp'    => 'AED ' . number_format((float) $group->sum('invoice_total'), 0),
+        //         ];
+        //     })
+        //     ->sortByDesc('srs')
+        //     ->take(6)
+        //     ->values()
+        //     ->all();
+
+        $today = now()->startOfDay();
+
+        return $current
+            ->filter(fn($sr) => $sr->client_id)
+            ->groupBy('client_id')
+            ->map(function ($group, $clientId) use ($today) {
+                $first = $group->first();
+                $rated = $group->whereNotNull('performance_score');
+
+                $iw = $group->filter(function ($sr) use ($today) {
+                    $end = optional($sr->project)->warranty_end_date;
+                    if (! $end) return false;                       // no record → out-of-warranty
+                    return Carbon::parse($end)->startOfDay()->gte($today);
+                })->count();
+
+                return [
+                    'id'     => (int) $clientId,
+                    'n'      => optional($first->client)->company_name ?: '—',
+                    'srs'    => $group->count(),
+                    'iw'     => $iw,
+                    'oow'    => $group->count() - $iw,
+                    'rating' => $rated->count() ? round($rated->avg('performance_score'), 1) : 0,
+                    'exp'    => 'AED ' . number_format((float) $group->sum('invoice_total'), 0),
+                ];
+            })
+            ->sortByDesc('srs')
+            ->take(6)
+            ->values()
+            ->all();
+    }
+
+
 
     /** Front desk: pending, rejected and completed per person. */
     private function frontDesk(Collection $srs): array
@@ -1395,7 +1409,7 @@ class DashboardController extends Controller
                     'name'      => $user->name,
                     'initials'  => $this->initials($user->name),
                     'srs'       => $group->count(),
-                    'pending'   => $group->filter(fn ($sr) => $this->isOpen($sr))->count(),
+                    'pending'   => $group->filter(fn($sr) => $this->isOpen($sr))->count(),
                     'rejected'  => $rejected,
                     'completed' => $completed,
                 ];
@@ -1429,13 +1443,13 @@ class DashboardController extends Controller
     private function clientReviews(Collection $srs): array
     {
         return $srs
-            ->filter(fn ($sr) => $sr->performance_score)
-            ->sortByDesc(fn ($sr) => $sr->feedback_submitted_at ?? $sr->updated_at)
+            ->filter(fn($sr) => $sr->performance_score)
+            ->sortByDesc(fn($sr) => $sr->feedback_submitted_at ?? $sr->updated_at)
             ->take(5)
             ->map(function ($sr) {
                 // Prefer the ML who actually punched; fall back to the assignee.
                 $ml = $sr->punches
-                    ->filter(fn ($p) => $p->user)
+                    ->filter(fn($p) => $p->user)
                     ->sortByDesc('punch_out_at')
                     ->first()?->user?->name
                     ?? $sr->assignedUser?->name;
@@ -1524,103 +1538,103 @@ class DashboardController extends Controller
      | Slide-in detail panel
      ===================================================================== */
 
- public function panel(Request $request): JsonResponse
-{
-    $filters = [
-        'range'   => $request->input('range', 'today'),
-        'from'    => $request->input('from'),
-        'to'      => $request->input('to'),
-        'status'  => $request->input('status'),
-        'client'  => $request->input('client'),
-        'service' => $request->input('service'),
-    ];
+    public function panel(Request $request): JsonResponse
+    {
+        $filters = [
+            'range'   => $request->input('range', 'today'),
+            'from'    => $request->input('from'),
+            'to'      => $request->input('to'),
+            'status'  => $request->input('status'),
+            'client'  => $request->input('client'),
+            'service' => $request->input('service'),
+        ];
 
-    [$start, $end] = $this->resolveRange($filters);
+        [$start, $end] = $this->resolveRange($filters);
 
-    $type = $request->input('type');
-    $id   = $request->input('id');
+        $type = $request->input('type');
+        $id   = $request->input('id');
 
-    [$title, $icon, $section] = match ($type) {
-        'active-srs'      => ['Active open SRs', 'bi-activity', 'Still in the workflow'],
-        'sla-breach'      => ['SLA breaches', 'bi-exclamation-triangle', 'Over ' . self::SLA_TARGET_HOURS . ' hours'],
-        'pending-actions' => ['Pending actions', 'bi-hourglass-split', 'Waiting on a decision'],
-        'slow-srs'        => ['Stalled requests', 'bi-clock-history', 'No movement in 24h'],
-        'pending-qc'      => ['Pending QC', 'bi-patch-check', 'Waiting on review'],
-        'invoices'        => ['Invoiced requests', 'bi-receipt', 'Billed this period'],
-        'month-srs'       => ['All SRs this period', 'bi-ticket-detailed', 'Every request logged'],
-        'technician'      => ['Technician detail', 'bi-person-badge', 'Recent assignments'],
-        'client'          => ['Client detail', 'bi-buildings', 'Service request history'],
-        'wa-failures'     => ['WhatsApp failures', 'bi-whatsapp', 'Undelivered messages'],
-        default           => ['Details', 'bi-list', null],
-    };
+        [$title, $icon, $section] = match ($type) {
+            'active-srs'      => ['Active open SRs', 'bi-activity', 'Still in the workflow'],
+            'sla-breach'      => ['SLA breaches', 'bi-exclamation-triangle', 'Over ' . self::SLA_TARGET_HOURS . ' hours'],
+            'pending-actions' => ['Pending actions', 'bi-hourglass-split', 'Waiting on a decision'],
+            'slow-srs'        => ['Stalled requests', 'bi-clock-history', 'No movement in 24h'],
+            'pending-qc'      => ['Pending QC', 'bi-patch-check', 'Waiting on review'],
+            'invoices'        => ['Invoiced requests', 'bi-receipt', 'Billed this period'],
+            'month-srs'       => ['All SRs this period', 'bi-ticket-detailed', 'Every request logged'],
+            'technician'      => ['Technician detail', 'bi-person-badge', 'Recent assignments'],
+            'client'          => ['Client detail', 'bi-buildings', 'Service request history'],
+            'wa-failures'     => ['WhatsApp failures', 'bi-whatsapp', 'Undelivered messages'],
+            default           => ['Details', 'bi-list', null],
+        };
 
-    $all = $this->load($filters, $start, $end);
+        $all = $this->load($filters, $start, $end);
 
-    $srs = match ($type) {
-        'active-srs'      => $all->filter(fn($sr) => $this->isOpen($sr)),
-        'sla-breach'      => $all->filter(fn($sr) => $this->metSla($sr) === false),
-        'pending-actions' => $all->whereIn('status', self::AWAITING_ACTION),
-        'slow-srs'        => $all->filter(fn($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay())),
-        'invoices'        => $all->filter(fn($sr) => $sr->invoice_submitted_at),
-        'technician'      => $all->where('assigned_user_id', $id),
-        'client'          => $all->filter(fn($sr) => optional($sr->project)->client_id == $id),
-        default           => $all,
-    };
+        $srs = match ($type) {
+            'active-srs'      => $all->filter(fn($sr) => $this->isOpen($sr)),
+            'sla-breach'      => $all->filter(fn($sr) => $this->metSla($sr) === false),
+            'pending-actions' => $all->whereIn('status', self::AWAITING_ACTION),
+            'slow-srs'        => $all->filter(fn($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay())),
+            'invoices'        => $all->filter(fn($sr) => $sr->invoice_submitted_at),
+            'technician'      => $all->where('assigned_user_id', $id),
+            'client'          => $all->filter(fn($sr) => optional($sr->project)->client_id == $id),
+            default           => $all,
+        };
 
-    if ($type === 'technician' && $id) {
-        $title = $srs->first()?->assignedUser?->name ?? $title;
+        if ($type === 'technician' && $id) {
+            $title = $srs->first()?->assignedUser?->name ?? $title;
+        }
+
+        if ($type === 'client' && $id) {
+            $title = $srs->first()?->project?->client?->company_name ?? $title;
+        }
+
+        // On the breach panel, sort worst first.
+        if ($type === 'sla-breach') {
+            $srs = $srs->sortByDesc(fn($sr) => $this->isCriticalBreach($sr) ? 1 : 0);
+        }
+
+        $items = $srs
+            ->sortByDesc('created_at')
+            ->take(25)
+            ->map(function ($sr) use ($type) {
+                $isCritical = $type === 'sla-breach' && $this->isCriticalBreach($sr);
+
+                if ($type === 'sla-breach') {
+                    $stages = $this->stageBreaches($sr);
+                    $meta = collect($stages)
+                        ->map(fn($hours, $stage) => (self::STAGE_LABELS[$stage] ?? $stage) . ' — ' . $hours . 'h')
+                        ->values()
+                        ->push($sr->assignedUser?->name);
+                } else {
+                    $meta = collect([
+                        $sr->category?->category_name,
+                        $this->isInWarranty($sr) ? 'In warranty' : 'Out of warranty',
+                        $sr->project?->site_name,
+                        $sr->assignedUser?->name,
+                    ]);
+                }
+
+                return [
+                    'reference' => $sr->code,
+                    'badge'     => $isCritical ? 'Critical' : $sr->status,
+                    'color'     => $isCritical ? '#dc2626' : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
+                    'title'     => $sr->project?->client?->company_name ?? '—',
+                    'meta'      => $meta->filter()->implode(' · '),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'title'    => $title,
+            'subtitle' => $items->count() . ' ' . Str::plural('record', $items->count()),
+            'icon'     => $icon,
+            'section'  => $section,
+            'items'    => $items->all(),
+        ]);
     }
 
-    if ($type === 'client' && $id) {
-        $title = $srs->first()?->project?->client?->company_name ?? $title;
-    }
-
-    // On the breach panel, sort worst first.
-    if ($type === 'sla-breach') {
-        $srs = $srs->sortByDesc(fn($sr) => $this->isCriticalBreach($sr) ? 1 : 0);
-    }
-
-    $items = $srs
-        ->sortByDesc('created_at')
-        ->take(25)
-        ->map(function ($sr) use ($type) {
-            $isCritical = $type === 'sla-breach' && $this->isCriticalBreach($sr);
-
-            if ($type === 'sla-breach') {
-                $stages = $this->stageBreaches($sr);
-                $meta = collect($stages)
-                    ->map(fn($hours, $stage) => (self::STAGE_LABELS[$stage] ?? $stage) . ' — ' . $hours . 'h')
-                    ->values()
-                    ->push($sr->assignedUser?->name);
-            } else {
-                $meta = collect([
-                    $sr->category?->category_name,
-                    $this->isInWarranty($sr) ? 'In warranty' : 'Out of warranty',
-                    $sr->project?->site_name,
-                    $sr->assignedUser?->name,
-                ]);
-            }
-
-            return [
-                'reference' => $sr->code,
-                'badge'     => $isCritical ? 'Critical' : $sr->status,
-                'color'     => $isCritical ? '#dc2626' : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
-                'title'     => $sr->project?->client?->company_name ?? '—',
-                'meta'      => $meta->filter()->implode(' · '),
-            ];
-        })
-        ->values();
-
-    return response()->json([
-        'title'    => $title,
-        'subtitle' => $items->count() . ' ' . Str::plural('record', $items->count()),
-        'icon'     => $icon,
-        'section'  => $section,
-        'items'    => $items->all(),
-    ]);
-}
-
-  private function activeSrs(array $filters, $start, $end)
+    private function activeSrs(array $filters, $start, $end)
     {
         // "Active" means "not rejected" — it ignores the status dropdown
         $f = $filters;
@@ -1634,7 +1648,7 @@ class DashboardController extends Controller
             ->get();
     }
 
-      private function metSla(ServiceRequest $sr): ?bool
+    private function metSla(ServiceRequest $sr): ?bool
     {
         $hours = $this->turnaroundHours($sr);
 

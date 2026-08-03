@@ -3,10 +3,13 @@
 
 @section('title', 'Head of Project')
 @section('page_title', 'Admin - Head of Project')
+    <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
+
 @push('styles')
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  
   <style>
 
 /* ── SF PRO DISPLAY ── */
@@ -142,7 +145,7 @@ letter-spacing:-.01em;
 /* ── GREETING ROW ── */
 .greeting-row{display:flex;align-items:flex-start;justify-content:space-between;
   gap:20px;margin-bottom:24px;flex-wrap:wrap;}
-.greeting{font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:3px;}
+.greeting{font-size:1.6rem;font-weight:700;color:var(--muted);margin-bottom:3px;}
 .greeting-sub{font-size:.82rem;color:var(--muted);}
 
 /* ── FILTER BAR ── */
@@ -213,7 +216,14 @@ letter-spacing:-.01em;
 .dd{background:rgba(220,38,38,.1);color:#dc2626;}
 .dn{background:rgba(0,0,0,.06);color:var(--muted);}
 [data-bs-theme="dark"] .dn{background:rgba(255,255,255,.07);}
-.big-num{font-size:2rem;font-weight:700;color:var(--text);line-height:1;}
+.big-num
+{
+font-size:2rem;
+font-weight:700;
+/* color:var(--text); */
+line-height:1;
+}
+
 .kpi-lbl{font-size:.73rem;color:var(--muted);font-weight:500;}
 /* Bounded spark */
 .sp-wrap{height:38px;width:100%;position:relative;margin-top:4px;}
@@ -222,6 +232,8 @@ letter-spacing:-.01em;
 /* ── MAIN CHART SECTION (like reference: two big numbers + chart) ── */
 .main-chart-card{background:var(--card);border-radius:16px;
   box-shadow:var(--shadow);padding:24px 26px;}
+
+  
 .mc-top{display:flex;align-items:flex-start;justify-content:space-between;
   gap:20px;margin-bottom:20px;flex-wrap:wrap;}
 .mc-nums{display:flex;gap:28px;flex-wrap:wrap;}
@@ -269,7 +281,7 @@ letter-spacing:-.01em;
 .sec-row{display:flex;align-items:center;gap:12px;margin:24px 0 14px;}
 .sec-line{flex:1;height:1px;background:var(--border);}
 .sec-ttl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
-  color:var(--light);white-space:nowrap;}
+  color:var(--muted);white-space:nowrap;}
 
 /* ── STATUS PILLS (distribution) ── */
 .status-dist{display:flex;flex-direction:column;gap:8px;}
@@ -278,13 +290,26 @@ letter-spacing:-.01em;
 .sd-track{flex:1;height:7px;background:rgba(0,0,0,.06);border-radius:4px;overflow:hidden;}
 [data-bs-theme="dark"] .sd-track{background:rgba(255,255,255,.07);}
 .sd-fill{height:100%;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1);}
-.sd-n{font-size:.72rem;font-weight:600;color:var(--text);width:22px;text-align:right;flex-shrink:0;}
+.sd-n{font-size:.72rem;
+font-weight:600;
+/* color:var(--text); */
+width:22px;
+text-align:right;
+flex-shrink:0;
+}
 
 /* ── MINI METRIC BLOCKS ── */
-.mini-metric{background:var(--card2);border-radius:10px;padding:12px 14px;}
+.mini-metric
+{
+/* background:var(--card2); */
+background:var(--gold-bg);
+border-radius:10px;
+padding:12px 14px;
+}
+
 .mm-label{font-size:.68rem;color:var(--muted);font-weight:500;margin-bottom:4px;}
 .mm-val{font-size:1.4rem;
-  font-weight:700;color:var(--text);line-height:1;}
+  font-weight:700;color:var(--muted);line-height:1;}
 .mm-sub{font-size:.68rem;color:var(--muted);margin-top:3px;}
 
 /* ── TECH TABLE ── */
@@ -398,14 +423,21 @@ letter-spacing:-.01em;
 .gauge-lbl{font-size:.7rem;color:var(--muted);margin-top:2px;}
 
 
-.q-item{padding:11px 13px;border-radius:10px;border:1px solid var(--border);background:var(--card2);
+.q-item{padding:11px 13px;
+border-radius:10px;
+border:1px solid var(--border);
+/* background:var(--card2); */
+    background: var(--gold-bg);
   margin-bottom:8px;cursor:pointer;transition:all .15s;}
 .q-item:last-child{margin-bottom:0;}
 .q-item:hover{border-color:var(--gold);background:var(--gold-bg);}
 .q-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px;}
 .q-id{font-size:.78rem;font-weight:700;color:var(--gold);}
 .q-badge{font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;}
-.q-client{font-size:.76rem;font-weight:500;color:var(--text);margin-bottom:1px;}
+.q-client{font-size:.76rem;
+font-weight:500;
+color:var(--muted);
+margin-bottom:1px;}
 .q-meta{font-size:.68rem;color:var(--muted);}
 .q-empty{font-size:.74rem;color:var(--muted);text-align:center;padding:14px 0;}
 .util-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;
@@ -413,7 +445,7 @@ letter-spacing:-.01em;
 .util-row:last-child{border-bottom:none;}
 .util-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;display:inline-block;margin-right:7px;}
 .eff-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.eff-block{background:var(--card2);border-radius:10px;padding:12px 14px;}
+.eff-block{background:var(--gold-bg);border-radius:10px;padding:12px 14px;}
 .eff-lbl{font-size:.67rem;color:var(--muted);font-weight:500;margin-bottom:4px;}
 .eff-val{font-size:1.35rem;font-weight:700;line-height:1;}
 .eff-sub{font-size:.66rem;color:var(--muted);margin-top:3px;}
@@ -567,11 +599,11 @@ letter-spacing:-.01em;
 .lrow:hover{ background:var(--gold-bg); }
 .lrow-l{ display:flex; align-items:center; gap:8px; min-width:0; }
 .lrow-name{
-  font-weight:500; color:var(--text);
+  font-weight:500; color:var(--muted);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
 }
 .lrow-r{ display:flex; align-items:center; gap:5px; flex-shrink:0; }
-.lrow-r strong{ color:var(--text); font-weight:700; }
+.lrow-r strong{ color:var(--muted); font-weight:700; }
 .lrow-unit{ color:var(--muted); }
 
 .rank{
@@ -586,13 +618,19 @@ letter-spacing:-.01em;
 
 /* workforce split cells */
 .wf-split{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.wf-cell{ background:var(--card2); border-radius:8px; padding:8px 10px; }
-.wf-cell-val{ font-size:1.15rem; font-weight:700; color:var(--text); line-height:1; }
+.wf-cell{ background:var(--gold-bg); border-radius:8px; padding:8px 10px; }
+.wf-cell-val{ 
+  font-size:1.15rem; 
+font-weight:700;
+ color:var(--muted);
+  line-height:1; 
+}
+
 .wf-cell-lbl{ font-size:.66rem; color:var(--muted); margin-top:3px; }
 
 .wf-sec-lbl{
   font-size:.68rem; font-weight:700; text-transform:uppercase;
-  letter-spacing:.08em; color:var(--light); margin-bottom:9px;
+  letter-spacing:.08em; color:var(--muted); margin-bottom:9px;
 }
 
 /* capacity rows */
@@ -776,7 +814,9 @@ letter-spacing:-.01em;
 </div>
 
     <!-- THROUGHPUT TREND -->
-    <div class="main-chart-card">
+    <!-- <div class="main-chart-card"> -->
+
+     <div class="card card-pad">
       <div class="mc-top">
         <div class="mc-nums">
           <div class="mc-num-block">
@@ -956,7 +996,7 @@ letter-spacing:-.01em;
     <div>
       <div class="ch-half" style="width:180px;"><canvas id="slaG"></canvas></div>
       <div style="text-align:center;margin-top:-14px;">
-        <div style="font-size:1.6rem;font-weight:700;color:var(--text);line-height:1;">
+        <div style="font-size:1.6rem;font-weight:700;color:var(--muted);line-height:1;">
           {{ $qc['sla_compliance'] !== null ? $qc['sla_compliance'].'%' : '—' }}
         </div>
         <div style="font-size:.7rem;color:var(--muted);">SLA Compliance</div>
@@ -984,11 +1024,11 @@ letter-spacing:-.01em;
         <div class="mm-sub">{{ $qc['rework_sub'] }}</div>
       </div>
 
-      <div class="mini-metric">
+      <!-- <div class="mini-metric">
         <div class="mm-label">SLA Breaches</div>
         <div class="mm-val" style="color:#dc2626;">{{ $qc['sla_breaches'] }}</div>
         <div class="mm-sub">{{ $qc['sla_breach_sub'] }}</div>
-      </div>
+      </div> -->
     </div>
   </div>
 </div>
@@ -997,7 +1037,7 @@ letter-spacing:-.01em;
     <div class="card card-pad">
       <div class="c-hdr">
         <div class="c-label"><i class="bi bi-send"></i>Dispatch Efficiency</div>
-        <div class="c-more" onclick="openPanel('dispatch',null)">View all <i class="bi bi-arrow-right"></i></div>
+        <!-- <div class="c-more" onclick="openPanel('dispatch',null)">View all <i class="bi bi-arrow-right"></i></div> -->
       </div>
       <div class="eff-grid" style="margin-bottom:14px;">
         <div class="eff-block">
@@ -1045,7 +1085,7 @@ letter-spacing:-.01em;
                     <div class="wf-cell-lbl">Total SRs</div>
                 </div>
                 <div class="wf-cell">
-                    <div class="wf-cell-val" style="color:#15803d;">{{ $workforce['available'] }}</div>
+                    <div class="wf-cell-val">{{ $workforce['available'] }}</div>
                     <div class="wf-cell-lbl">Unassigned</div>
                 </div>
             </div>
@@ -1092,23 +1132,23 @@ letter-spacing:-.01em;
         </div>
     @endif
 
-    <div class="client-list">
-        @forelse ($clients as $client)
-            <button type="button" class="lrow"
-                    onclick="openPanel('clients',null)">
-                <span class="lrow-l">
-                    <span class="rank">{{ $loop->iteration }}</span>
-                    <span class="lrow-name">{{ data_get($client, 'n') }}</span>
-                </span>
-                <span class="lrow-r">
-                    <strong>{{ data_get($client, 'srs') }}</strong>
-                    <span class="lrow-unit">SRs</span>
-                </span>
-            </button>
-        @empty
-            <p class="empty"><i class="bi bi-building"></i>No client activity in this period.</p>
-        @endforelse
-    </div>
+   <div class="client-list">
+    @forelse ($clients as $client)
+        <button type="button" class="lrow"
+                onclick="openPanel('client', {{ $loop->index }})">
+            <span class="lrow-l">
+                <span class="rank">{{ $loop->iteration }}</span>
+                <span class="lrow-name">{{ data_get($client, 'n') }}</span>
+            </span>
+            <span class="lrow-r">
+                <strong>{{ data_get($client, 'srs') }}</strong>
+                <span class="lrow-unit">SRs</span>
+            </span>
+        </button>
+    @empty
+        <p class="empty"><i class="bi bi-building"></i>No client activity in this period.</p>
+    @endforelse
+</div>
 </div>
 
 
@@ -1512,7 +1552,7 @@ if (c7 && CLIENTS.length) {
       plugins:{legend:{display:false}, tooltip:TT},
       scales:{
         x:{stacked:true, grid:{color:C.grid}, ticks:{color:C.muted, font:{size:10}, precision:0}},
-        y:{stacked:true, grid:{display:false}, ticks:{color:C.text, font:{size:10}}}
+        y:{stacked:true, grid:{display:false}, ticks:{color:C.muted, font:{size:10}}}
       }
     }
   });
@@ -1712,8 +1752,8 @@ function renderTradeList(){
   document.getElementById('tradeList').innerHTML=TRADES.map(function(t){
     return '<div style="display:flex;align-items:center;justify-content:space-between;font-size:.75rem;">'+
       '<div style="display:flex;align-items:center;gap:7px;"><span class="leg-dot" style="background:'+t.c+';"></span>'+
-      '<span style="color:var(--text);">'+t.n+'</span></div>'+
-      '<div><span style="font-weight:700;color:var(--text);">'+t.v+'</span> <span style="color:var(--muted);">('+Math.round(t.v/tot*100)+'%)</span></div></div>';
+      '<span style="color:var(--muted);">'+t.n+'</span></div>'+
+      '<div><span style="font-weight:700;color:var(--muted);">'+t.v+'</span> <span style="color:var(--muted);">('+Math.round(t.v/tot*100)+'%)</span></div></div>';
   }).join('');
 }
 
@@ -1737,7 +1777,7 @@ function renderCapacity(){
       +     'flex-shrink:0;display:inline-block;"></span>'
       +   '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + c.t + '</span>'
       + '</span>'
-      + '<span style="color:var(--text);font-weight:600;white-space:nowrap;flex-shrink:0;">'
+      + '<span style="font-weight:600;color:var(--muted);white-space:nowrap;flex-shrink:0;">'
       +   '<span style="color:' + num + ';">' + c.avail + '</span> / ' + c.total + ' free'
       + '</span>'
       + '</div>';
