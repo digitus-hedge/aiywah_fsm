@@ -14,7 +14,7 @@
 .tab-filter::-webkit-scrollbar{height:0;}
 .tf-btn{padding:6px 13px;font-size:.73rem;font-weight:600;border:1px solid var(--border);
   background:var(--card);border-radius:20px;cursor:pointer;color:var(--muted);transition:all .18s;
-  flex:0 0 auto;white-space:nowrap;font-family:'SF Pro Display','Inter',sans-serif;}
+  flex:0 0 auto;white-space:nowrap;}
 .tf-btn:hover{border-color:var(--gold-border);color:var(--gold);}
 .tf-btn.active{background:var(--gold);border-color:var(--gold);color:#fff;}
 
@@ -25,7 +25,7 @@
 .pl-card.is-accepted{border-left:3px solid var(--blue);}
 .jc-main{padding:14px 15px;cursor:pointer;}
 .jc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;gap:8px;}
-.jc-sr{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.02rem;font-weight:700;color:var(--gold);}
+.jc-sr{font-size:1.02rem;font-weight:700;color:var(--gold);}
 .jc-client{font-size:.86rem;font-weight:600;color:var(--text);margin-bottom:2px;}
 .jc-contract{font-size:.7rem;color:var(--muted);margin-bottom:9px;}
 .jc-meta{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
@@ -68,13 +68,12 @@
   color:var(--muted);display:block;margin-bottom:4px;}
 .eta-input{width:100%;font-size:.82rem;border:1px solid var(--border2);border-radius:9px;
   padding:.5rem .7rem;color:var(--text);background:var(--card);-webkit-appearance:none;appearance:none;
-  transition:border-color .15s,box-shadow .15s;font-family:'SF Pro Display','Inter',sans-serif;}
+  transition:border-color .15s,box-shadow .15s;}
 .eta-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-bg);outline:none;}
 .eta-input.err{border-color:var(--red);}
 .accept-btn{width:100%;border:none;border-radius:11px;padding:.7rem 1rem;font-size:.85rem;font-weight:700;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .18s;
-  background:linear-gradient(135deg,#9a8053,#b8975e);color:#fff;
-  font-family:'SF Pro Display','Inter',sans-serif;box-shadow:0 4px 14px rgba(154,128,83,.3);}
+  background:linear-gradient(135deg,#9a8053,#b8975e);color:#fff;box-shadow:0 4px 14px rgba(154,128,83,.3);}
 .accept-btn:hover:not(:disabled){transform:translateY(-1px);}
 .accept-btn:disabled{opacity:.45;cursor:not-allowed;background:var(--surface);color:var(--muted);box-shadow:none;}
 .accept-btn.go{background:linear-gradient(135deg,#15803d,#16a34a);box-shadow:0 4px 14px rgba(21,128,61,.3);}
@@ -96,7 +95,7 @@
 .ajb::before{content:'';position:absolute;right:-24px;top:-24px;width:120px;height:120px;
   border-radius:50%;background:rgba(255,255,255,.08);}
 .ajb-sr{font-size:.72rem;opacity:.8;margin-bottom:2px;position:relative;}
-.ajb-client{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.35rem;font-weight:700;
+.ajb-client{font-size:1.35rem;font-weight:700;
   margin-bottom:2px;position:relative;}
 .ajb-site{font-size:.78rem;opacity:.85;display:flex;align-items:center;gap:5px;position:relative;}
 .ajb-meta{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;position:relative;}
@@ -107,7 +106,7 @@
   margin-bottom:12px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);}
 .tw-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;
   justify-content:center;font-size:1.2rem;flex-shrink:0;background:var(--surface);}
-.tw-time{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.7rem;font-weight:700;
+.tw-time{font-size:1.7rem;font-weight:700;
   font-variant-numeric:tabular-nums;color:var(--text);line-height:1;}
 .tw-lbl{font-size:.68rem;color:var(--muted);margin-top:3px;}
 .tw-status{margin-left:auto;font-size:.68rem;font-weight:700;padding:3px 10px;border-radius:20px;}
@@ -117,8 +116,7 @@
 
 .punch-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
 .punch-btn{border:none;border-radius:11px;padding:.75rem 1rem;font-size:.84rem;font-weight:700;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s;
-  font-family:'SF Pro Display','Inter',sans-serif;color:#fff;}
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s;color:#fff;}
 .punch-btn:active:not(:disabled){transform:scale(.97);}
 .punch-btn:disabled{opacity:.4;cursor:not-allowed;}
 .btn-punchin{background:linear-gradient(135deg,#15803d,#16a34a);box-shadow:0 4px 14px rgba(21,128,61,.3);}
@@ -142,7 +140,7 @@
 .cs-pending{background:var(--surface);color:var(--muted);}
 .comp-upload-btn{background:none;border:1px solid var(--border2);border-radius:8px;color:var(--muted);
   font-size:.72rem;padding:5px 11px;cursor:pointer;display:flex;align-items:center;gap:4px;
-  flex-shrink:0;transition:all .15s;font-family:'SF Pro Display','Inter',sans-serif;}
+  flex-shrink:0;transition:all .15s;}
 .comp-upload-btn:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
 .comp-upload-btn:disabled{opacity:.4;cursor:not-allowed;}
 .upload-input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;z-index:-1;pointer-events:none;}
@@ -186,8 +184,7 @@
 /* ══════════════════════════════════════════════════════ DRAWER EXTRAS ═══ */
 .rs-tabs{display:flex;background:var(--surface);border-radius:10px;padding:3px;margin-bottom:14px;}
 .rs-tab{flex:1;padding:8px;font-size:.78rem;font-weight:600;border:none;background:none;
-  border-radius:8px;cursor:pointer;color:var(--muted);transition:all .18s;
-  font-family:'SF Pro Display','Inter',sans-serif;}
+  border-radius:8px;cursor:pointer;color:var(--muted);transition:all .18s;}
 .rs-tab.active{background:var(--card);color:var(--gold);box-shadow:var(--shadow);}
 .rs-panel{display:none;}
 .rs-panel.show{display:block;}
@@ -215,14 +212,14 @@
 .hist-card{background:var(--card);border:1px solid var(--border);border-radius:13px;
   padding:13px 15px;margin-bottom:10px;box-shadow:var(--shadow);}
 .hist-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;}
-.hist-ref{font-family:'Cormorant Garamond',Georgia,serif;font-size:.98rem;font-weight:700;color:var(--gold);}
+.hist-ref{font-size:.98rem;font-weight:700;color:var(--gold);}
 .hist-date{font-size:.68rem;color:var(--muted);}
 .hist-client{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:2px;}
 .hist-site{font-size:.7rem;color:var(--muted);margin-bottom:9px;}
 .hist-grid{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
 .hist-chip{font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:4px;
   background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:3px 9px;}
-.hist-total{margin-left:auto;font-family:'Cormorant Garamond',Georgia,serif;
+.hist-total{margin-left:auto;
   font-size:1rem;font-weight:700;color:var(--text);}
 
 .prof-hero{background:linear-gradient(135deg,#8a6e47,#9a8053);border-radius:16px;padding:24px 16px;
@@ -232,7 +229,7 @@
 .prof-avatar{width:72px;height:72px;border-radius:50%;margin:0 auto 10px;background:rgba(255,255,255,.22);
   border:3px solid rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;
   font-size:1.4rem;font-weight:700;position:relative;}
-.prof-name{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.5rem;font-weight:700;position:relative;}
+.prof-name{font-size:1.5rem;font-weight:700;position:relative;}
 .prof-role{font-size:.72rem;opacity:.85;margin-top:2px;position:relative;}
 .info-row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);}
 .info-row:last-child{border-bottom:none;padding-bottom:0;}
@@ -247,6 +244,8 @@
   .punch-row{max-width:520px;}
   #expenseBtn,#rsBtn{max-width:520px;}
 }
+
+
 </style>
 @endpush
 
@@ -882,10 +881,11 @@ function buildJobCard(job) {
              <div class="err-msg" id="errDate-${ref}">Date required</div>
            </div>
            <div class="eta-field">
-             <label for="etaTime-${ref}">Time <span class="req">*</span></label>
-             <input type="time" class="eta-input" id="etaTime-${ref}" data-eta="${ref}"/>
-             <div class="err-msg" id="errTime-${ref}">Time required</div>
-           </div>
+  <label for="etaTime-${ref}">Time <span class="req">*</span></label>
+ <input type="time" class="eta-input" id="etaTime-${ref}" data-eta="${ref}"
+       oninput="validateEtaTime('${ref}'); refreshAcceptBtn('${ref}')"/>
+  <div class="err-msg" id="errTime-${ref}">Time required</div>
+</div>
          </div>
          <button class="accept-btn" id="acceptBtn-${ref}" data-accept="${ref}" data-srid="${Number(job.sr_id)}" disabled>
            <i class="bi bi-check2-circle"></i>Accept job
@@ -977,19 +977,34 @@ $('jobList').addEventListener('click', (e) => {
   if (toggle) { toggleExpand(toggle.dataset.toggle); }
 });
 
+// $('jobList').addEventListener('change', (e) => {
+//   const input = e.target.closest('[data-eta]');
+//   if (!input) return;
+
+//   const ref  = input.dataset.eta;
+//   const date = $(`etaDate-${ref}`)?.value;
+//   const time = $(`etaTime-${ref}`)?.value;
+//   const btn  = $(`acceptBtn-${ref}`);
+//   if (btn) btn.disabled = !(date && time);
+
+//   input.classList.remove('err');
+//   $(`errDate-${ref}`)?.classList.remove('show');
+//   $(`errTime-${ref}`)?.classList.remove('show');
+// });
+
+
+
 $('jobList').addEventListener('change', (e) => {
   const input = e.target.closest('[data-eta]');
   if (!input) return;
 
-  const ref  = input.dataset.eta;
-  const date = $(`etaDate-${ref}`)?.value;
-  const time = $(`etaTime-${ref}`)?.value;
-  const btn  = $(`acceptBtn-${ref}`);
-  if (btn) btn.disabled = !(date && time);
+  const ref = input.dataset.eta;
 
   input.classList.remove('err');
   $(`errDate-${ref}`)?.classList.remove('show');
-  $(`errTime-${ref}`)?.classList.remove('show');
+
+  syncEtaTimeMin(ref);
+  refreshAcceptBtn(ref);
 });
 
 $('tabFilter').addEventListener('click', (e) => {
@@ -1149,6 +1164,100 @@ $('punchInBtn').addEventListener('click', () => {
   btn.innerHTML = '<span class="spin"></span> Starting\u2026';
   punchIn();
 });
+
+
+
+
+
+
+// TIme Previous Checking
+
+function pad(n){ return n < 10 ? '0' + n : '' + n; }
+
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+
+function nowTimeStr(buffer){
+  var d = new Date();
+  d.setMinutes(d.getMinutes() + (buffer || 0));   // e.g. +15 min lead time
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+/* Call whenever the date input changes, and once on render */
+function syncEtaTimeMin(ref){
+  var dateEl = document.getElementById('etaDate-' + ref);
+  var timeEl = document.getElementById('etaTime-' + ref);
+  if(!timeEl) return;
+
+  var isToday = !dateEl || dateEl.value === todayStr();
+
+  if(isToday){
+    timeEl.min = nowTimeStr(0);          // pass 15 to force a 15-min lead
+    // clear a now-invalid earlier selection
+    if(timeEl.value && timeEl.value < timeEl.min) timeEl.value = '';
+  } else {
+    timeEl.removeAttribute('min');       // future date → any time allowed
+  }
+
+  validateEtaTime(ref);
+}
+
+function refreshAcceptBtn(ref){
+  var btn    = document.getElementById('acceptBtn-' + ref);
+  var dateEl = document.getElementById('etaDate-' + ref);
+  if(!btn) return;
+
+  var dateOk = !dateEl || (dateEl.value && dateEl.value >= todayStr());
+  btn.disabled = !(dateOk && validateEtaTime(ref));
+}
+
+
+function validateEtaTime(ref){
+  var dateEl = document.getElementById('etaDate-' + ref);
+  var timeEl = document.getElementById('etaTime-' + ref);
+  var errEl  = document.getElementById('errTime-' + ref);
+  if(!timeEl || !errEl) return true;
+
+  if(!timeEl.value){
+    errEl.textContent = 'Time required';
+    errEl.classList.add('show');
+    timeEl.classList.add('err');
+    return false;
+  }
+
+  var isToday = !dateEl || !dateEl.value || dateEl.value === todayStr();
+  if(isToday && timeEl.value < nowTimeStr(0)){
+    errEl.textContent = 'Time must be later than now';
+    errEl.classList.add('show');
+    timeEl.classList.add('err');
+    return false;
+  }
+
+  errEl.classList.remove('show');
+  timeEl.classList.remove('err');
+  return true;
+}
+
+function isEtaValid(ref){
+  var dateEl = document.getElementById('etaDate-' + ref);
+  var timeEl = document.getElementById('etaTime-' + ref);
+  if(!timeEl) return false;
+
+  var dv = dateEl ? dateEl.value : todayStr();
+  var tv = timeEl.value;
+
+  if(!dv || !tv) return false;
+
+  var picked = new Date(dv + 'T' + tv);
+  if(isNaN(picked.getTime())) return false;
+
+  return picked.getTime() > Date.now();
+}
+
+
+
 
 async function punchIn() {
   const btn = $('punchInBtn');

@@ -29,7 +29,7 @@
 .job-card-accent{position:absolute;left:0;top:0;bottom:0;width:4px;}
 .job-card-body{padding:15px 15px 15px 19px;}
 .job-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px;}
-.job-sr-id{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.05rem;font-weight:700;
+.job-sr-id{font-size:1.05rem;font-weight:700;
   color:var(--gold);line-height:1;}
 .job-client{font-size:.9rem;font-weight:600;color:var(--text);margin-bottom:3px;}
 .job-site{font-size:.77rem;color:var(--muted);display:flex;align-items:center;gap:4px;margin-bottom:10px;}
@@ -47,7 +47,7 @@
 .ajc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .ajc-live{display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;color:#4ade80;}
 .ajc-live-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;animation:ldot 1.8s infinite;}
-.ajc-sr{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.1rem;font-weight:700;color:#fff;}
+.ajc-sr{font-size:1.1rem;font-weight:700;color:#fff;}
 .ajc-client{font-size:.95rem;font-weight:700;color:#fff;margin-bottom:3px;}
 .ajc-site{font-size:.77rem;color:rgba(255,255,255,.65);display:flex;align-items:center;gap:4px;margin-bottom:10px;}
 .ajc-issue{font-size:.78rem;color:rgba(255,255,255,.7);line-height:1.5;margin-bottom:12px;overflow-wrap:anywhere;}
@@ -56,7 +56,7 @@
 .ajc-clock{display:flex;align-items:center;gap:6px;}
 .ajc-clock i{color:rgba(255,255,255,.5);font-size:.75rem;}
 .ajc-clock-lbl{font-size:.72rem;color:rgba(255,255,255,.55);}
-.ajc-timer{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.05rem;font-weight:700;
+.ajc-timer{font-size:1.05rem;font-weight:700;
   color:#fff;font-variant-numeric:tabular-nums;}
 .ajc-tag{font-size:.67rem;font-weight:700;padding:3px 8px;border-radius:20px;
   background:rgba(154,128,83,.3);color:#f5deb3;}
@@ -65,7 +65,7 @@
 .punchout-btn{width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#9a8053,#b8975e);
   color:#fff;border:none;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;
   align-items:center;justify-content:center;gap:8px;margin-top:10px;
-  font-family:'SF Pro Display','Inter',sans-serif;box-shadow:0 4px 16px rgba(154,128,83,.35);
+  box-shadow:0 4px 16px rgba(154,128,83,.35);
   transition:all .15s;text-decoration:none;}
 .punchout-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(154,128,83,.45);}
 .punchin-btn{background:linear-gradient(135deg,#15803d,#16a34a);box-shadow:0 4px 16px rgba(21,128,61,.35);}
@@ -102,7 +102,7 @@ a.funnel-row:hover{background:var(--card2);}
 .ch-donut canvas{position:absolute;inset:0;width:100%!important;height:100%!important;}
 .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;
   align-items:center;justify-content:center;pointer-events:none;}
-.donut-center-val{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.5rem;
+.donut-center-val{font-size:1.5rem;
   font-weight:700;color:var(--text);line-height:1;}
 .donut-center-lbl{font-size:.6rem;color:var(--muted);}
 .donut-legend{display:flex;flex-direction:column;gap:8px;flex:1;min-width:150px;}
@@ -120,7 +120,7 @@ a.funnel-row:hover{background:var(--card2);}
 .rework-item::before{background:var(--red);}
 .hold-item::before{background:#a16207;}
 .qc-item-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
-.qc-sr-id{font-family:'Cormorant Garamond',Georgia,serif;font-size:.95rem;font-weight:700;color:var(--gold);}
+.qc-sr-id{font-size:.95rem;font-weight:700;color:var(--gold);}
 .qc-client{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:2px;}
 .qc-site{font-size:.71rem;color:var(--muted);display:flex;align-items:center;gap:3px;margin-bottom:6px;}
 .qc-note{font-size:.74rem;color:var(--muted);line-height:1.45;overflow-wrap:anywhere;}
@@ -139,7 +139,7 @@ a.funnel-row:hover{background:var(--card2);}
   align-items:center;justify-content:center;font-size:.85rem;color:var(--gold);flex-shrink:0;}
 .exp-sr{font-size:.82rem;font-weight:600;color:var(--text);margin-bottom:1px;}
 .exp-cat{font-size:.7rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.exp-amount{font-family:'Cormorant Garamond',Georgia,serif;font-size:1.1rem;font-weight:700;
+.exp-amount{font-size:1.1rem;font-weight:700;
   color:var(--text);white-space:nowrap;}
 .exp-receipt{font-size:.65rem;font-weight:600;padding:2px 6px;border-radius:6px;}
 .pending-receipt{background:var(--amber-bg);color:var(--amber);}
