@@ -858,6 +858,7 @@
           <th>Customer Name / Token</th>
           <th>Primary Contact</th>
           <th>Phone (WhatsApp)</th>
+          <th>Email</th>
           <th style="text-align:center;">Projects</th>
           <th style="text-align:center;">Contacts</th>
           <th>Status</th>
@@ -875,6 +876,7 @@
             'designation'     => $client->designation,
             'primary_country' => $client->primary_country,
             'primary_mobile'  => $client->primary_mobile,
+            'email'           => $client->email,
             'status'          => $client->status,
             'projects_count'  => $client->projects_count,
             'mobiles' => $client->mobiles->map(fn($m) => [
@@ -906,6 +908,7 @@
             —
             @endif
           </td>
+          <td style="text-align:center;">{{ $client->email}}</td>
           <td style="text-align:center;"><strong>{{ $client->projects_count }}</strong></td>
           <td style="text-align:center;"><strong>{{ $client->mobiles_count + 1 }}</strong></td>
           <td data-client-id="{{ $client->id }}" class="status-cell">

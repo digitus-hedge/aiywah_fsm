@@ -407,32 +407,73 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 
          <br />
 
-          <div class="form-group" style="margin-bottom:0;">
+          <div class="row">
+    <!-- Primary Contact Mobile -->
+    <div class="col-md-6">
+        <div class="form-group" style="margin-bottom:0;">
             <label class="form-label">Primary Contact Mobile <span class="req">*</span></label>
+
             <div class="phone-row">
-              <select class="form-select phone-country" id="primaryCountry" name="primary_country">
-                <option value="+971" @selected($primaryCountry==='+971')>🇦🇪 +971</option>
-                <option value="+91"  @selected($primaryCountry==='+91')>🇮🇳 +91</option>
-                <option value="+1"   @selected($primaryCountry==='+1')>🇺🇸 +1</option>
-                <option value="+44"  @selected($primaryCountry==='+44')>🇬🇧 +44</option>
-                <option value="+966" @selected($primaryCountry==='+966')>🇸🇦 +966</option>
-                <option value="+974" @selected($primaryCountry==='+974')>🇶🇦 +974</option>
-                <option value="+965" @selected($primaryCountry==='+965')>🇰🇼 +965</option>
-                <option value="+973" @selected($primaryCountry==='+973')>🇧🇭 +973</option>
-                <option value="+968" @selected($primaryCountry==='+968')>🇴🇲 +968</option>
-              </select>
-              <div class="input-icon-wrap phone-number">
-                <i class="bi bi-phone ii"></i>
-                <input type="tel" class="form-control" id="primaryMobile" name="primary_mobile"
-                       value="{{ old('primary_mobile', $primaryMobile) }}" placeholder="50 123 4567"
-                       oninput="validatePhone(this,'primaryPhoneMsg')" maxlength="15"/>
-              </div>
+                <select class="form-select phone-country" id="primaryCountry" name="primary_country">
+                    <option value="+971" @selected($primaryCountry==='+971')>🇦🇪 +971</option>
+                    <option value="+91" @selected($primaryCountry==='+91')>🇮🇳 +91</option>
+                    <option value="+1" @selected($primaryCountry==='+1')>🇺🇸 +1</option>
+                    <option value="+44" @selected($primaryCountry==='+44')>🇬🇧 +44</option>
+                    <option value="+966" @selected($primaryCountry==='+966')>🇸🇦 +966</option>
+                    <option value="+974" @selected($primaryCountry==='+974')>🇶🇦 +974</option>
+                    <option value="+965" @selected($primaryCountry==='+965')>🇰🇼 +965</option>
+                    <option value="+973" @selected($primaryCountry==='+973')>🇧🇭 +973</option>
+                    <option value="+968" @selected($primaryCountry==='+968')>🇴🇲 +968</option>
+                </select>
+
+                <div class="input-icon-wrap phone-number">
+                    <i class="bi bi-phone ii"></i>
+                    <input type="tel"
+                           class="form-control"
+                           id="primaryMobile"
+                           name="primary_mobile"
+                           value="{{ old('primary_mobile', $primaryMobile) }}"
+                           placeholder="50 123 4567"
+                           oninput="validatePhone(this,'primaryPhoneMsg')"
+                           maxlength="15">
+                </div>
             </div>
+
             <div class="field-msg" id="primaryPhoneMsg"></div>
+
             <div style="font-size:.68rem;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:4px;">
-              <i class="bi bi-whatsapp" style="color:#25d366;"></i>This number receives all WhatsApp ticket updates.
+                <i class="bi bi-whatsapp" style="color:#25d366;"></i>
+                This number receives all WhatsApp ticket updates.
             </div>
-          </div>
+        </div>
+    </div>
+
+    <!-- Primary Contact Email -->
+    <div class="col-md-6">
+        <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">
+                Primary Contact Email <span class="req">*</span>
+            </label>
+
+            <div class="input-icon-wrap">
+                <i class="bi bi-envelope ii"></i>
+                <input type="email"
+                       class="form-control"
+                       id="primaryEmail"
+                       name="email"
+                       value="{{ old('primary_email', $primaryEmail ?? '') }}"
+                       placeholder="name@example.com">
+            </div>
+
+            <div class="field-msg" id="primaryEmailMsg"></div>
+
+            <div style="font-size:.68rem;color:var(--text-muted);margin-top:4px;display:flex;align-items:center;gap:4px;">
+                <i class="bi bi-envelope-check" style="color:#0d6efd;"></i>
+                Service request notifications will also be sent to this email.
+            </div>
+        </div>
+    </div>
+</div>
 
         </div>
       </div>

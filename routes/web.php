@@ -53,12 +53,17 @@ Route::post('/logout', function (Illuminate\Http\Request $request) {
 
     Route::get('/sr/{serviceRequest}/photos', [ServiceRequestController::class, 'publicPhotos'])
         ->name('sr.photos');
-// });
+
+});
+// ── customer portal — public ──
+Route::get('/portal/client/{code}',        [ClientController::class, 'portalClient'])->name('portal.client');
+Route::get('/portal/project/{code}',       [ClientController::class, 'portal'])->name('portal.project');
 
 // POST stays unsigned so the form can submit normally
 Route::post('/client_feedback/{id}', [ClientController::class, 'storeFeedback'])
     ->name('clients.feedback.store');
-
+Route::get('/portal/doc/{sr}/{type}', [ClientController::class, 'portalDoc'])
+    ->whereIn('type', ['quote', 'invoice'])->name('portal.doc');
 
 /* ---- Root: redirect to dashboard (or login) ---- */
 // Route::get('/', function () {

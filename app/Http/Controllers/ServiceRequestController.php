@@ -19,7 +19,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-
+use App\Support\PortalLink;
+use App\Mail\ServiceRequestReceivedMail;
+use Illuminate\Support\Facades\Mail;
 class ServiceRequestController extends Controller
 {
     /* ============================================================
@@ -180,6 +182,25 @@ class ServiceRequestController extends Controller
         } catch (\Throwable $e) {
             Log::error('SR created WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
         }
+
+        try {
+    $sr->loadMissing(['client', 'project']);
+
+    $to = optional($sr->client)->email;
+
+    if ($to) {
+        Mail::to($to)->send(
+            new ServiceRequestReceivedMail($sr, $this->buildSrRef($sr))
+        );
+    } else {
+        Log::warning('SR created but client has no email', ['sr_id' => $sr->id]);
+    }
+    } catch (\Throwable $e) {
+        Log::error('SR created mail failed', [
+            'sr_id' => $sr->id,
+            'error' => $e->getMessage(),
+        ]);
+    }
         return response()->json([
             'success'      => true,
             'id'           => $sr->id,
@@ -941,26 +962,51 @@ $tickets = $inquiries->map(function ($sr) use ($slaById, $slaByName) {
         // app(\App\Services\WhatsAppService::class)
         //     ->notifyMaintenanceCompleted($serviceRequest);
 
-        $photosLink = \Illuminate\Support\Facades\URL::signedRoute(
-            'sr.photos',
-            ['serviceRequest' => $serviceRequest->id]
-        );
+        // Customer-facing project page: photos, progress, technician notes, PDF.
+        // Falls back to the photos-only link if the SR has no project attached.
+        $serviceRequest->loadMissing('project');
 
+        $customerLink = $serviceRequest->project
+            ? \App\Support\PortalLink::project($serviceRequest->project, $serviceRequest)
+            : \Illuminate\Support\Facades\URL::signedRoute(
+                'sr.photos',
+                ['serviceRequest' => $serviceRequest->id]
+            );
 
         \App\Jobs\SendSatisfactionSurvey::dispatch($serviceRequest)
             ->delay(now()->addDay());
+
+        // try {
+        //     $wa = app(\App\Services\WhatsAppService::class);
+        //     $wa->notifyMaintenanceCompleted($serviceRequest, null, $customerLink);
+        //     $wa->notifyInternalMaintenanceCompleted($serviceRequest, null, $customerLink);
+        // } catch (\Throwable $e) {
+        //     Log::error('QC-pass WhatsApp failed', [
+        //         'sr_id' => $serviceRequest->id,
+        //         'error' => $e->getMessage(),
+        //     ]);
+        // }
+        $ref = $this->buildSrRef($serviceRequest);
         try {
-            $wa = app(\App\Services\WhatsAppService::class);
-            $wa->notifyMaintenanceCompleted($serviceRequest, null, $photosLink);
-            $wa->notifyInternalMaintenanceCompleted($serviceRequest, null, $photosLink);
+            $to = $serviceRequest->client?->email;
+
+            if ($to) {
+                Mail::to($to)->send(new \App\Mail\MaintenanceCompletedMail(
+                    $serviceRequest,
+                    $this->buildSrRef($serviceRequest),
+                    $customerLink
+                ));
+            } else {
+                Log::warning('QC-pass mail skipped — client has no email', [
+                    'sr_id' => $serviceRequest->id,
+                ]);
+            }
         } catch (\Throwable $e) {
-            Log::error('QC-pass WhatsApp failed', [
+            Log::error('QC-pass mail failed', [
                 'sr_id' => $serviceRequest->id,
                 'error' => $e->getMessage(),
             ]);
         }
-        $ref = $this->buildSrRef($serviceRequest);
-
         return response()->json([
             'ok'      => true,
             'success' => true,
