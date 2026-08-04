@@ -1300,7 +1300,8 @@
   const TECHS = @json($technicians ?? []);
 
 
-  
+  var SLA_MATRIX = @json($slaMatrix);
+
 
   let tickets = [...ALL_TK];
   let filtered = [...tickets];
@@ -1378,43 +1379,74 @@ function renderWorkloadBars(techs) {
 }
 
 
-  function renderTable() {
-    const body  = document.getElementById('tableBody');
-    const empty = document.getElementById('emptyState');
-    const start = (currentPage - 1) * PER;
-    const page  = filtered.slice(start, start + PER);
+function renderTable() {
+  const body  = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  const start = (currentPage - 1) * PER;
+  const page  = filtered.slice(start, start + PER);
 
-    document.getElementById('filterLbl').textContent = `${filtered.length}/${tickets.length}`;
-    document.getElementById('tblLbl').textContent = filtered.length
-      ? `Showing ${start+1}–${Math.min(start+PER,filtered.length)} of ${filtered.length}`
-      : 'No records';
+  document.getElementById('filterLbl').textContent = `${filtered.length}/${tickets.length}`;
+  document.getElementById('tblLbl').textContent = filtered.length
+    ? `Showing ${start+1}–${Math.min(start+PER,filtered.length)} of ${filtered.length}`
+    : 'No records';
 
-    if (!filtered.length) { body.innerHTML=''; empty.style.display='block'; renderPager(); return; }
-    empty.style.display = 'none';
+  if (!filtered.length) { body.innerHTML=''; empty.style.display='block'; renderPager(); return; }
+  empty.style.display = 'none';
 
-    const pcls = { High:'chip-r', Medium:'chip-y', Low:'chip-g' };
+  body.innerHTML = page.map(t => {
+    const sla = slaStatus(t);
+    const pc  = t.prioColor || '#8a8a8a';
+    const sel = t.id === selTkId;
+    const siteShort = (t.site||'').split(' — ')[0];
 
-    body.innerHTML = page.map(t => {
-      const slaCls = t.hrsAgo>24 ? 'sla-c' : t.hrsAgo>8 ? 'sla-w' : 'sla-ok';
-      const slaIco = t.hrsAgo>24 ? 'bi-exclamation-triangle-fill' : t.hrsAgo>8 ? 'bi-clock-history' : 'bi-check-circle';
-      const sel = t.id === selTkId;
-      const siteShort = (t.site||'').split(' — ')[0];
-      return `<tr class="${sel?'sel':''}" onclick="selectTicket('${t.id}')">
-        <td><input type="radio" ${sel?'checked':''} onclick="event.stopPropagation();selectTicket('${t.id}')" style="accent-color:#6571ff;"/></td>
-        <td data-label="SR ID"><span class="sr-link">${t.id}</span></td>
-        <td data-label="Client">
-          <div style="font-weight:500;color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.client}</div>
-          <div style="font-size:.67rem;color:var(--text-muted);">${t.contract || ''}</div>
-        </td>
-        <td data-label="Category"><span class="chip chip-gray">${t.domain}</span></td>
-        <td data-label="Site" style="color:var(--text-muted);">${siteShort}</td>
-        <td data-label="Priority"><span class="chip ${pcls[t.priority]||'chip-gray'}">${t.priority}</span></td>
-        <td data-label="SLA"><span class="${slaCls}" style="font-size:.75rem;display:flex;align-items:center;gap:4px;"><i class="bi ${slaIco}"></i>${t.hrsAgo}h</span></td>
-        <td data-label="Approved" style="font-size:.7rem;color:var(--text-muted);white-space:nowrap;">${t.approvedStr}</td>
-      </tr>`;
-    }).join('');
-    renderPager();
-  }
+    return `<tr class="${sel?'sel':''}" onclick="selectTicket('${t.id}')">
+      <td><input type="radio" ${sel?'checked':''} onclick="event.stopPropagation();selectTicket('${t.id}')" style="accent-color:#6571ff;"/></td>
+      <td data-label="SR ID"><span class="sr-link">${t.id}</span></td>
+      <td data-label="Client">
+        <div style="font-weight:500;color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.client}</div>
+        <div style="font-size:.67rem;color:var(--text-muted);">${t.contract || ''}</div>
+      </td>
+      <td data-label="Category"><span class="chip chip-gray">${t.domain}</span></td>
+      <td data-label="Site" style="color:var(--text-muted);">${siteShort}</td>
+      <td data-label="Priority">
+        <span class="chip" style="background:${pc}1a;color:${pc};border:1px solid ${pc}55;font-weight:600;">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${pc};margin-right:5px;"></span>${t.priority}
+        </span>
+      </td>
+      <td data-label="SLA">
+        <span style="font-size:.75rem;display:flex;align-items:center;gap:5px;color:${sla.color};font-weight:600;white-space:nowrap;"
+              title="${sla.next ? `${sla.next.at - sla.hrs}h to ${sla.next.name}` : 'highest band'}">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${sla.color};flex:0 0 auto;"></span>
+          ${sla.hrs}h 
+    
+        </span>
+      </td>
+      <td data-label="Approved" style="font-size:.7rem;color:var(--text-muted);white-space:nowrap;">${t.approvedStr}</td>
+    </tr>`;
+  }).join('');
+  renderPager();
+}
+
+
+function slaRow(t){
+  return (SLA_MATRIX || []).find(function(r){
+    return r.prioKey === t.prioKey || Number(r.prioId) === Number(t.prioId);
+  });
+}
+
+function slaCell(t){
+  var row = slaRow(t);
+  if(!row) return { color:'#8a8a8a', icon:'bi-clock', target:null, breached:false };
+
+  var breached = t.hrsAgo > row.approve;
+
+  return {
+    color:    row.color,                    // always the criticality colour
+    icon:     breached ? 'bi-exclamation-triangle-fill' : 'bi-check-circle-fill',
+    target:   row.approve,
+    breached: breached
+  };
+}
 
   function renderPager() {
     const total = Math.ceil(filtered.length / PER);
@@ -1441,20 +1473,85 @@ function renderWorkloadBars(techs) {
   }
 
 function renderSnapshot(t) {
-  const slaCls = t.hrsAgo>24 ? '#ff3366' : t.hrsAgo>8 ? '#fbbc06' : '#05a34a';
-  const pcls = { High:'chip-r', Medium:'chip-y', Low:'chip-g' };
+  const sla = slaStatus(t);
+  const pc  = t.prioColor || '#8a8a8a';
+
   document.getElementById('snapBody').innerHTML = `
   <div class="tk-grid">
     <div class="tk-row"><div class="tk-l">SR_ID</div><div class="tk-v" style="color:#6571ff;font-weight:700;">${t.id}</div></div>
-    <div class="tk-row"><div class="tk-l">Priority</div><div class="tk-v"><span class="chip ${pcls[t.priority]||'chip-gray'}">${t.priority}</span></div></div>
+    <div class="tk-row"><div class="tk-l">Priority</div>
+      <div class="tk-v">
+        <span class="chip" style="background:${pc}1a;color:${pc};border:1px solid ${pc}55;font-weight:700;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${pc};margin-right:5px;"></span>${t.priority}
+        </span>
+      </div></div>
     <div class="tk-row full"><div class="tk-l">Customer</div><div class="tk-v">${t.client}</div></div>
     <div class="tk-row full"><div class="tk-l">Project</div><div class="tk-v">${t.contract || '—'}</div></div>
     <div class="tk-row"><div class="tk-l">Category</div><div class="tk-v">${t.domain}</div></div>
-        <div class="tk-row"><div class="tk-l">Warranty</div><div class="tk-v">${t.warranty}</div></div>
-    <div class="tk-row"><div class="tk-l">SLA Elapsed</div><div class="tk-v" style="color:${slaCls};font-weight:700;">${t.hrsAgo}h ago</div></div>
+    <div class="tk-row"><div class="tk-l">Warranty</div><div class="tk-v">${t.warranty}</div></div>
+    <div class="tk-row"><div class="tk-l">SLA Elapsed</div>
+  <div class="tk-v" style="color:${sla.color};font-weight:700;">
+    <div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap;">
+      <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${sla.color};flex:0 0 auto;"></span>
+      <span>${sla.name} · ${sla.hrs}h</span>
+      ${sla.next ? `<span style="font-weight:500;font-size:.72rem;color:var(--text-muted);">
+        </span>` : ''}
+    </div>
+   
+  </div>
+</div>
     <div class="tk-row full"><div class="tk-l">Site</div><div class="tk-v">${t.site}</div></div>
     <div class="tk-row full"><div class="tk-l">Approved At</div><div class="tk-v">${t.approvedStr}</div></div>
   </div>`;
+}
+
+
+// Matrix rows sorted by approve hours, ascending — these are the bands
+function slaBands(){
+  return (SLA_MATRIX || [])
+    .filter(r => Number(r.approve) > 0)
+    .map(r => ({ name: r.name, color: r.color, at: Number(r.approve) }))
+    .sort((a, b) => a.at - b.at);
+}
+
+function slaStatus(t){
+  const bands = slaBands();
+  const hrs   = Number(t.hrsAgo) || 0;
+
+  if(!bands.length){
+    return { color:'#8a8a8a', name:'—', hrs, at:null, next:null, pct:0 };
+  }
+
+  // Highest band whose threshold the elapsed time has reached
+  let hit = null;
+  for (const b of bands){
+    if (hrs >= b.at) hit = b; else break;
+  }
+
+  // Next threshold up, for the progress bar / "Xh to <band>"
+  const next = bands.find(b => b.at > hrs) || null;
+
+  if(!hit){
+    // Still under the very first threshold
+    return {
+      color: '#8a8a8a',
+      name:  'Within target',
+      hrs,
+      at:    null,
+      next,
+      pct:   next ? Math.round((hrs / next.at) * 100) : 0
+    };
+  }
+
+  const span = next ? (next.at - hit.at) : 1;
+  return {
+    color: hit.color,
+    name:  hit.name,
+    hrs,
+    at:    hit.at,
+    next,
+    pct:   next ? Math.round(((hrs - hit.at) / span) * 100) : 100
+  };
 }
 
   function syncCategoryDropdown(t) {

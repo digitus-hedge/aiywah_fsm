@@ -13,6 +13,7 @@ use App\Models\ServiceCategory;
 use App\Models\Priority;
 use App\Services\WhatsAppService;
 use App\Models\ExpenseCategory;
+use App\Models\SlaMatrix;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -343,7 +344,7 @@ class ServiceRequestController extends Controller
 
         $oldStatus = $serviceRequest->status;          // capture BEFORE update
 
-        $serviceRequest->update(['status' => 'Approved']);
+        $serviceRequest->update(['status' => 'Approved','approved_at'=> now()]);
 
         $ref = $this->buildSrRef($serviceRequest);
 
@@ -506,31 +507,61 @@ class ServiceRequestController extends Controller
 
         $inquiries = $query->latest()->get();
 
-        $tickets = $inquiries->map(function ($sr) {
-            return [
-                'id'                => $this->buildSrRef($sr),
-                'dbId'              => $sr->id,
-                'client'            => optional($sr->client)->company_name ?? '-',
-                'contract'          => optional($sr->project)->project_name ?? '-',
-                'domain'            => optional($sr->category)->category_name ?? '-',
-                'site'              => optional($sr->project)->site_name ?? '-',
-                'priority'          => $sr->priority_level,
-                'hrsAgo'            => abs((int) now()->diffInHours($sr->updated_at, false)),
-                'approvedStr'       => $sr->updated_at?->format('d M Y h:i A'),
-                'status'            => $sr->status,
-                'warranty'          => ($sr->project
-                    && $sr->project->warranty_end_date
-                    && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
-                    ? 'In Warranty'
-                    : 'Out of Warranty',
-                'client_id'         => $sr->client_id,
-                'project_id'        => $sr->project_id,
-                'service_type_id'   => $sr->service_type_id,
-                'reported_by'       => $sr->reported_by,
-                'issue_description' => $sr->issue_description,
-                'internal_remark'   => $sr->internal_remark,
-            ];
-        });
+
+          // SLA targets keyed by priority for the view
+   $slaMatrix = SlaMatrix::with('priority')->get()->map(fn ($r) => [
+    'prioId'   => (int) $r->priority_id,
+    'name'     => optional($r->priority)->name,
+    'prioKey'  => strtolower(trim((string) optional($r->priority)->name)),  // ← add
+    'color'    => optional($r->priority)->color ?? '#8a8a8a',
+    'approve'  => (int) $r->response_time,
+    'dispatch' => (int) $r->assignment_time,
+    'qc'       => (int) $r->resolution_time,
+])->values();
+
+
+        
+
+       // Index the matrix both ways so it works whether priority_level holds an id or a name
+$slaById   = $slaMatrix->keyBy('prioId');
+$slaByName = $slaMatrix->keyBy('prioKey');
+
+$tickets = $inquiries->map(function ($sr) use ($slaById, $slaByName) {
+    $stop    = $sr->approved_at ?: now();
+    $elapsed = abs((int) $sr->created_at->diffInHours($stop, false));
+
+    $rawPrio = $sr->priority_level;
+    $meta    = $slaById[(int) $rawPrio]
+            ?? $slaByName[strtolower(trim((string) $rawPrio))]
+            ?? null;
+
+    return [
+        'id'                => $this->buildSrRef($sr),
+        'dbId'              => $sr->id,
+        'client'            => optional($sr->client)->company_name ?? '-',
+        'contract'          => optional($sr->project)->project_name ?? '-',
+        'domain'            => optional($sr->category)->category_name ?? '-',
+        'site'              => optional($sr->project)->site_name ?? '-',
+        'priority'          => $meta['name']  ?? ($rawPrio !== null ? (string) $rawPrio : '—'),
+        'prioColor'         => $meta['color'] ?? '#8a8a8a',
+        'prioId'            => $meta['prioId'] ?? null,
+        'prioKey'           => $meta['prioKey'] ?? strtolower(trim((string) $rawPrio)),
+        'hrsAgo'            => $elapsed,
+        'approvedStr'       => $sr->approved_at?->format('d M Y h:i A') ?? '-',
+        'status'            => $sr->status,
+        'warranty'          => ($sr->project
+            && $sr->project->warranty_end_date
+            && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
+            ? 'In Warranty'
+            : 'Out of Warranty',
+        'client_id'         => $sr->client_id,
+        'project_id'        => $sr->project_id,
+        'service_type_id'   => $sr->service_type_id,
+        'reported_by'       => $sr->reported_by,
+        'issue_description' => $sr->issue_description,
+        'internal_remark'   => $sr->internal_remark,
+    ];
+});
 
         $categories = ServiceCategory::where('status', 1)
             ->with(['domains' => fn($q) => $q->where('status', 1)->orderBy('sort_order')])
@@ -564,7 +595,8 @@ class ServiceRequestController extends Controller
             'tickets',
             'categories',
             'technicians',
-            'filters'
+            'filters',
+            'slaMatrix'
         ));
     }
 

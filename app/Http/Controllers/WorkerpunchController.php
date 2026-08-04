@@ -330,6 +330,7 @@ public function hold(Request $request)
 
             $sr->update([
                 'status'         => 'Qc Review',
+                'qc_updated'     =>now(),
                 'qc_reviewed_at' => null,
                 'qc_reviewed_by' => null,
             ]);
