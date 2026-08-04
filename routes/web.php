@@ -47,14 +47,14 @@ Route::post('/logout', function (Illuminate\Http\Request $request) {
 
 /* ---- Public customer links (WhatsApp) ---- */
 
-// Route::middleware('signed')->group(function () {
+
     Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])
         ->name('clients.feedback.show');
 
     Route::get('/sr/{serviceRequest}/photos', [ServiceRequestController::class, 'publicPhotos'])
         ->name('sr.photos');
 
-});
+
 // ── customer portal — public ──
 Route::get('/portal/client/{code}',        [ClientController::class, 'portalClient'])->name('portal.client');
 Route::get('/portal/project/{code}',       [ClientController::class, 'portal'])->name('portal.project');
