@@ -17,6 +17,7 @@ class Client extends Model
         'designation',
         'primary_country',
         'primary_mobile',
+        'email',
     ];
 
     public function mobiles()

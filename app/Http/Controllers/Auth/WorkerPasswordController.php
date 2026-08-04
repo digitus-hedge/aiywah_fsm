@@ -9,6 +9,7 @@ use App\Models\WorkerOtp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
@@ -28,32 +29,56 @@ class WorkerPasswordController extends Controller
         ]);
     }
 
-    public function sendOtp(Request $request)
-    {
-        $request->validate(['email' => ['required', 'email']]);
+    private function dispatchOtp(string $email): void
+{
+    $user = User::where('email', $email)->first();
 
-        $user = User::where('email', $request->email)->first();
-
-        // Only Maintenance Leads. Response is identical either way.
-        if ($user && optional($user->role)->code === 'ML' && $user->status) {
-            $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-
-            WorkerOtp::where('email', $user->email)->delete();
-
-            WorkerOtp::create([
-                'email'      => $user->email,
-                'otp_hash'   => Hash::make($otp),
-                'expires_at' => now()->addMinutes(self::OTP_TTL_MINUTES),
-            ]);
-
-            Mail::to($user->email)->send(new WorkerOtpMail($otp, self::OTP_TTL_MINUTES));
-        }
-
-        $request->session()->put('worker_otp_email', $request->email);
-
-        return redirect()->route('worker.otp.form')
-            ->with('status', 'If that email is registered, a code is on its way.');
+    if (!$user || optional($user->role)->code !== 'ML' || !$user->status) {
+        return;
     }
+
+    $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+    WorkerOtp::where('email', $user->email)->delete();
+
+    $record = WorkerOtp::create([
+        'email'      => $user->email,
+        'otp_hash'   => Hash::make($otp),
+        'expires_at' => now()->addMinutes(self::OTP_TTL_MINUTES),
+    ]);
+
+    try {
+        Mail::to($user->email)->send(new WorkerOtpMail($otp, self::OTP_TTL_MINUTES));
+    } catch (\Throwable $e) {
+        Log::error('Worker OTP mail failed', ['email' => $user->email, 'error' => $e->getMessage()]);
+        $record->delete();
+    }
+}
+
+public function sendOtp(Request $request)
+{
+    $request->validate(['email' => ['required', 'email']]);
+
+    $this->dispatchOtp($request->email);
+
+    $request->session()->put('worker_otp_email', $request->email);
+
+    return redirect()->route('worker.otp.form')
+        ->with('status', 'If that email is registered, a code is on its way.');
+}
+
+public function resendOtp(Request $request)
+{
+    $email = $request->session()->get('worker_otp_email');
+
+    if (!$email) {
+        return redirect()->route('worker.password.request');
+    }
+
+    $this->dispatchOtp($email);
+
+    return back()->with('status', 'A new code has been sent.');
+}
 
     /* ---------- Step 2: verify OTP ---------- */
 
@@ -113,17 +138,6 @@ class WorkerPasswordController extends Controller
         $request->session()->forget('worker_otp_email');
 
         return redirect()->route('worker.password.forced');
-    }
-
-    public function resendOtp(Request $request)
-    {
-        $email = $request->session()->get('worker_otp_email');
-
-        if (!$email) {
-            return redirect()->route('worker.password.request');
-        }
-
-        return $this->sendOtp(new Request(['email' => $email]));
     }
 
     /* ---------- Step 3: forced reset ---------- */

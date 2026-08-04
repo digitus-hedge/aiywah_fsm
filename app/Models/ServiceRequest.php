@@ -48,6 +48,7 @@ class ServiceRequest extends Model
         'performance_score',
         'evaluation_comment',
         'feedback_submitted_at',
+        'portal_link_sent_at',
 
     ];
 
@@ -67,6 +68,7 @@ class ServiceRequest extends Model
 
         'performance_score'     => 'integer',
         'feedback_submitted_at' => 'datetime',
+        'portal_link_sent_at' => 'datetime',
     ];
 
 
