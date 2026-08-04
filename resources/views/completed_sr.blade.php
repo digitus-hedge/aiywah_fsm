@@ -204,6 +204,29 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
     </div>
   </div>
 
+
+@php
+  $qcBands = collect($slaMatrix ?? [])
+      ->filter(fn($r) => (int) $r['qc'] > 0)
+      ->map(fn($r) => ['name' => $r['name'], 'color' => $r['color'], 'at' => (int) $r['qc']])
+      ->sortBy('at')
+      ->values();
+
+  $qcFor = function ($hrs) use ($qcBands) {
+      if ($hrs === null || $qcBands->isEmpty()) {
+          return ['name' => null, 'color' => '#8a8a8a', 'at' => null, 'next' => null];
+      }
+
+      $hit = null;
+      foreach ($qcBands as $b) { if ($hrs >= $b['at']) $hit = $b; else break; }
+      $next = $qcBands->first(fn($b) => $b['at'] > $hrs);
+
+      if (!$hit) return ['name' => 'Within target', 'color' => '#8a8a8a', 'at' => null, 'next' => $next];
+
+      return ['name' => $hit['name'], 'color' => $hit['color'], 'at' => $hit['at'], 'next' => $next];
+  };
+@endphp
+
   <div class="tbl-wrap">
     <table class="listing" id="sr-table">
       <thead>
@@ -212,7 +235,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
           <th>Customer</th>
           <th>Site / Location</th>
           <th>Worker</th>
-          <th>Duration</th>
+          <th>SLA Elapsed</th>
           <th>Total</th>
           <th>Completed</th>
           <th style="width:70px;">Action</th>
@@ -236,10 +259,21 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 
             $warrantyEnd = optional($sr->project)->warranty_end_date;
 
-$isInWarranty = $warrantyEnd
-    && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
+            $isInWarranty = $warrantyEnd
+            && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
 
-$isOow = ! $isInWarranty;
+            $isOow = ! $isInWarranty;
+
+
+
+            // QC clock: qc_updated → qc_reviewed_at (both nullable)
+$qcFrom = $sr->qc_updated     ? \Carbon\Carbon::parse($sr->qc_updated)     : null;
+$qcTo   = $sr->qc_reviewed_at ? \Carbon\Carbon::parse($sr->qc_reviewed_at) : null;
+
+$qcHrs = $qcFrom ? (int) abs($qcFrom->diffInHours($qcTo ?: now(), false)) : null;
+
+$qcPending = $qcFrom && ! $qcTo;
+$qc        = $qcFor($qcHrs);
 
 
 
@@ -261,7 +295,19 @@ $isOow = ! $isInWarranty;
               'summary'     => $punch->completion_summary ?? '—',
               'punch_in'    => $punch && $punch->punch_in_at  ? \Carbon\Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A')  : '—',
               'punch_out'   => $punch && $punch->punch_out_at ? \Carbon\Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '—',
-              'duration'    => $duration,
+              // 'duration'    => $duration,
+
+            
+
+
+            'qc_from'  => optional($qcFrom)->format('d M Y · h:i A') ?? '—',
+'qc_to'    => optional($qcTo)->format('d M Y · h:i A') ?? '—',
+'qc_hrs'   => $qcHrs,
+'qc_band'  => $qc['name'],
+'qc_color' => $qc['color'],
+'qc_next'  => $qc['next']['name'] ?? null,
+
+
               'materials'   => number_format($punch->materials_subtotal ?? 0, 2),
               'labour'      => number_format($punch->labour_charge ?? 0, 2),
               'total'       => number_format($grandTotal, 2),
@@ -282,7 +328,27 @@ $isOow = ! $isInWarranty;
                 <span style="font-size:.8rem;">{{ $worker }}</span>
               </div>
             </td>
-            <td><span class="cell-dur"><i class="bi bi-stopwatch"></i>{{ $duration }}</span></td>
+            <!-- <td><span class="cell-dur"><i class="bi bi-stopwatch"></i>{{ $duration }}</span></td> -->
+
+
+         <td>
+  @if($qcHrs === null)
+    <span class="cell-dur" style="color:#8a8a8a;background:#8a8a8a1a;border:1px solid #8a8a8a55;">
+      <i class="bi bi-dash-circle"></i>—
+    </span>
+  @else
+    <span class="cell-dur"
+          style="color:{{ $qc['color'] }};background:{{ $qc['color'] }}1a;border:1px solid {{ $qc['color'] }}55;font-weight:600;"
+          title="{{ $qcFrom->format('d M Y h:i A') }} → {{ $qcTo ? $qcTo->format('d M Y h:i A') : 'pending' }}{{ $qc['next'] ? ' · '.($qc['next']['at'] - $qcHrs).'h to '.$qc['next']['name'] : '' }}">
+      <i class="bi {{ $qcPending ? 'bi-hourglass-split' : 'bi-stopwatch' }}"></i>
+      {{ $qcHrs }}h
+      @if($qc['name'])
+        <span style="font-size:.68rem;opacity:.85;margin-left:4px;">{{ $qc['name'] }}</span>
+      @endif
+    </span>
+  @endif
+</td>
+
             <td class="cell-total">{{ number_format($grandTotal, 2) }}</td>
             <td class="muted">{{ $completedAt->diffForHumans() }}</td>
             <td onclick="event.stopPropagation()">

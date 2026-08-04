@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Punch;
 use App\Models\ServiceRequest;
+use App\Models\SlaMatrix;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -34,17 +35,39 @@ class CompletedService extends Controller
             ->withQueryString();
 
         // AJAX fragment responses for live filtering (matches the blade's fetch calls).
-        if ($request->query('frag') === 'rows') {
-            return view('completed_sr', compact('completed'))->fragment('rows');
-        }
-        if ($request->query('frag') === 'pager') {
-            return view('completed_sr', compact('completed'))->fragment('pager');
-        }
 
-        $stats = $this->stats();
+        // if ($request->query('frag') === 'rows') {
+        //     return view('completed_sr', compact('completed'))->fragment('rows');
+        // }
 
-        return view('completed_sr', compact('completed', 'stats'));
+         $slaMatrix = $this->slaMatrix();
+
+    // AJAX fragment responses for live filtering (matches the blade's fetch calls).
+    if ($request->query('frag') === 'rows') {
+        return view('completed_sr', compact('completed', 'slaMatrix'))->fragment('rows');
     }
+    if ($request->query('frag') === 'pager') {
+        return view('completed_sr', compact('completed', 'slaMatrix'))->fragment('pager');
+    }
+
+    $stats = $this->stats();
+
+        return view('completed_sr', compact('completed', 'stats', 'slaMatrix'));
+    }
+
+
+    private function slaMatrix()
+{
+    return SlaMatrix::with('priority')->get()->map(fn ($r) => [
+        'prioId'   => (int) $r->priority_id,
+        'name'     => optional($r->priority)->name,
+        'prioKey'  => strtolower(trim((string) optional($r->priority)->name)),
+        'color'    => optional($r->priority)->color ?? '#8a8a8a',
+        'approve'  => (int) $r->response_time,
+        'dispatch' => (int) $r->assignment_time,
+        'qc'       => (int) $r->resolution_time,
+    ])->values();
+}
 
     /**
      * JSON detail for the popup. The blade currently reads the row's data-sr

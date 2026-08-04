@@ -45,6 +45,8 @@ class ServiceRequest extends Model
         'hold_reason',
         'held_at',
 
+        'approved_at',
+        'qc_updated',
         'performance_score',
         'evaluation_comment',
         'feedback_submitted_at',
@@ -60,11 +62,14 @@ class ServiceRequest extends Model
         'quote_submitted_at' => 'datetime',
         'client_approved_at' => 'datetime',
 
+        'approved_at'    => 'datetime',
         'dispatched_at'  => 'datetime',
         'qc_reviewed_at' => 'datetime',
         'eta_at'         => 'datetime',
         'accepted_at'    => 'datetime',
         'held_at'        => 'datetime',
+
+         'qc_updated'    => 'datetime',
 
         'performance_score'     => 'integer',
         'feedback_submitted_at' => 'datetime',

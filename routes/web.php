@@ -47,7 +47,7 @@ Route::post('/logout', function (Illuminate\Http\Request $request) {
 
 /* ---- Public customer links (WhatsApp) ---- */
 
-Route::middleware('signed')->group(function () {
+// Route::middleware('signed')->group(function () {
     Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])
         ->name('clients.feedback.show');
 

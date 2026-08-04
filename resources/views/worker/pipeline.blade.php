@@ -565,7 +565,7 @@
 
     <div id="signBlock" class="hidden" style="margin-top:15px;">
       <label class="d-label" for="clientNameInput">Client name <span class="req">*</span></label>
-      <input type="text" class="d-input" id="clientNameInput" placeholder="Name of person signing"/>
+      <input type="text" class="d-input" id="clientNameInput"  style="margin-bottom:15px;" placeholder="Name of person signing"/>
       <span class="d-label">Signature <span class="req">*</span></span>
       <div class="sig-pad"><canvas id="sigCanvas"></canvas></div>
       <button type="button" class="action-btn outline" id="sigClearBtn" style="margin-top:7px;">
@@ -594,6 +594,8 @@ const JOBS   = @json($jobs ?? []);
 const ACTIVE = @json($activeJob ?? null);
 const ROUTES = @json($routes ?? []);
 const LETTERHEAD = @json($letterhead ?? ['header' => null, 'footer' => null, 'watermark' => null]);
+
+  const SLA_MATRIX = @json($slaMatrix);
 
 /* ══════════════════════════════════════════════════════
    STATE
@@ -764,7 +766,9 @@ function renderPipeline() {
 }
 
 function buildJobCard(job) {
-  const slaClass   = job.hrsAgo > 24 ? 'sla-c' : job.hrsAgo > 8 ? 'sla-w' : 'sla-ok';
+  // const slaClass   = job.hrsAgo > 24 ? 'sla-c' : job.hrsAgo > 8 ? 'sla-w' : 'sla-ok';
+
+  const sla = slaStatus(job, 'dispatch');
   const isResched  = job.status === 'Rescheduled';
   const isAccepted = job.status === 'Accepted';
   const onHold     = job.status === 'On Hold';
@@ -911,7 +915,12 @@ function buildJobCard(job) {
         <div class="jc-meta">
           <span class="jc-meta-item"><i class="bi bi-tools"></i><span>${esc(job.domain)}</span></span>
           <span class="jc-meta-item"><i class="bi bi-geo-alt"></i><span>${esc(shortSite)}</span></span>
-          <span class="jc-sla ${slaClass}"><i class="bi bi-clock"></i> ${Number(job.hrsAgo)}h</span>
+          
+          <span class="jc-sla" style="color:${sla.color};background:${sla.color}1a;border:1px solid ${sla.color}55;font-weight:600;display:inline-flex;align-items:center;gap:4px;"
+      title="${job.clockRunning ? 'Awaiting acceptance' : 'Dispatch → Accept'}${sla.next ? ` · ${sla.next.at - sla.hrs}h to ${esc(sla.next.name)}` : ''}">
+  <i class="bi ${job.clockRunning ? 'bi-hourglass-split' : 'bi-clock'}"></i>
+  ${job.hasClock ? `${sla.hrs}h · ${esc(sla.name)}` : '—'}
+</span>
         </div>
       </div>
 
@@ -1100,7 +1109,9 @@ function resetJobState(ref, srId) {
 }
 
 function buildBanner(job, etaDate, etaTime) {
-  const slaColor  = job.hrsAgo > 24 ? '#fca5a5' : job.hrsAgo > 8 ? '#fcd34d' : '#a7f3d0';
+  // const slaColor  = job.hrsAgo > 24 ? '#fca5a5' : job.hrsAgo > 8 ? '#fcd34d' : '#a7f3d0';
+  const sla       = slaStatus(job, 'dispatch');
+
   const shortSite = String(job.site ?? '').split(',')[0];
 
   $('jobBanner').innerHTML = `
@@ -1110,7 +1121,7 @@ function buildBanner(job, etaDate, etaTime) {
     <div class="ajb-meta">
       <span class="ajb-chip"><i class="bi bi-calendar3"></i>ETA ${esc(etaDate)} ${esc(etaTime)}</span>
       <span class="ajb-chip"><i class="bi bi-exclamation-circle"></i>${esc(job.priority)} priority</span>
-      <span class="ajb-chip" style="color:${slaColor};"><i class="bi bi-clock"></i>${Number(job.hrsAgo)}h elapsed</span>
+    <span class="ajb-chip" style="color:${sla.color};"><i class="bi bi-clock"></i>${sla.hrs}h · ${esc(sla.name)}</span>
     </div>`;
 
   $('termTitle').innerHTML = `<i class="bi bi-broadcast"></i>${esc(job.id)}`;
@@ -2131,6 +2142,43 @@ function applyEtaGate() {
   tick();
   etaGateTimer = setInterval(tick, 30000);
 }
+
+
+
+
+
+
+/* ══════════════════════════════════════════════════════
+   SLA BANDS — thresholds come from the matrix, not code
+══════════════════════════════════════════════════════ */
+function slaBands(stage) {
+  const key = stage || 'approve';                 // 'approve' | 'dispatch' | 'qc'
+  return (SLA_MATRIX || [])
+    .filter((r) => Number(r[key]) > 0)
+    .map((r) => ({ name: r.name, color: r.color, at: Number(r[key]) }))
+    .sort((a, b) => a.at - b.at);
+}
+
+function slaStatus(item, stage) {
+  const bands = slaBands(stage);
+  const hrs   = Number(item.hrsAgo) || 0;
+
+  if (!bands.length) return { color: '#8a8a8a', name: '—', hrs, at: null, next: null, pct: 0 };
+
+  let hit = null;
+  for (const b of bands) { if (hrs >= b.at) hit = b; else break; }
+  const next = bands.find((b) => b.at > hrs) || null;
+
+  if (!hit) {
+    return { color: '#8a8a8a', name: '', hrs, at: null, next,
+             pct: next ? Math.round((hrs / next.at) * 100) : 0 };
+  }
+
+  const span = next ? (next.at - hit.at) : 1;
+  return { color: hit.color, name: hit.name, hrs, at: hit.at, next,
+           pct: next ? Math.round(((hrs - hit.at) / span) * 100) : 100 };
+}
+
 
 /* ══════════════════════════════════════════════════════
    RESTORE AN OPEN PUNCH
