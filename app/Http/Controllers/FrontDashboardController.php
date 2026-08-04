@@ -21,8 +21,8 @@ use Illuminate\Support\Facades\Schema;
  * `created_by` is the current user ("SRs I logged"). Nothing here shows another
  * executive's intake.
  *
- * Mirrors the data contract style of App\Http\Controllers\DashboardController
- * (admin): the view receives finished, formatted arrays and does no querying.
+ * The payload matches resources/views/front_dashboard.blade.php exactly: the
+ * view receives finished, formatted arrays and does no querying.
  */
 class FrontDashboardController extends Controller
 {
@@ -133,7 +133,6 @@ class FrontDashboardController extends Controller
         $completed     = (int) $stageCounts->get('completed', 0);
         $pendingTriage = $this->openTriageCount($user->id);
         $whatsapp      = $this->whatsappStats($user->id, $from, $to);
-        $triage        = $this->triageQueue($user->id);
 
         return view('front_dashboard', [
             'greeting'    => $this->greeting($user),
@@ -141,18 +140,19 @@ class FrontDashboardController extends Controller
             'today'       => now()->format('l, d F Y'),
             'periodLabel' => $periodLabel,
             'filters'     => ['period' => $period],
-            'periodOptions' => ['today' => 'Today', 'week' => 'This Week', 'month' => 'This Month'],
+
+            // Order matches the mock-up's pill order.
+            'periodOptions' => ['month' => 'This Month', 'week' => 'This Week', 'today' => 'Today'],
 
             'alertCounts' => [
                 'triage'      => $pendingTriage,
                 'wa_failures' => $whatsapp['failed'],
-                'stale'       => collect($triage)->where('stale', true)->count(),
             ],
 
-            'kpis' => $this->kpis($user->id, $from, $to, $totalInPeriod, $cancelled, $completed, $pendingTriage),
+            'kpis' => $this->kpis($user->id, $from, $to, $period, $totalInPeriod, $cancelled, $completed, $pendingTriage),
 
             'statusBreakdown' => $this->statusBreakdown($stageCounts),
-            'triage'          => $triage,
+            'triage'          => $this->triageQueue($user->id),
 
             'srTrend'     => $this->intakeTrend($user->id),
             'intakeStats' => $this->intakeStats($user->id, $from, $to, $totalInPeriod),
@@ -167,8 +167,8 @@ class FrontDashboardController extends Controller
 
             'whatsapp' => $whatsapp,
 
-            'clients'      => $this->topClients($user->id, $from, $to),
-            'clientStats'  => [
+            'clients'     => $this->topClients($user->id, $from, $to),
+            'clientStats' => [
                 'new_clients' => $this->newClientCount($user->id, $from, $to),
                 'new_sites'   => $this->newSiteCount($from, $to),
             ],
@@ -187,6 +187,16 @@ class FrontDashboardController extends Controller
             'today' => [now()->startOfDay(),   now()->endOfDay(),   'Today'],
             'week'  => [now()->startOfWeek(),  now()->endOfWeek(),  'This Week'],
             default => [now()->startOfMonth(), now()->endOfMonth(), 'This Month'],
+        };
+    }
+
+    /** "vs 16 last month" — the phrasing used on the first KPI card. */
+    private function previousLabel(string $period): string
+    {
+        return match ($period) {
+            'today' => 'yesterday',
+            'week'  => 'last week',
+            default => 'last month',
         };
     }
 
@@ -285,12 +295,13 @@ class FrontDashboardController extends Controller
 
     /* ═══════════════════════ KPI CARDS ═══════════════════════ */
 
-    private function kpis(int $userId, Carbon $from, Carbon $to, int $total, int $cancelled, int $completed, int $pendingTriage): array
+    private function kpis(int $userId, Carbon $from, Carbon $to, string $period, int $total, int $cancelled, int $completed, int $pendingTriage): array
     {
         // abs()+int keeps this identical under Carbon 2 (int) and Carbon 3 (float).
         $length   = (int) abs($from->diffInDays($to)) + 1;
         $prevFrom = (clone $from)->subDays($length);
         $prevTo   = (clone $from)->subSecond();
+        $prevWord = $this->previousLabel($period);
 
         $prevTotal = $this->mine($userId)->whereBetween('created_at', [$prevFrom, $prevTo])->count();
 
@@ -309,7 +320,7 @@ class FrontDashboardController extends Controller
         return [
             'total' => [
                 'value'      => $total,
-                'sub'        => 'vs '.$prevTotal.' previous period',
+                'sub'        => 'vs '.$prevTotal.' '.$prevWord,
                 'delta'      => $this->delta($total, $prevTotal),
                 'delta_tone' => $this->tone($total, $prevTotal),
                 'spark'      => $this->sparkline($userId),
@@ -317,8 +328,8 @@ class FrontDashboardController extends Controller
             'pending' => [
                 'value'      => $pendingTriage,
                 'sub'        => 'Not yet actioned by HoP',
-                'delta'      => $oldest ? 'Oldest '.$this->shortAge(Carbon::parse($oldest)) : 'Clear',
-                'delta_tone' => $pendingTriage > 0 ? 'dd' : 'du',
+                'delta'      => $oldest ? 'Oldest: '.$this->shortAge(Carbon::parse($oldest)).' ago' : 'Clear',
+                'delta_tone' => 'dn',
                 'spark'      => $this->sparkline($userId, self::TRIAGE_STAGES),
             ],
             'cancelled' => [
@@ -398,7 +409,7 @@ class FrontDashboardController extends Controller
         }
 
         return $this->mine($userId)
-            ->with(['client:id,company_name', 'project:id,site_name', 'category:id,category_name'])
+            ->with(['client:id,company_name', 'category:id,category_name'])
             ->whereIn('status', $raw)
             ->orderBy('created_at') // oldest first
             ->limit($limit)
@@ -406,7 +417,6 @@ class FrontDashboardController extends Controller
             ->map(fn (ServiceRequest $sr) => [
                 'code'     => $sr->code,
                 'client'   => $sr->client?->company_name ?? '—',
-                'site'     => $sr->project?->site_name ?? '—',
                 'category' => $sr->category?->category_name ?? '—',
                 'priority' => $this->priority($sr->priority_level),
                 'wait'     => $this->shortAge($sr->created_at),
@@ -473,23 +483,10 @@ class FrontDashboardController extends Controller
         }
 
         return [
-            'labels'             => $labels,
-            'in_warranty'        => $iw,
-            'out_warranty'       => $oow,
-            'in_warranty_total'  => array_sum($iw),
-            'out_warranty_total' => array_sum($oow),
-            'in_warranty_change'  => $this->pctChange($iw[5] ?? 0, $iw[4] ?? 0),
-            'out_warranty_change' => $this->pctChange($oow[5] ?? 0, $oow[4] ?? 0),
+            'labels'       => $labels,
+            'in_warranty'  => $iw,
+            'out_warranty' => $oow,
         ];
-    }
-
-    private function pctChange(int $now, int $prev): ?float
-    {
-        if ($prev === 0) {
-            return $now === 0 ? 0.0 : null;
-        }
-
-        return round(($now - $prev) / $prev * 100, 1);
     }
 
     private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
@@ -537,14 +534,12 @@ class FrontDashboardController extends Controller
 
         return $rows->map(function ($r) use ($clients, $from, $to) {
             $client = $clients->get($r->client_id);
-            $name   = $client->company_name ?? '—';
 
             return [
-                'id'         => $r->client_id,
-                'name'       => $name,
-                'short_name' => \Illuminate\Support\Str::limit($name, 18),
-                'srs'        => (int) $r->aggregate,
-                'is_new'     => (bool) ($client && $client->created_at && $client->created_at->between($from, $to)),
+                'id'     => $r->client_id,
+                'name'   => $client->company_name ?? '—',
+                'srs'    => (int) $r->aggregate,
+                'is_new' => (bool) ($client && $client->created_at && $client->created_at->between($from, $to)),
             ];
         })->all();
     }
@@ -599,8 +594,8 @@ class FrontDashboardController extends Controller
      */
     private function whatsappStats(int $userId, Carbon $from, Carbon $to): array
     {
-        $table  = 'whatsapp_logs';
-        $empty  = ['delivered' => 0, 'failed' => 0, 'delivery_rate' => 0, 'failedList' => [], 'available' => false];
+        $table = 'whatsapp_logs';
+        $empty = ['delivered' => 0, 'failed' => 0, 'delivery_rate' => 0, 'failedList' => [], 'available' => false];
 
         if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'service_request_id')) {
             return $empty;
@@ -627,9 +622,9 @@ class FrontDashboardController extends Controller
             $isFailure ? $failed += (int) $count : $delivered += (int) $count;
         }
 
-        $total      = $delivered + $failed;
-        $reasonCol  = Schema::hasColumn($table, 'failure_reason') ? 'failure_reason'
-                    : (Schema::hasColumn($table, 'error_message') ? 'error_message' : null);
+        $total     = $delivered + $failed;
+        $reasonCol = Schema::hasColumn($table, 'failure_reason') ? 'failure_reason'
+                   : (Schema::hasColumn($table, 'error_message') ? 'error_message' : null);
 
         $failedList = DB::table($table.' AS w')
             ->join('service_requests AS s', 's.id', '=', 'w.service_request_id')

@@ -431,6 +431,7 @@ class ClientController extends Controller
                 'designation'     => $validated['designation'] ?? null,
                 'primary_country' => $validated['primary_country'] ?? null,
                 'primary_mobile'  => $validated['primary_mobile'],
+                'email'           => $validated['email'],
             ]);
             $this->syncMobiles($client, $request, $validated);
             $this->syncProjects($client, $validated);
@@ -473,6 +474,7 @@ class ClientController extends Controller
             'designation'     => $validated['designation'] ?? null,
             'primary_country' => $validated['primary_country'] ?? null,
             'primary_mobile'  => $validated['primary_mobile'],
+            'email'           => $validated['email'],
         ]);
 
         // Rebuild stakeholder mobiles + projects from the submitted form
@@ -540,7 +542,12 @@ class ClientController extends Controller
                 'max:15',
                 'unique:clients,primary_mobile' . ($locked && $clientId ? ",{$clientId}" : ''),
             ],
-
+            'email' => [
+                'required',
+                'email:rfc,dns',
+                'max:255',
+                'unique:clients,email' . ($locked && $clientId ? ",{$clientId}" : ''),
+            ],
             'stakeholders'             => ['nullable', 'array'],
             'stakeholders.*.name'      => ['nullable', 'string', 'max:255'],
             'stakeholders.*.country'   => ['nullable', 'string', 'max:6'],
@@ -571,6 +578,8 @@ class ClientController extends Controller
 
         $validated = $request->validate($rules, [
             'primary_mobile.unique' => 'This primary mobile number is already registered with another client.',
+             'primary_email.unique'  => 'This email address is already registered with another client.',
+            'primary_email.email'   => 'Please enter a valid email address.',
         ]);
 
         // On update, keep ONLY the unique_code from the stored record
@@ -838,4 +847,233 @@ class ClientController extends Controller
             ])->values(),
         ]);
     }
+
+    /** Public read-only project page for the customer. */
+    public function portal(Request $request, string $code)
+    {
+        $project = Project::with('client')
+            ->where('project_code', $code)
+            ->whereNull('deleted_at')
+            ->firstOrFail();
+
+        $cards = ServiceRequest::with([
+                'category:id,category_name',
+                'assignedUser:id,name',
+                'punches.user:id,name',
+                'punches.items',
+            ])
+            ->where('project_id', $project->id)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(fn($sr) => $this->portalCard($sr));
+
+        $warrantyEnd = $project->warranty_end_date
+            ? Carbon::parse($project->warranty_end_date)->endOfDay()
+            : null;
+
+        $inWarranty = $warrantyEnd && $warrantyEnd->isFuture();
+
+        // only honour ?sr= if that request belongs to this project
+        $focusSr = (int) $request->query('sr', 0);
+        if ($focusSr && ! $cards->firstWhere('id', $focusSr)) {
+            $focusSr = 0;
+        }
+
+        return view('portal.project', [
+            'project'     => $project,
+            'client'      => $project->client,
+            'cards'       => $cards,
+            'focusSr'     => $focusSr,
+            'openCount'   => $cards->where('is_open', true)->count(),
+            'closedCount' => $cards->where('is_open', false)->count(),
+            'photoCount'  => $cards->sum(fn($c) => count($c['photos'])),
+            'inWarranty'  => $inWarranty,
+            'warrantyEnd' => $warrantyEnd,
+            'daysLeft'    => $inWarranty ? (int) now()->startOfDay()->diffInDays($warrantyEnd) : 0,
+        ]);
+    }
+
+    /** Flatten one service request into everything the customer card renders. */
+    private function portalCard(ServiceRequest $sr): array
+    {
+        $meta = $this->statusMeta($sr->status);
+
+        // staff chip classes -> the tone classes the portal blade uses
+        $tone = [
+            'chip-ok'      => 'ok',
+            'chip-warn'    => 'warn',
+            'chip-bad'     => 'bad',
+            'chip-info'    => 'info',
+            'chip-inprog'  => 'live',
+            'chip-pending' => 'wait',
+        ][$meta['chip']] ?? 'wait';
+
+        $punches = $sr->punches->map(fn($pn) => [
+            'technician' => optional($pn->user)->name ?: '—',
+            'duration'   => ($pn->punch_in_at && $pn->punch_out_at)
+                ? Carbon::parse($pn->punch_in_at)->diff(Carbon::parse($pn->punch_out_at))->format('%hh %im')
+                : null,
+            'work'    => $pn->work_description ?: null,
+            'summary' => $pn->completion_summary ?: null,
+            'before'  => $pn->start_photo_path  ? asset('storage/'.ltrim($pn->start_photo_path, '/'))  : null,
+            'after'   => $pn->finish_photo_path ? asset('storage/'.ltrim($pn->finish_photo_path, '/')) : null,
+            'when'    => ($pn->punch_out_at ?: $pn->punch_in_at)
+                ? Carbon::parse($pn->punch_out_at ?: $pn->punch_in_at)->format('d M Y · h:i A')
+                : null,
+            'items'   => $pn->items->map(fn($i) => [
+                'name' => $i->name,
+                'qty'  => rtrim(rtrim(number_format((float) $i->qty, 2), '0'), '.'),
+            ])->values()->all(),
+        ])->values();
+
+        // before / after pairs, one entry per site visit
+        $photos = [];
+        foreach ($punches as $i => $pn) {
+            if ($pn['before'] || $pn['after']) {
+                $photos[] = [
+                    'visit'  => 'Visit '.($i + 1),
+                    'before' => $pn['before'],
+                    'after'  => $pn['after'],
+                    'when'   => $pn['when'],
+                ];
+            }
+        }
+
+        // stored paperwork the customer can download
+        $docs = [];
+
+        if ($sr->quote_file_path) {
+            $docs[] = [
+                'kind'  => 'Quotation',
+                'label' => $sr->erp_quote_ref ?: 'Quotation',
+                'icon'  => 'bi-receipt',
+                'url'   => asset('storage/'.ltrim($sr->quote_file_path, '/')),
+            ];
+        }
+
+        if ($sr->invoice_file_path) {
+            $docs[] = [
+                'kind'  => 'Invoice',
+                'label' => $sr->invoice_code ?: 'Invoice',
+                'icon'  => 'bi-file-earmark-text',
+                'url'   => asset('storage/'.ltrim($sr->invoice_file_path, '/')),
+            ];
+        }
+
+        foreach ($sr->punches as $i => $pn) {
+            if ($pn->customer_signature_path) {
+                $docs[] = [
+                    'kind'  => 'Signed job sheet',
+                    'label' => 'Visit '.($i + 1).' — signed',
+                    'icon'  => 'bi-pen',
+                    'url'   => asset('storage/'.ltrim($pn->customer_signature_path, '/')),
+                ];
+            }
+        }
+
+        $completed = $sr->status === 'Completed';
+
+        return [
+            'id'         => $sr->id,
+            'ref'        => 'SR-'.optional($sr->created_at)->format('Y').'-'.str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+            'label'      => $meta['label'],
+            'tone'       => $tone,
+            'icon'       => $meta['icon'],
+            'color'      => $meta['color'],
+            'is_open'    => ! in_array($sr->status, ['Completed', 'Rejected', 'Quote Rejected'], true),
+            'category'   => optional($sr->category)->category_name ?: 'General service',
+            'priority'   => $sr->priority_level,
+            'issue'      => $sr->issue_description,
+            'technician' => optional($sr->assignedUser)->name,
+            'coverage'   => strtolower((string) $sr->warranty_scope) === 'oow' ? 'Chargeable' : 'Covered by warranty',
+            'logged'     => optional($sr->created_at)->format('d M Y'),
+            'timeline'   => $this->portalTimeline($sr),
+            'punches'    => $punches->all(),
+            'photos'     => $photos,
+            'docs'       => $docs,
+            'rated'      => (bool) $sr->feedback_submitted_at,
+            'score'      => $sr->performance_score,
+            'can_rate'   => $completed && ! $sr->feedback_submitted_at,
+            'feedback_url' => $completed
+                ? \Illuminate\Support\Facades\URL::signedRoute('clients.feedback.show', ['id' => $sr->id])
+                : null,
+        ];
+    }
+
+private function portalTimeline(ServiceRequest $sr): array
+{
+    $first = $sr->punches->first();
+
+    $steps = [
+        ['Request received',    $sr->created_at,    'We logged your request'],
+        ['Request approved',    $sr->accepted_at,   'Coverage confirmed'],
+        ['Technician assigned', $sr->dispatched_at, optional($sr->assignedUser)->name],
+    ];
+
+    if (strtolower((string) $sr->warranty_scope) === 'oow') {
+        $steps[] = ['Quote sent',     $sr->quote_submitted_at, $sr->erp_quote_ref];
+        $steps[] = ['Quote approved', $sr->client_approved_at, 'Work authorised'];
+    }
+
+    $steps[] = ['Work started',  optional($first)->punch_in_at, 'Technician on site'];
+    $steps[] = ['Work finished', optional($sr->punches->last())->punch_out_at, 'Site handed back'];
+    $steps[] = ['Quality check', $sr->qc_reviewed_at, 'Reviewed by supervisor'];
+    $steps[] = ['Closed', $sr->status === 'Completed' ? $sr->updated_at : null, 'Job complete'];
+
+    return collect($steps)->map(fn($s) => [
+        'label' => $s[0],
+        'note'  => $s[2] ?: '',
+        'time'  => $s[1] ? Carbon::parse($s[1])->format('d M Y · h:i A') : null,
+        'done'  => (bool) $s[1],
+    ])->all();
+}
+
+/** Public landing page — all projects belonging to one client. */
+public function portalClient(string $code)
+{
+    $client = Client::where('unique_code', $code)
+        ->where('status', 'Active')
+        ->firstOrFail();
+
+    $projects = Project::where('client_id', $client->id)
+        ->whereNull('deleted_at')
+        ->orderByDesc('created_at')
+        ->get();
+
+    // open / total SR counts per project, one query
+    $counts = ServiceRequest::whereIn('project_id', $projects->pluck('id'))
+        ->selectRaw('project_id,
+                     COUNT(*) as total,
+                     SUM(status NOT IN ("Completed","Rejected","Quote Rejected")) as open')
+        ->groupBy('project_id')
+        ->get()
+        ->keyBy('project_id');
+
+    $rows = $projects->map(function ($p) use ($counts) {
+        $end = $p->warranty_end_date ? Carbon::parse($p->warranty_end_date)->endOfDay() : null;
+        $c   = $counts[$p->id] ?? null;
+
+        return [
+            'code'        => $p->project_code,
+            'name'        => $p->project_name,
+            'site'        => trim($p->site_name . ($p->site_address ? ', ' . $p->site_address : ''), ' ,'),
+            'handover'    => $p->completion_date ? Carbon::parse($p->completion_date)->format('d M Y') : null,
+            'engineer'    => $p->project_engineer,
+            'engineerTel' => $p->project_engineer ? ($p->engineer_country . $p->engineer_contact) : null,
+            'total'       => (int) ($c->total ?? 0),
+            'open'        => (int) ($c->open  ?? 0),
+            'inWarranty'  => $end && $end->isFuture(),
+            'warrantyEnd' => $end,
+            'url'         => route('portal.project', ['code' => $p->project_code]),
+        ];
+    });
+
+    return view('portal.client', [
+        'client'      => $client,
+        'rows'        => $rows,
+        'openTotal'   => $rows->sum('open'),
+        'srTotal'     => $rows->sum('total'),
+        'coveredCount'=> $rows->where('inWarranty', true)->count(),
+    ]);
+}
 }

@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-
+use App\Support\PortalLink;
+use App\Models\ServiceRequest;
 class WhatsAppService
 {
     /* =========================================================
@@ -22,27 +23,40 @@ class WhatsAppService
             . "/messages";
     }
 
-    public function sendTemplate($phone, $template, $lang = 'en_US', $components = [])
-    {
-        $payload = [
-            "messaging_product" => "whatsapp",
-            "to"                => $phone,
-            "type"              => "template",
-            "template"          => [
-                "name"     => $template,
-                "language" => ["code" => $lang],
-            ],
-        ];
+public function sendTemplate($phone, $template, $lang = 'en_US', $components = [])
+{
+    $payload = [
+        "messaging_product" => "whatsapp",
+        "to"                => $phone,
+        "type"              => "template",
+        "template"          => [
+            "name"     => $template,
+            "language" => ["code" => $lang],
+        ],
+    ];
 
-        if (!empty($components)) {
-            $payload["template"]["components"] = $components;
-        }
-
-        return Http::withToken(config('services.whatsapp.token'))
-            ->timeout(15)
-            ->post($this->endpoint(), $payload)
-            ->json();
+    if (!empty($components)) {
+        $payload["template"]["components"] = $components;
     }
+
+    Log::info('WhatsApp sending', [
+        'to'       => $phone,
+        'template' => $template,
+        'lang'     => $lang,
+    ]);
+
+    $response = Http::withToken(config('services.whatsapp.token'))
+        ->timeout(15)
+        ->post($this->endpoint(), $payload);
+
+    Log::info('WhatsApp response', [
+        'to'     => $phone,
+        'http'   => $response->status(),
+        'body'   => $response->json() ?? $response->body(),
+    ]);
+
+    return $response->json();
+}
 
     /** "971" + "0501234567" → "971501234567" (trunk zero stripped). */
     public function formatWhatsAppNumber(?string $country, ?string $mobile): ?string
@@ -1162,5 +1176,40 @@ public function notifyInternalSurveySent(
             'internal_survey_sent', $components, $preview
         );
     }
+}
+
+
+public function notifyServiceCompleted(ServiceRequest $sr): void
+{
+    $sr->loadMissing(['client', 'project', 'category']);
+ 
+    $to = PortalLink::customerNumber($sr);
+ 
+    if (! $to) {
+        \Log::warning('Completion WhatsApp skipped — no contact number', ['sr_id' => $sr->id]);
+        return;
+    }
+ 
+    $ref  = 'SR-' . $sr->created_at->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
+    $link = PortalLink::project($sr->project, $sr);
+ 
+    $body = implode("\n", [
+        "Hello {$sr->client->contact_name},",
+        '',
+        "Work on {$ref} at {$sr->project->site_name} is complete.",
+        '',
+        'You can view the full record — before and after photos, what the '
+            . 'technician did, and the progress log — and download it as a PDF here:',
+        $link,
+        '',
+        'The link is private to you. Please keep it if you need the record later.',
+    ]);
+ 
+    // ── Swap this line for your existing sender ──
+    $this->send($to, $body);
+ 
+    // If you send approved templates instead of free text, the link is the
+    // only dynamic part that matters — pass $link as the button URL suffix or
+    // as a body variable, depending on how the template is registered.
 }
 }
