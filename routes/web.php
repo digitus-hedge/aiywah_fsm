@@ -51,6 +51,9 @@ Route::post('/logout', function (Illuminate\Http\Request $request) {
     Route::get('/client_feedback/{id}', [ClientController::class, 'showFeedback'])
         ->name('clients.feedback.show');
 
+    // Clients Feedback
+    Route::get('/feedback/{id}/preview', [ClientController::class, 'preview'])->name('feedback.preview');
+    
     Route::get('/sr/{serviceRequest}/photos', [ServiceRequestController::class, 'publicPhotos'])
         ->name('sr.photos');
 
@@ -149,10 +152,6 @@ Route::middleware('auth')->group(function () {
     Route::delete('projects/{project}',    [ProjectController::class, 'destroy'])->name('projects.destroy');
     Route::get('projects/{project}',       [ProjectController::class, 'show'])->name('projects.show');
     Route::post('projects/{project}/inquiries', [InquiryController::class, 'store'])->name('inquiries.store');
-
-    
-    // Clients Feedback
-        Route::get('/feedback/{id}/preview', [ClientController::class, 'preview'])->name('feedback.preview');
 
     // Whatapp notifcation
 

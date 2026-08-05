@@ -284,7 +284,7 @@ a{color:inherit;}
 .overlay.show{display:block;}
 .drawer{position:fixed;bottom:0;left:50%;transform:translateX(-50%) translateY(100%);
   width:100%;max-width:540px;background:var(--card);border-radius:20px 20px 0 0;z-index:900;
-  padding:0 0 max(20px,env(safe-area-inset-bottom));box-shadow:0 -8px 40px rgba(0,0,0,.25);
+  padding:0 0 max(20px,env(safe-area-inset-bottom));
   transition:transform .32s cubic-bezier(.4,0,.2,1);max-height:92vh;max-height:92dvh;overflow-y:auto;}
 .drawer.open{transform:translateX(-50%) translateY(0);}
 .drawer-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:10px auto 0;}

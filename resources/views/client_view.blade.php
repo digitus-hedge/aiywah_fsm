@@ -2023,7 +2023,8 @@
     token: @json($client->unique_code),
     name: @json($client->company_name),
     contact: @json($client->contact_name),
-    phone: @json(trim(($client->primary_country ?? ''). ' '.($client->primary_mobile ?? '')))
+    phone: @json(trim(($client->primary_country ?? ''). ' '.($client->primary_mobile ?? ''))),
+    email: @json($client->email),
   };
 
   var PROJECTS = @json($projectsJs);

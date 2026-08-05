@@ -383,6 +383,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
           @php
             $primaryCountry = $isEdit ? $client->primary_country : '';
             $primaryMobile  = $isEdit ? $client->primary_mobile  : '';
+            $primaryEmail   = $isEdit ? $client->email           : '';
           @endphp
 
           <div class="row g-3">
@@ -461,7 +462,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
                        class="form-control"
                        id="primaryEmail"
                        name="email"
-                       value="{{ old('primary_email', $primaryEmail ?? '') }}"
+                       value="{{ old('email', $primaryEmail ?? '') }}"
                        placeholder="name@example.com">
             </div>
 

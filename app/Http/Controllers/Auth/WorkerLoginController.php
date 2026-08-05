@@ -60,7 +60,7 @@ class WorkerLoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('worker.pipeline'));
+        return redirect()->route('worker.pipeline');
     }
 
 

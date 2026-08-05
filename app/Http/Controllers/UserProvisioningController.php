@@ -10,7 +10,9 @@ use App\Models\ServiceDomain;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-
+use App\Mail\UserWelcomeMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 class UserProvisioningController extends Controller
 {
     /**
@@ -89,6 +91,63 @@ class UserProvisioningController extends Controller
     /**
      * Create a new user.
      */
+   public function store(Request $request)
+{
+    $data = $request->validate([
+        'name'       => 'required|string|max:255',
+        'email'      => 'required|email:rfc,dns|max:255|unique:users,email',
+        'country_code' => 'nullable|string|max:8',
+         'phone'      => 'nullable|string|max:20',
+        'password'   => 'required|string|min:8',
+        'role'       => 'required|string',
+        'roleId'     => 'required|string|exists:roles,code',
+        'domains'    => 'array',
+        'domains.*'  => 'integer|exists:service_domains,id',
+        'fdGrants'   => 'array',
+        'fdGrants.*' => 'string',
+    ]);
+
+    $user = User::create([
+        'name'              => $data['name'],
+        'email'             => strtolower($data['email']),
+        'country_code'      => $data['country_code'] ?? null,
+        'phone'             => $data['phone'] ?? null,
+        'password'          => Hash::make($data['password']),
+        'role_id'           => Role::where('code', $data['roleId'])->value('id'),
+        'fd_grants'         => $data['fdGrants'] ?? [],
+        'status'            => 'pending',
+        'email_verified_at' => now(),
+    ]);
+
+    $this->syncDomains($user, $data['domains'] ?? []);
+    try {
+    $user->load('role');
+
+    Mail::to($user->email)->send(
+        new UserWelcomeMail($user, $data['password'], $data['role'])
+    );
+} catch (\Throwable $e) {
+    Log::error('User welcome mail failed', [
+        'user_id' => $user->id,
+        'error'   => $e->getMessage(),
+    ]);
+}
+    return response()->json([
+        'user' => [
+            'id'       => $user->id,
+            'name'     => $user->name,
+            'email'    => $user->email,
+            'phone'        => $user->phone,
+            'country_code' => $user->country_code,
+            'role'     => $data['role'],
+            'roleId'   => $data['roleId'],
+            'domains'  => $user->serviceDomains()->pluck('service_domain_id')->values()->all(),
+            'fdGrants' => $user->fd_grants ?? [],
+            'created'  => $user->created_at->format('d M Y'),
+            'status'   => $user->status ?? 'pending',
+        ],
+    ]);
+}
     public function store(Request $request)
     {
         $data = $request->validate([

@@ -114,7 +114,12 @@
 .status-live{background:var(--green-bg);color:var(--green);animation:pulse 2s ease-in-out infinite;}
 .status-done{background:var(--gold-bg);color:var(--gold);}
 
-.punch-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.punch-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:12px;
+}
 .punch-btn{border:none;border-radius:11px;padding:.75rem 1rem;font-size:.84rem;font-weight:700;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .18s;color:#fff;}
 .punch-btn:active:not(:disabled){transform:scale(.97);}
@@ -240,10 +245,23 @@
 
 /* Two columns once there is room — job list beside nothing else, so cards
    simply get wider rather than stretching text lines. */
-@media(min-width:760px){
-  .punch-row{max-width:520px;}
-  #expenseBtn,#rsBtn{max-width:520px;}
+  /* Keep the four terminal action buttons on one visual rhythm */
+#expenseBtn,
+#rsBtn{
+  width:100%;
+  border-radius:11px;
+  padding:.75rem 1rem;
+  font-size:.84rem;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  margin:0 0 10px;
+  box-sizing:border-box;
 }
+
+.punch-row{margin-bottom:10px;}
 
 
 </style>
