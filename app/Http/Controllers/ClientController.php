@@ -548,6 +548,7 @@ class ClientController extends Controller
                 'max:255',
                 'unique:clients,email' . ($locked && $clientId ? ",{$clientId}" : ''),
             ],
+            
             'stakeholders'             => ['nullable', 'array'],
             'stakeholders.*.name'      => ['nullable', 'string', 'max:255'],
             'stakeholders.*.country'   => ['nullable', 'string', 'max:6'],
@@ -578,8 +579,8 @@ class ClientController extends Controller
 
         $validated = $request->validate($rules, [
             'primary_mobile.unique' => 'This primary mobile number is already registered with another client.',
-             'primary_email.unique'  => 'This email address is already registered with another client.',
-            'primary_email.email'   => 'Please enter a valid email address.',
+             'email.unique'  => 'This email address is already registered with another client.',
+            'email.email'   => 'Please enter a valid email address.',
         ]);
 
         // On update, keep ONLY the unique_code from the stored record

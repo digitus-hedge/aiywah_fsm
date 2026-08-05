@@ -10,7 +10,9 @@ use App\Models\ServiceDomain;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-
+use App\Mail\UserWelcomeMail;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 class UserProvisioningController extends Controller
 {
     /**
@@ -114,7 +116,18 @@ class UserProvisioningController extends Controller
     ]);
 
     $this->syncDomains($user, $data['domains'] ?? []);
+    try {
+    $user->load('role');
 
+    Mail::to($user->email)->send(
+        new UserWelcomeMail($user, $data['password'], $data['role'])
+    );
+} catch (\Throwable $e) {
+    Log::error('User welcome mail failed', [
+        'user_id' => $user->id,
+        'error'   => $e->getMessage(),
+    ]);
+}
     return response()->json([
         'user' => [
             'id'       => $user->id,
