@@ -19,6 +19,10 @@
             'fdGrants' => array_values((array) ($u['fdGrants'] ?? ($u['fd_grants'] ?? []))),
             'created'  => $u['created']  ?? '',
             'status'   => $u['status']   ?? 'active',
+            
+            'categories' => $u['categories'],
+            'qcReview'   => $u['qcReview'],
+  
         ];
     })->values();
 
@@ -351,6 +355,14 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
 }
 .pw-toggle:hover  { color: #9A7B4F; }
 .pw-toggle:focus  { outline: none; }
+
+
+
+
+.qc-slider{position:absolute;inset:0;cursor:pointer;background:#cbd5e1;border-radius:25px;transition:.25s;}
+.qc-slider:before{content:"";position:absolute;height:19px;width:19px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;}
+.qc-switch input:checked + .qc-slider{background:#7c3aed;}
+.qc-switch input:checked + .qc-slider:before{transform:translateX(21px);}
 </style>
 @endpush
 
@@ -533,6 +545,37 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
         </div>
       </div>
 
+
+      <!-- Service Engineergineer Data -->
+      <div class="domain-card-wrap" id="catCardWrap">
+  <div class="card">
+    <div class="chdr">
+      <div class="chdr-ico" style="background:rgba(37,99,235,.1);"><i class="bi bi-diagram-3-fill" style="color:#2563eb;"></i></div>
+      <div><h6>Service Category Responsibility</h6><span class="csub">Service Engineer — select categories this SE covers</span></div>
+    </div>
+    <div class="cbody">
+      <div class="ml-domain-note">
+        <i class="bi bi-info-circle-fill"></i>
+        Select one or more categories this Service Engineer is responsible for. Tickets in these categories route to this user.
+      </div>
+      <div id="catGrid" class="skill-tags"></div>
+
+      <div class="qc-toggle-row" style="margin-top:16px;padding:14px;border-radius:9px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.18);display:flex;align-items:center;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:.84rem;color:var(--text-heading);">Enable QC Review for this SE</div>
+          <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">
+            ON — this Service Engineer performs QC. OFF — QC stays with Head of Projects. Can be changed anytime.
+          </div>
+        </div>
+        <label class="qc-switch" style="position:relative;display:inline-block;width:46px;height:25px;flex-shrink:0;">
+          <input type="checkbox" id="qcReviewToggle" onchange="onQcToggle(this.checked)" style="opacity:0;width:0;height:0;">
+          <span class="qc-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+</div>
+
       <!-- Actions -->
       <div class="action-bar">
         <button class="btn-save" id="saveBtn" onclick="saveUser()"><i class="bi bi-floppy-fill"></i>Save User Profile</button>
@@ -679,7 +722,16 @@ function onRoleChange(val){
   fdGrants=new Set();
   const box=document.getElementById('roleDescBox');
   const pill=document.getElementById('rolePillPreview');
-  if(!val){box.className='role-desc-box';pill.style.display='none';const _d=document.getElementById('domainCardWrap');if(_d)_d.classList.remove('show');syncAll();return;}
+  if(!val){
+    box.className='role-desc-box';
+    pill.style.display='none';
+    const _d=document.getElementById('domainCardWrap');if(_d)_d.classList.remove('show');
+    const _c=document.getElementById('catCardWrap');if(_c)_c.classList.remove('show');
+    selectedCats=new Set();
+    qcReview=false;
+    syncAll();
+    return;
+  }
   const m=ROLE_META[val]||{name:val,icon:'bi-person',color:'#9a8053',bg:'rgba(154,128,83,.1)',tagline:''};
   document.getElementById('rdbIcon').style.cssText=`background:${m.bg};`;
   document.getElementById('rdbIcon').innerHTML=`<i class="bi ${m.icon}" style="color:${m.color};"></i>`;
@@ -691,6 +743,7 @@ function onRoleChange(val){
   renderPermTable(val);
   box.className='role-desc-box show';
   renderDomains();
+  renderCategories();
   syncAll();
 }
 
@@ -945,6 +998,52 @@ function setChk(id,done){
   else{ico.className='clico cl-pend';ico.textContent={name:'1',email:'2',role:'3'}[id];txt.className='clt';}
 }
 
+//  Service Engineer
+let selectedCats = new Set();
+let qcReview     = false;          // default OFF
+
+function renderCategories(){
+  const wrap = document.getElementById('catCardWrap');
+  if(!wrap) return;
+
+  if(selectedRole === 'SE'){
+    wrap.classList.add('show');
+  } else {
+    wrap.classList.remove('show');
+    selectedCats = new Set();
+    qcReview     = false;          // reset to OFF when leaving the role
+  }
+
+  const grid = document.getElementById('catGrid');
+  if(grid){
+    grid.innerHTML = DOMAIN_CATS.map(c => `
+      <div class="d-tag${selectedCats.has(c.id) ? ' picked' : ''}" onclick="toggleCategory(${c.id})">
+        <div class="chk"></div>
+        <i class="bi ${c.icon}" style="color:${c.color};margin-right:5px;"></i>${c.label}
+      </div>`).join('');
+  }
+
+  const t = document.getElementById('qcReviewToggle');
+  if(t) t.checked = qcReview;
+}
+
+function toggleCategory(id){
+  id = Number(id);
+  if(selectedCats.has(id)) selectedCats.delete(id);
+  else selectedCats.add(id);
+  renderCategories();
+  syncAll();
+}
+
+function onQcToggle(checked){
+  qcReview = !!checked;
+  syncAll();
+}
+
+
+// Service Engineer
+
+
 /* ════════════════════════════════
    SAVE
 ════════════════════════════════ */
@@ -973,11 +1072,13 @@ const countryCode = document.getElementById('empCountryCode').value;
   const payload={
     name,
     email:email.toLowerCase(),
-     country_code:countryCode,
+    country_code:countryCode,
     phone,
     role:m.name,
     roleId:selectedRole,
     domains:domainIds,
+    categories:Array.from(selectedCats),
+    qcReview:qcReview,
     fdGrants:grants,
   };
   if(password) payload.password = password;
@@ -1120,13 +1221,17 @@ function loadUser(u){
   onRoleChange(u.roleId);
   fdGrants=new Set(u.fdGrants||[]);
 
-  // Only accept ids that are real, currently-known domains — guards against
-  // stale/soft-deleted/legacy references stored against this user.
   selectedDomains = new Set(
     (u.domains||[])
       .map(id => Number(id))
       .filter(id => VALID_DOMAIN_IDS.has(id))
   );
+
+  // categories + QC (SE only) — set AFTER onRoleChange, which resets them
+  selectedCats = new Set((u.categories || []).map(id => Number(id)));
+  qcReview     = !!u.qcReview;
+
+  renderCategories();          // ← correct name, and re-renders with the loaded state
 
   renderPermTable(u.roleId);
   renderDomains();syncAll();
@@ -1135,7 +1240,6 @@ function loadUser(u){
   window.scrollTo({top:0,behavior:'smooth'});
   showToast('primary','Editing',`Editing ${u.name}. Change details and click Update.`);
 }
-
 
 
 function togglePw(inputId, btnId) {

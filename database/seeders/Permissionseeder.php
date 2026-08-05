@@ -114,6 +114,14 @@ class PermissionSeeder extends Seeder
                 'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
                 'analytics' => 'no', 'user_provisioning' => 'no', 'activity-log' => 'no',
             ],
+
+             'SE' => [
+                'dashboard' => 'yes' ,'sr_registration' => 'yes', 'sr_explorer' => 'yes', 'kanban_view' => 'yes',
+                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes','assigned' => 'yes','completed' => 'yes',
+                'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
+                'analytics' => 'yes','user_directory' => 'yes','user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','activity-log' => 'yes',
+            ],
+
         ];
 
         // Lookup id maps.

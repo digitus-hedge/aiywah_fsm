@@ -225,11 +225,17 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
       <span style="font-size:.72rem;color:var(--text-muted);">Role &amp; domain assignments</span>
     </div>
     <div class="ud-table-wrap">
+
+    @php
+  $showCategory = $users->contains(fn($u) => optional($u->role)->code === 'SE');
+@endphp
       <table class="ud-table">
         <thead>
           <tr>
             <th>User</th>
             <th>Role</th>
+            @if($showCategory)<th>Category</th>@endif
+
             <th>Domain Expertise</th>
             <th>Status</th>
             <th>Created</th>
@@ -239,16 +245,22 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
         <tbody>
           @forelse ($users as $user)
             @php
-              $initials = collect(explode(' ', trim($user->name)))
-                  ->map(fn($w) => mb_substr($w, 0, 1))
-                  ->take(2)->implode('');
-              $palette   = ['#9A7B4F','#6571ff','#05a34a','#4895ef','#fbbc06','#ec4899','#8b5cf6','#ff3366'];
-              $avColor   = $palette[$user->id % count($palette)];
-              $roleColor = optional($user->role)->color_code ?? '#9A7B4F';
-              $domains   = $user->serviceDomains->pluck('domain_name')->filter()->take(3)->implode(', ');
-              $status    = $user->status ?? 'active';
-              $sClass    = match($status){ 'active'=>'ud-active','pending'=>'ud-pending', default=>'ud-inactive' };
-            @endphp
+  $initials = collect(explode(' ', trim($user->name)))
+      ->map(fn($w) => mb_substr($w, 0, 1))
+      ->take(2)->implode('');
+  $palette   = ['#9A7B4F','#6571ff','#05a34a','#4895ef','#fbbc06','#ec4899','#8b5cf6','#ff3366'];
+  $avColor   = $palette[$user->id % count($palette)];
+  $roleColor = optional($user->role)->color_code ?? '#9A7B4F';
+
+  $isSE       = optional($user->role)->code === 'SE';
+  $categories = $isSE
+      ? $user->serviceCategories->pluck('category_name')->filter()->unique()->take(3)->implode(', ')
+      : '';
+
+  $domains   = $user->serviceDomains->pluck('domain_name')->filter()->take(3)->implode(', ');
+  $status    = $user->status ?? 'active';
+  $sClass    = match($status){ 'active'=>'ud-active','pending'=>'ud-pending', default=>'ud-inactive' };
+@endphp
             <tr>
               <td class="cell-user" data-label="User">
                 <div class="ud-user-cell">
@@ -262,6 +274,23 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
               <td data-label="Role">
                 <span class="ud-role-pill" style="color:{{ $roleColor }};background:{{ $roleColor }}1f;">{{ optional($user->role)->name ?? '—' }}</span>
               </td>
+
+
+              @if($showCategory)
+  <td data-label="Category" class="ud-muted">
+    @if(!$isSE)
+      —
+    @elseif($categories !== '')
+      {{ $categories }}
+    @else
+      <span style="color:#f97316;font-size:.72rem;">
+        <i class="bi bi-exclamation-triangle"></i> Not assigned
+      </span>
+    @endif
+  </td>
+@endif
+
+
               <td data-label="Domain" class="ud-muted">{{ $domains !== '' ? $domains : '—' }}</td>
               <td data-label="Status">
                 <span class="ud-badge {{ $sClass }}"><i class="bi bi-circle-fill"></i>{{ ucfirst($status) }}</span>
@@ -329,8 +358,19 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
         <input type="password" class="ud-inp" id="edit-password" autocomplete="new-password">
         <div class="ud-err" id="err-password"></div>
 
-        <label class="ud-lbl">Domain Expertise</label>
-        <div class="ud-domains" id="edit-domains"></div>
+                {{-- Domain Expertise — non-SE roles --}}
+        <div id="wrap-domains">
+          <label class="ud-lbl">Domain Expertise</label>
+          <div class="ud-domains" id="edit-domains"></div>
+        </div>
+
+        {{-- Categories — Service Engineer only --}}
+        <div id="wrap-categories" style="display:none;">
+          <label class="ud-lbl">Service Categories</label>
+          <div class="ud-domains" id="edit-categories"></div>
+        </div>
+
+        
       </div>
       <div class="ud-modal-ftr">
         <button type="button" class="ud-btn ud-btn-ghost" onclick="udCloseEdit()">Cancel</button>
@@ -355,6 +395,10 @@ function udToast(type, title, body){
   setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); }, 300); }, 4000);
 }
 
+
+
+
+
 async function udPost(url, type, title, body){
   try{
     const res = await fetch(url, {
@@ -374,6 +418,26 @@ let udRoute = "{{ url('/user-directory') }}";
 let udUpdateBase = "{{ url('/user-provisioning') }}";
 let udCsrf = document.querySelector('meta[name="csrf-token"]').content;
 let udSelectedDomains = new Set();
+
+let udSelectedCats    = new Set();     // ← add
+let udAllCats         = [];            // ← add
+
+function udToggleRoleFields(){
+  const code  = document.getElementById('edit-role').value;
+  const wCats = document.getElementById('wrap-categories');
+  const wDoms = document.getElementById('wrap-domains');
+
+  if (wCats) wCats.style.display = code === 'SE' ? '' : 'none';
+  if (wDoms) wDoms.style.display = code === 'ML' ? '' : 'none';
+}
+
+function udToggleCat(el){
+  const id = Number(el.dataset.id);
+  if (udSelectedCats.has(id)) { udSelectedCats.delete(id); el.classList.remove('on'); }
+  else { udSelectedCats.add(id); el.classList.add('on'); }
+}
+
+
 
 async function udOpenEdit(id){
   try {
@@ -399,6 +463,16 @@ async function udOpenEdit(id){
       `<span class="ud-dom-chip ${udSelectedDomains.has(s.id) ? 'on' : ''}" data-id="${s.id}" onclick="udToggleDomain(this)">${s.label}</span>`
     ).join('');
 
+
+    // categories
+    udAllCats = data.categories || [];
+    udSelectedCats = new Set(data.user.categories || []);
+    document.getElementById('edit-categories').innerHTML = udAllCats.map(c =>
+      `<span class="ud-dom-chip ${udSelectedCats.has(c.id) ? 'on' : ''}" data-id="${c.id}" onclick="udToggleCat(this)">${c.name}</span>`
+    ).join('');
+
+    udToggleRoleFields();
+
     udClearErrors();
     document.getElementById('udModalOverlay').classList.add('show');
   } catch(e){
@@ -420,17 +494,34 @@ async function udSaveEdit(){
   const id = document.getElementById('edit-id').value;
   const btn = document.getElementById('udSaveBtn');
   const roleSel = document.getElementById('edit-role');
+    const isSE = roleSel.value === 'SE';
+
   btn.disabled = true;
   udClearErrors();
 
+  // const payload = {
+  //   name:     document.getElementById('edit-name').value,
+  //   email:    document.getElementById('edit-email').value,
+  //   roleId:   roleSel.value,
+  //   role:     roleSel.options[roleSel.selectedIndex]?.text || '',
+  //   domains:    isSE ? [] : [...udSelectedDomains],
+  //   categories: isSE ? [...udSelectedCats] : [],
+  //   fdGrants: [],
+  // };
+
+
+  const code = roleSel.value;
+
   const payload = {
-    name:     document.getElementById('edit-name').value,
-    email:    document.getElementById('edit-email').value,
-    roleId:   roleSel.value,
-    role:     roleSel.options[roleSel.selectedIndex]?.text || '',
-    domains:  [...udSelectedDomains],
-    fdGrants: [],
+    name:       document.getElementById('edit-name').value,
+    email:      document.getElementById('edit-email').value,
+    roleId:     code,
+    role:       roleSel.options[roleSel.selectedIndex]?.text || '',
+    domains:    code === 'ML' ? [...udSelectedDomains] : [],
+    categories: code === 'SE' ? [...udSelectedCats]    : [],
+    fdGrants:   [],
   };
+
   const pw = document.getElementById('edit-password').value;
   if (pw.trim() !== '') payload.password = pw;
 
@@ -464,5 +555,9 @@ async function udSaveEdit(){
 document.getElementById('udModalOverlay').addEventListener('click', function(e){
   if (e.target === this) udCloseEdit();
 });
+
+document.getElementById('edit-role')
+        .addEventListener('change', udToggleRoleFields);
+
 </script>
 @endpush

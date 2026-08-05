@@ -97,6 +97,7 @@ Route::middleware('auth')->group(function () {
     // Route::put('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])->name('user_provisioning.update');
     Route::post('/user-provisioning/{user}', [UserProvisioningController::class, 'update'])
         ->name('user_provisioning.update');
+        
     //user-directory
     Route::get('/user-directory', [Userdirectorycontroller::class, 'index'])->name('user_directory');
     Route::post('/user-directory/{user}/toggle-status', [Userdirectorycontroller::class, 'toggleStatus'])->name('user_directory.toggle');
