@@ -1155,12 +1155,12 @@ font-weight:700;
 
     <!-- SATISFACTION -->
     <div class="card card-pad">
-  <div class="c-hdr">
+    <div class="c-hdr">
     <div class="c-label"><i class="bi bi-star-half"></i>Client Satisfaction</div>
     <div class="c-more" onclick="openPanel('feedback',null)">View all <i class="bi bi-arrow-right"></i></div>
-  </div>
+    </div>
 
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;
     padding-bottom:14px;border-bottom:1px solid var(--border);">
     <div>
       <div style="font-size:3rem;font-weight:700;color:#9a8053;line-height:1;">
@@ -1185,21 +1185,21 @@ font-weight:700;
         <div class="mm-val" style="color:#9a8053;">{{ $satisfaction2['responses'] }}</div>
       </div>
     </div>
-  </div>
+    </div>
 
-  <div id="ratingHist"></div>
+    <div id="ratingHist"></div>
 
-  @if ($satisfaction2['flagged'])
-  <div style="margin-top:12px;padding:9px 12px;background:rgba(217,119,6,.07);
+    @if ($satisfaction2['flagged'])
+    <div style="margin-top:12px;padding:9px 12px;background:rgba(217,119,6,.07);
     border:1px solid rgba(217,119,6,.15);border-radius:8px;
     font-size:.74rem;color:#d97706;display:flex;align-items:center;gap:6px;cursor:pointer;"
     onclick="openPanel('qc-queue',{{ $satisfaction2['flagged']['id'] }})">
     <i class="bi bi-exclamation-triangle-fill"></i>
     {{ $satisfaction2['flagged']['code'] }} rated {{ $satisfaction2['flagged']['score'] }}★ — flagged for QC review
-  </div>
-  @endif
-</div>
-  </div>
+    </div>
+    @endif
+    </div>
+    </div>
 
 
 
@@ -1856,7 +1856,39 @@ function openPanel(type,id){
     body+=jobs.map(function(j){return prCard(j.id,j.status,j.bc,j.client,j.meta);}).join('');
     document.getElementById('dpBody').innerHTML=body;
 
-  } else {
+  } 
+  
+else if(type==='client'){
+    var c = CLIENTS[id];
+    if(!c) return;
+
+    heading = c.n;
+    icon    = 'bi-buildings';
+    sub     = c.srs + ' service request' + (c.srs === 1 ? '' : 's') + ' in this period';
+
+    body = '<div class="dp-sec">Client Summary</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;">'+
+        '<div class="mini-metric"><div class="mm-label">Total SRs</div><div class="mm-val">'+c.srs+'</div><div class="mm-sub">This period</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">In-warranty</div><div class="mm-val" style="color:#9a8053;">'+c.iw+'</div><div class="mm-sub">Covered</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Out-of-warranty</div><div class="mm-val">'+c.oow+'</div><div class="mm-sub">Billable</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Avg Rating</div><div class="mm-val" style="color:#f59e0b;">'+(c.rating||'—')+'</div><div class="mm-sub">Client feedback</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Invoiced</div><div class="mm-val" style="font-size:.95rem;">'+c.exp+'</div><div class="mm-sub">Period total</div></div>'+
+      '</div><div class="dp-sec">Service Requests</div>';
+
+    var rows = c.rows || [];
+    body += rows.length
+      ? rows.map(function(r){
+          var bc = r.status === 'Completed' ? '#15803d'
+                 : r.status === 'Approved'  ? '#9a8053'
+                 : r.status === 'Rejected'  ? '#dc2626' : '#d97706';
+          return prCard(r.ref, r.status, bc, r.project,
+                        r.site + ' · ' + r.category + ' · ' + r.priority + ' · ' + r.created);
+        }).join('')
+      : '<p class="empty">No service requests for this client.</p>';
+
+    document.getElementById('dpBody').innerHTML = body;
+}
+  else {
     var data=PANEL_DATA[type];if(!data)return;
     heading=data.title;icon=data.icon;sub=data.sub;
     document.getElementById('dpBody').innerHTML=data.items.map(function(it){
