@@ -575,9 +575,28 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 </div>
 
 
+
+
+
+
+
+
       <!-- Action Panel -->
       <div class="action-panel">
         <div class="ap-title"><i class="bi bi-lightning-charge-fill" style="color:#f97316;"></i>Triage Actions</div>
+
+
+         {{-- Assign Service Engineer --}}
+  <div style="margin-bottom:14px;padding:12px;border-radius:9px;background:rgba(37,99,235,.05);border:1px solid rgba(37,99,235,.16);">
+    <label style="display:block;font-size:.72rem;font-weight:600;color:var(--text-heading);margin-bottom:6px;">
+      <i class="bi bi-person-badge" style="color:#2563eb;"></i> Assign Service Engineer
+    </label>
+    <select class="form-select" id="seSelect" onchange="onSeChange(this.value)" disabled style="font-size:.8rem;">
+      <option value="">— Select a ticket first —</option>
+    </select>
+    <div id="seHint" style="font-size:.68rem;color:var(--text-muted);margin-top:5px;"></div>
+  </div>
+
 
         <button class="btn-action btn-approve" id="btnApprove" onclick="triggerAction('approve')" disabled>
           <i class="bi bi-check2-circle"></i>
@@ -649,6 +668,7 @@ const ALL_TICKETS = [
     client:       @json($t->client?->company_name ?? '—'),
     contract:     @json($t->client?->unique_code ?? '—'),
     category:     @json($t->category?->category_name ?? '—'),
+    catId:        {{ (int) ($t->service_category_id ?? $t->category?->id ?? 0) }},
     site:         @json($t->project?->site_name ?? '—'),
     project:      @json($t->project?->project_name ?? '—'),
     priority:     @json(ucfirst($t->priority_level)),
@@ -663,6 +683,9 @@ const ALL_TICKETS = [
   },
 @endforeach
 ];
+
+
+const ENGINEERS = @json($engineers);
 
 
 const ACTIONS = {
@@ -765,6 +788,55 @@ function renderPager(){
 }
 function goPage(p){currentPage=p;renderTable();}
 
+
+
+
+
+
+let selectedSeId = null;
+
+function renderEngineerOptions(t){
+  const sel  = document.getElementById('seSelect');
+  const hint = document.getElementById('seHint');
+  if(!sel) return;
+
+  selectedSeId = null;
+  sel.value = '';
+
+  if(!t){
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">— Select a ticket first —</option>';
+    hint.textContent = '';
+    return;
+  }
+
+  const catId    = Number(t.catId) || 0;
+  const eligible = ENGINEERS.filter(e => e.categories.includes(catId));
+
+  if(!eligible.length){
+    sel.disabled = true;
+    sel.innerHTML = '<option value="">No engineer covers this category</option>';
+    hint.innerHTML = '<i class="bi bi-exclamation-triangle" style="color:#f97316;"></i> Assign this category to an SE in User Provisioning.';
+    return;
+  }
+
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">— Select Service Engineer —</option>' +
+    eligible.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+  hint.textContent = `${eligible.length} engineer${eligible.length === 1 ? '' : 's'} cover ${t.category}.`;
+}
+
+function onSeChange(val){
+  selectedSeId = val ? Number(val) : null;
+  const e = ENGINEERS.find(x => x.id === selectedSeId);
+  const hint = document.getElementById('seHint');
+  if(!e){ hint.textContent = ''; return; }
+  hint.innerHTML = e.qcReview
+    ? '<i class="bi bi-check-circle-fill" style="color:#10b981;"></i> This engineer performs their own QC.'
+    : '<i class="bi bi-info-circle" style="color:#6571ff;"></i> QC stays with Head of Projects.';
+}
+
+
 /* ════════════════════════════════
     ROW SELECT → DETAIL PANEL
 ════════════════════════════════ */
@@ -774,6 +846,7 @@ function selectRow(id){
   renderTable();
   loadContractPanel(t);
   loadDescPanel(t);
+  renderEngineerOptions(t);
     expandCard('contractBody');
   expandCard('descBody');
   enableActionButtons();
@@ -1045,9 +1118,10 @@ function executeAction(){
 
   const paths = { approve:'approve', accounts:'forward', additional:'additional', reject:'reject' };
   const url   = `${window.ROUTES.approveBase}/${t.dbId}/${paths[pendingAction]}`;
-  const body  = pendingAction === 'reject'
-    ? { reason: document.getElementById('rejectionText').value }
-    : {};
+ const body = { assigned_se: selectedSeId };
+if(pendingAction === 'reject'){
+  body.reason = document.getElementById('rejectionText').value;
+}
 
   let redirecting = false;
 

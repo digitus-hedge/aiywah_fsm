@@ -7,7 +7,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Traits\LogsActivity;
-
 class ServiceRequest extends Model
 {
     use LogsActivity;
@@ -44,14 +43,13 @@ class ServiceRequest extends Model
         'accepted_at',
         'hold_reason',
         'held_at',
-
         'approved_at',
         'qc_updated',
         'performance_score',
         'evaluation_comment',
         'feedback_submitted_at',
         'portal_link_sent_at',
-
+        'assigned_se',
     ];
 
     protected $casts = [
@@ -61,15 +59,13 @@ class ServiceRequest extends Model
         'hop_approved_at' => 'datetime',
         'quote_submitted_at' => 'datetime',
         'client_approved_at' => 'datetime',
-
         'approved_at'    => 'datetime',
         'dispatched_at'  => 'datetime',
         'qc_reviewed_at' => 'datetime',
         'eta_at'         => 'datetime',
         'accepted_at'    => 'datetime',
         'held_at'        => 'datetime',
-
-         'qc_updated'    => 'datetime',
+        'qc_updated'    => 'datetime',
 
         'performance_score'     => 'integer',
         'feedback_submitted_at' => 'datetime',
@@ -118,7 +114,6 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(ServiceDomain::class, 'service_domain_id');
     }
-
 
     public function punches()
     {

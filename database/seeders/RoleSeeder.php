@@ -56,6 +56,8 @@ class RoleSeeder extends Seeder
                 'is_grantable' => false,
                 'sort_order'   => 4,
             ],
+
+       
             [
                 'code'         => 'FD',
                 'name'         => 'Front Desk Executive',
@@ -76,6 +78,19 @@ class RoleSeeder extends Seeder
                 'is_grantable' => false,
                 'sort_order'   => 6,
             ],
+
+
+                 [
+    'code'         => 'SE',
+    'name'         => 'Service Engineer',
+    'tagline'      => 'Field execution only — own pipeline, punch in/out, and expense logging.',
+    'icon'         => 'bi-wrench-adjustable',
+    'color'        => '#2563eb',
+    'bg'           => 'rgba(37,99,235,.1)',
+    'is_grantable' => true,
+    'sort_order'   => 7,
+],
+
         ];
 
         foreach ($roles as $role) {
