@@ -19,6 +19,7 @@ class Userdirectorycontroller extends Controller
         $counts = User::selectRaw('status, COUNT(*) as c')
             ->groupBy('status')
             ->pluck('c', 'status');
+
         $stats = [
             'total'    => (int) $counts->sum(),
             'active'   => (int) ($counts['active']   ?? 0),
@@ -32,11 +33,11 @@ class Userdirectorycontroller extends Controller
                 $term = $request->string('q');
                 $query->where(function ($w) use ($term) {
                     $w->where('name', 'like', "%{$term}%")
-                      ->orWhere('email', 'like', "%{$term}%");
+                        ->orWhere('email', 'like', "%{$term}%");
                 });
             })
             ->when($request->filled('role'), function ($query) use ($request) {
-                $query->whereHas('role', fn ($r) => $r->where('code', $request->input('role')));
+                $query->whereHas('role', fn($r) => $r->where('code', $request->input('role')));
             })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where('status', $request->input('status'));
@@ -67,26 +68,38 @@ class Userdirectorycontroller extends Controller
         // Password::sendResetLink(['email' => $user->email]);  // when ready
         return response()->json(['ok' => true]);
     }
-    
-    public function show(User $user)
-{
-    $user->load('role', 'serviceDomains');
 
-    return response()->json([
-        'user' => [
-            'id'      => $user->id,
-            'name'    => $user->name,
-            'email'   => $user->email,
-            'roleId'  => optional($user->role)->code ?? '',
-            'domains' => $user->serviceDomains->pluck('id')->all(),
-        ],
-        'roles' => Role::orderBy('sort_order')->get(['name', 'code']),
-        'domainCats' => ServiceCategory::with(['domains' => fn ($q) => $q->where('status', true)->orderBy('sort_order')])
-            ->where('status', true)->orderBy('sort_order')->get()
-            ->map(fn ($c) => [
-                'label'  => $c->category_name,
-                'skills' => $c->domains->map(fn ($d) => ['id' => $d->id, 'label' => $d->domain_name])->values(),
-            ])->values(),
-    ]);
-}
+    public function show(User $user)
+    {
+        $user->load(['role', 'serviceDomains', 'serviceCategories']);
+
+        return response()->json([
+            'user' => [
+                'id'      => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,
+                'roleId'  => optional($user->role)->code ?? '',
+                'domains' => $user->serviceDomains->pluck('id')->all(),
+                'categories' => $user->serviceCategories->pluck('id')->all(),   // ← add
+
+            ],
+
+            'roles' => Role::orderBy('sort_order')->get(['name', 'code']),
+
+            'domainCats' => ServiceCategory::with(['domains' => fn($q) => $q->where('status', true)->orderBy('sort_order')])
+                ->where('status', true)->orderBy('sort_order')->get()
+                ->map(fn($c) => [
+                    'label'  => $c->category_name,
+                    'skills' => $c->domains->map(fn($d) => ['id' => $d->id, 'label' => $d->domain_name])->values(),
+                ])->values(),
+
+            // ← add: flat category list for the SE chips
+            'categories' => ServiceCategory::where('status', true)
+                ->orderBy('sort_order')
+                ->get(['id', 'category_name'])
+                ->map(fn($c) => ['id' => $c->id, 'name' => $c->category_name])
+                ->values(),
+                
+        ]);
+    }
 }

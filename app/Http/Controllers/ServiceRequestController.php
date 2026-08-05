@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Support\PortalLink;
 use App\Mail\ServiceRequestReceivedMail;
 use Illuminate\Support\Facades\Mail;
+
 class ServiceRequestController extends Controller
 {
     /* ============================================================
@@ -184,23 +185,23 @@ class ServiceRequestController extends Controller
         }
 
         try {
-    $sr->loadMissing(['client', 'project']);
+            $sr->loadMissing(['client', 'project']);
 
-    $to = optional($sr->client)->email;
+            $to = optional($sr->client)->email;
 
-    if ($to) {
-        Mail::to($to)->send(
-            new ServiceRequestReceivedMail($sr, $this->buildSrRef($sr))
-        );
-    } else {
-        Log::warning('SR created but client has no email', ['sr_id' => $sr->id]);
-    }
-    } catch (\Throwable $e) {
-        Log::error('SR created mail failed', [
-            'sr_id' => $sr->id,
-            'error' => $e->getMessage(),
-        ]);
-    }
+            if ($to) {
+                Mail::to($to)->send(
+                    new ServiceRequestReceivedMail($sr, $this->buildSrRef($sr))
+                );
+            } else {
+                Log::warning('SR created but client has no email', ['sr_id' => $sr->id]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('SR created mail failed', [
+                'sr_id' => $sr->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
         return response()->json([
             'success'      => true,
             'id'           => $sr->id,
@@ -357,15 +358,33 @@ class ServiceRequestController extends Controller
             'rejected'  => ServiceRequest::where('status', 'Rejected')->whereDate('updated_at', today())->count(),
         ];
 
-        return view('inquiry_approval', compact('inquiries', 'stats', 'priorities', 'filters'));
+
+        $engineers = User::whereHas('role', fn($q) => $q->where('code', 'SE'))
+            ->with('serviceCategories:id')
+            ->orderBy('name')
+            ->get()
+            ->map(fn($u) => [
+                'id'         => $u->id,
+                'name'       => $u->name,
+                'categories' => $u->serviceCategories->pluck('id')->map(fn($i) => (int) $i)->all(),
+                'qcReview'   => (bool) $u->can_qc_review,
+            ])
+            ->values();
+
+        return view('inquiry_approval', compact('inquiries', 'stats', 'priorities', 'filters', 'engineers'));
     }
 
-    public function approve(ServiceRequest $serviceRequest)
+    public function approve(Request $request, ServiceRequest $serviceRequest)
     {
 
         $oldStatus = $serviceRequest->status;          // capture BEFORE update
 
-        $serviceRequest->update(['status' => 'Approved','approved_at'=> now()]);
+        $serviceRequest->update([
+            'status' => 'Approved',
+            'approved_at' => now(),
+            'assigned_se' => $request->input('assigned_se'),
+        ]);
+
 
         $ref = $this->buildSrRef($serviceRequest);
 
@@ -512,6 +531,15 @@ class ServiceRequestController extends Controller
         $query = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
             ->where('status', 'Approved');
 
+
+        /* ▼ ADD — Service Engineers see only their own assigned tickets */
+        $user = auth()->user();
+
+        if ($this->isServiceEngineer($user)) {
+            $query->where('assigned_se', $user->id);
+        }
+        /* ▲ */
+
         // Only window when the dashboard sent a range — a direct visit shows the full queue.
         if (!empty($filters['range'])) {
             [$start, $end] = $this->resolveRange($filters);
@@ -529,65 +557,81 @@ class ServiceRequestController extends Controller
         $inquiries = $query->latest()->get();
 
 
-          // SLA targets keyed by priority for the view
-   $slaMatrix = SlaMatrix::with('priority')->get()->map(fn ($r) => [
-    'prioId'   => (int) $r->priority_id,
-    'name'     => optional($r->priority)->name,
-    'prioKey'  => strtolower(trim((string) optional($r->priority)->name)),  // ← add
-    'color'    => optional($r->priority)->color ?? '#8a8a8a',
-    'approve'  => (int) $r->response_time,
-    'dispatch' => (int) $r->assignment_time,
-    'qc'       => (int) $r->resolution_time,
-])->values();
+        // SLA targets keyed by priority for the view
+        $slaMatrix = SlaMatrix::with('priority')->get()->map(fn($r) => [
+            'prioId'   => (int) $r->priority_id,
+            'name'     => optional($r->priority)->name,
+            'prioKey'  => strtolower(trim((string) optional($r->priority)->name)),  // ← add
+            'color'    => optional($r->priority)->color ?? '#8a8a8a',
+            'approve'  => (int) $r->response_time,
+            'dispatch' => (int) $r->assignment_time,
+            'qc'       => (int) $r->resolution_time,
+        ])->values();
 
 
-        
+        // Index the matrix both ways so it works whether priority_level holds an id or a name
+        $slaById   = $slaMatrix->keyBy('prioId');
+        $slaByName = $slaMatrix->keyBy('prioKey');
 
-       // Index the matrix both ways so it works whether priority_level holds an id or a name
-$slaById   = $slaMatrix->keyBy('prioId');
-$slaByName = $slaMatrix->keyBy('prioKey');
+        $tickets = $inquiries->map(function ($sr) use ($slaById, $slaByName) {
+            $stop    = $sr->approved_at ?: now();
+            $elapsed = abs((int) $sr->created_at->diffInHours($stop, false));
 
-$tickets = $inquiries->map(function ($sr) use ($slaById, $slaByName) {
-    $stop    = $sr->approved_at ?: now();
-    $elapsed = abs((int) $sr->created_at->diffInHours($stop, false));
+            $rawPrio = $sr->priority_level;
+            $meta    = $slaById[(int) $rawPrio]
+                ?? $slaByName[strtolower(trim((string) $rawPrio))]
+                ?? null;
 
-    $rawPrio = $sr->priority_level;
-    $meta    = $slaById[(int) $rawPrio]
-            ?? $slaByName[strtolower(trim((string) $rawPrio))]
-            ?? null;
+            return [
+                'id'                => $this->buildSrRef($sr),
+                'dbId'              => $sr->id,
+                'client'            => optional($sr->client)->company_name ?? '-',
+                'contract'          => optional($sr->project)->project_name ?? '-',
+                'domain'            => optional($sr->category)->category_name ?? '-',
+                'site'              => optional($sr->project)->site_name ?? '-',
+                'priority'          => $meta['name']  ?? ($rawPrio !== null ? (string) $rawPrio : '—'),
+                'prioColor'         => $meta['color'] ?? '#8a8a8a',
+                'prioId'            => $meta['prioId'] ?? null,
+                'prioKey'           => $meta['prioKey'] ?? strtolower(trim((string) $rawPrio)),
+                'hrsAgo'            => $elapsed,
+                'approvedStr'       => $sr->approved_at?->format('d M Y h:i A') ?? '-',
+                'status'            => $sr->status,
+                'warranty'          => ($sr->project
+                    && $sr->project->warranty_end_date
+                    && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
+                    ? 'In Warranty'
+                    : 'Out of Warranty',
+                'client_id'         => $sr->client_id,
+                'project_id'        => $sr->project_id,
+                'service_type_id'   => $sr->service_type_id,
+                'reported_by'       => $sr->reported_by,
+                'issue_description' => $sr->issue_description,
+                'internal_remark'   => $sr->internal_remark,
 
-    return [
-        'id'                => $this->buildSrRef($sr),
-        'dbId'              => $sr->id,
-        'client'            => optional($sr->client)->company_name ?? '-',
-        'contract'          => optional($sr->project)->project_name ?? '-',
-        'domain'            => optional($sr->category)->category_name ?? '-',
-        'site'              => optional($sr->project)->site_name ?? '-',
-        'priority'          => $meta['name']  ?? ($rawPrio !== null ? (string) $rawPrio : '—'),
-        'prioColor'         => $meta['color'] ?? '#8a8a8a',
-        'prioId'            => $meta['prioId'] ?? null,
-        'prioKey'           => $meta['prioKey'] ?? strtolower(trim((string) $rawPrio)),
-        'hrsAgo'            => $elapsed,
-        'approvedStr'       => $sr->approved_at?->format('d M Y h:i A') ?? '-',
-        'status'            => $sr->status,
-        'warranty'          => ($sr->project
-            && $sr->project->warranty_end_date
-            && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
-            ? 'In Warranty'
-            : 'Out of Warranty',
-        'client_id'         => $sr->client_id,
-        'project_id'        => $sr->project_id,
-        'service_type_id'   => $sr->service_type_id,
-        'reported_by'       => $sr->reported_by,
-        'issue_description' => $sr->issue_description,
-        'internal_remark'   => $sr->internal_remark,
-    ];
-});
+                'assignedSe' => $sr->assigned_se,
+            ];
+        });
 
-        $categories = ServiceCategory::where('status', 1)
-            ->with(['domains' => fn($q) => $q->where('status', 1)->orderBy('sort_order')])
-            ->orderBy('sort_order')
-            ->get();
+        // $categories = ServiceCategory::where('status', 1)
+        //     ->with(['domains' => fn($q) => $q->where('status', 1)->orderBy('sort_order')])
+        //     ->orderBy('sort_order')
+        //     ->get();
+
+
+       $categories = ServiceCategory::where('status', 1)
+    ->with(['domains' => fn($q) => $q->where('status', 1)->orderBy('sort_order')])
+    ->orderBy('sort_order')
+    ->get();
+
+// Which categories each SE covers → { seId: [catId, ...] }
+$catsBySe = DB::table('user_service_category as usc')
+    ->join('users as u', 'u.id', '=', 'usc.user_id')
+    ->join('roles as r', 'r.id', '=', 'u.role_id')
+    ->where('r.code', 'SE')
+    ->select('usc.user_id', 'usc.service_category_id')
+    ->get()
+    ->groupBy('user_id')
+    ->map(fn($rows) => $rows->pluck('service_category_id')->map(fn($v) => (int) $v)->values());
 
         // --- Today's ETA workload count per technician (assigned_user_id) ---
         // Deliberately NOT filtered: this is live capacity, not a period metric.
@@ -617,8 +661,21 @@ $tickets = $inquiries->map(function ($sr) use ($slaById, $slaByName) {
             'categories',
             'technicians',
             'filters',
-            'slaMatrix'
+            'slaMatrix',
+            'catsBySe'
         ));
+    }
+
+
+    private function isServiceEngineer($user): bool
+    {
+        if (!$user) return false;
+
+        return \DB::table('users')            // ← use your real pivot name
+            ->join('roles', 'roles.id', '=', 'users.role_id')
+            ->where('users.id', $user->id)
+            ->where('roles.code', 'SE')
+            ->exists();
     }
 
 

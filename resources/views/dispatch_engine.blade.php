@@ -1166,15 +1166,12 @@
       </div>
 
       <div class="cbody">
-        <div class="mb-3">
-          <label class="form-label">Service Category</label>
-          <select class="form-select" id="dispCategory" onchange="onDispCategory(this.value)">
-            <option value="">— Select Category —</option>
-            @foreach($categories as $cat)
-              <option value="{{ $cat->id }}">{{ $cat->category_name }}</option>
-            @endforeach
-          </select>
-        </div>
+       <div class="mb-3">
+  <label class="form-label">Service Category</label>
+  <select class="form-select" id="dispCategory" onchange="onDispCategory(this.value)">
+    <option value="">— Select a ticket first —</option>
+  </select>
+</div>
 
         <div class="mb-3">
           <label class="form-label">Service Domain</label>
@@ -1335,9 +1332,7 @@
 
 
 
-
-
-  const TL_HOURS = ['8a','9a','10a','11a','12p','1p','2p','3p','4p'];
+const TL_HOURS = ['8a','9a','10a','11a','12p','1p','2p','3p','4p'];
 const TL_NOW = 3; // "11a" column index — set from server time if you want it live
 
 const TL_CLR = {
@@ -1345,6 +1340,41 @@ const TL_CLR = {
   busy:     { bg:'#f7d0dd', bd:'#e79bb1' },
   proposed: { bg:'#d8c9a8', bd:'#b39a6a' },
 };
+
+
+
+
+
+const CATS_BY_SE = @json($catsBySe);
+const ALL_CATS = @json(
+  $categories->map(fn($c) => ['id' => (int) $c->id, 'name' => $c->category_name])->values()
+);
+
+function buildCategoryOptions(t){
+  const sel = document.getElementById('dispCategory');
+  if(!sel) return;
+
+  if(!t){
+    sel.innerHTML = '<option value="">— Select a ticket first —</option>';
+    sel.disabled = true;
+    return;
+  }
+
+  const allowed = CATS_BY_SE[t.assignedSe] || [];
+  const list = ALL_CATS.filter(c => allowed.map(Number).includes(Number(c.id)));
+
+  if(!list.length){
+    sel.innerHTML = '<option value="">No categories for the assigned engineer</option>';
+    sel.disabled = true;
+    return;
+  }
+
+  sel.disabled = false;
+  sel.innerHTML = '<option value="">— Select Category —</option>' +
+    list.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+    if (list.length === 1) sel.value = String(list[0].id);
+}
 
 
 // coming from your backend availability query. selTechId = the proposed one.
@@ -1555,11 +1585,21 @@ function slaStatus(t){
 }
 
   function syncCategoryDropdown(t) {
-    const catSel = document.getElementById('dispCategory');
-    if (!catSel) return;
-    if (t && t.service_type_id != null) catSel.value = String(t.service_type_id);
-    onDispCategory(catSel.value);
+  buildCategoryOptions(t);
+
+  const catSel = document.getElementById('dispCategory');
+  if (!catSel) return;
+
+  // Only apply the ticket's category if it's actually one of the SE's options
+  if (t && t.service_type_id != null) {
+    const wanted = String(t.service_type_id);
+    if ([...catSel.options].some(o => o.value === wanted)) {
+      catSel.value = wanted;
+    }
   }
+
+  onDispCategory(catSel.value);
+}
 
   function onDispCategory(catId) {
     const dd = document.getElementById('dispDomain');
