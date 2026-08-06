@@ -750,17 +750,17 @@ font-weight:700;
 </div>
   <!-- ALERT STRIP -->
   <div class="alert-row">
-        <button type="button" class="a-chip a-red" data-panel="sla-breach">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            {{ $alertCounts['breaches'] ?? 0 }} SLA {{ \Illuminate\Support\Str::plural('breach', $alertCounts['breaches'] ?? 0) }} this period
-        </button>
+     <button type="button" class="a-chip a-red" onclick="openPanel('sla-breach',null)">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    {{ $alertCounts['breaches'] ?? 0 }} SLA {{ \Illuminate\Support\Str::plural('breach', $alertCounts['breaches'] ?? 0) }} this period
+</button>
 
-        <button type="button" class="a-chip a-amb" data-panel="pending-actions">
-            <i class="bi bi-hourglass-split"></i>
-            {{ $alertCounts['pending'] ?? 0 }} {{ \Illuminate\Support\Str::plural('action', $alertCounts['pending'] ?? 0) }} pending across roles
-        </button>
+       <button type="button" class="a-chip a-amb" onclick="openPanel('pending-actions',null)">
+    <i class="bi bi-hourglass-split"></i>
+    {{ $alertCounts['pending'] ?? 0 }} {{ \Illuminate\Support\Str::plural('action', $alertCounts['pending'] ?? 0) }} pending across roles
+</button>
 
-        <button type="button" class="a-chip a-amb" data-panel="slow-srs">
+        <button type="button" class="a-chip a-amb" onclick="openPanel('slow-srs',null)">
             <i class="bi bi-clock-history"></i>
             {{ $alertCounts['stalled'] ?? 0 }} SRs stalled 24h+
         </button>
@@ -1281,10 +1281,6 @@ var CAPACITY = @json($workforce['capacity']);
 var TRADES   = @json($workforce['trades']);
 var WF       = @json($workforce);
 
-
-
-
-
 var RATINGS    = @json($ratingBuckets2['rows']);
 var RATING_MAX = {{ $ratingBuckets2['max'] }};
 
@@ -1438,6 +1434,25 @@ PANEL_DATA['dispatch']={
 };
 
 PANEL_DATA['feedback'] = @json($feedbackPanel);
+
+
+
+PANEL_DATA['pending-actions'] = {
+  title: 'Pending Actions',
+  icon:  'bi-hourglass-split',
+  sub:   'Items awaiting action across triage, dispatch and QC',
+  items: [
+    ['inquiry-triage', 'Inquiry Triage'],
+    ['dispatch-queue', 'Dispatch'],
+    ['qc-queue',       'QC Review']
+  ].reduce(function(acc, pair){
+    var src = (PANEL_DATA[pair[0]] || {}).items || [];
+    return acc.concat(src.map(function(it){
+      return Object.assign({}, it, { meta: pair[1] + ' · ' + it.meta });
+    }));
+  }, [])
+};
+
 
 /* ============ CHARTS ============ */
 var CHARTS={};
@@ -1813,8 +1828,63 @@ function prCard(id,badge,bc,client,meta){
     '<div class="pr-meta"><i class="bi bi-geo-alt"></i>'+meta+'</div></div>';
 }
 
+
+var REMOTE = ['pending-actions','slow-srs','pending-qc','invoices','month-srs','wa-failures'];
+
+function normalize(it){
+  return {
+    id:     it.reference ?? it.id,
+    badge:  it.badge,
+    bc:     it.color ?? it.bc,
+    client: it.title ?? it.client,
+    meta:   it.meta
+  };
+}
+
+
 function openPanel(type,id){
+
   var heading='',icon='bi-list',sub='',body='';
+
+
+    /* ---- remote panels: fetched from the /panel endpoint ---- */
+  if(REMOTE.indexOf(type) !== -1){
+    var qs = new URLSearchParams(window.location.search);
+    qs.set('type', type);
+    if(id !== null && id !== undefined) qs.set('id', id);
+
+    document.getElementById('dpBody').innerHTML = '<p class="empty">Loading…</p>';
+    document.querySelector('.panel-overlay').classList.add('open');
+    document.getElementById('detailPanel').classList.add('open');
+
+    fetch('{{ route("dashboard.panel") }}?' + qs.toString(),
+          {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        document.getElementById('dpTitle').textContent = data.title;
+        document.getElementById('dpSub').textContent   = data.subtitle;
+        document.getElementById('dpIcon').className    = 'bi ' + data.icon + ' dp-hdr-icon';
+
+        var head = data.section ? '<div class="dp-sec">'+data.section+'</div>' : '';
+        document.getElementById('dpBody').innerHTML = head + (
+          data.items.length
+            ? data.items.map(normalize).map(function(it){
+                return '<div class="pr"><div class="pr-top"><span class="pr-id">'+it.id+'</span>'+
+                  '<span class="pr-badge" style="background:'+it.bc+'22;color:'+it.bc+';">'+it.badge+'</span></div>'+
+                  '<div class="pr-client">'+it.client+'</div>'+
+                  '<div class="pr-meta"><i class="bi bi-geo-alt"></i>'+it.meta+'</div></div>';
+              }).join('')
+            : '<p class="empty">Nothing pending.</p>');
+      })
+      .catch(function(){
+        document.getElementById('dpBody').innerHTML = '<p class="empty">Could not load this panel.</p>';
+      });
+
+    return;   // ← must return: the header/overlay lines at the bottom would overwrite the fetched title
+  }
+
+
+
 
   if(type==='lead'){
     var l=LEADS[id];
@@ -1889,13 +1959,17 @@ else if(type==='client'){
     document.getElementById('dpBody').innerHTML = body;
 }
   else {
-    var data=PANEL_DATA[type];if(!data)return;
+    var data=PANEL_DATA[type];
+    if(!data) return;
     heading=data.title;icon=data.icon;sub=data.sub;
-    document.getElementById('dpBody').innerHTML=data.items.map(function(it){
-      return '<div class="pr"><div class="pr-top"><span class="pr-id">'+it.id+'</span>'+
-        '<span class="pr-badge" style="background:'+it.bc+'22;color:'+it.bc+';">'+it.badge+'</span></div>'+
-        '<div class="pr-client">'+it.client+'</div><div class="pr-meta">'+it.meta+'</div></div>';
-    }).join('');
+    var items = Array.isArray(data.items) ? data.items : Object.values(data.items||{});
+    document.getElementById('dpBody').innerHTML = items.length
+      ? items.map(function(it){
+          return '<div class="pr"><div class="pr-top"><span class="pr-id">'+it.id+'</span>'+
+            '<span class="pr-badge" style="background:'+it.bc+'22;color:'+it.bc+';">'+it.badge+'</span></div>'+
+            '<div class="pr-client">'+it.client+'</div><div class="pr-meta">'+it.meta+'</div></div>';
+        }).join('')
+      : '<p class="empty">Nothing to show for this period.</p>';
   }
 
   document.getElementById('dpTitle').textContent=heading;

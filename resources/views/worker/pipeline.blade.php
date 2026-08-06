@@ -263,7 +263,20 @@
 
 .punch-row{margin-bottom:10px;}
 
+.cg {
+    font-family: UI-MONOSPACE;
+    letter-spacing: -.01em;
+}
 
+#expAmount
+{
+  margin-bottom: 12px;
+}
+
+#expCategory
+{
+  margin-bottom: 12px;
+}
 </style>
 @endpush
 
@@ -359,12 +372,12 @@
     </div>
 
     <div class="punch-row">
-      <button class="punch-btn btn-punchin" id="punchInBtn"><i class="bi bi-play-fill"></i>Start job</button>
+      <button class="punch-btn btn-punchin" id="punchInBtn"><i class="bi bi-play-fill"></i>Start Job</button>
       <button class="punch-btn btn-punchout" id="punchOutBtn" disabled><i class="bi bi-check2-square"></i>Finish job</button>
     </div>
 
-    <button class="btn-outline" id="expenseBtn" disabled><i class="bi bi-receipt"></i>Log material expense</button>
-    <button class="btn-outline brand hidden" id="rsBtn"><i class="bi bi-calendar2-event"></i>Reschedule / hold job</button>
+    <button class="btn-outline" id="expenseBtn" disabled><i class="bi bi-receipt"></i>Log Material Expense</button>
+    <button class="btn-outline brand hidden" id="rsBtn"><i class="bi bi-calendar2-event"></i>Reschedule / Hold Job</button>
 
     <div class="lock-info hidden" id="lockInfo">
       <i class="bi bi-lock-fill"></i>
@@ -372,7 +385,7 @@
     </div>
 
     <div class="compliance-card">
-      <div class="comp-title"><i class="bi bi-shield-check"></i>Compliance uploads</div>
+      <div class="comp-title"><i class="bi bi-shield-check"></i>Compliance Uploads</div>
 
       <div class="comp-item">
         <div class="comp-icon-wrap" id="beforeIcon"><i class="bi bi-camera-fill" style="color:var(--amber);"></i></div>
@@ -454,7 +467,7 @@
 <div class="drawer" data-drawer="rs">
   <div class="drawer-handle"></div>
   <div class="drawer-hdr">
-    <h6><i class="bi bi-calendar2-event" style="color:var(--gold);"></i>Reschedule or hold</h6>
+    <h6><i class="bi bi-calendar2-event" style="color:var(--gold);"></i>Reschedule or Hold</h6>
     <button class="drawer-close" data-close="rs"><i class="bi bi-x-lg"></i></button>
   </div>
   <div class="drawer-body">
@@ -462,7 +475,7 @@
 
     <div class="rs-tabs">
       <button class="rs-tab active" data-rstab="reschedule"><i class="bi bi-calendar-check"></i> Reschedule</button>
-      <button class="rs-tab" data-rstab="hold"><i class="bi bi-pause-circle"></i> Keep on hold</button>
+      <button class="rs-tab" data-rstab="hold"><i class="bi bi-pause-circle"></i> Keep on Hold</button>
     </div>
 
     <div class="rs-panel show" id="rsPanel-reschedule">
@@ -497,7 +510,7 @@
 <div class="drawer" data-drawer="exp">
   <div class="drawer-handle"></div>
   <div class="drawer-hdr">
-    <h6><i class="bi bi-receipt" style="color:var(--amber);"></i>Log material expense</h6>
+    <h6><i class="bi bi-receipt" style="color:var(--amber);"></i>Log Material Expense</h6>
     <button class="drawer-close" data-close="exp"><i class="bi bi-x-lg"></i></button>
   </div>
   <div class="drawer-body">
@@ -1483,6 +1496,13 @@ $('punchOutBtn').addEventListener('click', () => {
   $('finSrRef').textContent = activeRef ?? '\u2014';
   openDrawer('fin');
 });
+
+// Cient Input Forms
+document.getElementById('clientNameInput').addEventListener('input', function(e){
+  e.target.value = e.target.value.replace(/[^a-zA-Z\s]/g, '');   // ← kills 0-9
+});
+
+
 
 $('finConfirmBtn').addEventListener('click', async () => {
   const btn = $('finConfirmBtn');

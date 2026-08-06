@@ -1638,7 +1638,9 @@ class DashboardController extends Controller
                     'reference' => $sr->code,
                     'badge'     => $isCritical ? 'Critical' : $sr->status,
                     'color'     => $isCritical ? '#dc2626' : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
-                    'title'     => $sr->project?->client?->company_name ?? '—',
+                    // 'title'     => $sr->project?->client?->company_name ?? '—',
+                                        'title'     => $sr->client?->company_name ?? '—',
+
                     'meta'      => $meta->filter()->implode(' · '),
                 ];
             })
