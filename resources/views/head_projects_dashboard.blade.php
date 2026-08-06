@@ -750,17 +750,17 @@ font-weight:700;
 </div>
   <!-- ALERT STRIP -->
   <div class="alert-row">
-        <button type="button" class="a-chip a-red" data-panel="sla-breach">
-            <i class="bi bi-exclamation-triangle-fill"></i>
-            {{ $alertCounts['breaches'] ?? 0 }} SLA {{ \Illuminate\Support\Str::plural('breach', $alertCounts['breaches'] ?? 0) }} this period
-        </button>
+     <button type="button" class="a-chip a-red" onclick="openPanel('sla-breach',null)">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    {{ $alertCounts['breaches'] ?? 0 }} SLA {{ \Illuminate\Support\Str::plural('breach', $alertCounts['breaches'] ?? 0) }} this period
+</button>
 
-        <button type="button" class="a-chip a-amb" data-panel="pending-actions">
-            <i class="bi bi-hourglass-split"></i>
-            {{ $alertCounts['pending'] ?? 0 }} {{ \Illuminate\Support\Str::plural('action', $alertCounts['pending'] ?? 0) }} pending across roles
-        </button>
+       <button type="button" class="a-chip a-amb" onclick="openPanel('pending-actions',null)">
+    <i class="bi bi-hourglass-split"></i>
+    {{ $alertCounts['pending'] ?? 0 }} {{ \Illuminate\Support\Str::plural('action', $alertCounts['pending'] ?? 0) }} pending across roles
+</button>
 
-        <button type="button" class="a-chip a-amb" data-panel="slow-srs">
+        <button type="button" class="a-chip a-amb" onclick="openPanel('slow-srs',null)">
             <i class="bi bi-clock-history"></i>
             {{ $alertCounts['stalled'] ?? 0 }} SRs stalled 24h+
         </button>
@@ -1155,12 +1155,12 @@ font-weight:700;
 
     <!-- SATISFACTION -->
     <div class="card card-pad">
-  <div class="c-hdr">
+    <div class="c-hdr">
     <div class="c-label"><i class="bi bi-star-half"></i>Client Satisfaction</div>
     <div class="c-more" onclick="openPanel('feedback',null)">View all <i class="bi bi-arrow-right"></i></div>
-  </div>
+    </div>
 
-  <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;
     padding-bottom:14px;border-bottom:1px solid var(--border);">
     <div>
       <div style="font-size:3rem;font-weight:700;color:#9a8053;line-height:1;">
@@ -1185,21 +1185,21 @@ font-weight:700;
         <div class="mm-val" style="color:#9a8053;">{{ $satisfaction2['responses'] }}</div>
       </div>
     </div>
-  </div>
+    </div>
 
-  <div id="ratingHist"></div>
+    <div id="ratingHist"></div>
 
-  @if ($satisfaction2['flagged'])
-  <div style="margin-top:12px;padding:9px 12px;background:rgba(217,119,6,.07);
+    @if ($satisfaction2['flagged'])
+    <div style="margin-top:12px;padding:9px 12px;background:rgba(217,119,6,.07);
     border:1px solid rgba(217,119,6,.15);border-radius:8px;
     font-size:.74rem;color:#d97706;display:flex;align-items:center;gap:6px;cursor:pointer;"
     onclick="openPanel('qc-queue',{{ $satisfaction2['flagged']['id'] }})">
     <i class="bi bi-exclamation-triangle-fill"></i>
     {{ $satisfaction2['flagged']['code'] }} rated {{ $satisfaction2['flagged']['score'] }}★ — flagged for QC review
-  </div>
-  @endif
-</div>
-  </div>
+    </div>
+    @endif
+    </div>
+    </div>
 
 
 
@@ -1280,10 +1280,6 @@ TECHS.forEach(function(t){ (LEAD_TECHS[t.leadIdx]=LEAD_TECHS[t.leadIdx]||[]).pus
 var CAPACITY = @json($workforce['capacity']);
 var TRADES   = @json($workforce['trades']);
 var WF       = @json($workforce);
-
-
-
-
 
 var RATINGS    = @json($ratingBuckets2['rows']);
 var RATING_MAX = {{ $ratingBuckets2['max'] }};
@@ -1438,6 +1434,25 @@ PANEL_DATA['dispatch']={
 };
 
 PANEL_DATA['feedback'] = @json($feedbackPanel);
+
+
+
+PANEL_DATA['pending-actions'] = {
+  title: 'Pending Actions',
+  icon:  'bi-hourglass-split',
+  sub:   'Items awaiting action across triage, dispatch and QC',
+  items: [
+    ['inquiry-triage', 'Inquiry Triage'],
+    ['dispatch-queue', 'Dispatch'],
+    ['qc-queue',       'QC Review']
+  ].reduce(function(acc, pair){
+    var src = (PANEL_DATA[pair[0]] || {}).items || [];
+    return acc.concat(src.map(function(it){
+      return Object.assign({}, it, { meta: pair[1] + ' · ' + it.meta });
+    }));
+  }, [])
+};
+
 
 /* ============ CHARTS ============ */
 var CHARTS={};
@@ -1813,8 +1828,63 @@ function prCard(id,badge,bc,client,meta){
     '<div class="pr-meta"><i class="bi bi-geo-alt"></i>'+meta+'</div></div>';
 }
 
+
+var REMOTE = ['pending-actions','slow-srs','pending-qc','invoices','month-srs','wa-failures'];
+
+function normalize(it){
+  return {
+    id:     it.reference ?? it.id,
+    badge:  it.badge,
+    bc:     it.color ?? it.bc,
+    client: it.title ?? it.client,
+    meta:   it.meta
+  };
+}
+
+
 function openPanel(type,id){
+
   var heading='',icon='bi-list',sub='',body='';
+
+
+    /* ---- remote panels: fetched from the /panel endpoint ---- */
+  if(REMOTE.indexOf(type) !== -1){
+    var qs = new URLSearchParams(window.location.search);
+    qs.set('type', type);
+    if(id !== null && id !== undefined) qs.set('id', id);
+
+    document.getElementById('dpBody').innerHTML = '<p class="empty">Loading…</p>';
+    document.querySelector('.panel-overlay').classList.add('open');
+    document.getElementById('detailPanel').classList.add('open');
+
+    fetch('{{ route("dashboard.panel") }}?' + qs.toString(),
+          {headers:{'X-Requested-With':'XMLHttpRequest'}})
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        document.getElementById('dpTitle').textContent = data.title;
+        document.getElementById('dpSub').textContent   = data.subtitle;
+        document.getElementById('dpIcon').className    = 'bi ' + data.icon + ' dp-hdr-icon';
+
+        var head = data.section ? '<div class="dp-sec">'+data.section+'</div>' : '';
+        document.getElementById('dpBody').innerHTML = head + (
+          data.items.length
+            ? data.items.map(normalize).map(function(it){
+                return '<div class="pr"><div class="pr-top"><span class="pr-id">'+it.id+'</span>'+
+                  '<span class="pr-badge" style="background:'+it.bc+'22;color:'+it.bc+';">'+it.badge+'</span></div>'+
+                  '<div class="pr-client">'+it.client+'</div>'+
+                  '<div class="pr-meta"><i class="bi bi-geo-alt"></i>'+it.meta+'</div></div>';
+              }).join('')
+            : '<p class="empty">Nothing pending.</p>');
+      })
+      .catch(function(){
+        document.getElementById('dpBody').innerHTML = '<p class="empty">Could not load this panel.</p>';
+      });
+
+    return;   // ← must return: the header/overlay lines at the bottom would overwrite the fetched title
+  }
+
+
+
 
   if(type==='lead'){
     var l=LEADS[id];
@@ -1856,14 +1926,50 @@ function openPanel(type,id){
     body+=jobs.map(function(j){return prCard(j.id,j.status,j.bc,j.client,j.meta);}).join('');
     document.getElementById('dpBody').innerHTML=body;
 
-  } else {
-    var data=PANEL_DATA[type];if(!data)return;
+  } 
+  
+else if(type==='client'){
+    var c = CLIENTS[id];
+    if(!c) return;
+
+    heading = c.n;
+    icon    = 'bi-buildings';
+    sub     = c.srs + ' service request' + (c.srs === 1 ? '' : 's') + ' in this period';
+
+    body = '<div class="dp-sec">Client Summary</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;">'+
+        '<div class="mini-metric"><div class="mm-label">Total SRs</div><div class="mm-val">'+c.srs+'</div><div class="mm-sub">This period</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">In-warranty</div><div class="mm-val" style="color:#9a8053;">'+c.iw+'</div><div class="mm-sub">Covered</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Out-of-warranty</div><div class="mm-val">'+c.oow+'</div><div class="mm-sub">Billable</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Avg Rating</div><div class="mm-val" style="color:#f59e0b;">'+(c.rating||'—')+'</div><div class="mm-sub">Client feedback</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Invoiced</div><div class="mm-val" style="font-size:.95rem;">'+c.exp+'</div><div class="mm-sub">Period total</div></div>'+
+      '</div><div class="dp-sec">Service Requests</div>';
+
+    var rows = c.rows || [];
+    body += rows.length
+      ? rows.map(function(r){
+          var bc = r.status === 'Completed' ? '#15803d'
+                 : r.status === 'Approved'  ? '#9a8053'
+                 : r.status === 'Rejected'  ? '#dc2626' : '#d97706';
+          return prCard(r.ref, r.status, bc, r.project,
+                        r.site + ' · ' + r.category + ' · ' + r.priority + ' · ' + r.created);
+        }).join('')
+      : '<p class="empty">No service requests for this client.</p>';
+
+    document.getElementById('dpBody').innerHTML = body;
+}
+  else {
+    var data=PANEL_DATA[type];
+    if(!data) return;
     heading=data.title;icon=data.icon;sub=data.sub;
-    document.getElementById('dpBody').innerHTML=data.items.map(function(it){
-      return '<div class="pr"><div class="pr-top"><span class="pr-id">'+it.id+'</span>'+
-        '<span class="pr-badge" style="background:'+it.bc+'22;color:'+it.bc+';">'+it.badge+'</span></div>'+
-        '<div class="pr-client">'+it.client+'</div><div class="pr-meta">'+it.meta+'</div></div>';
-    }).join('');
+    var items = Array.isArray(data.items) ? data.items : Object.values(data.items||{});
+    document.getElementById('dpBody').innerHTML = items.length
+      ? items.map(function(it){
+          return '<div class="pr"><div class="pr-top"><span class="pr-id">'+it.id+'</span>'+
+            '<span class="pr-badge" style="background:'+it.bc+'22;color:'+it.bc+';">'+it.badge+'</span></div>'+
+            '<div class="pr-client">'+it.client+'</div><div class="pr-meta">'+it.meta+'</div></div>';
+        }).join('')
+      : '<p class="empty">Nothing to show for this period.</p>';
   }
 
   document.getElementById('dpTitle').textContent=heading;

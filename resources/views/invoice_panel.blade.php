@@ -300,7 +300,7 @@
             </div>
             <div class="form-group">
               <label class="form-label-sm">Invoice Total (AED) <span class="req">*</span><span class="hint">Final billed amount</span></label>
-              <input type="number" class="fc" id="inv-total" placeholder="0.00" min="0" step="0.01"
+              <input type="number"   name="invoice_total" class="fc" id="inv-total" placeholder="0.00" min="0" step="0.01"
                     inputmode="decimal" oninput="inv_validate()"/>
             </div>
             <div class="form-group">
@@ -640,12 +640,16 @@ function execInvSubmit(){
   var sr = selInv;
   if(!sr) return;
   var code = document.getElementById('inv-code').value.trim().toUpperCase();
+  var total = document.getElementById('inv-total').value.trim();   // ← read the field
+
   var btn  = document.getElementById('inv-btn');
   btn.disabled = true;
 
   var fd = new FormData();
   fd.append('invoice_code',  code);
-  fd.append('invoice_total', sr.totalExp || 0);
+  // fd.append('invoice_total', sr.totalExp || 0);
+  fd.append('invoice_total', total);                                // ← send it
+
   fd.append('invoice_pdf',   document.getElementById('inv-fi').files[0]);
 
   fetch('/invoice_panel/'+sr.dbId+'/submit', {

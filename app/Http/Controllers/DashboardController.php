@@ -1332,17 +1332,21 @@ class DashboardController extends Controller
 
     private function clients(Collection $current): array
     {
+
+        // $today = now()->startOfDay();
+
         // return $current
         //     ->filter(fn($sr) => $sr->client_id)
         //     ->groupBy('client_id')
-        //     ->map(function ($group, $clientId) {
+        //     ->map(function ($group, $clientId) use ($today) {
         //         $first = $group->first();
         //         $rated = $group->whereNotNull('performance_score');
 
-        //         $iw = $group->filter(
-        //             fn($sr) =>
-        //             in_array($sr->warranty_scope, ['In-warranty', 'IW', 'in_warranty'], true)
-        //         )->count();
+        //         $iw = $group->filter(function ($sr) use ($today) {
+        //             $end = optional($sr->project)->warranty_end_date;
+        //             if (! $end) return false;                       // no record → out-of-warranty
+        //             return Carbon::parse($end)->startOfDay()->gte($today);
+        //         })->count();
 
         //         return [
         //             'id'     => (int) $clientId,
@@ -1359,6 +1363,8 @@ class DashboardController extends Controller
         //     ->values()
         //     ->all();
 
+
+
         $today = now()->startOfDay();
 
         return $current
@@ -1368,11 +1374,13 @@ class DashboardController extends Controller
                 $first = $group->first();
                 $rated = $group->whereNotNull('performance_score');
 
-                $iw = $group->filter(function ($sr) use ($today) {
+                $inWarranty = function ($sr) use ($today) {
                     $end = optional($sr->project)->warranty_end_date;
-                    if (! $end) return false;                       // no record → out-of-warranty
+                    if (! $end) return false;
                     return Carbon::parse($end)->startOfDay()->gte($today);
-                })->count();
+                };
+
+                $iw = $group->filter($inWarranty)->count();
 
                 return [
                     'id'     => (int) $clientId,
@@ -1382,6 +1390,19 @@ class DashboardController extends Controller
                     'oow'    => $group->count() - $iw,
                     'rating' => $rated->count() ? round($rated->avg('performance_score'), 1) : 0,
                     'exp'    => 'AED ' . number_format((float) $group->sum('invoice_total'), 0),
+
+                    'rows'   => $group->sortByDesc('created_at')->map(fn($sr) => [
+                        'ref' => 'SR-' . ($sr->created_at ? $sr->created_at->year : now()->year)
+                            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+                        'dbId'     => $sr->id,
+                        'site'     => optional($sr->project)->site_name ?: '—',
+                        'project'  => optional($sr->project)->project_name ?: '—',
+                        'category' => optional($sr->category)->category_name ?: '—',
+                        'priority' => ucfirst((string) $sr->priority_level),
+                        'status'   => $sr->status,
+                        'created'  => $sr->created_at?->format('d M Y'),
+                        'warranty' => $inWarranty($sr) ? 'In Warranty' : 'Out of Warranty',
+                    ])->values()->all(),
                 ];
             })
             ->sortByDesc('srs')
@@ -1389,8 +1410,6 @@ class DashboardController extends Controller
             ->values()
             ->all();
     }
-
-
 
     /** Front desk: pending, rejected and completed per person. */
     private function frontDesk(Collection $srs): array
@@ -1619,7 +1638,9 @@ class DashboardController extends Controller
                     'reference' => $sr->code,
                     'badge'     => $isCritical ? 'Critical' : $sr->status,
                     'color'     => $isCritical ? '#dc2626' : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
-                    'title'     => $sr->project?->client?->company_name ?? '—',
+                    // 'title'     => $sr->project?->client?->company_name ?? '—',
+                                        'title'     => $sr->client?->company_name ?? '—',
+
                     'meta'      => $meta->filter()->implode(' · '),
                 ];
             })

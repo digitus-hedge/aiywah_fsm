@@ -1473,7 +1473,7 @@ $catsBySe = DB::table('user_service_category as usc')
     {
         $data = $request->validate([
             'invoice_code'  => ['required', 'string', 'max:100'],
-            'invoice_total' => ['nullable', 'numeric'],
+          'invoice_total' => ['required', 'numeric', 'min:0'],
             'invoice_pdf'   => ['required', 'file', 'mimes:pdf', 'max:25600'],
         ]);
 
@@ -1484,7 +1484,7 @@ $catsBySe = DB::table('user_service_category as usc')
         $serviceRequest->update([
             'status'               => 'Invoice Submitted',
             'invoice_code'         => strtoupper($data['invoice_code']),
-            'invoice_total'        => $data['invoice_total'] ?? 0,
+           'invoice_total' => $data['invoice_total'],
             'invoice_path'         => $path,
             'invoice_submitted_at' => now(),
             'invoice_uploaded_by'  => Auth::id(),

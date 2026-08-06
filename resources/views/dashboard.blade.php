@@ -464,7 +464,7 @@ footer.footer { display: none; }
         <button type="button" class="a-chip a-red" data-panel="sla-breach">
             <i class="bi bi-exclamation-triangle-fill"></i>
             {{ $alertCounts['breaches'] ?? 0 }} SLA {{ \Illuminate\Support\Str::plural('breach', $alertCounts['breaches'] ?? 0) }} this period
-        </button>
+       </button>
 
         <button type="button" class="a-chip a-amb" data-panel="pending-actions">
             <i class="bi bi-hourglass-split"></i>
@@ -706,7 +706,7 @@ footer.footer { display: none; }
                 </div>
                 <div class="mini-metric" data-panel="sla-breach" style="cursor:pointer;"
                     title="{{ collect(data_get($qc ?? [], 'stage_breaches', []))->map(fn ($s) => $s['label'].': '.$s['count'].' over '.$s['target'].'h')->implode("\n") }}">
-                    <div class="mm-label">SLA breaches</div>
+                    <div class="mm-label">SLA breaches d</div>
                     <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'sla_breaches', 0) }}</div>
                     <div class="mm-sub">{{ data_get($qc ?? [], 'sla_breach_sub') }}</div>
                 </div>

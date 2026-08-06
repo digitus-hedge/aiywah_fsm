@@ -402,6 +402,10 @@ body { background: #f4f2ef; }
         ['key' => 'cancelled', 'ico' => 'bi-x-circle',          'n' => 3, 'lbl' => 'Cancelled from My Intake'],
         ['key' => 'completed', 'ico' => 'bi-patch-check',       'n' => 4, 'lbl' => 'Completed from My Intake'],
     ];
+
+
+  
+
 @endphp
 
 <div id="fdeDash">
