@@ -164,5 +164,8 @@ class ServiceRequest extends Model
     {
         return $this->reschedules->count();
     }
-    
+    public function assignedSe()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'assigned_se');
+    }
 }

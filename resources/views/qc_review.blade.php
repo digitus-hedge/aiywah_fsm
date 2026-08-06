@@ -157,6 +157,17 @@
 .qc-wrap .action-hdr h6{font-size:.85rem;font-weight:600;color:var(--text-heading);margin:0;}
 .qc-wrap .action-body{padding:18px;}
 
+/* QC OWNERSHIP LOCK */
+.qc-wrap .qc-lock-note{display:none;align-items:center;gap:10px;padding:12px 14px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border-color);font-size:.8rem;color:var(--text-muted);}
+.qc-wrap .qc-lock-note.show{display:flex;}
+.qc-wrap .qc-lock-note i{font-size:1rem;color:var(--text-light);flex-shrink:0;}
+.qc-wrap .qc-lock-note strong{color:var(--text-heading);}
+.qc-wrap .action-btns.hidden,.qc-wrap .rework-wrap.hidden{display:none;}
+.qc-wrap .queue-item.locked{opacity:.72;}
+.qc-wrap .owner-chip{display:inline-flex;align-items:center;gap:3px;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:9px;background:var(--surface-3);color:var(--text-muted);}
+.qc-wrap .owner-chip.se{background:rgba(37,99,235,.1);color:#2563eb;}
+.qc-wrap .owner-chip.hop{background:rgba(154,128,83,.12);color:#9a8053;}
+
 /* REWORK TEXTAREA */
 .qc-wrap .rework-wrap{margin-bottom:18px;}
 .qc-wrap .rework-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px;flex-wrap:wrap;}
@@ -246,6 +257,7 @@
       <span class="meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
       <span class="meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
       <span class="meta-badge"><i class="bi bi-person-workspace me-1"></i>Head of Projects</span>
+      <span class="meta-badge"><i class="bi bi-tools me-1"></i>Service Engineer (QC-enabled)</span>
     </div>
   </div>
 
@@ -412,7 +424,11 @@
           </div>
           <div class="action-body">
             <div class="scope-indicator" id="scope-indicator"></div>
-            <div class="rework-wrap">
+            <div class="qc-lock-note" id="qc-lock-note">
+            <i class="bi bi-lock-fill"></i>
+            <span>QC on this ticket is allocated to <strong id="qc-owner-name">—</strong>. You can review the evidence here, but only they can pass or return it.</span>
+          </div>
+            <div class="rework-wrap" id="rework-wrap">
               <div class="rework-label-row">
                 <div class="rework-label"><i class="bi bi-pencil-square"></i>Mandatory Rework Requirements</div>
                 <span class="rework-locked-tag" id="rework-locked-tag"><i class="bi bi-lock-fill"></i> Locked</span>
@@ -526,16 +542,22 @@ function renderQueue(list){
     const active   = selectedSR && selectedSR.id === sr.id ? 'active' : '';
     const timerCls = (sla.cls === 'warn' || sla.cls === 'breach') ? 'timer-warn' : '';
     const scopeCls = sr.scope === 'iw' ? 'scope-iw' : 'scope-oow';
-    return `<div class="queue-item ${active}" id="qi-${sr.id}" onclick="selectSR('${sr.id}')">
-      <div class="queue-item-id">${sr.id}</div>
-      <div class="queue-item-client">${sr.client}</div>
-      <div class="queue-item-site"><i class="bi bi-geo-alt" style="font-size:.7rem;"></i> ${sr.site}</div>
-      <div class="queue-item-foot">
-        <span class="scope-badge ${scopeCls}">${sr.scopeLabel}</span>
-        <span class="queue-timer ${timerCls}"><i class="bi bi-clock" style="font-size:.65rem;"></i>${sla.label}</span>
-      </div>
-      <div class="sla-bar"><div class="sla-bar-fill" style="width:${sr.slaFill||0}%;background:${sr.slaColor||'#9ca3af'};"></div></div>
-    </div>`;
+    const lockCls  = sr.canAct ? '' : 'locked';
+const ownerCls = sr.qcOwnerType === 'hop' ? 'hop' : 'se';
+const ownerTag = sr.canAct ? '' :
+  `<span class="owner-chip ${ownerCls}" title="QC owner: ${sr.qcOwner}"><i class="bi bi-lock-fill" style="font-size:.6rem;"></i>${sr.qcOwner}</span>`;
+
+return `<div class="queue-item ${active} ${lockCls}" id="qi-${sr.id}" onclick="selectSR('${sr.id}')">
+  <div class="queue-item-id">${sr.id}</div>
+  <div class="queue-item-client">${sr.client}</div>
+  <div class="queue-item-site"><i class="bi bi-geo-alt" style="font-size:.7rem;"></i> ${sr.site}</div>
+  <div class="queue-item-foot">
+    <span class="scope-badge ${scopeCls}">${sr.scopeLabel}</span>
+    <span class="queue-timer ${timerCls}"><i class="bi bi-clock" style="font-size:.65rem;"></i>${sla.label}</span>
+  </div>
+  ${ownerTag ? `<div style="margin-top:6px;">${ownerTag}</div>` : ''}
+  <div class="sla-bar"><div class="sla-bar-fill" style="width:${sr.slaFill||0}%;background:${sr.slaColor||'#9ca3af'};"></div></div>
+</div>`;
   }).join('');
 }
 
@@ -602,6 +624,25 @@ function setProofPdf(elId, statusId, url){
 }
 
 /* ---------- SELECT SR ---------- */
+function applyQcPermission(sr){
+  const canAct   = !!sr.canAct;
+  const note     = document.getElementById('qc-lock-note');
+  const btns     = document.getElementById('action-btns');
+  const rework   = document.getElementById('rework-wrap');
+  const confirmB = document.getElementById('btn-confirm-rework');
+  const cancelW  = document.getElementById('cancel-fail-wrap');
+
+  note.classList.toggle('show', !canAct);
+  btns.classList.toggle('hidden', !canAct);
+  rework.classList.toggle('hidden', !canAct);
+
+  if(!canAct){
+    document.getElementById('qc-owner-name').textContent = sr.qcOwner || 'another reviewer';
+    confirmB.classList.remove('show');
+    cancelW.style.display = 'none';
+  }
+}
+
 function selectSR(id){
   selectedSR = QUEUE.find(s=>s.id===id);
   if(!selectedSR) return;
@@ -678,11 +719,16 @@ function selectSR(id){
       </div>`;
     }).join('');
   }
+  applyQcPermission(selectedSR);
 }
 
 /* ---------- QC PASS FLOW ---------- */
 function initiatePass(){
   if(!selectedSR) return;
+  if(!selectedSR.canAct){
+    showToast('err','Not Permitted',`QC on ${selectedSR.id} is allocated to ${selectedSR.qcOwner}.`);
+    return;
+  }
   document.getElementById('pass-sr-id').textContent = selectedSR.id;
   const brd = document.getElementById('branch-route-display');
   if(selectedSR.scope==='iw'){
@@ -738,6 +784,10 @@ function executePass(){
 /* ---------- QC FAIL / REWORK FLOW ---------- */
 function initiateFail(){
   if(!selectedSR) return;
+  if(!selectedSR.canAct){
+    showToast('err','Not Permitted',`QC on ${selectedSR.id} is allocated to ${selectedSR.qcOwner}.`);
+    return;
+  }
   failMode = true;
   const ta = document.getElementById('rework-textarea');
   ta.disabled = false;
@@ -823,6 +873,8 @@ function nextTicket(){
     document.getElementById('ws-empty').style.display='';
     showToast('ok','Queue Clear','All pending QC tickets have been reviewed.');
   }
+  const next = QC_FILTERED.find(s => s.canAct) || QC_FILTERED[0];
+if(next) selectSR(next.id);
 }
 
 /* ---------- FILTER QUEUE ---------- */
