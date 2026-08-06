@@ -277,7 +277,29 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 }
 
 
+/* ── QUEUE TABS ── */
+.queue-tabs{display:flex;gap:6px;margin-bottom:12px;}
+.queue-tab{display:flex;align-items:center;gap:7px;padding:9px 16px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;font-size:.8rem;font-weight:500;color:var(--text-muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.queue-tab:hover{color:var(--text-heading);}
+.queue-tab.active{background:rgba(101,113,255,.08);border-color:#6571ff;color:#6571ff;font-weight:600;}
+.queue-tab .tab-count{font-size:.65rem;font-weight:700;padding:1px 7px;border-radius:9px;background:var(--surface-2);color:var(--text-muted);}
+.queue-tab.active .tab-count{background:#6571ff;color:#fff;}
+.queue-tab.oow.active{background:rgba(251,188,6,.1);border-color:#f59e0b;color:#a8802a;}
+.queue-tab.oow.active .tab-count{background:#f59e0b;color:#fff;}
+@media(max-width:575.98px){.queue-tabs{flex-direction:column;}.queue-tab{justify-content:space-between;}}
 
+/* ── OOW APPROVE BUTTON ── */
+.btn-oow{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;}
+.btn-oow:hover:not(:disabled){box-shadow:0 4px 16px rgba(124,58,237,.35);}
+
+/* ── QUOTE BANNER IN DETAIL PANEL ── */
+.quote-banner{display:flex;align-items:flex-start;gap:8px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.22);border-radius:7px;padding:9px 11px;font-size:.74rem;color:var(--text-muted);margin-bottom:12px;}
+.quote-banner i{color:#7c3aed;margin-top:1px;flex-shrink:0;}
+.quote-banner strong{color:var(--text-heading);}
+
+/* ── SE GATE HINT ── */
+.se-gate{display:none;align-items:center;gap:6px;font-size:.7rem;color:#f97316;margin-bottom:8px;}
+.se-gate.show{display:flex;}
 
 /* ═══════════════════════════════════════
    WHATSAPP SENT BADGE
@@ -476,6 +498,17 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 
     <!-- LEFT: Selection Grid -->
     <div>
+      <div class="queue-tabs">
+        <div class="queue-tab active" id="tab-pending" onclick="switchMode('pending')">
+          <i class="bi bi-hourglass-split"></i>Pending Triage
+          <span class="tab-count" id="tab-pending-count">0</span>
+        </div>
+        <div class="queue-tab oow" id="tab-oow" onclick="switchMode('oow')">
+          <i class="bi bi-file-earmark-check"></i>Quoted — Awaiting Release
+          <span class="tab-count" id="tab-oow-count">0</span>
+        </div>
+      </div>
+
       <!-- Filter Bar -->
        
       <div class="filter-bar">
@@ -514,7 +547,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
       <!-- Table Card -->
       <div class="grid-card">
         <div class="grid-card-header">
-          <h6><i class="bi bi-table" style="color:#f97316;"></i>Pending Inquiries <span class="pending-badge" id="tableCount">0 records</span></h6>
+          <h6><i class="bi bi-table" style="color:#f97316;"></i><span id="gridTitle">Pending Inquiries</span> <span class="pending-badge" id="tableCount">0 records</span></h6>
           <span style="font-size:.72rem;color:var(--text-muted);">Click a row to review</span>
         </div>
         <div class="table-wrap">
@@ -598,10 +631,19 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
   </div>
 
 
-        <button class="btn-action btn-approve" id="btnApprove" onclick="triggerAction('approve')" disabled>
-          <i class="bi bi-check2-circle"></i>
-          <div>Approve (In-Warranty)<span class="btn-sub">→ Dispatch Engine</span></div>
-        </button>
+       <div class="se-gate" id="seGate">
+        <i class="bi bi-exclamation-circle-fill"></i>Select a Service Engineer to unlock approval
+      </div>
+
+      <button class="btn-action btn-approve" id="btnApprove" onclick="triggerAction('approve')" disabled>
+        <i class="bi bi-check2-circle"></i>
+        <div>Approve (In-Warranty)<span class="btn-sub">→ Dispatch Engine</span></div>
+      </button>
+
+      <button class="btn-action btn-oow" id="btnApproveOow" onclick="triggerAction('approveOow')" disabled style="display:none;">
+        <i class="bi bi-send-check-fill"></i>
+        <div>Approve OoW &amp; Release<span class="btn-sub">→ Dispatch Engine (quotation approved)</span></div>
+      </button>
 
         <button class="btn-action btn-accounts" id="btnAccounts" onclick="triggerAction('accounts')" disabled>
           <i class="bi bi-calculator-fill"></i>
@@ -684,15 +726,43 @@ const ALL_TICKETS = [
 @endforeach
 ];
 
+const ALL_OOW = [
+  @foreach($oowInquiries as $t)
+  @php
+    $srRef = 'SR-' . ($t->created_at ? $t->created_at->year : now()->year) . '-' . str_pad($t->id, 5, '0', STR_PAD_LEFT);
+  @endphp
+  {
+    id:           @json($srRef),
+    dbId:         {{ $t->id }},
+    client:       @json($t->client?->company_name ?? '—'),
+    contract:     @json($t->client?->unique_code ?? '—'),
+    category:     @json($t->category?->category_name ?? '—'),
+    catId:        {{ (int) ($t->service_category_id ?? $t->category?->id ?? 0) }},
+    site:         @json($t->project?->site_name ?? '—'),
+    project:      @json($t->project?->project_name ?? '—'),
+    priority:     @json(ucfirst($t->priority_level)),
+    warranty:     'Out of Warranty',
+    description:  @json($t->issue_description ?? ''),
+    submitter:    @json($t->reported_by ?? '—'),
+    submittedStr: @json($t->created_at?->format('d M H:i')),
+    hrsAgo:       {{ (int) ($t->created_at ? $t->created_at->diffInHours(now()) : 0) }},
+    status:       @json($t->status),
+    attachments:  @json($t->attachments ?? []),
+    quoteRef:     @json($t->erp_quote_ref ?? '—'),
+    quoteOkStr:   @json($t->client_approved_at?->format('d M Y · h:i A') ?? '—'),
+  },
+  @endforeach
+];
 
 const ENGINEERS = @json($engineers);
 
 
 const ACTIONS = {
-  approve:    { type:'success', title:'Ticket Approved',                redirect:'dispatchEngine' },
-  accounts:   { type:'warning', title:'Forwarded to Accounts',          redirect:'quotationDesk' },
-  additional: { type:'primary', title:'Accepted as Additional Work',    redirect:'quotationDesk' },
-  reject:     { type:'error',   title:'Ticket Rejected',                redirect:null }
+  approve:    { type:'success', title:'Ticket Approved',             redirect:'dispatchEngine' },
+  approveOow: { type:'success', title:'Released to Dispatch',        redirect:'dispatchEngine' },
+  accounts:   { type:'warning', title:'Forwarded to Accounts',       redirect:'quotationDesk' },
+  additional: { type:'primary', title:'Accepted as Additional Work', redirect:'quotationDesk' },
+  reject:     { type:'error',   title:'Ticket Rejected',             redirect:null }
 };
 
 /* ════════════════════════════════
@@ -704,8 +774,11 @@ setInterval(tick,1000);tick();
 /* ════════════════════════════════
     STATE
 ════════════════════════════════ */
-let tickets=[...ALL_TICKETS];
-let filtered=[...tickets];
+let mode        = 'pending';
+let pendingList = [...ALL_TICKETS];
+let oowList     = [...ALL_OOW];
+let tickets     = pendingList;
+let filtered    = [...tickets];
 let selectedId=null;
 let pendingAction=null;
 
@@ -718,12 +791,14 @@ let todayRejected = {{ $stats['rejected'] }};
     STATS
 ════════════════════════════════ */
 function updateStats(){
-  document.getElementById('stat-pending').textContent=tickets.length;
+  document.getElementById('stat-pending').textContent = pendingList.length;
+  document.getElementById('tab-pending-count').textContent = pendingList.length;
+  document.getElementById('tab-oow-count').textContent = oowList.length;
   document.getElementById('stat-approved').textContent=todayApproved;
   document.getElementById('stat-fwd').textContent=todayFwd;
   document.getElementById('stat-rejected').textContent=todayRejected;
   const nav=document.getElementById('pendingNavBadge');
-  if(nav) nav.textContent=tickets.length;
+  if(nav) nav.textContent=pendingList.length;
 }
 
 /* ════════════════════════════════
@@ -788,7 +863,21 @@ function renderPager(){
 }
 function goPage(p){currentPage=p;renderTable();}
 
+function switchMode(m){
+  if(mode === m) return;
+  mode    = m;
+  tickets = (m === 'oow') ? oowList : pendingList;
 
+  document.getElementById('tab-pending').classList.toggle('active', m === 'pending');
+  document.getElementById('tab-oow').classList.toggle('active',     m === 'oow');
+  document.getElementById('gridTitle').textContent =
+    m === 'oow' ? 'Quoted — Awaiting Engineer Allocation' : 'Pending Inquiries';
+
+  selectedId = null;
+  resetDetailPanel();
+  cancelRejection();
+  applyFilter();
+}
 
 
 
@@ -830,12 +919,26 @@ function onSeChange(val){
   selectedSeId = val ? Number(val) : null;
   const e = ENGINEERS.find(x => x.id === selectedSeId);
   const hint = document.getElementById('seHint');
-  if(!e){ hint.textContent = ''; return; }
-  hint.innerHTML = e.qcReview
-    ? '<i class="bi bi-check-circle-fill" style="color:#10b981;"></i> This engineer performs their own QC.'
-    : '<i class="bi bi-info-circle" style="color:#6571ff;"></i> QC stays with Head of Projects.';
+  if(e){
+    hint.innerHTML = e.qcReview
+      ? '<i class="bi bi-check-circle-fill" style="color:#10b981;"></i> This engineer performs their own QC.'
+      : '<i class="bi bi-info-circle" style="color:#6571ff;"></i> QC stays with Head of Projects.';
+  } else {
+    hint.textContent = '';
+  }
+  syncApproveBtn();
 }
+function syncApproveBtn(){
+  const ok  = !!selectedSeId;
+  const btn = mode === 'oow'
+    ? document.getElementById('btnApproveOow')
+    : document.getElementById('btnApprove');
 
+  if(!selectedId){ return; }
+  btn.disabled = !ok;
+  btn.title    = ok ? '' : 'Select a Service Engineer first';
+  document.getElementById('seGate').classList.toggle('show', !ok);
+}
 
 /* ════════════════════════════════
     ROW SELECT → DETAIL PANEL
@@ -860,7 +963,9 @@ function loadContractPanel(t){
   const covered=t.warranty==='In Warranty';
   const slaCls=t.hrsAgo>24?'#ff3366':t.hrsAgo>8?'#fbbc06':'#05a34a';
   const slaIcon=t.hrsAgo>24?'bi-exclamation-triangle-fill':t.hrsAgo>8?'bi-clock-history':'bi-check-circle-fill';
-  document.getElementById('contractBody').innerHTML=`
+document.getElementById('contractBody').innerHTML=`
+    ${mode === 'oow' ? `<div class="quote-banner"><i class="bi bi-file-earmark-check-fill"></i>
+      <span>Quotation <strong>${t.quoteRef}</strong> approved by client on <strong>${t.quoteOkStr}</strong>. Allocate an engineer to release this into Dispatch.</span></div>` : ''}
     <div class="dp-row"><span>SR_ID</span><span style="color:#6571ff;font-weight:700;">${t.id}</span></div>
     <div class="dp-row"><span>Customer Code</span><span>${t.contract}</span></div>
     <div class="dp-row"><span>Customer</span><span>${t.client}</span></div>
@@ -951,8 +1056,23 @@ function loadDescPanel(t){
 // }
 
 function enableActionButtons(){
-  ['btnApprove','btnAccounts','btnAdditional','btnReject'].forEach(id=>{document.getElementById(id).disabled=false;});
-  document.getElementById('noSelectionNote').style.display='none';
+  const isOow = mode === 'oow';
+
+  document.getElementById('btnApprove').style.display    = isOow ? 'none' : 'flex';
+  document.getElementById('btnApproveOow').style.display = isOow ? 'flex' : 'none';
+  document.getElementById('btnAccounts').style.display   = isOow ? 'none' : 'flex';
+  document.getElementById('btnAdditional').style.display = isOow ? 'none' : 'flex';
+  document.getElementById('btnReject').style.display     = isOow ? 'none' : 'flex';
+
+  if(!isOow){
+    ['btnAccounts','btnAdditional','btnReject'].forEach(id => document.getElementById(id).disabled = false);
+  }
+
+  // approve buttons stay locked until an SE is chosen
+  document.getElementById('btnApprove').disabled    = true;
+  document.getElementById('btnApproveOow').disabled = true;
+  document.getElementById('noSelectionNote').style.display = 'none';
+  syncApproveBtn();
 }
 
 /* ════════════════════════════════
@@ -1001,6 +1121,7 @@ function triggerAction(type){
 
   const configs={
     approve:{title:'Confirm Approval',icon:'<i class="bi bi-check2-circle" style="font-size:1.6rem;color:#05a34a;"></i>',ring:'background:rgba(5,163,74,.1);',titleText:'Approve In-Warranty Ticket',subText:`This will set status to <strong>Approved</strong> and route the ticket to the <strong>Dispatch Engine</strong>.`,btnColor:'#05a34a',btnLabel:'Approve & Dispatch',waNote:null},
+    approveOow:{title:'Release Out-of-Warranty Ticket',icon:'<i class="bi bi-send-check-fill" style="font-size:1.6rem;color:#7c3aed;"></i>',ring:'background:rgba(124,58,237,.1);',titleText:'Release to Dispatch Engine',subText:`Client has approved the quotation. This sets status to <strong>Approved</strong> (Out-of-Warranty) and releases the ticket to the <strong>Dispatch Engine</strong>.`,btnColor:'#7c3aed',btnLabel:'Approve OoW & Release',waNote:null},
     accounts:{title:'Forward to Accounts',icon:'<i class="bi bi-calculator-fill" style="font-size:1.6rem;color:#fbbc06;"></i>',ring:'background:rgba(251,188,6,.1);',titleText:'Forward as Out-of-Warranty',subText:`This will set scope to <strong>Out-of-Warranty</strong> and transition the ticket to the <strong>Quotation Desk</strong>.`,btnColor:'#f59e0b',btnLabel:'Forward to Accounts',waNote:null},
     additional:{title:'Accept as Additional Work',icon:'<i class="bi bi-plus-square-fill" style="font-size:1.6rem;color:#4895ef;"></i>',ring:'background:rgba(72,149,239,.1);',titleText:'Accept as Additional Work',subText:`This will set status to <strong>Additional</strong> and log the ticket as additional scope.`,btnColor:'#4895ef',btnLabel:'Accept as Additional',waNote:null},
     reject:{title:'Reject & Archive Ticket',icon:'<i class="bi bi-x-circle-fill" style="font-size:1.6rem;color:#ff3366;"></i>',ring:'background:rgba(255,51,102,.1);',titleText:'Reject This Ticket',subText:`Status will be set to <strong>Cancelled</strong> and the customer notified via <strong>WhatsApp</strong> with your reason.`,btnColor:'#ff3366',btnLabel:'Reject & Notify Customer',waNote:'whatsapp'},
@@ -1024,7 +1145,6 @@ function triggerAction(type){
     waNote.style.display='block';
     waNote.innerHTML=`<span class="wa-sent"><i class="bi bi-whatsapp"></i>WhatsApp notification will be sent to customer with rejection reason</span>`;
   } else { waNote.style.display='none'; }
-
   const btn=document.getElementById('modalConfirmBtn');
   btn.style.background=cfg.btnColor;
   btn.innerHTML=`<i class="bi bi-check2"></i>${cfg.btnLabel}`;
@@ -1116,12 +1236,16 @@ function executeAction(){
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner-border" style="width:13px;height:13px;border-width:2px;"></span> Processing…';
 
-  const paths = { approve:'approve', accounts:'forward', additional:'additional', reject:'reject' };
+  const paths = { approve:'approve', approveOow:'approve-oow', accounts:'forward', additional:'additional', reject:'reject' };
   const url   = `${window.ROUTES.approveBase}/${t.dbId}/${paths[pendingAction]}`;
- const body = { assigned_se: selectedSeId };
-if(pendingAction === 'reject'){
-  body.reason = document.getElementById('rejectionText').value;
-}
+
+  const body = {};
+  if(pendingAction === 'approve' || pendingAction === 'approveOow'){
+    body.assigned_se = selectedSeId;
+  }
+  if(pendingAction === 'reject'){
+    body.reason = document.getElementById('rejectionText').value;
+  }
 
   let redirecting = false;
 
@@ -1183,7 +1307,17 @@ if(pendingAction === 'reject'){
   });
 }
 
-
+function resetDetailPanel(){
+  document.getElementById('contractBody').innerHTML =
+    '<div class="dp-empty"><i class="bi bi-mouse2"></i>Select a row to load contract data</div>';
+  document.getElementById('descBody').innerHTML =
+    '<div class="dp-empty"><i class="bi bi-chat-left-text"></i>No inquiry selected</div>';
+  ['btnApprove','btnApproveOow','btnAccounts','btnAdditional','btnReject']
+    .forEach(id => { const b = document.getElementById(id); if(b) b.disabled = true; });
+  document.getElementById('noSelectionNote').style.display = 'block';
+  document.getElementById('seGate').classList.remove('show');
+  renderEngineerOptions(null);
+}
 
 /* ════════════════════════════════
     TOAST

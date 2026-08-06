@@ -116,6 +116,8 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/service-requests/{serviceRequest}/additional', [ServiceRequestController::class, 'additionalWork'])->name('service-requests.additional');
 
+    Route::post('/inquiry-approval/{serviceRequest}/approve-oow', [ServiceRequestController::class, 'approveOow'])
+    ->name('inquiry-approval.approve-oow');
     /* ---- Service Request ---- */
     Route::get('/sr-registration', [ServiceRequestController::class, 'create'])->name('sr_registration');
     Route::get('/service-requests/lookup/{code}', [ServiceRequestController::class, 'lookup'])->name('service-requests.lookup');
@@ -123,6 +125,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/sr_explorer', [ServiceRequestController::class, 'sr_explorer'])->name('sr_explorer');
     Route::get('/ticket-summary', [ServiceRequestController::class, 'ticketSummary'])->name('kanban_view');
 
+    Route::post('service-requests/{serviceRequest}/approve-oow', [ServiceRequestController::class, 'approveOow']);
 
     /* ---- Dispatch Engine / Kanban ---- */
     Route::get('/dispatch-engine', [ServiceRequestController::class, 'dispatch_engine'])->name('dispatch_engine');
