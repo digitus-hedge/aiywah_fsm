@@ -43,6 +43,17 @@ class DashboardController extends Controller
         'closeout' => 'QC → Completed',
     ];
 
+    private const WA_TRIGGER_EVENTS = [
+    'sr_status_update',
+    'internal_sr_accepted',
+    'warranty_approved',
+    'maintenance_started',
+];
+
+    private const WA_EXCLUDED_EVENTS = [
+        'client_registration',
+    ];
+
     /** A breach on one of these priorities is flagged critical. */
     private const CRITICAL_PRIORITIES = ['High', 'Critical', 'Urgent'];
 
@@ -54,7 +65,7 @@ class DashboardController extends Controller
      * card renders its empty state instead of breaking.
      * Expected columns: status ('delivered'|'failed'), trigger, created_at.
      */
-    private const WHATSAPP_TABLE = null;
+    private const WHATSAPP_TABLE = 'whatsapp_logs';
 
     /** Statuses that mean the request is finished, one way or another. */
     private const CLOSED_STATUSES = ['Completed', 'Rejected', 'Quote Rejected'];
@@ -223,15 +234,48 @@ class DashboardController extends Controller
             ];
         })->values()->all();
     }
+    /**
+     * Reconciles the range pill with the from/to dates.
+     *
+     * Without this, dates arriving without range=custom are silently ignored
+     * by resolveRange(), and range=custom with one date falls through to today.
+     */
+    private function normaliseRange(Request $request, array $filters): array
+    {
+        // Dates supplied but no explicit preset → treat as a custom range
+        if (
+            $request->filled('from') && $request->filled('to')
+            && ! in_array($request->input('range'), ['today', 'month', 'quarter'], true)
+        ) {
+            $filters['range'] = 'custom';
+        }
 
+        // Custom with a missing bound → fall back cleanly
+        if (($filters['range'] ?? null) === 'custom'
+            && (empty($filters['from']) || empty($filters['to']))
+        ) {
+            $filters['range'] = 'today';
+            $filters['from']  = null;
+            $filters['to']    = null;
+        }
+
+        return $filters;
+    }
 
     public function index(Request $request)
     {
         if (strtoupper((string) optional($request->user()->role)->code) === 'FD') {
             return redirect()->route('frontdashboard');
         }
+
+
+        if (strtoupper((string) optional($request->user()->role)->code) === 'SE') {
+            return redirect()->route('sedashboard');
+        }
+
+
         $filters = [
-            'range'   => $request->input('range', 'today'),   // ← changed
+            'range'   => $request->input('range', 'today'),
             'from'    => $request->input('from'),
             'to'      => $request->input('to'),
             'status'  => $request->input('status'),
@@ -239,6 +283,8 @@ class DashboardController extends Controller
             'service' => $request->input('service'),
             'period'  => $request->input('period', '6M'),
         ];
+
+        $filters = $this->normaliseRange($request, $filters);
 
         [$start, $end]         = $this->resolveRange($filters);
         [$prevStart, $prevEnd] = $this->previousRange($start, $end);
@@ -1516,12 +1562,14 @@ class DashboardController extends Controller
 
         $counts = DB::table(self::WHATSAPP_TABLE)
             ->whereBetween('created_at', [$start, $end])
-            ->selectRaw('status, COUNT(*) as total')
-            ->groupBy('status')
+            ->selectRaw('LOWER(status) as status, COUNT(*) as total')
+            ->groupBy(DB::raw('LOWER(status)'))
             ->pluck('total', 'status');
 
+        $delivered = (int) ($counts['delivered'] ?? 0)
+            + (int) ($counts['sent'] ?? 0)
+            + (int) ($counts['read'] ?? 0);
         $failed    = (int) ($counts['failed'] ?? 0);
-        $delivered = (int) $counts->sum() - $failed;
         $total     = $delivered + $failed;
 
         return [
@@ -1532,23 +1580,34 @@ class DashboardController extends Controller
         ];
     }
 
+
+
     private function waTriggers(Carbon $start, Carbon $end): array
     {
         if (! self::WHATSAPP_TABLE || ! Schema::hasTable(self::WHATSAPP_TABLE)) {
             return [];
         }
 
-        // Rename `trigger` below to whatever your log calls the template/event.
         return DB::table(self::WHATSAPP_TABLE)
             ->whereBetween('created_at', [$start, $end])
-            ->selectRaw("`trigger` as label, COUNT(*) as sent, SUM(status = 'failed') as failed")
-            ->groupBy('trigger')
+            ->whereRaw("REPLACE(REPLACE(LOWER(event), '_', ''), '-', '') NOT LIKE ?", ['%clientregistration%'])
+            ->selectRaw("
+        event as label,
+        COUNT(*) as sent,
+        SUM(CASE WHEN LOWER(status) = 'failed' THEN 1 ELSE 0 END) as failed,
+        SUM(CASE WHEN LOWER(status) IN ('delivered','sent','read') THEN 1 ELSE 0 END) as success,
+        SUM(CASE WHEN LOWER(status) = 'pending' THEN 1 ELSE 0 END) as pending
+    ")
+            ->groupBy('event')
             ->orderByDesc('sent')
+            ->limit(4)
             ->get()
             ->map(fn($row) => [
-                'label'  => $row->label,
-                'sent'   => (int) $row->sent,
-                'failed' => (int) $row->failed,
+                'label'   => ucwords(str_replace('_', ' ', (string) $row->label)),
+                'sent'    => (int) $row->sent,
+                'failed'  => (int) $row->failed,
+                'success' => (int) $row->success,
+                'pending' => (int) $row->pending,
             ])
             ->all();
     }
@@ -1568,6 +1627,8 @@ class DashboardController extends Controller
             'service' => $request->input('service'),
         ];
 
+        $filters = $this->normaliseRange($request, $filters);
+
         [$start, $end] = $this->resolveRange($filters);
 
         $type = $request->input('type');
@@ -1584,7 +1645,7 @@ class DashboardController extends Controller
             'technician'      => ['Technician detail', 'bi-person-badge', 'Recent assignments'],
             'client'          => ['Client detail', 'bi-buildings', 'Service request history'],
             'wa-failures'     => ['WhatsApp failures', 'bi-whatsapp', 'Undelivered messages'],
-            default           => ['Details', 'bi-list', null],
+            default           => ['All SR Details', 'bi-list', null],
         };
 
         $all = $this->load($filters, $start, $end);
@@ -1597,6 +1658,8 @@ class DashboardController extends Controller
             'invoices'        => $all->filter(fn($sr) => $sr->invoice_submitted_at),
             'technician'      => $all->where('assigned_user_id', $id),
             'client'          => $all->filter(fn($sr) => optional($sr->project)->client_id == $id),
+            'wa-failures' => $this->waFailures($start, $end),
+
             default           => $all,
         };
 
@@ -1613,9 +1676,21 @@ class DashboardController extends Controller
             $srs = $srs->sortByDesc(fn($sr) => $this->isCriticalBreach($sr) ? 1 : 0);
         }
 
+
+        if ($type === 'wa-failures') {
+            $rows = $this->waFailures($start, $end);
+
+            return response()->json([
+                'title'    => 'WhatsApp failures',
+                'icon'     => 'bi-whatsapp',
+                'subtitle' => count($rows) . ' undelivered message' . (count($rows) === 1 ? '' : 's'),
+                'items'    => $rows,
+            ]);
+        }
+
         $items = $srs
             ->sortByDesc('created_at')
-            ->take(25)
+
             ->map(function ($sr) use ($type) {
                 $isCritical = $type === 'sla-breach' && $this->isCriticalBreach($sr);
 
@@ -1639,7 +1714,7 @@ class DashboardController extends Controller
                     'badge'     => $isCritical ? 'Critical' : $sr->status,
                     'color'     => $isCritical ? '#dc2626' : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
                     // 'title'     => $sr->project?->client?->company_name ?? '—',
-                                        'title'     => $sr->client?->company_name ?? '—',
+                    'title'     => $sr->client?->company_name ?? '—',
 
                     'meta'      => $meta->filter()->implode(' · '),
                 ];
@@ -1653,6 +1728,40 @@ class DashboardController extends Controller
             'section'  => $section,
             'items'    => $items->all(),
         ]);
+    }
+
+
+
+    private function waFailures(Carbon $start, Carbon $end): array
+    {
+        if (! self::WHATSAPP_TABLE || ! Schema::hasTable(self::WHATSAPP_TABLE)) {
+            return [];
+        }
+
+        return DB::table(self::WHATSAPP_TABLE)
+            ->whereBetween('created_at', [$start, $end])
+            ->whereRaw("LOWER(status) = 'failed'")
+            ->orderByDesc('created_at')
+            // ->limit(100)
+            ->get()
+            ->map(fn($row) => [
+                'ref'    => $row->sr_reference ?: '—',
+                'name'   => ucwords(str_replace('_', ' ', (string) $row->event)),
+                'title'  => ucwords(str_replace('_', ' ', (string) $row->event)),
+                'sub'    => ($row->sr_reference ?: 'No SR')
+                    . ' · ' . ($row->client_name ?: '—')
+                    . ' · ' . $row->recipient,
+                'meta'   => ($row->sr_reference ?: 'No SR')
+                    . ' · ' . ($row->client_name ?: '—')
+                    . ' · ' . $row->recipient,
+                'client' => $row->client_name ?: '—',
+                'status' => 'Failed',
+                'note'   => Str::limit((string) $row->error, 140) ?: 'No error detail',
+                'when'   => $row->created_at
+                    ? Carbon::parse($row->created_at)->format('d M Y H:i')
+                    : '—',
+            ])
+            ->all();
     }
 
     private function activeSrs(array $filters, $start, $end)

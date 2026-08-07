@@ -23,6 +23,7 @@ use App\Http\Controllers\Auth\WorkerPasswordController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MlDashboardController;
 use App\Http\Controllers\FrontDashboardController;
+use App\Http\Controllers\SEDashboardController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -89,6 +90,12 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:FD')
         ->name('frontdashboard');
 
+    
+    Route::get('/service-engineer/dashboard', [SEDashboardController::class, 'index'])
+        ->middleware('role:SE')
+        ->name('sedashboard');
+
+
     Route::get('/analytics', function () {
         return view('analytics_dashboard');
     })->name('analytics');
@@ -106,7 +113,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/user-directory/{user}/toggle-status', [Userdirectorycontroller::class, 'toggleStatus'])->name('user_directory.toggle');
     Route::post('/user-directory/{user}/reset-password', [Userdirectorycontroller::class, 'resetPassword'])->name('user_directory.reset');
 
-    Route::get('/user-directory/{user}',        [UserdirectoryController::class, 'show'])->name('user_directory.show');
+    Route::get('/user-directory/{user}',[UserdirectoryController::class, 'show'])->name('user_directory.show');
 
     /* ---- Inquiry Approval ---- */
     Route::get('/inquiry-approval', [ServiceRequestController::class, 'approvalIndex'])->name('inquiry-approval.index');
@@ -116,8 +123,7 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/service-requests/{serviceRequest}/additional', [ServiceRequestController::class, 'additionalWork'])->name('service-requests.additional');
 
-    Route::post('/inquiry-approval/{serviceRequest}/approve-oow', [ServiceRequestController::class, 'approveOow'])
-    ->name('inquiry-approval.approve-oow');
+    Route::post('/inquiry-approval/{serviceRequest}/approve-oow', [ServiceRequestController::class, 'approveOow'])->name('inquiry-approval.approve-oow');
     /* ---- Service Request ---- */
     Route::get('/sr-registration', [ServiceRequestController::class, 'create'])->name('sr_registration');
     Route::get('/service-requests/lookup/{code}', [ServiceRequestController::class, 'lookup'])->name('service-requests.lookup');
@@ -130,7 +136,6 @@ Route::middleware('auth')->group(function () {
     /* ---- Dispatch Engine / Kanban ---- */
     Route::get('/dispatch-engine', [ServiceRequestController::class, 'dispatch_engine'])->name('dispatch_engine');
     Route::post('/service-requests/{serviceRequest}/dispatch', [ServiceRequestController::class, 'dispatch'])->name('service-requests.dispatch');
-
 
     Route::post('/service-requests/contacts', [ServiceRequestController::class, 'storeContact']);
 
