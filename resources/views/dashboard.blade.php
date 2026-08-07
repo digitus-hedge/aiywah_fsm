@@ -1389,27 +1389,23 @@ button.kpi.k5
                 </div>
             </div>
 
-           <div class="sec-ttl" style="margin-bottom:7px;">By trigger</div>
-
-@forelse ($waTriggers as $trigger)
-    <div class="lrow lrow-rule">
-        <span class="wa-lbl">{{ data_get($trigger, 'label') }}</span>
-        <span class="wa-nums">
-            <strong>{{ data_get($trigger, 'sent', 0) }}</strong>
-            @if ((int) data_get($trigger, 'success') > 0)
-                <span class="wa-ok">{{ data_get($trigger, 'success') }} sent</span>
-            @endif
-            @if ((int) data_get($trigger, 'pending') > 0)
-                <span class="wa-pending">{{ data_get($trigger, 'pending') }} pending</span>
-            @endif
-            @if ((int) data_get($trigger, 'failed') > 0)
-                <span class="wa-fail">{{ data_get($trigger, 'failed') }} failed</span>
-            @endif
-        </span>
-    </div>
-@empty
-    <p class="empty"><i class="bi bi-chat-dots"></i>No messages sent in this period.</p>
-@endforelse
+            <div class="sec-ttl" style="margin-bottom:7px;">By trigger</div>
+            @forelse ($waTriggers as $trigger)
+                <div class="lrow lrow-rule">
+                    <span style="color:var(--muted);">{{ data_get($trigger, 'label') }}</span>
+                    <span style="display:flex;align-items:center;gap:8px;">
+                        <strong style="color:var(--text);">{{ data_get($trigger, 'sent', 0) }}</strong>
+                        @if ((int) data_get($trigger, 'failed') > 0)
+                            <span style="color:var(--danger);font-size:.67rem;">{{ data_get($trigger, 'failed') }} failed</span>
+                        @else
+                            <span style="color:var(--ok);font-size:.67rem;" aria-label="All delivered">&check;</span>
+                        @endif
+                    </span>
+                </div>
+            @empty
+                <p class="empty"><i class="bi bi-chat-dots"></i>No messages sent in this period.</p>
+            @endforelse
+        </div>
     </div>
 
     {{-- ── TECHNICIAN SCORECARD ───────────────────────────────────────── --}}
