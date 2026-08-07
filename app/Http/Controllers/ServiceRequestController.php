@@ -316,7 +316,7 @@ class ServiceRequestController extends Controller
     /* ============================================================
      |  INQUIRY APPROVAL (approve / forward / reject) + WhatsApp
      * ============================================================ */
-        public function approvalIndex(Request $request)
+    public function approvalIndex(Request $request)
     {
         $filters = [
             'range'   => $request->input('range'),
@@ -402,7 +402,8 @@ class ServiceRequestController extends Controller
 
         if (!$this->isServiceEngineerId($data['assigned_se'])) {
             return response()->json([
-                'ok' => false, 'success' => false,
+                'ok' => false,
+                'success' => false,
                 'message' => 'The selected user is not a Service Engineer.',
             ], 422);
         }
@@ -450,67 +451,70 @@ class ServiceRequestController extends Controller
     }
 
     /**
- * Second-stage approval for out-of-warranty work. The client has already
- * signed off the quotation; this allocates the engineer and releases the
- * SR into the Dispatch Engine.
- */
-public function approveOow(Request $request, ServiceRequest $serviceRequest)
-{
-    if ($serviceRequest->status !== 'Quote Approved') {
+     * Second-stage approval for out-of-warranty work. The client has already
+     * signed off the quotation; this allocates the engineer and releases the
+     * SR into the Dispatch Engine.
+     */
+    public function approveOow(Request $request, ServiceRequest $serviceRequest)
+    {
+        if ($serviceRequest->status !== 'Quote Approved') {
+            return response()->json([
+                'ok' => false,
+                'success' => false,
+                'message' => 'This SR is not awaiting out-of-warranty release.',
+            ], 422);
+        }
+
+        $data = $request->validate([
+            'assigned_se' => ['required', 'exists:users,id'],
+        ], [], ['assigned_se' => 'service engineer']);
+
+        if (!$this->isServiceEngineerId($data['assigned_se'])) {
+            return response()->json([
+                'ok' => false,
+                'success' => false,
+                'message' => 'The selected user is not a Service Engineer.',
+            ], 422);
+        }
+
+        $oldStatus = $serviceRequest->status;
+
+        $serviceRequest->update([
+            'status'         => 'Approved',
+            'warranty_scope' => 'oow',
+            'assigned_se'    => $data['assigned_se'],
+            'approved_at'    => now(),      // dispatch engine reads this for SLA
+        ]);
+
+        $ref = $this->buildSrRef($serviceRequest);
+
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => "{$ref} released to Dispatch Engine (out-of-warranty, quotation approved)",
+            'from_status' => $oldStatus,
+            'to_status'   => 'Approved',
+            'caused_by'   => auth()->id(),
+        ]);
+
+        try {
+            $wa = app(\App\Services\WhatsAppService::class);
+            $wa->notifyServiceStatus($serviceRequest, 'Approved');
+            $wa->notifyInternalSrAccepted($serviceRequest);
+        } catch (\Throwable $e) {
+            Log::error('OOW release WhatsApp failed', [
+                'sr_id' => $serviceRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return response()->json([
-            'ok' => false, 'success' => false,
-            'message' => 'This SR is not awaiting out-of-warranty release.',
-        ], 422);
-    }
-
-    $data = $request->validate([
-        'assigned_se' => ['required', 'exists:users,id'],
-    ], [], ['assigned_se' => 'service engineer']);
-
-    if (!$this->isServiceEngineerId($data['assigned_se'])) {
-        return response()->json([
-            'ok' => false, 'success' => false,
-            'message' => 'The selected user is not a Service Engineer.',
-        ], 422);
-    }
-
-    $oldStatus = $serviceRequest->status;
-
-    $serviceRequest->update([
-        'status'         => 'Approved',
-        'warranty_scope' => 'oow',
-        'assigned_se'    => $data['assigned_se'],
-        'approved_at'    => now(),      // dispatch engine reads this for SLA
-    ]);
-
-    $ref = $this->buildSrRef($serviceRequest);
-
-    NotificationLog::create([
-        'service_request_id' => $serviceRequest->id,
-        'event'       => 'status_updated',
-        'title'       => 'Status Updated',
-        'message'     => "{$ref} released to Dispatch Engine (out-of-warranty, quotation approved)",
-        'from_status' => $oldStatus,
-        'to_status'   => 'Approved',
-        'caused_by'   => auth()->id(),
-    ]);
-
-    try {
-        $wa = app(\App\Services\WhatsAppService::class);
-        $wa->notifyServiceStatus($serviceRequest, 'Approved');
-        $wa->notifyInternalSrAccepted($serviceRequest);
-    } catch (\Throwable $e) {
-        Log::error('OOW release WhatsApp failed', [
-            'sr_id' => $serviceRequest->id, 'error' => $e->getMessage(),
+            'ok'      => true,
+            'success' => true,
+            'message' => "Ticket {$ref} released to Dispatch Engine — Out-of-Warranty scope.",
         ]);
     }
-
-    return response()->json([
-        'ok'      => true,
-        'success' => true,
-        'message' => "Ticket {$ref} released to Dispatch Engine — Out-of-Warranty scope.",
-    ]);
-}
     public function forward(ServiceRequest $serviceRequest)
     {
         $oldStatus = $serviceRequest->status;          // capture BEFORE update
@@ -622,7 +626,6 @@ public function approveOow(Request $request, ServiceRequest $serviceRequest)
         $query = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
             ->where('status', 'Approved');
 
-
         /* ▼ ADD — Service Engineers see only their own assigned tickets */
         $user = auth()->user();
 
@@ -709,20 +712,21 @@ public function approveOow(Request $request, ServiceRequest $serviceRequest)
         //     ->get();
 
 
-       $categories = ServiceCategory::where('status', 1)
-    ->with(['domains' => fn($q) => $q->where('status', 1)->orderBy('sort_order')])
-    ->orderBy('sort_order')
-    ->get();
+        $categories = ServiceCategory::where('status', 1)
+            ->with(['domains' => fn($q) => $q->where('status', 1)->orderBy('sort_order')])
+            ->orderBy('sort_order')
+            ->get();
 
-// Which categories each SE covers → { seId: [catId, ...] }
-$catsBySe = DB::table('user_service_category as usc')
-    ->join('users as u', 'u.id', '=', 'usc.user_id')
-    ->join('roles as r', 'r.id', '=', 'u.role_id')
-    ->where('r.code', 'SE')
-    ->select('usc.user_id', 'usc.service_category_id')
-    ->get()
-    ->groupBy('user_id')
-    ->map(fn($rows) => $rows->pluck('service_category_id')->map(fn($v) => (int) $v)->values());
+        // Which categories each SE covers → { seId: [catId, ...] }
+        $catsBySe = DB::table('user_service_category as usc')
+            ->join('users as u', 'u.id', '=', 'usc.user_id')
+            ->join('roles as r', 'r.id', '=', 'u.role_id')
+            ->where('r.code', 'SE')
+            ->select('usc.user_id', 'usc.service_category_id')
+            ->get()
+            ->groupBy('user_id')
+            ->map(fn($rows) => $rows->pluck('service_category_id')->map(fn($v) => (int) $v)->values());
+
 
         // --- Today's ETA workload count per technician (assigned_user_id) ---
         // Deliberately NOT filtered: this is live capacity, not a period metric.
@@ -732,6 +736,7 @@ $catsBySe = DB::table('user_service_category as usc')
             ->whereDate('eta_at', now()->toDateString())
             ->groupBy('assigned_user_id')
             ->pluck('cnt', 'assigned_user_id');
+
 
         $technicians = DB::table('user_service_domain as usd')
             ->join('users as u', 'u.id', '=', 'usd.user_id')
@@ -843,32 +848,32 @@ $catsBySe = DB::table('user_service_category as usc')
             ]);
         }
         try {
-        $serviceRequest->loadMissing(['client', 'project', 'assignedUser']);
-        $ref = $this->buildSrRef($serviceRequest);
+            $serviceRequest->loadMissing(['client', 'project', 'assignedUser']);
+            $ref = $this->buildSrRef($serviceRequest);
 
-        // Customer
-        if ($to = $serviceRequest->client?->email) {
-            Mail::to($to)->send(
-                new \App\Mail\TechnicianAssignedMail($serviceRequest, $ref)
-            );
-        } else {
-            Log::warning('Tech-assigned mail skipped — client has no email', [
+            // Customer
+            if ($to = $serviceRequest->client?->email) {
+                Mail::to($to)->send(
+                    new \App\Mail\TechnicianAssignedMail($serviceRequest, $ref)
+                );
+            } else {
+                Log::warning('Tech-assigned mail skipped — client has no email', [
+                    'sr_id' => $serviceRequest->id,
+                ]);
+            }
+
+            // Assigned maintenance lead
+            if ($techEmail = $serviceRequest->assignedUser?->email) {
+                Mail::to($techEmail)->send(
+                    new \App\Mail\TechnicianAssignedMail($serviceRequest, $ref, true)
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::error('Tech-assigned mail failed', [
                 'sr_id' => $serviceRequest->id,
+                'error' => $e->getMessage(),
             ]);
         }
-
-        // Assigned maintenance lead
-        if ($techEmail = $serviceRequest->assignedUser?->email) {
-            Mail::to($techEmail)->send(
-                new \App\Mail\TechnicianAssignedMail($serviceRequest, $ref, true)
-            );
-        }
-    } catch (\Throwable $e) {
-        Log::error('Tech-assigned mail failed', [
-            'sr_id' => $serviceRequest->id,
-            'error' => $e->getMessage(),
-        ]);
-    }
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -962,10 +967,10 @@ $catsBySe = DB::table('user_service_category as usc')
             'client',
             'project',
             'assignedUser',
-            'assignedSe', 
+            'assignedSe',
             'punches' => fn($q) => $q->latest('punch_out_at')->latest('id')->with(['items', 'photos']),
-            ])->where('status', 'Qc Review');
-          
+        ])->where('status', 'Qc Review');
+
         /* QC ownership — engineers only ever see tickets they personally hold */
         if ($this->isServiceEngineer($user)) {
             if (!$user->can_qc_review) {
@@ -990,7 +995,7 @@ $catsBySe = DB::table('user_service_category as usc')
         }
 
         $requests = $query->latest('updated_at')->get();
-        
+
         $queue = $requests->map(function ($sr) use ($user) {
             $punch = $sr->punches->first();
             $qcOwnerId = $this->qcOwnerId($sr);
@@ -1043,12 +1048,12 @@ $catsBySe = DB::table('user_service_category as usc')
                 ],
                 'completionSummary' => $punch?->completion_summary ?? '',
                 'customerName'      => $punch?->customer_name ?? '',
-                 'canAct'      => $this->canQc($user, $sr),
+                'canAct'      => $this->canQc($user, $sr),
                 'qcOwner'     => $qcOwnerId
                     ? (optional($sr->assignedSe)->name ?? 'Assigned Engineer')
                     : 'Head of Projects',
                 'qcOwnerType' => $qcOwnerId ? 'se' : 'hop',
-                        ];
+            ];
         })->values();
 
         $today = today();
@@ -1112,67 +1117,67 @@ $catsBySe = DB::table('user_service_category as usc')
     }
 
     public function qcPass(ServiceRequest $serviceRequest)
-{
-    if ($deny = $this->denyQc($serviceRequest)) return $deny;
-    $scope     = $this->srScope($serviceRequest);
-    $newStatus = $scope === 'iw' ? 'Completed' : 'Pending Invoice';
+    {
+        if ($deny = $this->denyQc($serviceRequest)) return $deny;
+        $scope     = $this->srScope($serviceRequest);
+        $newStatus = $scope === 'iw' ? 'Completed' : 'Pending Invoice';
 
-    $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Qc Review')
+        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Qc Review')
 
-    DB::transaction(function () use ($serviceRequest, $newStatus, $oldStatus, $scope) {
-        $serviceRequest->update([
-            'status'         => $newStatus,
-            'qc_reviewed_at' => now(),
-            'qc_reviewed_by' => Auth::id(),
+        DB::transaction(function () use ($serviceRequest, $newStatus, $oldStatus, $scope) {
+            $serviceRequest->update([
+                'status'         => $newStatus,
+                'qc_reviewed_at' => now(),
+                'qc_reviewed_by' => Auth::id(),
+            ]);
+
+            $serviceRequest->punches()
+                ->whereIn('status', ['submitted', 'qc_review'])
+                ->update(['status' => 'qc_passed']);
+
+            NotificationLog::create([
+                'service_request_id' => $serviceRequest->id,
+                'event'       => 'status_updated',
+                'title'       => 'Status Updated',
+                'message'     => $this->buildSrRef($serviceRequest) . ' passed QC — '
+                    . ($scope === 'iw' ? 'marked Completed' : 'forwarded to invoicing'),
+                'from_status' => $oldStatus,   // 'Qc Review'
+                'to_status'   => $newStatus,   // 'Completed' or 'Pending Invoice'
+                'caused_by'   => Auth::id(),
+            ]);
+        });
+
+        $ref = $this->buildSrRef($serviceRequest);
+
+        // In-warranty work ends here, so this is the moment to tell the customer.
+        // Out-of-warranty still has to clear invoicing — hopApprove() notifies instead.
+        if ($scope === 'iw') {
+            $serviceRequest->loadMissing(['client', 'project']);
+
+            $customerLink = $serviceRequest->project
+                ? \App\Support\PortalLink::project($serviceRequest->project, $serviceRequest)
+                : \Illuminate\Support\Facades\URL::signedRoute(
+                    'sr.photos',
+                    ['serviceRequest' => $serviceRequest->id]
+                );
+
+            $this->sendCompletionNotifications($serviceRequest, $ref, $customerLink);
+        }
+
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'scope'   => $scope,
+            'status'  => $newStatus,
+            'message' => $scope === 'iw'
+                ? "Ticket {$ref} passed QC — marked Completed. Client notified."
+                : "Ticket {$ref} passed QC — forwarded to Invoice Panel.",
         ]);
-
-        $serviceRequest->punches()
-            ->whereIn('status', ['submitted', 'qc_review'])
-            ->update(['status' => 'qc_passed']);
-
-        NotificationLog::create([
-            'service_request_id' => $serviceRequest->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            'message'     => $this->buildSrRef($serviceRequest) . ' passed QC — '
-                . ($scope === 'iw' ? 'marked Completed' : 'forwarded to invoicing'),
-            'from_status' => $oldStatus,   // 'Qc Review'
-            'to_status'   => $newStatus,   // 'Completed' or 'Pending Invoice'
-            'caused_by'   => Auth::id(),
-        ]);
-    });
-
-    $ref = $this->buildSrRef($serviceRequest);
-
-    // In-warranty work ends here, so this is the moment to tell the customer.
-    // Out-of-warranty still has to clear invoicing — hopApprove() notifies instead.
-    if ($scope === 'iw') {
-        $serviceRequest->loadMissing(['client', 'project']);
-
-        $customerLink = $serviceRequest->project
-            ? \App\Support\PortalLink::project($serviceRequest->project, $serviceRequest)
-            : \Illuminate\Support\Facades\URL::signedRoute(
-                'sr.photos',
-                ['serviceRequest' => $serviceRequest->id]
-            );
-
-        $this->sendCompletionNotifications($serviceRequest, $ref, $customerLink);
     }
-
-    return response()->json([
-        'ok'      => true,
-        'success' => true,
-        'scope'   => $scope,
-        'status'  => $newStatus,
-        'message' => $scope === 'iw'
-            ? "Ticket {$ref} passed QC — marked Completed. Client notified."
-            : "Ticket {$ref} passed QC — forwarded to Invoice Panel.",
-    ]);
-}
 
     public function qcFail(Request $request, ServiceRequest $serviceRequest)
     {
-         if ($deny = $this->denyQc($serviceRequest)) return $deny;
+        if ($deny = $this->denyQc($serviceRequest)) return $deny;
         $data = $request->validate([
             'rework_notes' => ['required', 'string', 'min:5', 'max:1000'],
         ]);
@@ -1321,36 +1326,36 @@ $catsBySe = DB::table('user_service_category as usc')
     }
 
     public function quoteApprove(ServiceRequest $serviceRequest)
-{
-    $oldStatus = $serviceRequest->status;          // 'Quoted'
+    {
+        $oldStatus = $serviceRequest->status;          // 'Quoted'
 
-    $serviceRequest->update([
-        'status'             => 'Quote Approved',  // ← was 'Approved'
-        'warranty_scope'     => 'oow',
-        'client_approved_at' => now(),
-        // approved_at deliberately NOT set — that stamp belongs to approveOow()
-    ]);
+        $serviceRequest->update([
+            'status'             => 'Quote Approved',  // ← was 'Approved'
+            'warranty_scope'     => 'oow',
+            'client_approved_at' => now(),
+            // approved_at deliberately NOT set — that stamp belongs to approveOow()
+        ]);
 
-    NotificationLog::create([
-        'service_request_id' => $serviceRequest->id,
-        'event'       => 'status_updated',
-        'title'       => 'Status Updated',
-        'message'     => $this->buildSrRef($serviceRequest)
-            . ' — quotation approved by client, awaiting engineer allocation',
-        'from_status' => $oldStatus,
-        'to_status'   => 'Quote Approved',
-        'caused_by'   => auth()->id(),
-    ]);
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($serviceRequest)
+                . ' — quotation approved by client, awaiting engineer allocation',
+            'from_status' => $oldStatus,
+            'to_status'   => 'Quote Approved',
+            'caused_by'   => auth()->id(),
+        ]);
 
-    app(\App\Services\WhatsAppService::class)
-        ->notifyServiceStatus($serviceRequest, 'Quote Approved');
+        app(\App\Services\WhatsAppService::class)
+            ->notifyServiceStatus($serviceRequest, 'Quote Approved');
 
-    return response()->json([
-        'ok'      => true,
-        'success' => true,
-        'message' => 'Client approved the quotation — SR returned to Inquiry Approval for engineer allocation.',
-    ]);
-}
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => 'Client approved the quotation — SR returned to Inquiry Approval for engineer allocation.',
+        ]);
+    }
 
     public function quoteReject(Request $request, ServiceRequest $serviceRequest)
     {
@@ -1473,7 +1478,7 @@ $catsBySe = DB::table('user_service_category as usc')
     {
         $data = $request->validate([
             'invoice_code'  => ['required', 'string', 'max:100'],
-          'invoice_total' => ['required', 'numeric', 'min:0'],
+            'invoice_total' => ['required', 'numeric', 'min:0'],
             'invoice_pdf'   => ['required', 'file', 'mimes:pdf', 'max:25600'],
         ]);
 
@@ -1484,7 +1489,7 @@ $catsBySe = DB::table('user_service_category as usc')
         $serviceRequest->update([
             'status'               => 'Invoice Submitted',
             'invoice_code'         => strtoupper($data['invoice_code']),
-           'invoice_total' => $data['invoice_total'],
+            'invoice_total' => $data['invoice_total'],
             'invoice_path'         => $path,
             'invoice_submitted_at' => now(),
             'invoice_uploaded_by'  => Auth::id(),
@@ -1510,45 +1515,45 @@ $catsBySe = DB::table('user_service_category as usc')
     }
 
     public function hopApprove(ServiceRequest $serviceRequest)
-{
-    $oldStatus = $serviceRequest->status;          // 'Invoice Submitted'
+    {
+        $oldStatus = $serviceRequest->status;          // 'Invoice Submitted'
 
-    $serviceRequest->update([
-        'status'          => 'Completed',
-        'hop_approved_at' => now(),
-        'hop_approved_by' => Auth::id(),
-    ]);
+        $serviceRequest->update([
+            'status'          => 'Completed',
+            'hop_approved_at' => now(),
+            'hop_approved_by' => Auth::id(),
+        ]);
 
-    $ref = $this->buildSrRef($serviceRequest);
+        $ref = $this->buildSrRef($serviceRequest);
 
-    NotificationLog::create([
-        'service_request_id' => $serviceRequest->id,
-        'event'       => 'status_updated',
-        'title'       => 'Status Updated',
-        'message'     => $ref . ' — HoP approved invoice, service request completed',
-        'from_status' => $oldStatus,
-        'to_status'   => 'Completed',
-        'caused_by'   => Auth::id(),
-    ]);
+        NotificationLog::create([
+            'service_request_id' => $serviceRequest->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $ref . ' — HoP approved invoice, service request completed',
+            'from_status' => $oldStatus,
+            'to_status'   => 'Completed',
+            'caused_by'   => Auth::id(),
+        ]);
 
-    // Out-of-warranty work finishes here, so this is the moment to tell the customer.
-    $serviceRequest->loadMissing(['client', 'project']);
+        // Out-of-warranty work finishes here, so this is the moment to tell the customer.
+        $serviceRequest->loadMissing(['client', 'project']);
 
-    $customerLink = $serviceRequest->project
-        ? \App\Support\PortalLink::project($serviceRequest->project, $serviceRequest)
-        : \Illuminate\Support\Facades\URL::signedRoute(
-            'sr.photos',
-            ['serviceRequest' => $serviceRequest->id]
-        );
+        $customerLink = $serviceRequest->project
+            ? \App\Support\PortalLink::project($serviceRequest->project, $serviceRequest)
+            : \Illuminate\Support\Facades\URL::signedRoute(
+                'sr.photos',
+                ['serviceRequest' => $serviceRequest->id]
+            );
 
-    $this->sendCompletionNotifications($serviceRequest, $ref, $customerLink);
+        $this->sendCompletionNotifications($serviceRequest, $ref, $customerLink);
 
-    return response()->json([
-        'ok'      => true,
-        'success' => true,
-        'message' => 'HoP approved — service request completed. Client notified.',
-    ]);
-}
+        return response()->json([
+            'ok'      => true,
+            'success' => true,
+            'message' => 'HoP approved — service request completed. Client notified.',
+        ]);
+    }
 
     /* ============================================================
      |  EXPENSE LEDGER
@@ -1752,89 +1757,89 @@ $catsBySe = DB::table('user_service_category as usc')
     }
 
     /**
- * Everything the customer gets when a service request is genuinely finished:
- * completion email, WhatsApp summary, and the delayed satisfaction survey.
- * Called from qcPass() for in-warranty work, hopApprove() for out-of-warranty.
- */
-private function sendCompletionNotifications(
-    ServiceRequest $sr,
-    string $ref,
-    string $customerLink
-): void {
-    try {
-        if ($to = $sr->client?->email) {
-            Mail::to($to)->send(new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink));
-        } else {
-            Log::warning('Completion mail skipped — client has no email', ['sr_id' => $sr->id]);
+     * Everything the customer gets when a service request is genuinely finished:
+     * completion email, WhatsApp summary, and the delayed satisfaction survey.
+     * Called from qcPass() for in-warranty work, hopApprove() for out-of-warranty.
+     */
+    private function sendCompletionNotifications(
+        ServiceRequest $sr,
+        string $ref,
+        string $customerLink
+    ): void {
+        try {
+            if ($to = $sr->client?->email) {
+                Mail::to($to)->send(new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink));
+            } else {
+                Log::warning('Completion mail skipped — client has no email', ['sr_id' => $sr->id]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('Completion mail failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
         }
-    } catch (\Throwable $e) {
-        Log::error('Completion mail failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+
+        try {
+            $wa = app(\App\Services\WhatsAppService::class);
+            $wa->notifyMaintenanceCompleted($sr, null, $customerLink);
+            $wa->notifyInternalMaintenanceCompleted($sr, null, $customerLink);
+        } catch (\Throwable $e) {
+            Log::error('Completion WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+        }
+
+        \App\Jobs\SendSatisfactionSurvey::dispatch($sr)
+            ->delay(now()->addMinutes(2));   // ← restore addDay() before go-live
     }
 
-    try {
-        $wa = app(\App\Services\WhatsAppService::class);
-        $wa->notifyMaintenanceCompleted($sr, null, $customerLink);
-        $wa->notifyInternalMaintenanceCompleted($sr, null, $customerLink);
-    } catch (\Throwable $e) {
-        Log::error('Completion WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+    /** Roles that inherit QC when the assigned engineer doesn't hold it. */
+    private const QC_FALLBACK_ROLES = ['HP', 'AD', 'SA'];
+
+    /**
+     * Who is allowed to QC this SR.
+     * Returns the SE's id when that engineer holds QC rights, or null when it falls to HoP.
+     */
+    private function qcOwnerId(ServiceRequest $sr): ?int
+    {
+        $se = $sr->relationLoaded('assignedSe') ? $sr->assignedSe : $sr->assignedSe()->first();
+
+        return ($se && $se->can_qc_review) ? (int) $se->id : null;
     }
 
-    \App\Jobs\SendSatisfactionSurvey::dispatch($sr)
-        ->delay(now()->addMinutes(2));   // ← restore addDay() before go-live
-}
+    private function canQc($user, ServiceRequest $sr): bool
+    {
+        if (!$user) return false;
 
-/** Roles that inherit QC when the assigned engineer doesn't hold it. */
-private const QC_FALLBACK_ROLES = ['HP', 'AD', 'SA'];
+        $ownerId = $this->qcOwnerId($sr);
 
-/**
- * Who is allowed to QC this SR.
- * Returns the SE's id when that engineer holds QC rights, or null when it falls to HoP.
- */
-private function qcOwnerId(ServiceRequest $sr): ?int
-{
-    $se = $sr->relationLoaded('assignedSe') ? $sr->assignedSe : $sr->assignedSe()->first();
+        // An engineer holds it → only that engineer.
+        if ($ownerId !== null) {
+            return (int) $user->id === $ownerId;
+        }
 
-    return ($se && $se->can_qc_review) ? (int) $se->id : null;
-}
-
-private function canQc($user, ServiceRequest $sr): bool
-{
-    if (!$user) return false;
-
-    $ownerId = $this->qcOwnerId($sr);
-
-    // An engineer holds it → only that engineer.
-    if ($ownerId !== null) {
-        return (int) $user->id === $ownerId;
+        // Nobody holds it (no SE, or SE has can_qc_review = 0) → HoP.
+        return in_array(optional($user->role)->code, self::QC_FALLBACK_ROLES, true);
     }
 
-    // Nobody holds it (no SE, or SE has can_qc_review = 0) → HoP.
-    return in_array(optional($user->role)->code, self::QC_FALLBACK_ROLES, true);
-}
+    private function denyQc(ServiceRequest $sr): ?\Illuminate\Http\JsonResponse
+    {
+        if ($this->canQc(auth()->user(), $sr)) {
+            return null;
+        }
 
-private function denyQc(ServiceRequest $sr): ?\Illuminate\Http\JsonResponse
-{
-    if ($this->canQc(auth()->user(), $sr)) {
-        return null;
-    }
+        $ownerId = $this->qcOwnerId($sr);
 
-    $ownerId = $this->qcOwnerId($sr);
-
-    return response()->json([
-        'ok'      => false,
-        'success' => false,
-        'message' => $ownerId
-            ? 'QC on this ticket is allocated to '
+        return response()->json([
+            'ok'      => false,
+            'success' => false,
+            'message' => $ownerId
+                ? 'QC on this ticket is allocated to '
                 . (optional($sr->assignedSe)->name ?? 'the assigned engineer') . '.'
-            : 'QC on this ticket is reserved for the Head of Projects.',
-    ], 403);
-}
-private function isServiceEngineerId($userId): bool
-{
-    return DB::table('users')
-        ->join('roles', 'roles.id', '=', 'users.role_id')
-        ->where('users.id', $userId)
-        ->where('roles.code', 'SE')
-        ->exists();
-}
+                : 'QC on this ticket is reserved for the Head of Projects.',
+        ], 403);
+    }
+    private function isServiceEngineerId($userId): bool
+    {
+        return DB::table('users')
+            ->join('roles', 'roles.id', '=', 'users.role_id')
+            ->where('users.id', $userId)
+            ->where('roles.code', 'SE')
+            ->exists();
+    }
 }

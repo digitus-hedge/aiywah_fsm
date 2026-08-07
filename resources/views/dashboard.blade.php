@@ -389,6 +389,619 @@ footer.footer { display: none; }
 #adminDash .c-label i{color:var(--a1);}
 #adminDash .rank,
 #adminDash .avatar-sm{background:var(--gold-bg);color:var(--a1);}
+
+
+/* ── FILTER LAYOUT ── */
+.filter-wrap{
+  display:flex; flex-direction:column; gap:10px;
+  align-items:flex-start; width:100%; min-width:0;
+}
+.filter-bar{
+  display:flex; align-items:center; gap:9px;
+  flex-wrap:wrap; width:100%; min-width:0;
+}
+
+/* ── PILLS ── */
+.fq-pill{
+  display:inline-flex; align-items:center; justify-content:center;
+  height:32px; padding:0 14px; box-sizing:border-box;
+  border:1px solid var(--border); border-radius:20px;
+  background:var(--card); color:var(--muted);
+  font-family:inherit; font-size:.76rem; font-weight:500;
+  white-space:nowrap; cursor:pointer;
+  transition:background .15s, border-color .15s, color .15s;
+}
+.fq-pill:hover{ border-color:var(--gold); }
+.fq-pill.active{
+  border-color:var(--gold); background:var(--gold-bg);
+  color:var(--gold); font-weight:600;
+}
+
+/* ── SELECTS ── */
+.f-sel{
+  height:32px; padding:0 30px 0 12px; box-sizing:border-box;
+  border:1px solid var(--border); border-radius:20px;
+  background:var(--card); color:var(--muted);
+  font-family:inherit; font-size:.76rem;
+  cursor:pointer; min-width:0;
+  -webkit-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23999'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 10px center;
+  background-size:14px;
+  text-overflow:ellipsis;
+}
+.f-sel:focus{ outline:none; border-color:var(--gold); }
+
+/* ── DATE RANGE PILL ── */
+.f-daterange{
+  display:inline-flex; align-items:center; gap:8px;
+  height:32px; padding:0 14px; box-sizing:border-box; min-width:0;
+  border:1px solid var(--border); border-radius:20px;
+  background:var(--card);
+  transition:border-color .15s, background .15s;
+}
+.f-daterange.active{ border-color:var(--gold); background:var(--gold-bg); }
+.f-daterange:focus-within{ border-color:var(--gold); }
+.f-daterange > i.bi-calendar-range{
+  font-size:.82rem; color:var(--gold); flex-shrink:0; line-height:1;
+}
+
+.f-daterange input[type="date"]{
+  -webkit-appearance:none; appearance:none;
+  border:0 !important; outline:0;
+  background:transparent !important; box-shadow:none !important;
+  color:var(--text); font-family:inherit;
+  font-size:.75rem; line-height:1;
+  padding:0; margin:0; width:88px; min-width:0; height:100%;
+  cursor:pointer;
+}
+.f-daterange input[type="date"]:focus{ outline:none; box-shadow:none; }
+.f-daterange input[type="date"]:not(:valid){ color:var(--muted); }
+.f-daterange input[type="date"]::-webkit-calendar-picker-indicator{
+  opacity:.45; cursor:pointer; padding:0; margin:0;
+  width:13px; height:13px; transition:opacity .15s;
+}
+.f-daterange input[type="date"]::-webkit-calendar-picker-indicator:hover{ opacity:.9; }
+[data-bs-theme="dark"] .f-daterange input[type="date"]::-webkit-calendar-picker-indicator{
+  filter:invert(1);
+}
+.f-date-sep{ font-size:.72rem; color:var(--muted); flex-shrink:0; line-height:1; }
+
+/* ── RESET ── */
+.fq-reset{
+  display:inline-flex; align-items:center; justify-content:center; gap:5px;
+  height:32px; padding:0 14px; box-sizing:border-box;
+  border-radius:20px; border:1px solid rgba(220,38,38,.22);
+  background:rgba(220,38,38,.07); color:#dc2626;
+  font-size:.76rem; font-weight:500; white-space:nowrap;
+  text-decoration:none; cursor:pointer;
+  transition:background .15s, border-color .15s;
+}
+.fq-reset:hover{ background:rgba(220,38,38,.14); border-color:rgba(220,38,38,.35); }
+.fq-reset i{ font-size:.8rem; line-height:1; }
+
+/* ══════════ TABLET ══════════ */
+@media (max-width:820px){
+  .f-sel{ flex:1 1 150px; }
+  .f-daterange{ flex:1 1 220px; }
+  .f-daterange input[type="date"]{ width:auto; flex:1 1 auto; }
+}
+
+/* ══════════ MOBILE ══════════ */
+@media (max-width:600px){
+  .filter-bar{ gap:7px; }
+
+  /* pills: three equal columns on their own row */
+  .fq-pill{
+    flex:1 1 0; min-width:0; padding:0 8px;
+    font-size:.72rem; height:34px;
+  }
+
+  /* date pill spans the full width, below the pills */
+  .f-daterange{
+    flex:1 1 100%; width:100%;
+    justify-content:space-between;
+    height:36px; border-radius:12px;
+  }
+  .f-daterange input[type="date"]{
+    flex:1 1 0; width:auto; font-size:.74rem;
+    text-align:center;
+  }
+
+  /* selects: two per row */
+  .f-sel{
+    flex:1 1 calc(50% - 4px); min-width:0;
+    height:34px; font-size:.72rem;
+  }
+  /* third select takes the full row */
+  .f-sel:nth-of-type(3){ flex:1 1 100%; }
+
+  .fq-reset{ flex:1 1 100%; height:34px; }
+}
+
+@media (max-width:380px){
+  .fq-pill{ font-size:.68rem; padding:0 6px; }
+  .f-sel{ flex:1 1 100%; }
+  .f-daterange{ flex-wrap:nowrap; padding:0 10px; }
+  .f-daterange input[type="date"]{ font-size:.7rem; }
+}
+
+/* prevent iOS zoom-on-focus without shrinking the visual size */
+@supports (-webkit-touch-callout:none){
+  @media (max-width:600px){
+    .f-sel, .f-daterange input[type="date"]{ font-size:16px; transform-origin:left center; }
+    .f-sel{ font-size:.78rem; }
+  }
+}
+
+
+.sd-card{display:flex;flex-direction:column;}
+
+.sd-list{margin-top:2px;}
+
+.sd-row{
+  display:grid;
+  grid-template-columns:minmax(0,118px) minmax(0,1fr) 26px;
+  align-items:center;
+  gap:10px;
+  height:18px;                 /* was ~32px — this is the gap you're seeing */
+  margin-bottom:2px;
+}
+
+.sd-lbl{
+  font-size:.74rem;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.sd-track{
+  height:7px;border-radius:99px;
+  background:var(--border);overflow:hidden;
+}
+.sd-fill{
+  display:block;height:100%;border-radius:99px;
+  transition:width .5s ease;
+}
+.sd-n{
+  font-size:.76rem;font-weight:700;color:var(--text);
+  text-align:right;font-variant-numeric:tabular-nums;
+}
+
+.sd-row.is-zero .sd-lbl,
+.sd-row.is-zero .sd-n{color:var(--muted);opacity:.55;font-weight:500;}
+
+.sd-leg{
+  display:flex;flex-wrap:wrap;gap:14px;
+  margin-top:auto;padding-top:14px;
+  border-top:1px solid var(--border);
+}
+.sd-leg span{display:flex;align-items:center;gap:6px;font-size:.7rem;color:var(--muted);}
+.sd-leg i{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
+
+@media (max-width:560px){
+  .sd-row{grid-template-columns:minmax(0,96px) minmax(0,1fr) 24px;gap:8px;}
+  .sd-lbl{font-size:.7rem;}
+}
+
+
+.main-chart-card{
+  display:flex;flex-direction:column;min-width:0;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:18px;
+}
+
+.mc-top{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:16px;flex-wrap:wrap;margin-bottom:14px;
+}
+.mc-nums{display:flex;gap:38px;flex-wrap:wrap;min-width:0;}
+.mc-num{min-width:0;}
+
+.mc-num-label{
+  display:flex;align-items:center;gap:7px;
+  font-size:.72rem;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px;
+}
+.mc-num-label span{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
+
+.mc-num-big{
+  font-family:var(--font-display,inherit);
+  font-size:2.6rem;font-weight:400;line-height:1;margin-bottom:5px;
+}
+
+.mc-num-sub{display:flex;align-items:center;gap:4px;font-size:.72rem;}
+.mc-num-sub i{font-size:.7rem;}
+.mc-num-sub strong{font-weight:700;}
+.mc-num-sub.is-up{color:var(--ok);}
+.mc-num-sub.is-down{color:var(--danger);}
+.mc-num-vs{color:var(--muted);font-weight:400;margin-left:2px;}
+
+.mc-period-tabs{
+  display:flex;gap:4px;flex:0 0 auto;
+  padding:3px;border-radius:999px;background:var(--soft,#f5f2ed);
+}
+.mc-tab{
+  border:0;background:transparent;cursor:pointer;
+  padding:5px 15px;border-radius:999px;
+  font:inherit;font-size:.72rem;font-weight:600;color:var(--muted);
+  transition:background .15s,color .15s;
+}
+.mc-tab:hover{color:var(--text);}
+.mc-tab.active{background:var(--gold);color:#fff;}
+
+.leg-row{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:10px;}
+.leg{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);}
+.leg-dot{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
+
+.ch-220{position:relative;width:100%;height:250px;flex:1 1 auto;min-height:220px;}
+.ch-220 canvas{width:100%!important;height:100%!important;display:block;}
+
+@media (max-width:820px){
+  .mc-top{flex-direction:column;}
+  .mc-period-tabs{align-self:flex-start;}
+}
+@media (max-width:560px){
+  .main-chart-card{padding:14px;}
+  .mc-nums{gap:24px;}
+  .mc-num-big{font-size:2rem;}
+  .ch-220{height:210px;}
+}
+/* the row that holds both cards */
+.g2{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.55fr);
+  gap:16px;
+  align-items:stretch;          /* both cards get the tallest one's height */
+}
+
+/* identical shells */
+.card,
+.main-chart-card{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  height:100%;                  /* ← the missing piece */
+  padding:18px;
+  box-sizing:border-box;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+}
+
+/* chart absorbs the leftover instead of forcing extra height */
+.main-chart-card .ch-220{
+  position:relative;
+  width:100%;
+  flex:1 1 auto;
+  height:auto;                  /* ← was 250px, that's the overflow */
+  min-height:200px;
+}
+.main-chart-card .ch-220 canvas{
+  width:100%!important;
+  height:100%!important;
+  display:block;
+}
+
+/* left card: list absorbs, legend sits at the bottom */
+.sd-card .sd-list{flex:1 1 auto;}
+.sd-card .sd-leg{
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px solid var(--border);
+}
+
+@media (max-width:980px){
+  .g2{grid-template-columns:minmax(0,1fr);}
+  .main-chart-card .ch-220{flex:0 0 auto;height:250px;}
+}
+
+
+
+
+
+
+.client-list{margin-top:6px;}
+
+.lrow{
+  /* button reset — this is a <button> element */
+  display:flex;
+  flex-direction:row;              /* ← the fix; buttons can inherit column */
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  width:100%;
+  min-width:0;
+  padding:9px 2px;
+  background:none;
+  border:0;
+  font:inherit;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+  border-radius:8px;
+  transition:background .15s;
+}
+.lrow:hover{background:rgba(154,128,83,.05);}
+
+.lrow-l{
+  display:flex;
+  flex-direction:row;
+  align-items:center;
+  gap:11px;
+  flex:1 1 auto;
+  min-width:0;
+}
+
+.rank{
+  flex:0 0 24px;
+  width:24px;height:24px;
+  border-radius:7px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:.68rem;font-weight:600;
+  background:#f5f1ea;color:#a08a63;
+}
+
+.lrow-name{
+  flex:1 1 auto;
+  min-width:0;
+  font-size:.84rem;
+  font-weight:600;
+  color:var(--text);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;              /* kills the ffffff… wrap */
+}
+
+.lrow-r{
+  flex:0 0 auto;
+  display:flex;
+  align-items:baseline;
+  gap:5px;
+  font-variant-numeric:tabular-nums;
+}
+.lrow-r strong{font-size:.88rem;font-weight:700;color:var(--text);}
+.lrow-unit{font-size:.76rem;color:var(--muted);font-weight:400;}
+
+
+
+.fd-list{margin-top:14px;}
+
+.lrow{
+  display:flex;flex-direction:row;align-items:center;
+  gap:12px;width:100%;min-width:0;padding:12px 0;
+}
+.lrow-rule + .lrow-rule{border-top:1px solid var(--border);}
+
+.avatar-sm{
+  flex:0 0 34px;width:34px;height:34px;border-radius:50%;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:700;letter-spacing:.02em;
+  background:#f4efe7;color:#96784f;
+}
+
+.l-body{flex:1 1 auto;min-width:0;}
+.l-name{
+  display:block;font-size:.84rem;font-weight:600;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.l-sub{display:block;font-size:.72rem;color:var(--muted);margin-top:3px;}
+.l-rej{color:var(--danger);}
+
+.fd-pending{
+  flex:0 0 auto;white-space:nowrap;
+  font-size:.76rem;font-weight:700;color:#c2761a;
+  font-variant-numeric:tabular-nums;
+}
+.fd-pending.is-zero{color:var(--muted);font-weight:600;opacity:.55;}
+
+
+.client-more{
+  overflow:hidden;
+  animation:clientReveal .22s ease;
+}
+@keyframes clientReveal{
+  from{opacity:0;transform:translateY(-4px);}
+  to{opacity:1;transform:none;}
+}
+
+.client-toggle{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;
+  margin-top:10px;            /* not 20px+ */
+  padding:10px 0;
+  height:38px;                /* fixed so it matches across cards */
+  box-sizing:border-box;
+  border:1px dashed var(--border);
+  border-radius:9px;
+  background:transparent;cursor:pointer;
+  font:inherit;font-size:.75rem;font-weight:600;color:var(--gold);
+  transition:background .15s,border-color .15s;
+}
+.client-toggle:hover{background:rgba(154,128,83,.06);border-color:var(--gold);}
+.client-toggle i{font-size:.7rem;transition:transform .22s ease;}
+.client-toggle[aria-expanded="true"] i{transform:rotate(180deg);}
+
+
+
+.card{
+  display:flex;flex-direction:column;
+  min-width:0;
+  padding:20px;
+  box-sizing:border-box;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+}
+
+/* last child never carries bottom margin */
+.card > *:last-child{margin-bottom:0;}
+
+.client-list,.fd-list{margin-top:8px;}
+.client-list .lrow:last-of-type,
+.fd-list .lrow:last-child{padding-bottom:2px;}
+
+/* satisfaction: last histogram row flush to the card floor */
+.h-row:last-child{margin-bottom:0;}
+
+
+.g3-cfs{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:16px;
+  align-items:stretch;
+  width:100%;max-width:100%;
+}
+.g3-cfs > *{min-width:0;}
+
+.g3-cfs .card{
+  display:flex;flex-direction:column;
+  height:100%;min-width:0;
+  padding:20px;box-sizing:border-box;
+  background:var(--card,#fff);
+  border:1px solid var(--border);
+  border-radius:14px;
+}
+.g3-cfs .card-body{flex:1 1 auto;min-height:0;}
+
+.c-hdr{display:flex;align-items:center;justify-content:space-between;
+       gap:10px;margin-bottom:16px;}
+.c-label{display:flex;align-items:center;gap:8px;min-width:0;
+         font-size:.72rem;font-weight:700;letter-spacing:.08em;
+         text-transform:uppercase;color:var(--muted);}
+
+.ch-180{position:relative;width:100%;height:175px;}
+.ch-180 canvas{width:100%!important;height:100%!important;display:block;}
+
+.leg-row{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px;
+         padding-bottom:14px;border-bottom:1px solid var(--border);}
+.leg{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--muted);}
+.leg-dot{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
+
+.client-list,.fd-list{margin-top:8px;}
+.lrow{display:flex;flex-direction:row;align-items:center;gap:12px;
+      width:100%;min-width:0;padding:11px 2px;
+      background:none;border:0;font:inherit;color:inherit;
+      text-align:left;cursor:pointer;border-radius:8px;}
+.lrow:hover{background:rgba(154,128,83,.05);}
+div.lrow{cursor:default;}
+div.lrow:hover{background:none;}
+.lrow-rule + .lrow-rule{border-top:1px solid var(--border);}
+
+.lrow-l{display:flex;flex-direction:row;align-items:center;
+        gap:11px;flex:1 1 auto;min-width:0;}
+.rank{flex:0 0 24px;width:24px;height:24px;border-radius:7px;
+      display:inline-flex;align-items:center;justify-content:center;
+      font-size:.68rem;font-weight:600;background:#f5f1ea;color:#a08a63;}
+.lrow-name{flex:1 1 auto;min-width:0;font-size:.84rem;font-weight:600;
+           color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lrow-r{flex:0 0 auto;display:flex;align-items:baseline;gap:5px;
+        font-variant-numeric:tabular-nums;}
+.lrow-r strong{font-size:.88rem;font-weight:700;color:var(--text);}
+.lrow-unit{font-size:.76rem;color:var(--muted);}
+
+.avatar-sm{flex:0 0 34px;width:34px;height:34px;border-radius:50%;
+           display:inline-flex;align-items:center;justify-content:center;
+           font-size:.65rem;font-weight:700;background:#f4efe7;color:#96784f;}
+.l-body{flex:1 1 auto;min-width:0;}
+.l-name{display:block;font-size:.84rem;font-weight:600;color:var(--text);
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.l-sub{display:block;font-size:.72rem;color:var(--muted);margin-top:3px;}
+.l-rej{color:var(--danger);}
+.fd-pending{flex:0 0 auto;white-space:nowrap;font-size:.76rem;
+            font-weight:700;color:#c2761a;font-variant-numeric:tabular-nums;}
+.fd-pending.is-zero{color:var(--muted);font-weight:600;opacity:.55;}
+
+.sat-hdr{display:grid;grid-template-columns:minmax(110px,auto) minmax(0,1fr);
+         gap:18px;align-items:center;padding-bottom:18px;margin-bottom:18px;
+         border-bottom:1px solid var(--border);}
+.sat-score{font-size:3rem;font-weight:700;color:var(--gold);line-height:1;}
+.sat-stars,.t-stars{display:flex;gap:2px;color:#f59e0b;font-size:.85rem;margin:4px 0 3px;}
+.sat-meta{font-size:.7rem;color:var(--muted);}
+.metric-stack{display:grid;gap:8px;grid-template-columns:minmax(0,1fr);}
+.mini-metric{padding:11px 14px;border-radius:10px;
+             background:var(--soft,#faf8f5);border:1px solid var(--border);min-width:0;}
+.mm-label{font-size:.68rem;color:var(--muted);margin-bottom:2px;}
+.mm-val{font-size:1.2rem;font-weight:700;color:var(--text);line-height:1.1;}
+
+.sec-ttl{font-size:.68rem;font-weight:700;letter-spacing:.07em;
+         text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
+.rev-row{align-items:flex-start;}
+.rev-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0;}
+.rev-client{font-size:.78rem;font-weight:700;color:var(--text);overflow-wrap:anywhere;}
+.rev-code{font-size:.7rem;color:var(--gold);white-space:nowrap;}
+.rev-text{display:block;font-size:.72rem;color:var(--muted);overflow-wrap:anywhere;}
+.rev-foot{display:block;font-size:.68rem;color:var(--light,#aaa);margin-top:2px;}
+
+.h-row{display:grid;grid-template-columns:14px minmax(0,1fr) 28px;
+       align-items:center;gap:12px;margin-bottom:8px;}
+.h-row:last-child{margin-bottom:0;}
+.h-lbl{font-size:.7rem;color:var(--muted);text-align:center;}
+.h-track{height:8px;border-radius:99px;background:var(--border);overflow:hidden;}
+.h-fill{display:block;height:100%;background:var(--gold);border-radius:99px;
+        transition:width .5s ease;}
+.h-n{font-size:.7rem;font-weight:600;color:var(--muted);text-align:right;
+     font-variant-numeric:tabular-nums;}
+
+.card-more{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;box-sizing:border-box;
+  margin-top:auto;padding:14px 0 0;
+  border:0;border-top:1px solid var(--border);
+  background:transparent;cursor:pointer;
+  font:inherit;font-size:.75rem;font-weight:600;color:var(--gold);
+}
+.card-more:hover{color:var(--text);}
+.card-more i{font-size:.7rem;transition:transform .22s ease;}
+.card-more[aria-expanded="true"] i{transform:rotate(180deg);}
+
+.empty{display:flex;align-items:center;justify-content:center;gap:6px;
+       padding:18px 0;font-size:.74rem;color:var(--muted);}
+
+@media (max-width:1200px){.g3-cfs{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width:820px){
+  .g3-cfs{grid-template-columns:minmax(0,1fr);}
+  .g3-cfs .card{height:auto;}
+  .card-more{margin-top:14px;}
+}
+@media (max-width:560px){
+  .g3-cfs .card{padding:16px;}
+  .sat-hdr{grid-template-columns:minmax(0,1fr);gap:12px;}
+  .metric-stack{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .sat-score{font-size:2.4rem;}
+  .ch-180{height:155px;}
+}
+
+
+
+button.kpi.k1
+{
+    background: rgba(154, 128, 83, .12) !important;
+    color: var(--gold);
+}
+
+button.kpi.k2
+{
+    background: rgba(37, 99, 235, .1) !important;
+    color: #2563eb;
+}
+
+
+button.kpi.k3
+{
+      background: rgba(21, 128, 61, .1) !important;
+    color: #15803d;
+}
+
+button.kpi.k4
+{
+background: rgba(217, 119, 6, .12) !important;
+color: #d97706;
+}
+
+button.kpi.k5
+{
+    background: rgba(124, 58, 237, .1) !important;
+    color: #7c3aed;
+    }
 </style>
 @endpush
 
@@ -426,37 +1039,61 @@ footer.footer { display: none; }
         </div>
 
         {{-- A GET form so the pills and selects actually filter the queries. --}}
-        <form method="GET" action="{{ url()->current() }}" class="filter-bar" id="dashFilters">
-            <input type="hidden" name="period" value="{{ $filters['period'] ?? '6M' }}">
+        
+   <form method="GET" action="{{ url()->current() }}" class="filter-bar" id="dashFilters">
+    <input type="hidden" name="period" value="{{ $filters['period'] ?? '6M' }}">
+    <input type="hidden" name="range" id="rangeField" value="{{ $filters['range'] ?? 'month' }}">
 
-            <button type="submit" name="range" value="today"
-                    class="fq-pill {{ ($filters['range'] ?? null) === 'today' ? 'active' : '' }}">Today</button>
-            <button type="submit" name="range" value="month"
-                    class="fq-pill {{ ($filters['range'] ?? null) === 'month' ? 'active' : '' }}">This Month</button>
-            <button type="submit" name="range" value="quarter"
-                    class="fq-pill {{ ($filters['range'] ?? null) === 'quarter' ? 'active' : '' }}">This Quarter</button>
+    <button type="button" onclick="setRange(this,'today')"
+            class="fq-pill {{ ($filters['range'] ?? null) === 'today' ? 'active' : '' }}">Today</button>
+    <button type="button" onclick="setRange(this,'month')"
+            class="fq-pill {{ ($filters['range'] ?? null) === 'month' ? 'active' : '' }}">This Month</button>
+    <button type="button" onclick="setRange(this,'quarter')"
+            class="fq-pill {{ ($filters['range'] ?? null) === 'quarter' ? 'active' : '' }}">This Quarter</button>
 
-            <select class="f-sel" name="status" onchange="this.form.submit()" aria-label="Filter by status">
-                <option value="">All Statuses</option>
-                @foreach (($statusOptions ?? []) as $value => $label)
-                    <option value="{{ $value }}" @selected(($filters['status'] ?? null) == $value)>{{ $label }}</option>
-                @endforeach
-            </select>
+    <div class="f-daterange {{ ($filters['range'] ?? null) === 'custom' ? 'active' : '' }}">
+        <i class="bi bi-calendar-range"></i>
+        <input type="date" name="from" value="{{ $filters['from'] ?? '' }}"
+               max="{{ now()->toDateString() }}" onchange="applyCustomRange(this)" aria-label="From date">
+        <span class="f-date-sep">→</span>
+        <input type="date" name="to" value="{{ $filters['to'] ?? '' }}"
+               max="{{ now()->toDateString() }}" onchange="applyCustomRange(this)" aria-label="To date">
+    </div>
 
-            <select class="f-sel" name="client" onchange="this.form.submit()" aria-label="Filter by client">
-                <option value="">All Clients</option>
-                @foreach (($clientOptions ?? []) as $value => $label)
-                    <option value="{{ $value }}" @selected(($filters['client'] ?? null) == $value)>{{ $label }}</option>
-                @endforeach
-            </select>
+    <select class="f-sel" name="status" onchange="this.form.submit()" aria-label="Filter by status">
+        <option value="">All Statuses</option>
+        @foreach (($statusOptions ?? []) as $value => $label)
+            <option value="{{ $value }}" @selected(($filters['status'] ?? null) == $value)>{{ $label }}</option>
+        @endforeach
+    </select>
 
-            <select class="f-sel" name="service" onchange="this.form.submit()" aria-label="Filter by service">
-                <option value="">All Services</option>
-                @foreach (($serviceOptions ?? []) as $value => $label)
-                    <option value="{{ $value }}" @selected(($filters['service'] ?? null) == $value)>{{ $label }}</option>
-                @endforeach
-            </select>
-        </form>
+    <select class="f-sel" name="client" onchange="this.form.submit()" aria-label="Filter by client">
+        <option value="">All Clients</option>
+        @foreach (($clientOptions ?? []) as $value => $label)
+            <option value="{{ $value }}" @selected(($filters['client'] ?? null) == $value)>{{ $label }}</option>
+        @endforeach
+    </select>
+
+    <select class="f-sel" name="service" onchange="this.form.submit()" aria-label="Filter by service">
+        <option value="">All Services</option>
+        @foreach (($serviceOptions ?? []) as $value => $label)
+            <option value="{{ $value }}" @selected(($filters['service'] ?? null) == $value)>{{ $label }}</option>
+        @endforeach
+    </select>
+
+    @php
+    $hasFilters = ($filters['range'] ?? 'today') !== 'today' || array_filter([
+        $filters['status']  ?? null, $filters['client'] ?? null,
+        $filters['service'] ?? null, $filters['from']   ?? null,
+        $filters['to']      ?? null,
+    ]);
+@endphp
+    @if ($hasFilters)
+        <a href="{{ url()->current() }}" class="fq-reset" title="Clear all filters">
+            <i class="bi bi-arrow-counterclockwise"></i>Reset
+        </a>
+    @endif
+</form>
     </div>
 
     {{-- ── ALERT STRIP · 5 chips ──────────────────────────────────────── --}}
@@ -564,85 +1201,100 @@ footer.footer { display: none; }
     {{-- ── STATUS DISTRIBUTION + SR TREND ─────────────────────────────── --}}
     <div class="g2-3 mb-block">
 
-        <div class="card card-pad">
-            <div class="c-hdr">
-                <div class="c-label"><i class="bi bi-bar-chart-steps"></i>SR status distribution</div>
-                <button type="button" class="c-more" data-panel="active-srs">View all <i class="bi bi-arrow-right"></i></button>
-            </div>
+  @php
+    $rows    = collect($statusBreakdown ?? []);
+    $visible = $rows->filter(fn($r) => (int) data_get($r, 'n', 0) > 0);
 
-          <div class="status-dist" style="margin-bottom:14px;">
-    @forelse ($statusBreakdown as $row)
-        <div class="sd-row" style="opacity:{{ data_get($row, 'n') ? 1 : .38 }}">
-            <span class="sd-label" title="{{ data_get($row, 'lbl') }}">{{ data_get($row, 'lbl') }}</span>
-            <span class="sd-track">
-                <span class="sd-fill"
-                      data-width="{{ data_get($row, 'w') }}%"
-                      style="background:{{ data_get($row, 'c', '#9a8053') }};"></span>
-            </span>
-            <span class="sd-n">{{ data_get($row, 'n') }}</span>
-        </div>
-    @empty
-        <p class="empty"><i class="bi bi-inbox"></i>No service requests in this period.</p>
-    @endforelse
+    // all zero → show everything so the card isn't blank
+    if ($visible->isEmpty()) $visible = $rows;
+@endphp
+
+<div class="card card-pad sd-card">
+    <div class="c-hdr">
+        <div class="c-label"><i class="bi bi-list-ol"></i>SR status distribution</div>
+       <span class="c-more" data-panel="status">View all <i class="bi bi-arrow-right"></i></span>
+    </div>
+
+    <div class="sd-list">
+        @foreach ($visible as $row)
+            @php
+                $lbl = data_get($row, 'lbl');
+                $n   = (int) data_get($row, 'n', 0);
+                $w   = (float) data_get($row, 'w', 0);
+                $c   = data_get($row, 'c', '#9a8053');
+            @endphp
+            <div class="sd-row {{ $n ? '' : 'is-zero' }}">
+                <span class="sd-lbl" title="{{ $lbl }}">{{ $lbl }}</span>
+                <span class="sd-track">
+                    <span class="sd-fill" style="width:{{ $w }}%;background:{{ $c }};"></span>
+                </span>
+                <span class="sd-n">{{ $n }}</span>
+            </div>
+        @endforeach
+    </div>
+
+    <div class="sd-leg">
+        <span><i style="background:#9a8053;"></i>Operations</span>
+        <span><i style="background:#2563eb;"></i>Intake</span>
+        <span><i style="background:#15803d;"></i>Completed</span>
+        <span><i style="background:#dc2626;"></i>Issues</span>
+    </div>
 </div>
 
-            <div class="leg-row" style="padding-top:12px;border-top:1px solid var(--border);">
-                <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>Operations</span>
-                <span class="leg"><span class="leg-dot" style="background:#2563eb;"></span>Intake</span>
-                <span class="leg"><span class="leg-dot" style="background:#15803d;"></span>Completed</span>
-                <span class="leg"><span class="leg-dot" style="background:#dc2626;"></span>Issues</span>
+    <div class="main-chart-card">
+    <div class="mc-top">
+        <div class="mc-nums">
+            @php
+                $iwTotal  = (int) data_get($srTrend ?? [], 'in_warranty_total', 0);
+                $owTotal  = (int) data_get($srTrend ?? [], 'out_warranty_total', 0);
+                $iwChange = data_get($srTrend ?? [], 'in_warranty_change');
+                $owChange = data_get($srTrend ?? [], 'out_warranty_change');
+            @endphp
+
+            <div class="mc-num">
+                <div class="mc-num-label"><span style="background:#9a8053;"></span>In-warranty SRs</div>
+                <div class="mc-num-big" style="color:#9a8053;">{{ $iwTotal }}</div>
+                @if (! is_null($iwChange))
+                    @php $d = (float) $iwChange; $ok = $d >= 0; @endphp
+                    <div class="mc-num-sub {{ $ok ? 'is-up' : 'is-down' }}">
+                        <i class="bi bi-arrow-{{ $ok ? 'up' : 'down' }}"></i>
+                        <strong>{{ $ok ? '+' : '' }}{{ $d }}%</strong>
+                        <span class="mc-num-vs">vs last period</span>
+                    </div>
+                @endif
+            </div>
+
+            <div class="mc-num">
+                <div class="mc-num-label"><span style="background:#393837;"></span>Out-of-warranty SRs</div>
+                <div class="mc-num-big" style="color:#393837;">{{ $owTotal }}</div>
+                @if (! is_null($owChange))
+                    @php $d = (float) $owChange; $ok = $d >= 0; @endphp
+                    <div class="mc-num-sub {{ $ok ? 'is-up' : 'is-down' }}">
+                        <i class="bi bi-arrow-{{ $ok ? 'up' : 'down' }}"></i>
+                        <strong>{{ $ok ? '+' : '' }}{{ $d }}%</strong>
+                        <span class="mc-num-vs">vs last period</span>
+                    </div>
+                @endif
             </div>
         </div>
 
-        <div class="main-chart-card">
-            <div class="mc-top">
-                <div class="mc-nums">
-                    <div>
-                        <div class="mc-num-label"><span style="background:#9a8053;"></span>In-warranty SRs</div>
-                        <div class="mc-num-big" style="color:#9a8053;">{{ data_get($srTrend ?? [], 'in_warranty_total', 0) }}</div>
-                        @if (! is_null(data_get($srTrend ?? [], 'in_warranty_change')))
-                            @php $iwChange = (float) data_get($srTrend, 'in_warranty_change'); @endphp
-                            <div class="mc-num-sub">
-                                <i class="bi bi-arrow-{{ $iwChange >= 0 ? 'up' : 'down' }}"
-                                   style="color:{{ $iwChange >= 0 ? 'var(--ok)' : 'var(--danger)' }};"></i>
-                                <span style="color:{{ $iwChange >= 0 ? 'var(--ok)' : 'var(--danger)' }};">
-                                    {{ $iwChange >= 0 ? '+' : '' }}{{ $iwChange }}%
-                                </span>&nbsp;vs last period
-                            </div>
-                        @endif
-                    </div>
-                    <div>
-                        <div class="mc-num-label"><span style="background:#393837;"></span>Out-of-warranty SRs</div>
-                        <div class="mc-num-big" style="color:#393837;">{{ data_get($srTrend ?? [], 'out_warranty_total', 0) }}</div>
-                        @if (! is_null(data_get($srTrend ?? [], 'out_warranty_change')))
-                            @php $owChange = (float) data_get($srTrend, 'out_warranty_change'); @endphp
-                            <div class="mc-num-sub">
-                                <i class="bi bi-arrow-{{ $owChange >= 0 ? 'up' : 'down' }}"
-                                   style="color:{{ $owChange >= 0 ? 'var(--ok)' : 'var(--danger)' }};"></i>
-                                <span style="color:{{ $owChange >= 0 ? 'var(--ok)' : 'var(--danger)' }};">
-                                    {{ $owChange >= 0 ? '+' : '' }}{{ $owChange }}%
-                                </span>&nbsp;vs last period
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <div class="mc-period-tabs">
-                    @foreach (($trendPeriods ?? []) as $value => $label)
-                        <button type="button" class="mc-tab {{ ($filters['period'] ?? null) === $value ? 'active' : '' }}"
-                                data-period="{{ $value }}">{{ $label }}</button>
-                    @endforeach
-                </div>
-            </div>
-
-            <div class="leg-row" style="margin-bottom:8px;">
-                <span class="leg"><span class="leg-dot" style="background:var(--warn);"></span>Pending</span>
-                <span class="leg"><span class="leg-dot" style="background:var(--danger);"></span>Rejected</span>
-                <span class="leg"><span class="leg-dot" style="background:var(--ok);"></span>Completed</span>
-            </div>
-
-            <div class="ch-220"><canvas id="mmSrTrend"></canvas></div>
+        <div class="mc-period-tabs">
+            @foreach (($trendPeriods ?? []) as $value => $label)
+                <button type="button"
+                        class="mc-tab {{ ($filters['period'] ?? null) === $value ? 'active' : '' }}"
+                        data-period="{{ $value }}">{{ $label }}</button>
+            @endforeach
         </div>
+    </div>
+
+    {{-- legend now matches the two plotted series --}}
+    <div class="leg-row">
+        <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>In-warranty</span>
+        <span class="leg"><span class="leg-dot" style="background:#393837;"></span>Out-of-warranty</span>
+    </div>
+
+    <div class="ch-220"><canvas id="mmSrTrend"></canvas></div>
+</div>
     </div>
 
     {{-- ── FINANCE + QC + WHATSAPP ────────────────────────────────────── --}}
@@ -706,7 +1358,7 @@ footer.footer { display: none; }
                 </div>
                 <div class="mini-metric" data-panel="sla-breach" style="cursor:pointer;"
                     title="{{ collect(data_get($qc ?? [], 'stage_breaches', []))->map(fn ($s) => $s['label'].': '.$s['count'].' over '.$s['target'].'h')->implode("\n") }}">
-                    <div class="mm-label">SLA breaches d</div>
+                    <div class="mm-label">SLA breaches </div>
                     <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'sla_breaches', 0) }}</div>
                     <div class="mm-sub">{{ data_get($qc ?? [], 'sla_breach_sub') }}</div>
                 </div>
@@ -737,23 +1389,27 @@ footer.footer { display: none; }
                 </div>
             </div>
 
-            <div class="sec-ttl" style="margin-bottom:7px;">By trigger</div>
-            @forelse ($waTriggers as $trigger)
-                <div class="lrow lrow-rule">
-                    <span style="color:var(--muted);">{{ data_get($trigger, 'label') }}</span>
-                    <span style="display:flex;align-items:center;gap:8px;">
-                        <strong style="color:var(--text);">{{ data_get($trigger, 'sent', 0) }}</strong>
-                        @if ((int) data_get($trigger, 'failed') > 0)
-                            <span style="color:var(--danger);font-size:.67rem;">{{ data_get($trigger, 'failed') }} failed</span>
-                        @else
-                            <span style="color:var(--ok);font-size:.67rem;" aria-label="All delivered">&check;</span>
-                        @endif
-                    </span>
-                </div>
-            @empty
-                <p class="empty"><i class="bi bi-chat-dots"></i>No messages sent in this period.</p>
-            @endforelse
-        </div>
+           <div class="sec-ttl" style="margin-bottom:7px;">By trigger</div>
+
+@forelse ($waTriggers as $trigger)
+    <div class="lrow lrow-rule">
+        <span class="wa-lbl">{{ data_get($trigger, 'label') }}</span>
+        <span class="wa-nums">
+            <strong>{{ data_get($trigger, 'sent', 0) }}</strong>
+            @if ((int) data_get($trigger, 'success') > 0)
+                <span class="wa-ok">{{ data_get($trigger, 'success') }} sent</span>
+            @endif
+            @if ((int) data_get($trigger, 'pending') > 0)
+                <span class="wa-pending">{{ data_get($trigger, 'pending') }} pending</span>
+            @endif
+            @if ((int) data_get($trigger, 'failed') > 0)
+                <span class="wa-fail">{{ data_get($trigger, 'failed') }} failed</span>
+            @endif
+        </span>
+    </div>
+@empty
+    <p class="empty"><i class="bi bi-chat-dots"></i>No messages sent in this period.</p>
+@endforelse
     </div>
 
     {{-- ── TECHNICIAN SCORECARD ───────────────────────────────────────── --}}
@@ -861,157 +1517,267 @@ footer.footer { display: none; }
         <span class="sec-line"></span>
     </div>
 
-    <div class="g3 mb-block">
+   
+    @php
+    $clients     = collect($clients ?? []);
+    $topClients  = $clients->take(3);
+    $moreClients = $clients->slice(3);
 
-        {{-- Clients --}}
-        <div class="card card-pad">
-    <div class="c-hdr">
-        <div class="c-label"><i class="bi bi-buildings"></i>Top clients by SR volume</div>
-        <!-- <div class="c-more" onclick="openPanel('clients',null)">All clients <i class="bi bi-arrow-right"></i></div> -->
-    </div>
+    $fd     = collect($frontDesk ?? []);
+    $fdTop  = $fd->take(3);
+    $fdMore = $fd->slice(3);
 
-    @if (count($clients))
-        <div class="ch-180"><canvas id="mmClientChart"></canvas></div>
-        <div class="leg-row">
-            <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>In-warranty</span>
-            <span class="leg"><span class="leg-dot" style="background:#39383788;"></span>Out-of-warranty</span>
+    $reviews     = collect($clientReviews ?? []);
+    $firstReview = $reviews->take(1);
+    $moreReviews = $reviews->slice(1);
+
+    $sat = $satisfaction ?? [];
+    $avg = data_get($sat, 'average');
+@endphp
+
+<div class="g3-cfs">
+
+    {{-- ══════ 1. TOP CLIENTS ══════ --}}
+    <div class="card">
+        <div class="c-hdr">
+            <div class="c-label"><i class="bi bi-buildings"></i>Top clients by SR volume</div>
         </div>
-    @endif
 
-    <div class="client-list">
-        @forelse ($clients as $client)
-            <button type="button" class="lrow"
-                    onclick="openPanel('clients',null)">
-                <span class="lrow-l">
-                    <span class="rank">{{ $loop->iteration }}</span>
-                    <span class="lrow-name">{{ data_get($client, 'n') }}</span>
-                </span>
-                <span class="lrow-r">
-                    <strong>{{ data_get($client, 'srs') }}</strong>
-                    <span class="lrow-unit">SRs</span>
-                </span>
+        <div class="card-body">
+            @if ($clients->count())
+                <div class="ch-180"><canvas id="mmClientChart"></canvas></div>
+                <div class="leg-row">
+                    <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>In-warranty</span>
+                    <span class="leg"><span class="leg-dot" style="background:rgba(57,56,55,.45);"></span>Out-of-warranty</span>
+                </div>
+            @endif
+
+            <div class="client-list">
+                @forelse ($topClients as $client)
+                    <button type="button" class="lrow" onclick="openPanel('clients',{{ data_get($client,'id') }})">
+                        <span class="lrow-l">
+                            <span class="rank">{{ $loop->iteration }}</span>
+                            <span class="lrow-name" title="{{ data_get($client,'n') }}">{{ data_get($client,'n') }}</span>
+                        </span>
+                        <span class="lrow-r">
+                            <strong>{{ data_get($client,'srs') }}</strong>
+                            <span class="lrow-unit">SRs</span>
+                        </span>
+                    </button>
+                @empty
+                    <p class="empty"><i class="bi bi-building"></i>No client activity in this period.</p>
+                @endforelse
+
+                @if ($moreClients->count())
+                    <div id="clientMore" hidden>
+                        @foreach ($moreClients as $client)
+                            <button type="button" class="lrow" onclick="openPanel('clients',{{ data_get($client,'id') }})">
+                                <span class="lrow-l">
+                                    <span class="rank">{{ $loop->iteration + 3 }}</span>
+                                    <span class="lrow-name" title="{{ data_get($client,'n') }}">{{ data_get($client,'n') }}</span>
+                                </span>
+                                <span class="lrow-r">
+                                    <strong>{{ data_get($client,'srs') }}</strong>
+                                    <span class="lrow-unit">SRs</span>
+                                </span>
+                            </button>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        @if ($moreClients->count())
+            <button type="button" class="card-more" aria-expanded="false"
+                    aria-controls="clientMore" onclick="toggleList(this,'clientMore')">
+                <span class="ct-text">Show {{ $moreClients->count() }} more</span>
+                <i class="bi bi-chevron-down"></i>
             </button>
-        @empty
-            <p class="empty"><i class="bi bi-building"></i>No client activity in this period.</p>
-        @endforelse
+        @endif
     </div>
-</div>
 
-        {{-- Front desk --}}
-        <div class="card card-pad">
-            <div class="c-hdr">
-                <div class="c-label"><i class="bi bi-headset"></i>Front desk performance</div>
+    {{-- ══════ 2. FRONT DESK ══════ --}}
+    <div class="card">
+        <div class="c-hdr">
+            <div class="c-label"><i class="bi bi-headset"></i>Front desk performance</div>
+        </div>
+
+        <div class="card-body">
+            <div class="ch-180"><canvas id="mmFrontDeskChart"></canvas></div>
+            <div class="leg-row">
+                <span class="leg"><span class="leg-dot" style="background:rgba(154,128,83,.8);"></span>Completed</span>
+                <span class="leg"><span class="leg-dot" style="background:#f3c4c4;"></span>Pending</span>
             </div>
 
-            <div class="ch-140"><canvas id="mmFrontDeskChart"></canvas></div>
-
-            <div style="margin-top:12px;">
-                @forelse ($frontDesk as $exec)
+            <div class="fd-list">
+                @forelse ($fdTop as $exec)
                     <div class="lrow lrow-rule">
-                        <span class="avatar-sm">{{ data_get($exec, 'initials') }}</span>
-                        <span style="flex:1;">
-                            <span style="font-size:.78rem;font-weight:500;color:var(--text);display:block;">{{ data_get($exec, 'name') }}</span>
-                            <span style="font-size:.68rem;color:var(--muted);">{{ data_get($exec, 'srs') }} SRs logged</span>
+                        <span class="avatar-sm">{{ data_get($exec,'initials') }}</span>
+                        <span class="l-body">
+                            <span class="l-name" title="{{ data_get($exec,'name') }}">{{ data_get($exec,'name') }}</span>
+                            <span class="l-sub">
+                                {{ data_get($exec,'srs',0) }} SRs · {{ data_get($exec,'completed',0) }} completed
+                                @if (data_get($exec,'rejected',0))
+                                    · <span class="l-rej">{{ data_get($exec,'rejected') }} rejected</span>
+                                @endif
+                            </span>
                         </span>
-                        <span style="display:flex;align-items:center;gap:10px;font-size:.7rem;font-weight:700;">
-                            <span style="color:var(--warn);"  title="Pending">{{ data_get($exec, 'pending', 0) }}</span>
-                            <span style="color:var(--danger);" title="Rejected">{{ data_get($exec, 'rejected', 0) }}</span>
-                            <span style="color:var(--ok);"    title="Completed">{{ data_get($exec, 'completed', 0) }}</span>
+                        <span class="fd-pending {{ data_get($exec,'pending',0) ? '' : 'is-zero' }}">
+                            {{ data_get($exec,'pending',0) }} pending
                         </span>
                     </div>
                 @empty
                     <p class="empty"><i class="bi bi-headset"></i>No front desk activity in this period.</p>
                 @endforelse
+
+                @if ($fdMore->count())
+                    <div id="fdMore" hidden>
+                        @foreach ($fdMore as $exec)
+                            <div class="lrow lrow-rule">
+                                <span class="avatar-sm">{{ data_get($exec,'initials') }}</span>
+                                <span class="l-body">
+                                    <span class="l-name" title="{{ data_get($exec,'name') }}">{{ data_get($exec,'name') }}</span>
+                                    <span class="l-sub">{{ data_get($exec,'srs',0) }} SRs · {{ data_get($exec,'completed',0) }} completed</span>
+                                </span>
+                                <span class="fd-pending {{ data_get($exec,'pending',0) ? '' : 'is-zero' }}">
+                                    {{ data_get($exec,'pending',0) }} pending
+                                </span>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
             </div>
         </div>
 
-        {{-- Satisfaction --}}
-        <div class="card card-pad">
-            <div class="c-hdr">
-                <div class="c-label"><i class="bi bi-star-half"></i>Client satisfaction</div>
-            </div>
+        @if ($fdMore->count())
+    <button type="button" class="card-more" aria-expanded="false" onclick="toggleMore(this)">
+        <span class="ct-text">Show {{ $fdMore->count() }} more</span>
+        <i class="bi bi-chevron-down"></i>
+    </button>
+@else
+    <!-- <button type="button" class="card-more" data-panel="frontdesk">
+        <span class="ct-text">View all executives</span>
+        <i class="bi bi-arrow-right"></i>
+    </button> -->
+@endif
+    </div>
 
-            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;
-                        padding-bottom:14px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+    {{-- ══════ 3. CLIENT SATISFACTION ══════ --}}
+    <div class="card">
+        <div class="c-hdr">
+            <div class="c-label"><i class="bi bi-star-half"></i>Client satisfaction</div>
+        </div>
+
+        <div class="card-body">
+            <div class="sat-hdr">
                 <div>
-                    <div style="font-family:var(--font-body);font-size:3rem;
-                                font-weight:700;color:var(--gold);line-height:1;">
-                        {{ ! is_null(data_get($satisfaction ?? [], 'average')) ? number_format((float) data_get($satisfaction, 'average'), 1) : '—' }}
-                    </div>
-                    <div style="display:flex;gap:2px;color:#f59e0b;font-size:.85rem;margin-bottom:3px;">
-                        @for ($star = 1; $star <= 5; $star++)
-                            <i class="bi bi-star{{ $star <= round((float) data_get($satisfaction ?? [], 'average')) ? '-fill' : '' }}"></i>
+                    <div class="sat-score">{{ ! is_null($avg) ? number_format((float) $avg, 1) : '—' }}</div>
+                    <div class="sat-stars">
+                        @for ($s = 1; $s <= 5; $s++)
+                            <i class="bi bi-star{{ $s <= round((float) $avg) ? '-fill' : '' }}"></i>
                         @endfor
                     </div>
-                    <div style="font-size:.7rem;color:var(--muted);">
-                        {{ data_get($satisfaction ?? [], 'responses', 0) }} responses
-                        @if (! is_null(data_get($satisfaction ?? [], 'response_rate')))
-                            · {{ data_get($satisfaction, 'response_rate') }}% rate
+                    <div class="sat-meta">
+                        {{ data_get($sat,'responses',0) }} responses
+                        @if (! is_null(data_get($sat,'response_rate')))
+                            · {{ data_get($sat,'response_rate') }}% rate
                         @endif
                     </div>
                 </div>
-
                 <div class="metric-stack">
                     <div class="mini-metric">
                         <div class="mm-label">Completed SRs</div>
-                        <div class="mm-val">{{ data_get($satisfaction ?? [], 'completed_srs', 0) }}</div>
+                        <div class="mm-val">{{ data_get($sat,'completed_srs',0) }}</div>
                     </div>
                     <div class="mini-metric">
                         <div class="mm-label">Feedback submitted</div>
-                        <div class="mm-val" style="color:var(--gold);">{{ data_get($satisfaction ?? [], 'responses', 0) }}</div>
+                        <div class="mm-val" style="color:var(--gold);">{{ data_get($sat,'responses',0) }}</div>
                     </div>
                 </div>
             </div>
-                @if (! empty($clientReviews))
-    <div class="sec-ttl" style="margin:4px 0 8px;">Latest reviews</div>
 
-    @foreach ($clientReviews as $review)
-        <div class="lrow lrow-rule" style="align-items:flex-start;padding:8px;">
-            <span class="avatar-sm">{{ data_get($review, 'initials') }}</span>
-            <span style="flex:1;min-width:0;">
-                <span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                    <strong style="font-size:.75rem;color:var(--text);">{{ data_get($review, 'client') }}</strong>
-                    <span style="font-size:.68rem;color:var(--gold);">{{ data_get($review, 'code') }}</span>
-                </span>
-                <span class="t-stars" style="margin:2px 0;">
-                    @for ($star = 1; $star <= 5; $star++)
-                        <i class="bi bi-star{{ $star <= data_get($review, 'stars') ? '-fill' : '' }}"></i>
-                    @endfor
-                </span>
-                @if (data_get($review, 'comment'))
-                    <span style="font-size:.7rem;color:var(--muted);display:block;">{{ data_get($review, 'comment') }}</span>
-                @endif
-                <span style="font-size:.66rem;color:var(--light);display:block;">
-                    ML: {{ data_get($review, 'ml') }} · {{ data_get($review, 'when') }}
-                </span>
-            </span>
-        </div>
-    @endforeach
+          @if ($reviews->count())
+        <div class="sec-ttl">Latest reviews</div>
 
-    <div class="sec-ttl" style="margin:12px 0 8px;">Rating distribution</div>
-@endif
-            @forelse ($ratingBuckets as $bucket)
-                <div class="h-row">
-                    <span class="h-lbl">{{ data_get($bucket, 'stars') }}</span>
-                    <span class="h-track">
-                        <span class="h-fill" data-width="{{ round((int) data_get($bucket, 'count') / $maxRating * 100) }}%"></span>
+        @foreach ($firstReview as $review)
+            <div class="lrow lrow-rule rev-row">
+                <span class="avatar-sm">{{ data_get($review,'initials') }}</span>
+                <span class="l-body">
+                    <span class="rev-top">
+                        <strong class="rev-client">{{ data_get($review,'client') }}</strong>
+                        <span class="rev-code">{{ data_get($review,'code') }}</span>
                     </span>
-                    <span class="h-n">{{ data_get($bucket, 'count') }}</span>
-                </div>
-            @empty
-                <p class="empty"><i class="bi bi-star"></i>No ratings submitted yet.</p>
-            @endforelse
+                    <span class="t-stars">
+                        @for ($s = 1; $s <= 5; $s++)
+                            <i class="bi bi-star{{ $s <= (int) data_get($review,'stars') ? '-fill' : '' }}"></i>
+                        @endfor
+                    </span>
+                    @if (data_get($review,'comment'))
+                        <span class="rev-text">{{ data_get($review,'comment') }}</span>
+                    @endif
+                    <span class="rev-foot">ML: {{ data_get($review,'ml') }} · {{ data_get($review,'when') }}</span>
+                </span>
+            </div>
+        @endforeach
+    @endif
 
-            @if (data_get($satisfaction ?? [], 'flagged'))
-                <div style="margin-top:12px;padding:9px 12px;background:rgba(217,119,6,.07);
-                            border:1px solid rgba(217,119,6,.15);border-radius:8px;
-                            font-size:.74rem;color:var(--warn);display:flex;align-items:center;gap:6px;">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                    {{ data_get($satisfaction, 'flagged') }}
-                </div>
-            @endif
-        </div>
+    {{-- ↓↓↓ EVERYTHING BELOW IS HIDDEN UNTIL CLICK ↓↓↓ --}}
+    <div id="satMore" hidden>
+        @foreach ($moreReviews as $review)
+            <div class="lrow lrow-rule rev-row">
+                <span class="avatar-sm">{{ data_get($review,'initials') }}</span>
+                <span class="l-body">
+                    <span class="rev-top">
+                        <strong class="rev-client">{{ data_get($review,'client') }}</strong>
+                        <span class="rev-code">{{ data_get($review,'code') }}</span>
+                    </span>
+                    <span class="t-stars">
+                        @for ($s = 1; $s <= 5; $s++)
+                            <i class="bi bi-star{{ $s <= (int) data_get($review,'stars') ? '-fill' : '' }}"></i>
+                        @endfor
+                    </span>
+                    @if (data_get($review,'comment'))
+                        <span class="rev-text">{{ data_get($review,'comment') }}</span>
+                    @endif
+                    <span class="rev-foot">ML: {{ data_get($review,'ml') }} · {{ data_get($review,'when') }}</span>
+                </span>
+            </div>
+        @endforeach
+
+     @php
+    $buckets = collect($ratingBuckets ?? []);
+    $maxN    = max(1, (int) $buckets->max(fn($b) => (int) data_get($b, 'count', 0)));
+@endphp
+
+<div class="sec-ttl" style="margin-top:14px;">Rating distribution</div>
+
+@foreach ($buckets as $bucket)
+    @php
+        $n = (int) data_get($bucket, 'count', 0);
+        $w = $n > 0 ? max(8, round($n / $maxN * 100)) : 0;
+    @endphp
+    <div class="h-row">
+        <span class="h-lbl">{{ data_get($bucket, 'stars') }}</span>
+        <span class="h-track">
+            <span class="h-fill" style="width:{{ $w }}%;"></span>
+        </span>
+        <span class="h-n">{{ $n }}</span>
     </div>
+@endforeach
+</div>
+
+@if ($moreReviews->count() || count($ratingBuckets ?? []))
+    <button type="button" class="card-more" aria-expanded="false"
+            aria-controls="satMore" onclick="toggleList(this,'satMore')">
+        <span class="ct-text">Show details</span>
+        <i class="bi bi-chevron-down"></i>
+    </button>
+@endif
+</div>
+</div>
+
+
+
 
     {{-- ── SLIDE-IN DETAIL PANEL ──────────────────────────────────────── --}}
     <div class="panel-overlay" id="mmPanelOverlay"></div>
@@ -1070,7 +1836,83 @@ footer.footer { display: none; }
             ->all(),
     ];
 @endphp
+
+
+@php
+    $fdData = collect($frontDesk ?? [])->map(fn($e) => [
+        'initials'  => data_get($e, 'initials'),
+        'completed' => (int) data_get($e, 'completed', 0),
+        'pending'   => (int) data_get($e, 'pending', 0),
+    ])->values();
+@endphp
+
+<script>
+    window.DATA = window.DATA || {};
+    DATA.frontDesk = @json($fdData);
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+
+<script>
+
+    function dashForm(el) {
+    return el.closest('form');
+}
+function toggleList(btn, targetId) {
+    var card = btn.closest('.card');
+    var box  = card ? card.querySelector('#' + targetId) : document.getElementById(targetId);
+    if (!box) return;
+
+    var open = btn.getAttribute('aria-expanded') === 'true';
+    box.hidden = open;
+    btn.setAttribute('aria-expanded', String(!open));
+
+    var label = btn.querySelector('.ct-text');
+    if (!label) return;
+    if (!btn.dataset.orig) btn.dataset.orig = label.textContent;
+    label.textContent = open ? btn.dataset.orig : 'Show less';
+}
+function setRange(el, val) {
+    var f = dashForm(el);
+    f.querySelector('input[name="range"]').value = val;
+
+    var from = f.querySelector('input[name="from"]');
+    var to   = f.querySelector('input[name="to"]');
+    if (from) from.value = '';
+    if (to)   to.value   = '';
+
+    f.submit();
+}
+function toggleClients(btn) {
+    var more = document.getElementById('clientMore');
+    if (!more) return;
+
+    var open = btn.getAttribute('aria-expanded') === 'true';
+    var count = more.querySelectorAll('.lrow').length;
+
+    more.hidden = open;
+    btn.setAttribute('aria-expanded', String(!open));
+    btn.querySelector('.ct-text').textContent = open
+        ? 'Show ' + count + ' more'
+        : 'Show less';
+}
+function applyCustomRange(el) {
+    var f      = dashForm(el);
+    var fromEl = f.querySelector('input[name="from"]');
+    var toEl   = f.querySelector('input[name="to"]');
+
+    if (!fromEl.value || !toEl.value) return;   // wait for both
+
+    if (fromEl.value > toEl.value) {            // picked backwards
+        var swap = fromEl.value;
+        fromEl.value = toEl.value;
+        toEl.value   = swap;
+    }
+
+    f.querySelector('input[name="range"]').value = 'custom';
+    f.submit();
+}
+
+    </script>
 <script>
 window.MM_DASH = @json($mmChartData);
 </script>
@@ -1110,6 +1952,10 @@ window.MM_DASH = @json($mmChartData);
             requestAnimationFrame(() => { el.style.width = el.dataset.width; });
         });
     }
+
+
+
+  
 
     /* ----------------------------------------------------------- charts */
     function buildCharts() {
@@ -1188,37 +2034,68 @@ window.MM_DASH = @json($mmChartData);
 
        /* Top clients by SR volume */
 /* Top clients by SR volume */
-const clientEl = document.getElementById('mmClientChart');
+const clientEl   = document.getElementById('mmClientChart');
 const clientRows = DATA.clients || [];
 
 if (clientEl && clientRows.length) {
+    if (charts.mmClient) charts.mmClient.destroy();
+
+    const shorten = (s, max = 10) => {
+        s = String(s || '—');
+        return s.length > max ? s.slice(0, max) + '…' : s;
+    };
+
     charts.mmClient = new Chart(clientEl, {
         type: 'bar',
         data: {
-            labels: clientRows.map(c => String(c.name || '—').split(' ')[0]),
+            labels: clientRows.map(c => shorten(c.n ?? c.name)),
             datasets: [
                 {
                     label: 'In-warranty',
-                    data: clientRows.map(c => c.iw),
+                    data: clientRows.map(c => Number(c.iw) || 0),
                     backgroundColor: 'rgba(154,128,83,.75)',
                     borderRadius: 4, borderSkipped: false,
                 },
                 {
                     label: 'Out-of-warranty',
-                    data: clientRows.map(c => c.oow),
+                    data: clientRows.map(c => Number(c.oow) || 0),
                     backgroundColor: 'rgba(57,56,55,.45)',
                     borderRadius: 4, borderSkipped: false,
                 },
             ],
         },
         options: {
-            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-            plugins: { legend: { display: false }, tooltip: tooltipStyle },
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            barPercentage: 0.72,
+            categoryPercentage: 0.78,
+            layout: { padding: { right: 6 } },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    ...tooltipStyle,
+                    callbacks: {
+                        // show the full, untruncated name in the tooltip
+                        title: (items) => {
+                            const row = clientRows[items[0].dataIndex];
+                            return String(row?.n ?? row?.name ?? '—');
+                        },
+                    },
+                },
+            },
             scales: {
-                x: { stacked: true, grid: { color: C.grid },
-                     ticks: { color: C.muted, font: { size: 10 }, precision: 0 } },
-                y: { stacked: true, grid: { display: false },
-                     ticks: { color: C.text, font: { size: 10 } } },
+                x: {
+                    stacked: true,
+                    beginAtZero: true,
+                    grid: { color: C.grid },
+                    ticks: { color: C.muted, font: { size: 10 }, precision: 0 },
+                },
+                y: {
+                    stacked: true,
+                    grid: { display: false },
+                    ticks: { color: C.text, font: { size: 10 }, crossAlign: 'far' },
+                },
             },
         },
     });
@@ -1327,28 +2204,37 @@ if (clientEl && clientRows.length) {
         // }
 
         /* Front desk */
-        const fdEl = document.getElementById('mmFrontDeskChart');
-        if (fdEl && (DATA.frontDesk || []).length) {
-            charts.frontDesk = new Chart(fdEl, {
-                type: 'bar',
-                data: {
-                    labels: DATA.frontDesk.map((e) => e.initials),
-                    datasets: [
-                        { label: 'Completed', data: DATA.frontDesk.map((e) => e.completed), backgroundColor: 'rgba(154,128,83,.8)', borderRadius: 5, borderSkipped: false },
-                        { label: 'Pending',   data: DATA.frontDesk.map((e) => e.pending),   backgroundColor: 'rgba(217,119,6,.45)', borderRadius: 5, borderSkipped: false },
-                        { label: 'Rejected',  data: DATA.frontDesk.map((e) => e.rejected),  backgroundColor: 'rgba(220,38,38,.35)', borderRadius: 5, borderSkipped: false },
-                    ],
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: tooltipStyle },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { color: C.muted, font: { size: 11 } } },
-                        y: { grid: { color: C.grid }, ticks: { color: C.muted, font: { size: 10 } }, beginAtZero: true },
-                    },
-                },
-            });
-        }
+     const fdEl = document.getElementById('mmFrontDeskChart');
+if (fdEl && (DATA.frontDesk || []).length) {
+    if (charts.frontDesk) charts.frontDesk.destroy();
+
+    charts.frontDesk = new Chart(fdEl, {
+        type: 'bar',
+        data: {
+            labels: DATA.frontDesk.map((e) => e.initials),
+            datasets: [
+                { label: 'Completed', data: DATA.frontDesk.map((e) => Number(e.completed) || 0),
+                  backgroundColor: 'rgba(154,128,83,.8)', borderRadius: 5, borderSkipped: false },
+                { label: 'Pending', data: DATA.frontDesk.map((e) => Number(e.pending) || 0),
+                  backgroundColor: '#f3c4c4', borderRadius: 5, borderSkipped: false },
+            ],
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            barPercentage: 0.6,
+            categoryPercentage: 0.62,
+            plugins: { legend: { display: false }, tooltip: tooltipStyle },
+            scales: {
+                x: { grid: { display: false },
+                     ticks: { color: C.muted, font: { size: 11 } } },
+                y: { beginAtZero: true, grid: { color: C.grid, drawTicks: false },
+                     ticks: { color: C.muted, font: { size: 10 }, padding: 8,
+                              precision: 0, maxTicksLimit: 5 } },
+            },
+        },
+    });
+}
     }
 
     /* Re-tint charts when the app's theme toggle flips data-bs-theme */
@@ -1420,6 +2306,9 @@ if (clientEl && clientRows.length) {
         }).join('');
     }
 
+
+
+
     function openPanel(type, id) {
         if (!DATA.panelUrl) return;
 
@@ -1450,6 +2339,14 @@ if (clientEl && clientRows.length) {
                 panelBody.innerHTML = '<p class="empty"><i class="bi bi-wifi-off"></i>The request failed. Close the panel and try again.</p>';
             });
     }
+
+
+    // ← ADD THIS
+document.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-panel]');
+    if (!el) return;
+    openPanel(el.dataset.panel, el.dataset.id || null);
+});
 
     function closePanel() {
         overlay.classList.remove('open');
