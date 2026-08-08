@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'worker.reset' => \App\Http\Middleware\EnsurePasswordIsReset::class,
             'role'         => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
+
+        //   $middleware->redirectGuestsTo(fn ($request) =>
+        //     $request->expectsJson() ? null : route('login')
+        // );
+
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

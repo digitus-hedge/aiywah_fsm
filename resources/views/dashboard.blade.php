@@ -1002,6 +1002,52 @@ button.kpi.k5
     background: rgba(124, 58, 237, .1) !important;
     color: #7c3aed;
     }
+
+
+    /* cards 1 & 2 — whole list scrolls, header rows included */
+.card.is-open .client-list,
+.card.is-open .fd-list {
+    max-height: 180px;   /* ~4 rows */
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+}
+
+/* card 3 — reviews + distribution live inside the box itself */
+/* .card.is-open #satMore {
+    max-height: 200px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+} */
+
+/* slim scrollbar */
+.client-list::-webkit-scrollbar,
+.fd-list::-webkit-scrollbar,
+#satMore::-webkit-scrollbar { width: 5px; }
+
+.client-list::-webkit-scrollbar-thumb,
+.fd-list::-webkit-scrollbar-thumb,
+#satMore::-webkit-scrollbar-thumb {
+    background: rgba(154,128,83,.35);
+    border-radius: 3px;
+}
+
+.client-list, .fd-list, #satMore { scrollbar-width: thin; }
+
+.card.is-open .rev-list {
+    max-height: 300px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+}
+
+.rev-list::-webkit-scrollbar { width: 5px; }
+.rev-list::-webkit-scrollbar-thumb {
+    background: rgba(154,128,83,.35);
+    border-radius: 3px;
+}
+.rev-list { scrollbar-width: thin; }
 </style>
 @endpush
 
@@ -1351,11 +1397,15 @@ button.kpi.k5
                     <div class="mm-val" style="color:var(--warn);">{{ data_get($qc ?? [], 'pending_qc', 0) }}</div>
                     <div class="mm-sub">{{ data_get($qc ?? [], 'pending_qc_sub') }}</div>
                 </div>
-                <div class="mini-metric">
+
+                <div class="mini-metric"  data-panel="rework" style="cursor:pointer;">
                     <div class="mm-label">Rework this period</div>
-                    <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'rework_count', 0) }}</div>
-                    <div class="mm-sub">{{ data_get($qc ?? [], 'rework_sub') }}</div>
+                    <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'rework_sub', 0) }}</div>
+                    <!-- <div class="mm-sub">{{ data_get($qc ?? [], 'rework_sub') }}</div> -->
+
+                     <div class="mm-sub">Current Reworks Open</div>
                 </div>
+                
                 <div class="mini-metric" data-panel="sla-breach" style="cursor:pointer;"
                     title="{{ collect(data_get($qc ?? [], 'stage_breaches', []))->map(fn ($s) => $s['label'].': '.$s['count'].' over '.$s['target'].'h')->implode("\n") }}">
                     <div class="mm-label">SLA breaches </div>
@@ -1390,21 +1440,34 @@ button.kpi.k5
             </div>
 
             <div class="sec-ttl" style="margin-bottom:7px;">By trigger</div>
-            @forelse ($waTriggers as $trigger)
-                <div class="lrow lrow-rule">
-                    <span style="color:var(--muted);">{{ data_get($trigger, 'label') }}</span>
-                    <span style="display:flex;align-items:center;gap:8px;">
-                        <strong style="color:var(--text);">{{ data_get($trigger, 'sent', 0) }}</strong>
-                        @if ((int) data_get($trigger, 'failed') > 0)
-                            <span style="color:var(--danger);font-size:.67rem;">{{ data_get($trigger, 'failed') }} failed</span>
-                        @else
-                            <span style="color:var(--ok);font-size:.67rem;" aria-label="All delivered">&check;</span>
-                        @endif
-                    </span>
-                </div>
-            @empty
-                <p class="empty"><i class="bi bi-chat-dots"></i>No messages sent in this period.</p>
-            @endforelse
+           @forelse ($waTriggers as $trigger)
+    <div class="lrow lrow-rule">
+        <span style="color:var(--muted);">{{ data_get($trigger, 'label') }}</span>
+        <span style="display:flex;align-items:center;gap:8px;">
+            <span style="color:var(--ok);font-size:.67rem;">
+                <!-- {{ data_get($trigger, 'success', 0) }} ok -->
+            </span>
+
+               <strong style="color:var(--text);min-width:34px;text-align:justify;">
+                {{ data_get($trigger, 'sent', 0) }}
+            </strong>
+
+            @if ((int) data_get($trigger, 'failed') > 0)
+                <span style="color:var(--danger);font-size:.67rem;">
+                    {{ data_get($trigger, 'failed') }} failed
+                </span>
+            @endif
+            @if ((int) data_get($trigger, 'pending') > 0)
+                <span style="color:var(--muted);font-size:.67rem;">
+                    {{ data_get($trigger, 'pending') }} pending
+                </span>
+            @endif
+         
+        </span>
+    </div>
+@empty
+    <p class="empty"><i class="bi bi-chat-dots"></i>No messages sent in this period.</p>
+@endforelse
         </div>
     </div>
 
@@ -1415,96 +1478,107 @@ button.kpi.k5
         <span class="sec-line"></span>
     </div>
 
-    <div class="card mb-block">
-        <div class="c-hdr" style="padding:14px 18px;margin-bottom:0;">
-            <div class="c-label"><i class="bi bi-trophy"></i>Performance ranked</div>
-            <div class="leg-row">
-                <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>Jobs</span>
-                <span class="leg"><span class="leg-dot" style="background:#15803d;"></span>No rework</span>
-                <span class="leg"><span class="leg-dot" style="background:#d97706;"></span>1 rework</span>
-                <span class="leg"><span class="leg-dot" style="background:#dc2626;"></span>2+ rework</span>
-            </div>
-        </div>
-
-        <div class="tbl-scroll">
-            <table class="t-tbl">
-                <thead>
-                    <tr>
-                        <th style="padding-left:18px;">#</th>
-                        <th>Technician</th>
-                        <th>Jobs completed</th>
-                        <th>Field hours</th>
-                        <th>Client rating</th>
-                        <th>Rework</th>
-                        <th>Pending</th>
-                        <th>SLA breaches</th>
-                        <th>Field expenses</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($technicians as $tech)
-                        @php
-                            $jobs      = (int) data_get($tech, 'jobs');
-                            $rework    = (int) data_get($tech, 'rework');
-                            $rating    = (float) data_get($tech, 'rating');
-                            $reworkCls = $rework === 0 ? 'p0' : ($rework <= 1 ? 'p1' : 'p2');
-                        @endphp
-                        <tr data-panel="technician" data-panel-id="{{ data_get($tech, 'id') }}">
-                            <td style="color:var(--light);font-size:.78rem;padding-left:18px;">{{ $loop->iteration }}</td>
-                            <td>
-                                <div style="display:flex;align-items:center;gap:9px;">
-                                    <span class="t-av">{{ data_get($tech, 'initials') }}</span>
-                                    <span>
-                                        <span class="t-name">{{ data_get($tech, 'name') }}</span>
-                                        <span class="t-domain" style="display:block;">{{ data_get($tech, 'department') }}</span>
-                                    </span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="t-bar-wrap" style="display:block;">
-                                    <span class="t-bar-fill" style="display:block;" data-width="{{ round($jobs / $maxJobs * 100) }}%"></span>
-                                </span>
-                                <span style="font-size:.69rem;color:var(--muted);margin-top:2px;display:block;">{{ $jobs }} jobs</span>
-                            </td>
-                            <td style="font-weight:600;">{{ data_get($tech, 'hours') }}h</td>
-                            <td>
-                                <span class="t-stars">
-                                    @for ($star = 1; $star <= 5; $star++)
-                                        <i class="bi bi-star{{ $star <= round($rating) ? '-fill' : '' }}"></i>
-                                    @endfor
-                                </span>
-                                <span style="font-size:.69rem;color:var(--muted);">{{ number_format($rating, 1) }}</span>
-                            </td>
-                            <td><span class="t-pill {{ $reworkCls }}"><i class="bi bi-arrow-counterclockwise"></i>{{ $rework }}</span></td>
-                            <td title="{{ implode("\n", data_get($tech, 'pending_items', [])) ?: 'Nothing outstanding' }}"
-                                style="font-size:.8rem;font-weight:600;cursor:help;
-                                    color:{{ (int) data_get($tech, 'pending') === 0 ? 'var(--ok)' : 'var(--warn)' }};">
-                                {{ data_get($tech, 'pending', 0) }}
-                                @if ((int) data_get($tech, 'pending') > 0)
-                                    <i class="bi bi-info-circle" style="font-size:.7rem;opacity:.6;"></i>
-                                @endif
-                            </td>
-
-                            <td title="{{ implode("\n", data_get($tech, 'breach_items', [])) ?: 'No breaches' }}">
-                                <span class="t-pill {{ data_get($tech, 'critical') ? 'p2' : ((int) data_get($tech, 'sla_breaches') > 0 ? 'p1' : 'p0') }}"
-                                    style="cursor:help;">
-                                    @if (data_get($tech, 'critical'))
-                                        <i class="bi bi-exclamation-triangle-fill"></i>
-                                    @endif
-                                    {{ data_get($tech, 'sla_breaches', 0) }}
-                                </span>
-                            </td>
-                            <td style="font-size:.78rem;color:var(--muted);">{{ data_get($tech, 'expenses_formatted') }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8"><p class="empty"><i class="bi bi-person-badge"></i>No technician activity in this period.</p></td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+  <div class="card mb-block">
+    <div class="c-hdr" style="padding:14px 18px;margin-bottom:0;">
+        <div class="c-label"><i class="bi bi-trophy"></i>Performance ranked</div>
+        <div class="leg-row">
+            <span class="leg"><span class="leg-dot" style="background:#9a8053;"></span>Jobs</span>
+            <span class="leg"><span class="leg-dot" style="background:#15803d;"></span>No rework</span>
+            <span class="leg"><span class="leg-dot" style="background:#d97706;"></span>1 rework</span>
+            <span class="leg"><span class="leg-dot" style="background:#dc2626;"></span>2+ rework</span>
         </div>
     </div>
+
+    <div class="tbl-scroll">
+        <table class="t-tbl">
+            <thead>
+                <tr>
+                    <th style="padding-left:18px;">#</th>
+                    <th>Technician</th>
+                    <th>Jobs completed</th>
+                    <th>Field hours</th>
+                    <th>Client rating</th>
+                    <th>Rework</th>
+                    <th>Pending</th>
+                    <th>SLA breaches</th>
+                    <th>Field expenses</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($technicians as $tech)
+                    @php
+                        $jobs      = (int) data_get($tech, 'jobs');
+                        $rework    = (int) data_get($tech, 'rework');
+                        $rating    = (float) data_get($tech, 'rating');
+                        $reworkCls = $rework === 0 ? 'p0' : ($rework <= 1 ? 'p1' : 'p2');
+                        $barMax    = max(1, (int) $maxJobs);
+                        $isExtra   = $loop->iteration > 3;
+                    @endphp
+                    <tr data-panel="technician"
+                        data-panel-id="{{ data_get($tech, 'id') }}"
+                        class="{{ $isExtra ? 'more-row' : '' }}"
+                        @if ($isExtra) hidden @endif>
+                        <td style="color:var(--light);font-size:.78rem;padding-left:18px;">{{ $loop->iteration }}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:9px;">
+                                <span class="t-av">{{ data_get($tech, 'initials') }}</span>
+                                <span>
+                                    <span class="t-name">{{ data_get($tech, 'name') }}</span>
+                                    <span class="t-domain" style="display:block;">{{ data_get($tech, 'department') }}</span>
+                                </span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="t-bar-wrap" style="display:block;">
+                                <span class="t-bar-fill" style="display:block;" data-width="{{ round($jobs / $barMax * 100) }}%"></span>
+                            </span>
+                            <span style="font-size:.69rem;color:var(--muted);margin-top:2px;display:block;">{{ $jobs }} jobs</span>
+                        </td>
+                        <td style="font-weight:600;">{{ data_get($tech, 'hours') }}h</td>
+                        <td>
+                            <span class="t-stars">
+                                @for ($star = 1; $star <= 5; $star++)
+                                    <i class="bi bi-star{{ $star <= round($rating) ? '-fill' : '' }}"></i>
+                                @endfor
+                            </span>
+                            <span style="font-size:.69rem;color:var(--muted);">{{ number_format($rating, 1) }}</span>
+                        </td>
+                        <td><span class="t-pill {{ $reworkCls }}"><i class="bi bi-arrow-counterclockwise"></i>{{ $rework }}</span></td>
+                        <td title="{{ implode("\n", data_get($tech, 'pending_items', [])) ?: 'Nothing outstanding' }}"
+                            style="font-size:.8rem;font-weight:600;cursor:help;
+                                color:{{ (int) data_get($tech, 'pending') === 0 ? 'var(--ok)' : 'var(--warn)' }};">
+                            {{ data_get($tech, 'pending', 0) }}
+                            @if ((int) data_get($tech, 'pending') > 0)
+                                <i class="bi bi-info-circle" style="font-size:.7rem;opacity:.6;"></i>
+                            @endif
+                        </td>
+                        <td title="{{ implode("\n", data_get($tech, 'breach_items', [])) ?: 'No breaches' }}">
+                            <span class="t-pill {{ data_get($tech, 'critical') ? 'p2' : ((int) data_get($tech, 'sla_breaches') > 0 ? 'p1' : 'p0') }}"
+                                style="cursor:help;">
+                                @if (data_get($tech, 'critical'))
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                @endif
+                                {{ data_get($tech, 'sla_breaches', 0) }}
+                            </span>
+                        </td>
+                        <td style="font-size:.78rem;color:var(--muted);">{{ data_get($tech, 'expenses_formatted') }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="9"><p class="empty"><i class="bi bi-person-badge"></i>No technician activity in this period.</p></td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    @if (count($technicians) > 3)
+    <button type="button" class="card-more" aria-expanded="false">
+        <span class="ct-text">Show {{ count($technicians) - 3 }} more</span>
+        <i class="bi bi-chevron-down"></i>
+    </button>
+@endif
+</div>
 
     {{-- ── CLIENTS / FRONT DESK / SATISFACTION ────────────────────────── --}}
     <div class="sec-row">
@@ -1565,7 +1639,7 @@ button.kpi.k5
                 @endforelse
 
                 @if ($moreClients->count())
-                    <div id="clientMore" hidden>
+                    <div  class="more-box" id="clientMore" hidden>
                         @foreach ($moreClients as $client)
                             <button type="button" class="lrow" onclick="openPanel('clients',{{ data_get($client,'id') }})">
                                 <span class="lrow-l">
@@ -1585,7 +1659,7 @@ button.kpi.k5
 
         @if ($moreClients->count())
             <button type="button" class="card-more" aria-expanded="false"
-                    aria-controls="clientMore" onclick="toggleList(this,'clientMore')">
+                    aria-controls="clientMore">
                 <span class="ct-text">Show {{ $moreClients->count() }} more</span>
                 <i class="bi bi-chevron-down"></i>
             </button>
@@ -1627,7 +1701,7 @@ button.kpi.k5
                 @endforelse
 
                 @if ($fdMore->count())
-                    <div id="fdMore" hidden>
+                    <div class="more-box" id="fdMore" hidden>
                         @foreach ($fdMore as $exec)
                             <div class="lrow lrow-rule">
                                 <span class="avatar-sm">{{ data_get($exec,'initials') }}</span>
@@ -1646,15 +1720,12 @@ button.kpi.k5
         </div>
 
         @if ($fdMore->count())
-    <button type="button" class="card-more" aria-expanded="false" onclick="toggleMore(this)">
+    <button type="button" class="card-more" aria-expanded="false"   aria-controls="fdMore">
         <span class="ct-text">Show {{ $fdMore->count() }} more</span>
         <i class="bi bi-chevron-down"></i>
     </button>
 @else
-    <!-- <button type="button" class="card-more" data-panel="frontdesk">
-        <span class="ct-text">View all executives</span>
-        <i class="bi bi-arrow-right"></i>
-    </button> -->
+
 @endif
     </div>
 
@@ -1692,6 +1763,9 @@ button.kpi.k5
                 </div>
             </div>
 
+
+            <div class="rev-list">
+
           @if ($reviews->count())
         <div class="sec-ttl">Latest reviews</div>
 
@@ -1718,7 +1792,7 @@ button.kpi.k5
     @endif
 
     {{-- ↓↓↓ EVERYTHING BELOW IS HIDDEN UNTIL CLICK ↓↓↓ --}}
-    <div id="satMore" hidden>
+    <div class="more-box"   id="satMore" hidden>
         @foreach ($moreReviews as $review)
             <div class="lrow lrow-rule rev-row">
                 <span class="avatar-sm">{{ data_get($review,'initials') }}</span>
@@ -1761,16 +1835,17 @@ button.kpi.k5
     </div>
 @endforeach
 </div>
-
+</div>
+</div>
 @if ($moreReviews->count() || count($ratingBuckets ?? []))
     <button type="button" class="card-more" aria-expanded="false"
-            aria-controls="satMore" onclick="toggleList(this,'satMore')">
+            aria-controls="satMore" >
         <span class="ct-text">Show details</span>
         <i class="bi bi-chevron-down"></i>
     </button>
 @endif
 </div>
-</div>
+
 
 
 
@@ -1853,6 +1928,10 @@ button.kpi.k5
     function dashForm(el) {
     return el.closest('form');
 }
+
+
+
+
 function toggleList(btn, targetId) {
     var card = btn.closest('.card');
     var box  = card ? card.querySelector('#' + targetId) : document.getElementById(targetId);
@@ -1878,19 +1957,44 @@ function setRange(el, val) {
 
     f.submit();
 }
-function toggleClients(btn) {
-    var more = document.getElementById('clientMore');
-    if (!more) return;
+
+
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.card-more');
+    if (!btn) return;
 
     var open = btn.getAttribute('aria-expanded') === 'true';
-    var count = more.querySelectorAll('.lrow').length;
+    var card = btn.closest('.card');
 
-    more.hidden = open;
+    var rows = card ? card.querySelectorAll('.more-row') : [];
+
+    if (rows.length) {
+        rows.forEach(function (r) { r.hidden = open; });
+    } else {
+        var box = document.getElementById(btn.getAttribute('aria-controls'));
+        if (!box) return;
+        box.hidden = open;
+    }
+
     btn.setAttribute('aria-expanded', String(!open));
-    btn.querySelector('.ct-text').textContent = open
-        ? 'Show ' + count + ' more'
-        : 'Show less';
-}
+    if (card) card.classList.toggle('is-open', !open);
+
+    var label = btn.querySelector('.ct-text');
+    if (label) {
+        if (!btn.dataset.orig) btn.dataset.orig = label.textContent.trim();
+        label.textContent = open ? btn.dataset.orig : 'Show less';
+    }
+
+    var icon = btn.querySelector('.bi');
+    if (icon) {
+        icon.classList.toggle('bi-chevron-down', open);
+        icon.classList.toggle('bi-chevron-up', !open);
+    }
+});
+
+
+
+
 function applyCustomRange(el) {
     var f      = dashForm(el);
     var fromEl = f.querySelector('input[name="from"]');

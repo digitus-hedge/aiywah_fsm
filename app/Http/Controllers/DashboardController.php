@@ -44,11 +44,11 @@ class DashboardController extends Controller
     ];
 
     private const WA_TRIGGER_EVENTS = [
-    'sr_status_update',
-    'internal_sr_accepted',
-    'warranty_approved',
-    'maintenance_started',
-];
+        'sr_status_update',
+        'internal_sr_accepted',
+        'warranty_approved',
+        'maintenance_started',
+    ];
 
     private const WA_EXCLUDED_EVENTS = [
         'client_registration',
@@ -1293,7 +1293,7 @@ class DashboardController extends Controller
             'first_pass_sub'  => $firstPass->count() . ' of ' . $reviewed->count() . ' reviewed',
 
             'rework_count' => $rework,
-            'rework_sub'   => $reworkOpen . ' currently open',
+            'rework_sub'   => $reworkOpen . '',
 
             'sla_breaches'   => $breached->count(),
             'sla_breach_sub' => $breached->isEmpty()
@@ -1582,34 +1582,55 @@ class DashboardController extends Controller
 
 
 
+    private function waBase(Carbon $start, Carbon $end)
+    {
+        return DB::table(self::WHATSAPP_TABLE)
+            ->whereBetween('created_at', [$start, $end])
+            ->whereRaw("REPLACE(REPLACE(LOWER(event), '_', ''), '-', '') NOT LIKE ?", ['%clientregistration%']);
+    }
+
     private function waTriggers(Carbon $start, Carbon $end): array
     {
         if (! self::WHATSAPP_TABLE || ! Schema::hasTable(self::WHATSAPP_TABLE)) {
             return [];
         }
 
-        return DB::table(self::WHATSAPP_TABLE)
-            ->whereBetween('created_at', [$start, $end])
-            ->whereRaw("REPLACE(REPLACE(LOWER(event), '_', ''), '-', '') NOT LIKE ?", ['%clientregistration%'])
+        $rows = $this->waBase($start, $end)
             ->selectRaw("
-        event as label,
-        COUNT(*) as sent,
-        SUM(CASE WHEN LOWER(status) = 'failed' THEN 1 ELSE 0 END) as failed,
-        SUM(CASE WHEN LOWER(status) IN ('delivered','sent','read') THEN 1 ELSE 0 END) as success,
-        SUM(CASE WHEN LOWER(status) = 'pending' THEN 1 ELSE 0 END) as pending
-    ")
+            event as label,
+            COUNT(*) as sent,
+            SUM(CASE WHEN LOWER(status) = 'failed' THEN 1 ELSE 0 END) as failed,
+            SUM(CASE WHEN LOWER(status) IN ('delivered','sent','read') THEN 1 ELSE 0 END) as success,
+            SUM(CASE WHEN LOWER(status) IN ('pending','queued','accepted') THEN 1 ELSE 0 END) as pending
+        ")
             ->groupBy('event')
             ->orderByDesc('sent')
-            ->limit(4)
-            ->get()
-            ->map(fn($row) => [
-                'label'   => ucwords(str_replace('_', ' ', (string) $row->label)),
-                'sent'    => (int) $row->sent,
-                'failed'  => (int) $row->failed,
-                'success' => (int) $row->success,
-                'pending' => (int) $row->pending,
-            ])
-            ->all();
+            ->get();
+
+        $top  = $rows->take(4);
+        $rest = $rows->skip(4);
+
+        $out = $top->map(fn($r) => [
+            'label'   => ucwords(str_replace('_', ' ', (string) $r->label)),
+            'sent'    => (int) $r->sent,
+            'failed'  => (int) $r->failed,
+            'success' => (int) $r->success,
+            'pending' => (int) $r->pending,
+            'other'   => (int) $r->sent - (int) $r->failed - (int) $r->success - (int) $r->pending,
+        ])->all();
+
+        if ($rest->isNotEmpty()) {
+            $out[] = [
+                'label'   => 'Other (' . $rest->count() . ' triggers)',
+                'sent'    => (int) $rest->sum('sent'),
+                'failed'  => (int) $rest->sum('failed'),
+                'success' => (int) $rest->sum('success'),
+                'pending' => (int) $rest->sum('pending'),
+                'other'   => 0,
+            ];
+        }
+
+        return $out;
     }
 
     /* =====================================================================
@@ -1640,6 +1661,7 @@ class DashboardController extends Controller
             'pending-actions' => ['Pending actions', 'bi-hourglass-split', 'Waiting on a decision'],
             'slow-srs'        => ['Stalled requests', 'bi-clock-history', 'No movement in 24h'],
             'pending-qc'      => ['Pending QC', 'bi-patch-check', 'Waiting on review'],
+            'rework'          => ['Returned for rework', 'bi-arrow-counterclockwise', 'Sent back after QC'],
             'invoices'        => ['Invoiced requests', 'bi-receipt', 'Billed this period'],
             'month-srs'       => ['All SRs this period', 'bi-ticket-detailed', 'Every request logged'],
             'technician'      => ['Technician detail', 'bi-person-badge', 'Recent assignments'],
@@ -1655,6 +1677,9 @@ class DashboardController extends Controller
             'sla-breach'      => $all->filter(fn($sr) => $this->metSla($sr) === false),
             'pending-actions' => $all->whereIn('status', self::AWAITING_ACTION),
             'slow-srs'        => $all->filter(fn($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay())),
+            'pending-qc'      => $all->where('status', 'Qc Review'),
+            // 'rework'          => $all->filter(fn($sr) => !empty($sr->rework_notes)),
+            'rework'          => $all->where('status', 'Rework'),
             'invoices'        => $all->filter(fn($sr) => $sr->invoice_submitted_at),
             'technician'      => $all->where('assigned_user_id', $id),
             'client'          => $all->filter(fn($sr) => optional($sr->project)->client_id == $id),

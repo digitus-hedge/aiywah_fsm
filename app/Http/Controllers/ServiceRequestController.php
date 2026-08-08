@@ -983,7 +983,7 @@ class ServiceRequestController extends Controller
         // visiting this page directly should show the whole queue.
         if (!empty($filters['range'])) {
             [$start, $end] = $this->resolveRange($filters);
-            $query->whereBetween('created_at', [$start, $end]);
+            $query->whereBetween('updated_at', [$start, $end]);
         }
 
         if (!empty($filters['client'])) {
