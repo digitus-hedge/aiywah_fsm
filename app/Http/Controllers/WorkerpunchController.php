@@ -11,6 +11,7 @@ use App\Models\PunchPhoto;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class WorkerpunchController extends Controller
@@ -66,13 +67,28 @@ class WorkerpunchController extends Controller
         $exists = Punch::where('service_request_id', $sr->id)
             ->whereIn('status', ['draft', 'punched_in'])
             ->exists();
-        abort_if(
-            $sr->eta_at && now()->addMinutes(15)->lt($sr->eta_at),
-            422,
-            'Too early — scheduled for ' . $sr->eta_at->format('d M Y, H:i')
-                . '. Reschedule if you need to start now.'
-        );
 
+          Log::info('punchIn debug', [
+    'sr'     => $sr?->id,
+    'eta_at' => $sr?->eta_at,
+    'type'   => get_debug_type($sr?->eta_at),
+]);
+
+        // abort_if(
+        //     $sr->eta_at && now()->addMinutes(15)->lt($sr->eta_at),
+        //     422,
+        //     'Too early — scheduled for ' . $sr->eta_at->format('d M Y, H:i')
+        //         . '. Reschedule if you need to start now.'
+        // );
+
+        if ($sr->eta_at && now()->addMinutes(15)->lt($sr->eta_at)) {
+    abort(422, 'Too early — scheduled for ' . $sr->eta_at->format('d M Y, H:i')
+        . '. Reschedule if you need to start now.');
+}
+
+
+
+        
         $oldStatus = $sr->status;          // capture BEFORE the transaction updates it
 
         $punch = DB::transaction(function () use ($sr, $worker, $data, $oldStatus) {

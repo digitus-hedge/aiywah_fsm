@@ -310,7 +310,7 @@ a{text-decoration:none;}
 .qc-item:hover{box-shadow:0 6px 22px rgba(0,0,0,.09);}
 .qc-rail{position:absolute;left:0;top:0;bottom:0;width:4px;}
 .qi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
-.qi-id{font-family:'Cormorant Garamond',Georgia,serif;font-size:.95rem;
+.qi-id{font-size:.95rem;
   font-weight:700;color:#9a8053;letter-spacing:.01em;}
 .qi-client{font-size:.83rem;font-weight:600;color:var(--text-heading);margin-top:1px;}
 .qi-site{font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;
@@ -404,7 +404,7 @@ a{text-decoration:none;}
 .kb-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px);}
 .kb-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px;
   margin-bottom:5px;}
-.kb-id{font-family:'Cormorant Garamond',Georgia,serif;font-size:.84rem;
+.kb-id{font-size:.84rem;
   font-weight:700;color:#9a8053;letter-spacing:.01em;}
 .kb-sla{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:6px;}
 .sla-ok{background:rgba(21,128,61,.1);color:#15803d;}
@@ -531,6 +531,110 @@ a{text-decoration:none;}
     padding:unset;
 }
 
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.fq-pill,
+.fq-date {
+  height: 34px;              /* one shared height */
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: .75rem;
+  border-radius: 999px;
+  line-height: 1;
+}
+
+.fq-date {
+  padding: 0 12px;
+  color: var(--text);
+  border: 1px solid rgba(154,128,83,.25);
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.fq-date:hover  { border-color: rgba(154,128,83,.5); }
+.fq-date:focus  {
+  outline: none;
+  border-color: #9a8053;
+  box-shadow: 0 0 0 3px rgba(154,128,83,.12);
+}
+
+.fq-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;                 /* forms carry default margin */
+}
+
+.fq-sep {
+  color: var(--muted);
+  font-size: .7rem;
+  opacity: .6;
+  line-height: 1;
+}
+
+.fq-date::-webkit-calendar-picker-indicator {
+  opacity: .45;
+  cursor: pointer;
+  margin-left: 6px;
+}
+.fq-date::-webkit-calendar-picker-indicator:hover { opacity: .8; }
+.fq-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 1.05rem;
+  line-height: 1;
+  transition: background .15s, color .15s;
+}
+
+.fq-clear:hover {
+  background: rgba(220,38,38,.1);
+  color: #dc2626;
+}
+
+.sec-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sec-line {
+  flex: 1;
+  height: 1px;
+  background: var(--track);
+}
+
+.sec-more {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .7rem;
+  font-weight: 600;
+  color: #9a8053;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .15s, gap .15s;
+}
+
+.sec-more:hover { color: #7a6440; gap: 8px; }
+.sec-more .bi   { font-size: .65rem; }
+
   </style>
 
   @endpush
@@ -582,17 +686,35 @@ a{text-decoration:none;}
 @endforeach
       </div>
     </div>
-    <!-- <div class="filter-bar">
-      <button class="fq-pill active" onclick="setPeriod(this,'This Month')">This Month</button>
-      <button class="fq-pill" onclick="setPeriod(this,'This Week')">This Week</button>
-      <button class="fq-pill" onclick="setPeriod(this,'Today')">Today</button>
-    </div> -->
+    
 
-    <div class="filter-bar">
+    <!-- <div class="filter-bar">
   @foreach($periodOptions as $key => $label)
     <button class="fq-pill {{ ($filters['period'] ?? 'month') === $key ? 'active' : '' }}"
             onclick="setPeriod('{{ $key }}')">{{ $label }}</button>
   @endforeach
+</div> -->
+
+
+<div class="filter-bar">
+  @foreach($periodOptions as $key => $label)
+    <button type="button"
+            class="fq-pill {{ ($filters['period'] ?? 'month') === $key && empty($filters['from']) ? 'active' : '' }}"
+            onclick="setPeriod('{{ $key }}')">{{ $label }}</button>
+  @endforeach
+
+  <form method="GET" class="fq-range" id="rangeForm">
+    <input type="date" name="from" value="{{ $filters['from'] ?? '' }}"
+           max="{{ now()->toDateString() }}" class="fq-date">
+    <span class="fq-sep">→</span>
+    <input type="date" name="to" value="{{ $filters['to'] ?? '' }}"
+           max="{{ now()->toDateString() }}" class="fq-date">
+    @if (! empty($filters['from']) || ! empty($filters['to']))
+     <a href="{{ url()->current() }}"
+   class="fq-clear {{ empty($filters['from']) && empty($filters['to']) ? 'is-off' : '' }}"
+   title="Clear date range">&times;</a>
+    @endif
+  </form>
 </div>
 
   </div>
@@ -626,7 +748,7 @@ a{text-decoration:none;}
     <div class="panel">
       <div class="p-hdr">
         <div class="p-ttl"><i class="bi bi-bar-chart-steps"></i>What's in your queue</div>
-        <div class="p-note">Dispatch + rework · 6 SRs</div>
+   <div class="p-note">Dispatch + Rework · {{ data_get($composition, 'total', 0) }} SRs</div>
       </div>
       <div class="comp" id="compHost"></div>
     </div>
@@ -643,28 +765,53 @@ a{text-decoration:none;}
     </div>
 
     <!-- COMPLETED TREND -->
-    <div class="panel">
-      <div class="p-hdr">
+    @php
+    $cur   = (int) data_get($closedOut, 'current', 0);
+    $prev  = (int) data_get($closedOut, 'previous', 0);
+    $diff  = (int) data_get($closedOut, 'diff', 0);
+    $pct   = data_get($closedOut, 'pct');
+    $max   = max(1, (int) data_get($closedOut, 'max', 1));
+
+    $hCur  = max(8, (int) round($cur  / $max * 79));
+    $hPrev = max(8, (int) round($prev / $max * 79));
+
+    $up    = $diff >= 0;
+@endphp
+
+<div class="panel">
+    <div class="p-hdr">
         <div class="p-ttl"><i class="bi bi-check2-circle"></i>Closed out</div>
-        <div class="p-note">Month over month</div>
-      </div>
-      <div class="trend">
+        <div class="p-note">{{ data_get($closedOut, 'label_previous', 'Last month') }} vs {{ data_get($closedOut, 'label_current', 'this month') }}</div>
+    </div>
+    <div class="trend">
         <div class="tbar-wrap">
-          <div class="tbar-n">22</div>
-          <div class="tbar" style="height:62px;background:var(--track);"></div>
-          <div class="tbar-l">Last month</div>
+            <div class="tbar-n">{{ $prev }}</div>
+            <div class="tbar" style="height:{{ $hPrev }}px;background:var(--track);"></div>
+            <div class="tbar-l">{{ data_get($closedOut, 'label_previous', 'Last month') }}</div>
         </div>
         <div class="tbar-wrap">
-          <div class="tbar-n" style="color:#15803d;">28</div>
-          <div class="tbar" style="height:79px;background:linear-gradient(to top,#15803d,#3aa564);"></div>
-          <div class="tbar-l">This month</div>
+            <div class="tbar-n" style="color:{{ $up ? '#15803d' : '#dc2626' }};">{{ $cur }}</div>
+            <div class="tbar" style="height:{{ $hCur }}px;background:linear-gradient(to top,{{ $up ? '#15803d,#3aa564' : '#dc2626,#ef4444' }});"></div>
+            <div class="tbar-l">{{ data_get($closedOut, 'label_current', 'This month') }}</div>
         </div>
         <div class="trend-note" style="padding-bottom:20px;">
-          <span class="trend-up"><i class="bi bi-arrow-up"></i> 6 more</span> SRs completed than last month —
-          a 27% lift, with rework holding at 8%.
+            @if ($diff > 0)
+                <span class="trend-up"><i class="bi bi-arrow-up"></i> {{ $diff }} more</span>
+                {{ \Illuminate\Support\Str::plural('SR', $diff) }} completed
+                @if (! is_null($pct)) — a {{ $pct }}% lift @endif
+            @elseif ($diff < 0)
+                <span class="trend-down"><i class="bi bi-arrow-down"></i> {{ abs($diff) }} fewer</span>
+                {{ \Illuminate\Support\Str::plural('SR', abs($diff)) }} completed
+                @if (! is_null($pct)) — a {{ abs($pct) }}% drop @endif
+            @else
+                No change from the previous period.
+            @endif
+            @if (! is_null(data_get($metrics, 'reworkRate')))
+                , with rework at {{ data_get($metrics, 'reworkRate') }}%.
+            @endif
         </div>
-      </div>
     </div>
+</div>
   </div>
 
   <!-- ══ TEAM ══ -->
@@ -687,6 +834,17 @@ a{text-decoration:none;}
     <div class="sec-line"></div>
     <div class="sec-ttl"><i class="bi bi-send"></i>Waiting on you to dispatch — {{ $pendingItems->count() }} {{ \Illuminate\Support\Str::plural('SR', $pendingItems->count()) }}
 </div>
+  @if ($pendingItems->count())
+
+ <a href="{{ route('dispatch_engine', array_filter([
+        'range' => ! empty($filters['from']) ? 'custom' : ($filters['period'] ?? null),
+        'from'  => $filters['from'] ?? null,
+        'to'    => $filters['to'] ?? null,
+   ])) }}" class="sec-more">
+  View all <i class="bi bi-arrow-right"></i>
+</a>
+@endif
+
     <div class="sec-line"></div>
   </div>
   <div class="q2" id="pendingList"></div>
@@ -705,6 +863,14 @@ a{text-decoration:none;}
     <div class="sec-line"></div>
     <div class="sec-ttl" style="color:#7c3aed;"><i class="bi bi-patch-check" style="color:#7c3aed;"></i>Your QC review queue
       <span style="font-size:.62rem;padding:2px 8px;border-radius:20px;background:rgba(124,58,237,.1);color:#7c3aed;font-weight:700;margin-left:4px;">Permission enabled</span>
+
+     <a href="{{ route('qc_review', array_filter([
+        'range' => ! empty($filters['from']) ? 'custom' : ($filters['period'] ?? null),
+        'from'  => $filters['from'] ?? null,
+        'to'    => $filters['to'] ?? null,
+   ])) }}" class="sec-more" style="text-transform:none;">
+  View all <i class="bi bi-arrow-right"></i>
+</a>
     </div>
     <div class="sec-line"></div>
   </div>
@@ -767,26 +933,10 @@ a{text-decoration:none;}
 var PENDING_SRS = @json($pendingItems);
 var REWORK_SRS = @json($reworkItems);
 var ACTIVE_FIELD = {{ $activeFieldCount }};
+var COMPOSITION = @json($composition);
+var CLIENT_SPREAD = @json($clientSpread);
 
-var FIELD_SRS = {
-  assigned:[
-    {id:'SR-2025-0049',client:'Emirates NBD',    site:'DIFC Branch B',      ml:'Khalid S.', mlInit:'KS', time:'ETA 3:00 PM', sla:'ok'},
-    {id:'SR-2025-0058',client:'Abu Dhabi Ports', site:'Khalifa Port Ctrl',  ml:'Mohammed K.',mlInit:'MK', time:'ETA 2:30 PM', sla:'risk'},
-  ],
-  eta:[
-    {id:'SR-2025-0059',client:'Emaar Properties',site:'Downtown Tower 3',   ml:'Ahmed R.',  mlInit:'AR', time:'ETA 4:00 PM', sla:'ok'},
-    {id:'SR-2025-0060',client:'DP World',         site:'Jebel Ali T2',      ml:'Nasser H.', mlInit:'NH', time:'ETA 5:00 PM', sla:'ok'},
-  ],
-  inprog:[
-    {id:'SR-2025-0041',client:'Al Futtaim Group',site:'Dubai Mall G12',     ml:'Mohammed K.',mlInit:'MK', time:'On-site 2h 31m', sla:'ok'},
-    {id:'SR-2025-0038',client:'ADNOC Distribution',site:'Al Quoz Depot',    ml:'Faisal M.', mlInit:'FM', time:'On-site 4h 20m', sla:'risk'},
-    {id:'SR-2025-0043',client:'Emaar Properties',site:'Downtown Tower 3',   ml:'Ahmed R.',  mlInit:'AR', time:'On-site 1h 05m', sla:'ok'},
-  ],
-  review:[
-    {id:'SR-2025-0047',client:'DEWA',             site:'Nad Al Sheba Sub',  ml:'Faisal M.', mlInit:'FM', time:'Submitted 1h ago', sla:'ok'},
-    {id:'SR-2025-0061',client:'Aldar Properties', site:'Al Raha Beach',     ml:'Khalid S.', mlInit:'KS', time:'Submitted 3h ago', sla:'ok'},
-  ],
-};
+var FIELD_SRS = @json($field);
 
 var MLS = [
   {init:'MK',name:'Mohammed Khalil',domain:'Electrical', status:'onsite',    jobs:2, available:false, score:4.2, completed:34, pending:2, rework:3},
@@ -809,6 +959,7 @@ var C = {gold:'#9a8053',gold2:'#b8975e',red:'#dc2626',amber:'#d97706',green:'#15
 
 var currentDispatchSR = null, selectedML = null, currentRejectId = '';
 
+var TEAM = @json($team);
 /* helpers */
 function el(id){return document.getElementById(id);}
 function fieldAll(){return FIELD_SRS.assigned.concat(FIELD_SRS.eta,FIELD_SRS.inprog,FIELD_SRS.review);}
@@ -945,88 +1096,112 @@ function compBar(title,map,order,colors,total){
     '<div class="comp-key">'+key+'</div>'+
   '</div>';
 }
-function renderComposition(){
-  var q = PENDING_SRS.concat(REWORK_SRS);
-  var html = '';
-  html += compBar('Priority', tally(q,'priority'), ['High','Medium','Low'],
-    {High:C.red,Medium:C.amber,Low:C.green}, q.length);
-  html += compBar('Warranty scope', tally(q,'scope'), ['IW','OoW'],
-    {IW:C.gold,OoW:'#ef4444'}, q.length);
-  html += compBar('Category', tally(q,'cat'), ['Electrical','Mechanical'],
-    {Electrical:'#f59e0b',Mechanical:'#0891b2'}, q.length);
-  el('compHost').innerHTML = html;
+
+var palette = ['#9a8053','#0891b2','#f59e0b','#8b5cf6','#06b6d4','#f97316'];
+
+function colorsFor(data, known) {
+  var map = {}, i = 0;
+  Object.keys(data).forEach(function (k) {
+    map[k] = (known && known[k]) || palette[i++ % palette.length];
+  });
+  return map;
 }
 
+function renderComposition(){
+  var d = COMPOSITION;
+  if (!d || !d.total) { el('compHost').innerHTML = ''; return; }
+
+  var html = '';
+  html += compBar('Priority', d.priority, Object.keys(d.priority),
+    colorsFor(d.priority, {High:'#dc2626', Medium:'#d97706', Low:'#15803d'}), d.total);
+  html += compBar('Warranty scope', d.scope, ['IW','OoW'],
+    {IW:'#9a8053', OoW:'#ef4444'}, d.total);
+  html += compBar('Category', d.cat, Object.keys(d.cat),
+    colorsFor(d.cat), d.total);
+  el('compHost').innerHTML = html;
+}
 /* ══════════════════════════════════════════
    CLIENT SPREAD
 ══════════════════════════════════════════ */
 function renderClientSpread(){
-  var all = PENDING_SRS.concat(REWORK_SRS, fieldAll(), QC_SRS);
-  var m = {}, order = [];
-  all.forEach(function(sr){
-    if(!(sr.client in m)){ m[sr.client]=0; order.push(sr.client); }
-    m[sr.client]++;
-  });
-  order.sort(function(a,b){return m[b]-m[a];});
-  var top = order.slice(0,5);
-  var max = m[top[0]];
-  var palette = [C.gold, C.blue, C.amber, C.purple, C.cyan, C.orange];
+  var d = CLIENT_SPREAD;
 
-  el('csHost').innerHTML = top.map(function(name, i){
-    var n = m[name], c = palette[i % palette.length];
-    var init = name.split(' ').map(function(w){return w[0];}).join('').substring(0,2).toUpperCase();
-    var pct = Math.max(14, Math.round(n/max*100));
+  if (!d || !d.top.length) {
+    el('csHost').innerHTML = '<p class="empty">No open SRs in this period.</p>';
+    el('csNote').textContent = '';
+    return;
+  }
+
+  var max = d.top[0].n;
+
+  el('csHost').innerHTML = d.top.map(function(row, i){
+    var name = row.name || 'Unknown';
+    var c    = palette[i % palette.length];
+    var init = name.split(/\s+/).filter(Boolean)
+                 .map(function(w){ return w[0]; })
+                 .join('').substring(0,2).toUpperCase() || '?';
+    var pct  = Math.max(14, Math.round(row.n / max * 100));
+
     return '<div class="cs-row">'+
       '<span class="cs-av" style="background:linear-gradient(135deg,'+c+','+c+'bb);">'+init+'</span>'+
       '<div class="cs-mid">'+
         '<div class="cs-name">'+name+'</div>'+
         '<div class="cs-tr"><div class="cs-fl" style="width:'+pct+'%;background:'+c+';"></div></div>'+
       '</div>'+
-      '<span class="cs-n">'+n+'</span>'+
+      '<span class="cs-n">'+row.n+'</span>'+
     '</div>';
   }).join('');
 
-  el('csNote').textContent = order.length+' clients · '+all.length+' open SRs';
+  el('csNote').textContent = d.clients + ' clients · ' + d.total + ' open SRs';
 }
 
 /* ══════════════════════════════════════════
    TEAM CAPACITY
 ══════════════════════════════════════════ */
 function renderTeam(){
-  var labels={available:'Available',onsite:'On-site',enroute:'En-route',offduty:'Off-duty'};
-  var cols  ={available:C.green,onsite:C.amber,enroute:C.blue,offduty:'#94a3b8'};
+  var labels = {available:'Available', onsite:'On-site', enroute:'En-route', offduty:'Off-duty'};
+  var cols   = {available:C.green, onsite:C.amber, enroute:C.blue, offduty:'#94a3b8'};
 
-  el('teamGrid').innerHTML = MLS.map(function(ml){
-    var c = cols[ml.status];
-    var scoreC = ml.score>=4.5?C.green:ml.score>=4.0?C.amber:C.red;
+  var rows = (TEAM && TEAM.rows) || [];
 
-    // status ring around avatar
-    var r1=23, circ1=2*Math.PI*r1;
+  if (!rows.length) {
+    el('teamGrid').innerHTML = '<p class="empty">No maintenance leads assigned in this period.</p>';
+    el('teamNote').textContent = '';
+    return;
+  }
+
+  el('teamGrid').innerHTML = rows.map(function(ml){
+    var c      = cols[ml.status] || cols.available;
+    var score  = (ml.score === null || ml.score === undefined) ? null : Number(ml.score);
+    var scoreC = score === null ? 'var(--text-light)'
+               : score >= 4.5 ? C.green
+               : score >= 4.0 ? C.amber : C.red;
+
+    var r1 = 23, circ1 = 2 * Math.PI * r1;
     var statusRing =
       '<svg viewBox="0 0 52 52" width="52" height="52">'+
         '<circle cx="26" cy="26" r="'+r1+'" fill="none" stroke="var(--track)" stroke-width="2.5"/>'+
         '<circle cx="26" cy="26" r="'+r1+'" fill="none" stroke="'+c+'" stroke-width="2.5" '+
           'stroke-linecap="round" stroke-dasharray="'+
-          (ml.status==='offduty'?circ1*0.14:circ1).toFixed(1)+' '+circ1.toFixed(1)+'"/>'+
+          (ml.status === 'offduty' ? circ1 * 0.14 : circ1).toFixed(1)+' '+circ1.toFixed(1)+'"/>'+
       '</svg>';
 
-    // score ring — proportion of 5
-    var r2=16, circ2=2*Math.PI*r2, pct=ml.score/5;
+    var r2 = 16, circ2 = 2 * Math.PI * r2, pct = score === null ? 0 : score / 5;
     var scoreRing =
       '<svg width="38" height="38" viewBox="0 0 38 38">'+
         '<circle cx="19" cy="19" r="'+r2+'" fill="none" stroke="var(--track)" stroke-width="3.5"/>'+
         '<circle cx="19" cy="19" r="'+r2+'" fill="none" stroke="'+scoreC+'" stroke-width="3.5" '+
           'stroke-linecap="round" stroke-dasharray="'+(circ2*pct).toFixed(1)+' '+circ2.toFixed(1)+'"/>'+
-      '</svg><span style="color:'+scoreC+';">'+ml.score+'</span>';
+      '</svg><span style="color:'+scoreC+';">'+(score === null ? '—' : score.toFixed(1))+'</span>';
 
-    var stars='';
-    for(var i=1;i<=5;i++){
-      if(ml.score>=i) stars+='<i class="bi bi-star-fill" style="color:#f59e0b;"></i>';
-      else if(ml.score>=i-0.5) stars+='<i class="bi bi-star-half" style="color:#f59e0b;"></i>';
-      else stars+='<i class="bi bi-star" style="color:var(--track);"></i>';
+    var stars = '';
+    for (var i = 1; i <= 5; i++) {
+      if (score !== null && score >= i)          stars += '<i class="bi bi-star-fill" style="color:#f59e0b;"></i>';
+      else if (score !== null && score >= i-0.5) stars += '<i class="bi bi-star-half" style="color:#f59e0b;"></i>';
+      else                                       stars += '<i class="bi bi-star" style="color:var(--track);"></i>';
     }
 
-    return '<div class="tm '+(ml.status==='offduty'?'offduty':'')+'">'+
+    return '<div class="tm '+(ml.status === 'offduty' ? 'offduty' : '')+'">'+
 
       '<div class="tm-top">'+
         '<div class="tm-ring">'+statusRing+
@@ -1034,17 +1209,16 @@ function renderTeam(){
         '</div>'+
         '<div class="tm-id-col">'+
           '<div class="tm-name">'+ml.name+'</div>'+
-          '<div class="tm-dom">'+ml.domain+'</div>'+
-          '<span class="tm-st" style="background:'+c+'1a;color:'+c+';">'+labels[ml.status]+'</span>'+
+          '<div class="tm-dom">'+(ml.domain || '—')+'</div>'+
+          '<span class="tm-st" style="background:'+c+'1a;color:'+c+';">'+(labels[ml.status] || ml.status)+'</span>'+
         '</div>'+
       '</div>'+
 
       '<div class="tm-score">'+
         '<div class="tm-score-ring">'+scoreRing+'</div>'+
-        '<div class="tm-score-mid">'+
-          '<div class="tm-score-lbl">Review Score</div>'+
-          '<div class="tm-stars">'+stars+'</div>'+
-        '</div>'+
+      '<div class="tm-score-lbl">Review Score'+
+  // (ml.reviews ? ' · '+ml.reviews+' '+(ml.reviews === 1 ? 'review' : 'reviews') : '')+
+'</div>'+
       '</div>'+
 
       '<div class="tm-stats">'+
@@ -1068,23 +1242,20 @@ function renderTeam(){
       '</div>'+
 
       (ml.available
-        ? '<button class="tm-btn" data-ml="'+ml.init+'"><i class="bi bi-send" style="margin-right:5px;"></i>Select for dispatch</button>'
-        : '<button class="tm-btn" disabled>Unavailable</button>')+
+        ? '<button class="tm-btn" style="display:none;" data-ml="'+ml.id+'"><i class="bi bi-send" style="margin-right:5px;"></i>Select for dispatch</button>'
+        : '<button class="tm-btn" style="display:none;"  disabled>Unavailable</button>')+
     '</div>';
   }).join('');
 
-  var avail = MLS.filter(function(m){return m.available;}).length;
-  var totalJobs = MLS.reduce(function(a,m){return a+m.jobs;},0);
-  var totalDone = MLS.reduce(function(a,m){return a+m.completed;},0);
-  el('teamNote').textContent = avail+' of '+MLS.length+' free · '+totalJobs+' active jobs · '+totalDone+' completed this month';
+  el('teamNote').textContent = TEAM.available+' of '+TEAM.total+' free · '+
+    TEAM.jobs+' active jobs · '+TEAM.completed+' completed';
 
   document.querySelectorAll('.tm-btn:not(:disabled)').forEach(function(b){
-    b.addEventListener('click',function(){
+    b.addEventListener('click', function(){
       toast('info','Pick an SR first','Open a pending SR, then choose this ML in the dispatch panel.');
     });
   });
 }
-
 /* ══════════════════════════════════════════
    DISPATCH QUEUE CARDS
 ══════════════════════════════════════════ */
@@ -1113,9 +1284,6 @@ function renderPending(){
         '<span class="age-t">'+sr.hrs+'h</span>'+
       '</div>'+
       '<div class="qi-foot">'+
-        '<button class="btn-outline">View SR</button>'+
-        '<div class="qi-actions">'+
-          '<button class="btn-dispatch" data-srid="'+sr.id+'"><i class="bi bi-send"></i>Dispatch</button>'+
         '</div>'+
       '</div>'+
     '</article>';
@@ -1157,12 +1325,14 @@ function renderRework(){
       '</div>'+
       '<div class="qi-foot">'+
         '<span class="age-t">'+sr.cat+' · re-dispatch needed</span>'+
-        '<div class="qi-actions">'+
-          '<button class="btn-red" data-srid="'+sr.id+'" data-type="reassign">'+
-            '<i class="bi bi-person-check"></i> Same ML</button>'+
-          '<button class="btn-dispatch" data-srid="'+sr.id+'" data-type="reallocate">'+
-            '<i class="bi bi-person-arrows"></i>Reallocate</button>'+
-        '</div>'+
+       
+        // '<div class="qi-actions">'+
+        //   '<button class="btn-red" data-srid="'+sr.id+'" data-type="reassign">'+
+        //     '<i class="bi bi-person-check"></i> Same ML</button>'+
+        //   '<button class="btn-dispatch" data-srid="'+sr.id+'" data-type="reallocate">'+
+        //     '<i class="bi bi-person-arrows"></i>Reallocate</button>'+
+        // '</div>'+
+
       '</div>'+
     '</article>';
   }).join('');
@@ -1222,11 +1392,11 @@ function renderQC(){
         '<span class="rw-mi"><i class="bi bi-box-arrow-right"></i>Punched out '+sr.punchout+'</span>'+
       '</div>'+
       '<div class="qi-foot">'+
-        '<button class="btn-outline">View proof docs</button>'+
-        '<div class="qi-actions">'+
-          '<button class="btn-reject" data-srid="'+sr.id+'"><i class="bi bi-x-lg"></i>Reject</button>'+
-          '<button class="btn-approve" data-srid="'+sr.id+'"><i class="bi bi-check-lg"></i>Approve QC</button>'+
-        '</div>'+
+        // '<button class="btn-outline">View proof docs</button>'+
+        // '<div class="qi-actions">'+
+        //   '<button class="btn-reject" data-srid="'+sr.id+'"><i class="bi bi-x-lg"></i>Reject</button>'+
+        //   '<button class="btn-approve" data-srid="'+sr.id+'"><i class="bi bi-check-lg"></i>Approve QC</button>'+
+        // '</div>'+
       '</div>'+
     '</article>';
   }).join('');
@@ -1240,6 +1410,17 @@ function renderQC(){
     b.addEventListener('click',function(){openRejectModal(this.dataset.srid);});
   });
 }
+
+
+
+document.querySelectorAll('#rangeForm .fq-date').forEach(function (input) {
+  input.addEventListener('change', function () {
+    var f = document.querySelector('#rangeForm [name="from"]').value;
+    var t = document.querySelector('#rangeForm [name="to"]').value;
+    if (f && t) document.getElementById('rangeForm').submit();
+  });
+});
+
 
 /* ══════════════════════════════════════════
    FIELD KANBAN

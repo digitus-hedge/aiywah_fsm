@@ -108,12 +108,40 @@ class SEDashboardController extends Controller
 
     public function index(Request $request)
     {
-        $user   = Auth::user();
+        // $user   = Auth::user();
+        // $period = in_array($request->query('period'), ['today', 'week', 'month'], true)
+        //     ? $request->query('period')
+        //     : 'month';
+
+        // [$from, $to, $periodLabel] = $this->resolvePeriod($period);
+
+
+        $user = Auth::user();
+
+    $rawFrom = $request->query('from');
+    $rawTo   = $request->query('to');
+    $custom  = $rawFrom && $rawTo && strtotime($rawFrom) && strtotime($rawTo);
+
+    if ($custom) {
+        $from = Carbon::parse($rawFrom)->startOfDay();
+        $to   = Carbon::parse($rawTo)->endOfDay();
+
+        if ($from->gt($to)) {
+            [$from, $to] = [
+                Carbon::parse($rawTo)->startOfDay(),
+                Carbon::parse($rawFrom)->endOfDay(),
+            ];
+        }
+
+        $period      = 'custom';
+        $periodLabel = $from->format('d M') . ' – ' . $to->format('d M Y');
+    } else {
         $period = in_array($request->query('period'), ['today', 'week', 'month'], true)
             ? $request->query('period')
             : 'month';
 
         [$from, $to, $periodLabel] = $this->resolvePeriod($period);
+    }
 
         $stageCounts   = $this->stageCounts($user->id, $from, $to);
         $totalInPeriod = (int) $stageCounts->sum();
@@ -124,16 +152,29 @@ class SEDashboardController extends Controller
         $reworkRate    = $this->reworkRate($user->id, $from, $to);
         $dispatch      = $this->dispatchTime($user->id, $from, $to);  // ← here
         $rating        = $this->avgRating($user->id, $from, $to);
+        $composition   = $this->queueComposition($user->id, $from, $to);   // add
+        $clientSpread   = $this->clientSpread($user->id, $from, $to);
+        $closed         = $this->closedOut($user->id, $from, $to, $period, $periodLabel);
+        $team           = $this->teamAvailability($user->id, $from, $to);
+        $field          = $this->fieldBoard($user->id, $from, $to);
+
 
         return view('service_engineer_dashboard', [
             'greeting'    => $this->greeting($user),
             'greetingSub' => "Here's your intake overview",
             'today'       => now()->format('l, d F Y'),
             'periodLabel' => $periodLabel,
-            'filters'     => ['period' => $period],
+            // 'filters'     => ['period' => $period],
+  
+            // 'periodOptions' => ['month' => 'This Month', 'week' => 'This Week', 'today' => 'Today'],
 
-            // Order matches the mock-up's pill order.
-            'periodOptions' => ['month' => 'This Month', 'week' => 'This Week', 'today' => 'Today'],
+            'filters'     => [
+    'period' => $period,
+    'from'   => $custom ? $from->toDateString() : null,
+    'to'     => $custom ? $to->toDateString()   : null,
+],
+// Order matches the mock-up's pill order.
+'periodOptions' => ['month' => 'This Month', 'week' => 'This Week', 'today' => 'Today'],
 
             'alertCounts' => [
                 'triage'      => $pendingTriage,
@@ -176,7 +217,7 @@ class SEDashboardController extends Controller
             'qcItems'       => $this->qcItems($user->id, $from, $to),
 
             'activeFieldCount' => $this->activeFieldCount($user->id, $from, $to),
-            
+
             'metrics' => [
                 'reworkRate'    => $reworkRate['rate'],
                 'reworkSub'     => $reworkRate['returned'] . ' of ' . $reworkRate['total'] . ' SRs returned',
@@ -189,13 +230,281 @@ class SEDashboardController extends Controller
                 'ratingSub'   => $rating['sub']
             ],
 
-
             'completedCount' => $completed,
             'kanban'         => $this->kanban($user->id),
+            'composition' => $composition,
+            'clientSpread' => $clientSpread,
+            'closedOut'    => $closed,   // add
+            'team' => $team,
+            'field' => $field,
         ]);
     }
 
 
+
+    private function teamAvailability(int $userId, Carbon $from, Carbon $to): array
+    {
+        $domains = DB::table('user_service_domain as usd')
+            ->join('service_categories as sc', 'sc.id', '=', 'usd.service_category_id')
+            ->whereNull('sc.deleted_at')
+            ->selectRaw('usd.user_id, GROUP_CONCAT(DISTINCT sc.category_name ORDER BY sc.category_name SEPARATOR ", ") as domain')
+            ->groupBy('usd.user_id');
+
+        $mls = DB::table('users as u')
+            ->join('service_requests as sr', 'sr.assigned_user_id', '=', 'u.id')
+            ->leftJoinSub($domains, 'd', 'd.user_id', '=', 'u.id')
+            ->where('sr.assigned_se', $userId)
+            ->whereBetween('sr.created_at', [$from, $to])
+            ->selectRaw("
+            u.id,
+            u.name,
+            d.domain,
+            COUNT(*) as jobs,
+            SUM(CASE WHEN LOWER(sr.status) = 'completed' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN LOWER(sr.status) = 'pending'   THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN LOWER(sr.status) = 'rework'    THEN 1 ELSE 0 END) as rework,
+            AVG(CASE WHEN LOWER(sr.status) = 'completed' AND sr.performance_score IS NOT NULL
+                     THEN sr.performance_score END) as score,
+            SUM(CASE WHEN LOWER(sr.status) = 'completed' AND sr.performance_score IS NOT NULL
+                     THEN 1 ELSE 0 END) as reviews
+        ")
+            ->groupBy('u.id', 'u.name', 'd.domain')
+            ->orderByDesc('jobs')
+            ->get();
+
+        $rows = $mls->map(function ($m) {
+            $active = (int) $m->jobs - (int) $m->completed;
+
+            return [
+                'id'        => (int) $m->id,
+                'name'      => (string) $m->name,
+                'init'      => $this->initials($m->name),
+                'domain'    => $m->domain ?: null,
+                'score'     => $m->score !== null ? round((float) $m->score, 1) : null,
+                'reviews'   => (int) $m->reviews,
+                'jobs'      => $active,
+                'completed' => (int) $m->completed,
+                'pending'   => (int) $m->pending,
+                'rework'    => (int) $m->rework,
+                'status'    => $active > 0 ? 'onsite' : 'available',
+                'available' => $active === 0,
+            ];
+        })->values()->all();
+
+        return [
+            'rows'      => $rows,
+            'available' => collect($rows)->where('available', true)->count(),
+            'total'     => count($rows),
+            'jobs'      => collect($rows)->sum('jobs'),
+            'completed' => collect($rows)->sum('completed'),
+        ];
+    }
+
+    private function initials(?string $name): string
+    {
+        $parts = preg_split('/\s+/', trim((string) $name), -1, PREG_SPLIT_NO_EMPTY);
+        if (! $parts) return '?';
+        return strtoupper(substr(($parts[0][0] ?? '') . ($parts[1][0] ?? ''), 0, 2));
+    }
+
+
+
+
+
+private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
+{
+    $rows = DB::table('service_requests as sr')
+        ->join('clients as c', 'c.id', '=', 'sr.client_id')
+        ->leftJoin('users as u', 'u.id', '=', 'sr.assigned_user_id')
+        ->leftJoin('projects as p', 'p.id', '=', 'sr.project_id')
+        ->where('sr.assigned_se', $userId)
+        ->whereBetween('sr.created_at', [$from, $to])
+        ->whereNotNull('sr.assigned_user_id')
+        ->whereNotIn(DB::raw('LOWER(sr.status)'), ['completed', 'rejected'])
+        ->select([
+            'sr.id',
+            'sr.status',
+            'sr.dispatched_at',
+            'sr.eta_at',
+            'sr.accepted_at',
+            'sr.feedback_submitted_at',
+            'sr.created_at',
+            'c.company_name as client',
+            'u.name as ml',
+            DB::raw('COALESCE(p.site_name, sr.project_site) as site'),
+        ])
+        ->orderBy('sr.eta_at')
+        ->get();
+
+        $cols = ['assigned' => [], 'eta' => [], 'inprog' => [], 'review' => []];
+
+        foreach ($rows as $r) {
+            $status = strtolower((string) $r->status);
+
+            if (in_array($status, ['review', 'qc', 'pending_review'], true)) {
+                $key  = 'review';
+                $time = $r->feedback_submitted_at
+                    ? 'Submitted ' . Carbon::parse($r->feedback_submitted_at)->diffForHumans(null, true) . ' ago'
+                    : 'Awaiting review';
+            } elseif ($r->accepted_at) {
+                $key  = 'inprog';
+                $time = 'On-site ' . Carbon::parse($r->accepted_at)->diffForHumans(null, true);
+            } elseif ($r->eta_at) {
+                $key  = 'eta';
+                $time = 'ETA ' . Carbon::parse($r->eta_at)->format('g:i A');
+            } else {
+                $key  = 'assigned';
+                $time = $r->dispatched_at
+                    ? 'Dispatched ' . Carbon::parse($r->dispatched_at)->diffForHumans(null, true) . ' ago'
+                    : 'Not dispatched';
+            }
+
+            $cols[$key][] = [
+'id' => 'SR-' . Carbon::parse($r->created_at)->format('Y') . '-' . str_pad($r->id, 5, '0', STR_PAD_LEFT),                'client' => (string) $r->client,
+                'site'   => $r->site ?: '—',
+                'ml'     => $r->ml ?: 'Unassigned',
+                'mlInit' => $this->initials($r->ml),
+                'time'   => $time,
+                'sla'    => $this->slaState($r),
+            ];
+        }
+
+        return $cols;
+    }
+
+    private function slaState($r): string
+    {
+        if (! $r->eta_at || $r->accepted_at) {
+            return 'ok';
+        }
+
+        $eta = Carbon::parse($r->eta_at);
+
+        if ($eta->isPast())                    return 'breached';
+        if ($eta->diffInMinutes(now()) <= 60)  return 'risk';
+
+        return 'ok';
+    }
+
+    private function closedOut(int $userId, Carbon $from, Carbon $to, string $period, string $periodLabel): array
+    {
+        $length    = $from->diffInSeconds($to);
+        $prevEnd   = (clone $from)->subSecond();
+        $prevStart = (clone $prevEnd)->subSeconds($length);
+
+        $count = fn($start, $end) => (int) DB::table('service_requests')
+            ->where('assigned_se', $userId)
+            ->whereRaw('LOWER(status) = ?', ['completed'])
+            ->whereBetween('updated_at', [$start, $end])
+            ->count();
+
+        $current  = $count($from, $to);
+        $previous = $count($prevStart, $prevEnd);
+        $diff     = $current - $previous;
+
+        return [
+            'current'        => $current,
+            'previous'       => $previous,
+            'diff'           => $diff,
+            'pct'            => $previous > 0 ? (int) round($diff / $previous * 100) : null,
+            'max'            => max($current, $previous, 1),
+            'label_current'  => $periodLabel,
+            'label_previous' => ['today' => 'Yesterday', 'week' => 'Last week', 'month' => 'Last month'][$period] ?? 'Previous',
+        ];
+    }
+
+
+    private function queueComposition(int $userId, Carbon $from, Carbon $to): array
+    {
+        $today = now()->toDateString();
+
+        $rows = DB::table('service_requests as sr')
+            ->leftJoin('projects as p', 'p.id', '=', 'sr.project_id')
+            ->leftJoin('service_categories as st', 'st.id', '=', 'sr.service_type_id')
+            ->whereBetween('sr.updated_at', [$from, $to])
+            ->where('sr.assigned_se', $userId)
+            ->whereIn(DB::raw('LOWER(sr.status)'), ['rework', 'approved'])
+            ->selectRaw("
+            sr.id,
+            sr.priority_level as priority,
+            CASE
+                WHEN p.warranty_end_date IS NULL THEN 'OoW'
+                WHEN DATE(p.warranty_end_date) >= ? THEN 'IW'
+                ELSE 'OoW'
+            END as scope,
+            COALESCE(st.category_name, 'Unspecified') as cat
+        ", [$today])
+            ->get();
+
+        return [
+            'total'    => $rows->count(),
+
+            'scope'    => $this->tally($rows, 'scope', ['IW', 'OoW']),
+
+
+            'priority' => $this->tallyDynamic($rows, 'priority', true),
+            'cat'      => $this->tallyDynamic($rows, 'cat'),
+        ];
+    }
+
+    private function tallyDynamic($rows, string $key, bool $normalise = false): array
+    {
+        return $rows
+            ->pluck($key)
+            ->map(function ($v) use ($normalise) {
+                $v = trim((string) $v);
+                if ($v === '') return 'Unspecified';
+                return $normalise ? ucfirst(strtolower($v)) : $v;
+            })
+            ->countBy()
+            ->sortDesc()
+            ->all();
+    }
+
+
+
+    private function clientSpread(int $userId, Carbon $from, Carbon $to): array
+    {
+        $rows = DB::table('service_requests as sr')
+            ->join('clients as c', 'c.id', '=', 'sr.client_id')
+            ->where('sr.assigned_se', $userId)
+            ->whereBetween('sr.updated_at', [$from, $to])
+            ->whereNotIn(DB::raw('LOWER(sr.status)'), ['completed', 'rejected'])
+            ->selectRaw('c.company_name as name, COUNT(*) as n')
+            ->groupBy('c.id', 'c.company_name')
+            ->orderByDesc('n')
+            ->get();
+
+        return [
+            'clients' => $rows->count(),
+            'total'   => (int) $rows->sum('n'),
+            'top'     => $rows->take(5)->map(fn($r) => [
+                'name' => (string) $r->name,
+                'n'    => (int) $r->n,
+            ])->values()->all(),
+        ];
+    }
+
+
+
+    private function tally($rows, string $key, array $order): array
+    {
+        $counts = $rows->groupBy($key)->map->count();
+
+        $out = [];
+        foreach ($order as $label) {
+            $out[$label] = (int) ($counts[$label] ?? 0);
+        }
+
+        // anything outside the expected labels
+        foreach ($counts as $label => $n) {
+            if (! in_array($label, $order, true) && $label !== null) {
+                $out[$label] = (int) $n;
+            }
+        }
+
+        return $out;
+    }
 
     private function avgRating(int $userId, Carbon $from, Carbon $to): array
     {
@@ -353,7 +662,7 @@ class SEDashboardController extends Controller
             ->orderByDesc('updated_at')
             ->get()
             ->map(function ($sr) {
-                $punch = $sr->punches->sortByDesc('created_at')->first();
+                $punch = $sr->punches->sortByDesc('updated_at')->first();
 
                 return [
                     'id'       => $sr->code,
