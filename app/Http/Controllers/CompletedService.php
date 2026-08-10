@@ -94,7 +94,7 @@ class CompletedService extends Controller
 
         $query = ServiceRequest::query()
             ->whereIn('status', $this->completedStatuses)
-            ->when($user?->role?->code === 'SE', fn($q) => $q->where('assigned_user_id', $user->id))
+            ->when($user?->role?->code === 'SE', fn($q) => $q->where('assigned_se', $user->id))
             ->with([
                 'client',
                 'project',
@@ -163,7 +163,7 @@ class CompletedService extends Controller
     $isSe = $user?->role?->code === 'SE';
 
     $scoped = fn() => ServiceRequest::whereIn('status', $this->completedStatuses)
-        ->when($isSe, fn($q) => $q->where('assigned_user_id', $user->id));
+        ->when($isSe, fn($q) => $q->where('assigned_se', $user->id));
 
     $completedIds = $scoped()->pluck('id');
 
