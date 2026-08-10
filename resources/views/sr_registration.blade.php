@@ -1823,7 +1823,7 @@ async function verify(val) {
     fd.append('reported_by', reporter);
     fd.append('priority_level', priority);
     fd.append('issue_description', desc);
-    fd.append('internal_remark', document.getElementById('remark').value);
+    // fd.append('internal_remark', document.getElementById('remark').value);
     uploads.forEach(f => fd.append('attachments[]', f));
 
     try {

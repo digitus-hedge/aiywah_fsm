@@ -243,6 +243,69 @@
 .qc-toast-wrap .t-title{font-size:.8rem;font-weight:600;color:var(--text-heading);margin:0 0 2px;}
 .qc-toast-wrap .t-body{font-size:.75rem;color:var(--text-muted);margin:0;}
 @media(max-width:575.98px){.qc-toast-wrap{left:12px;right:12px;bottom:12px;}.qc-toast-wrap .toast-item{max-width:none;}}
+
+
+.btn-qc-realloc {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  /* border: 1px solid var(--border); */
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid #d4d0c8;
+  color: #6b6862;
+  font-size: .85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+
+.btn-qc-realloc:hover {
+  /* background: var(--surface-2);
+  border-color: var(--border-strong); */
+
+   background: #f5f3ee;
+  border-color: #b8b4aa;
+  color: #4a4843;
+}
+
+.btn-qc-realloc i {
+  font-size: 1rem;
+}
+
+
+
+.realloc-select {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid #e2e0da;
+  border-radius: 8px;
+  background: #fff;
+  color: #3d3d3a;
+  font-size: .85rem;
+  font-family: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6862' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.realloc-select:disabled {
+  background-color: #f5f3ee;
+  color: #9c9a92;
+  cursor: not-allowed;
+}
+
+.realloc-select:focus {
+  outline: none;
+  border-color: #b8b4aa;
+}
 </style>
 @endpush
 
@@ -437,10 +500,37 @@
               <textarea class="rework-textarea" id="rework-textarea" disabled placeholder="This field is locked. Click 'QC Fail — Return to Rework' to activate and enter your mandatory rework requirements for the technician…"></textarea>
               <div class="rework-hint" id="rework-hint">This field unlocks only when initiating a rework rejection. SLA timers will be preserved.</div>
             </div>
+
             <div class="action-btns" id="action-btns">
               <button class="btn-qc-fail" id="btn-fail" onclick="initiateFail()"><i class="bi bi-arrow-counterclockwise"></i>QC Fail — Return to Rework</button>
               <button class="btn-qc-pass" id="btn-pass" onclick="initiatePass()"><i class="bi bi-patch-check-fill"></i>QC Pass — Authorize Closeout</button>
+              <button class="btn-qc-realloc" id="btn-realloc" onclick="initiateRealloc()"><i class="bi bi-arrow-left-right"></i>Reallocate to ML</button>
+
             </div>
+
+
+            <div class="realloc-wrap" id="realloc-wrap" style="display:none;margin-top:12px;">
+  <div class="rework-label"><i class="bi bi-diagram-3"></i>Service category</div>
+  <select id="realloc-category" class="realloc-select" onchange="loadMls(this.value)">
+  <option value="">Select category…</option>
+  @foreach ($categories as $c)
+    <option value="{{ $c->id }}">{{ $c->category_name }}</option>
+  @endforeach
+</select>
+
+  <div class="rework-label" style="margin-top:10px;"><i class="bi bi-person-badge"></i>Assign to ML</div>
+ <select id="realloc-ml" class="realloc-select" disabled>
+  <option value="">Select a category first…</option>
+</select>
+
+  <textarea class="rework-textarea" id="realloc-remark" style="margin-top:10px;" placeholder="Reason for reallocation…"></textarea>
+
+  <button class="btn-confirm-rework" id="btn-confirm-realloc" onclick="confirmRealloc()" style="display:block;">
+    <i class="bi bi-send-fill"></i>Confirm reallocation
+  </button>
+</div>
+
+
             <button class="btn-confirm-rework" id="btn-confirm-rework" onclick="confirmRework()"><i class="bi bi-send-fill"></i>Confirm — Send Back to Technician</button>
             <div id="cancel-fail-wrap" style="display:none;margin-top:8px;text-align:center;">
               <button onclick="cancelFail()" style="background:none;border:none;font-size:.78rem;color:var(--text-muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">Cancel — keep current assessment</button>
@@ -1003,5 +1093,62 @@ document.addEventListener('DOMContentLoaded', function(){
   });
   renderQueue(QC_FILTERED);
 });
+
+
+
+
+// Reallocatopn
+
+function initiateRealloc() {
+  document.getElementById('realloc-wrap').style.display = 'block';
+  document.getElementById('action-btns').style.display = 'none';
+}
+
+async function loadMls(categoryId) {
+  const sel = document.getElementById('realloc-ml');
+  sel.innerHTML = '<option value="">Loading…</option>';
+  sel.disabled = true;
+  if (!categoryId) { sel.innerHTML = '<option value="">Select a category first…</option>'; return; }
+
+  try {
+    const res = await fetch(`/mls-by-category/${categoryId}`);
+    const users = await res.json();
+    sel.innerHTML = users.length
+      ? '<option value="">Select ML…</option>' + users.map(u => `<option value="${u.id}">${u.name}</option>`).join('')
+      : '<option value="">No ML mapped to this category</option>';
+    sel.disabled = users.length === 0;
+  } catch (e) {
+    sel.innerHTML = '<option value="">Could not load</option>';
+  }
+}
+
+async function confirmRealloc() {
+  const btn = document.getElementById('btn-confirm-realloc');
+  const payload = {
+    sr_id:       activeSrId,
+    category_id: document.getElementById('realloc-category').value,
+    ml_id:       document.getElementById('realloc-ml').value,
+    remark:      document.getElementById('realloc-remark').value.trim(),
+  };
+  if (!payload.category_id || !payload.ml_id || !payload.remark) {
+    showToast('warning', 'Required', 'Pick a category, an ML, and enter a reason.');
+    return;
+  }
+
+  if (btn.disabled) return;
+  const restore = busy(btn, 'Saving…');
+  try {
+    await apiPost('/qc/reallocate', payload);
+    showToast('success', 'Reallocated', 'Job moved to the selected ML.');
+    setTimeout(() => location.reload(), 1200);
+  } catch (err) {
+    showToast('error', 'Could not reallocate', err.message);
+  } finally {
+    restore();
+  }
+}
+
+
+
 </script>
 @endpush
