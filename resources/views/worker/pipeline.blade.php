@@ -1683,6 +1683,45 @@ function switchRsTab(name) {
   $(`rsPanel-${name}`).classList.add('show');
 }
 
+// $('rsConfirmBtn').addEventListener('click', async () => {
+//   const date   = $('rsDate').value;
+//   const time   = $('rsTime').value;
+//   const remark = $('rsRemark').value.trim();
+
+//   if (!date || !time) { showToast('warning', 'Required', 'Set a new date and time.'); return; }
+//   if (!remark)        { showToast('warning', 'Required', 'Enter a rescheduling reason.'); return; }
+
+//   const btn = $('rsConfirmBtn');
+//   const restore = busy(btn, 'Saving55\u2026');
+
+//   try {
+//     await apiPost(ROUTES.reschedule, { sr_id: activeSrId, eta_date: date, eta_time: time, remark });
+//     closeDrawer('rs');
+
+//     const index = JOBS.findIndex((j) => j.id === activeRef);
+//     if (index > -1) {
+//       JOBS[index].status           = 'Rescheduled';
+//       JOBS[index].previousEta      = JOBS[index].eta;
+//       JOBS[index].eta              = `${date} ${time}`;
+//       JOBS[index].rescheduleReason = remark;
+//       JOBS[index].rescheduleCount  = (JOBS[index].rescheduleCount ?? 0) + 1;
+//       JOBS[index].rescheduledAt    = new Date().toLocaleString('en-GB', {
+//         day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+//       });
+//     }
+
+//     clearJobState();
+//     showToast('success', 'Job rescheduled', `New ETA: ${date} at ${time}.`);
+//     setTimeout(() => { switchTab('pipeline'); renderPipeline(); }, 1200);
+//   } catch (err) {
+//     restore();
+//     showToast('error', 'Could not reschedule', err.message);
+//   }
+// });
+
+
+
+
 $('rsConfirmBtn').addEventListener('click', async () => {
   const date   = $('rsDate').value;
   const time   = $('rsTime').value;
@@ -1692,7 +1731,8 @@ $('rsConfirmBtn').addEventListener('click', async () => {
   if (!remark)        { showToast('warning', 'Required', 'Enter a rescheduling reason.'); return; }
 
   const btn = $('rsConfirmBtn');
-  const restore = busy(btn, 'Saving\u2026');
+  if (btn.disabled) return;              // guard against double-submit
+  const restore = busy(btn, 'Saving…');
 
   try {
     await apiPost(ROUTES.reschedule, { sr_id: activeSrId, eta_date: date, eta_time: time, remark });
@@ -1714,22 +1754,53 @@ $('rsConfirmBtn').addEventListener('click', async () => {
     showToast('success', 'Job rescheduled', `New ETA: ${date} at ${time}.`);
     setTimeout(() => { switchTab('pipeline'); renderPipeline(); }, 1200);
   } catch (err) {
-    restore();
     showToast('error', 'Could not reschedule', err.message);
+  } finally {
+    restore();
   }
 });
+
+
+// $('holdConfirmBtn').addEventListener('click', async () => {
+//   const remark = $('holdRemark').value.trim();
+//   if (!remark) { showToast('warning', 'Required', 'Enter a reason for the hold.'); return; }
+
+//   const btn = $('holdConfirmBtn');
+//   const restore = busy(btn, 'Saving\u2026');
+
+//   try {
+//     await apiPost(ROUTES.hold, { sr_id: activeSrId, remark });
+
+//     closeDrawer('rs');
+//     showToast('warning', 'Job on hold', 'Placed on hold. Reason logged.');
+
+//     const index = JOBS.findIndex((j) => j.id === activeRef);
+//     if (index > -1) {
+//       JOBS[index].status = 'On Hold';
+//       JOBS[index].accepted = false;
+//     }
+
+//     clearJobState();
+//     setTimeout(() => { switchTab('pipeline'); renderPipeline(); }, 1200);
+//   } catch (err) {
+//     restore();
+//     showToast('error', 'Could not hold job', err.message);
+//   }
+// });
+
 
 $('holdConfirmBtn').addEventListener('click', async () => {
   const remark = $('holdRemark').value.trim();
   if (!remark) { showToast('warning', 'Required', 'Enter a reason for the hold.'); return; }
 
   const btn = $('holdConfirmBtn');
-  const restore = busy(btn, 'Saving\u2026');
+  if (btn.disabled) return;
+  const restore = busy(btn, 'Saving…');
 
   try {
     await apiPost(ROUTES.hold, { sr_id: activeSrId, remark });
 
-    closeDrawer('rs');
+    closeDrawer('hold');
     showToast('warning', 'Job on hold', 'Placed on hold. Reason logged.');
 
     // Holding cancels the open punch server-side, so clear the terminal too.
@@ -1742,10 +1813,13 @@ $('holdConfirmBtn').addEventListener('click', async () => {
     clearJobState();
     setTimeout(() => { switchTab('pipeline'); renderPipeline(); }, 1200);
   } catch (err) {
-    restore();
     showToast('error', 'Could not hold job', err.message);
+  } finally {
+    restore();
   }
 });
+
+
 
 /* ══════════════════════════════════════════════════════
    CLIENT ACCEPTANCE + SIGNATURE

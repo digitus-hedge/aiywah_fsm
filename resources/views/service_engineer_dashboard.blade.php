@@ -634,7 +634,26 @@ a{text-decoration:none;}
 
 .sec-more:hover { color: #7a6440; gap: 8px; }
 .sec-more .bi   { font-size: .65rem; }
-
+/* ── RESET ── */
+.fq-reset{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  height:32px;
+  padding:0 14px;
+  border-radius:20px;
+  border:1px solid rgba(220,38,38,.22);
+  background:rgba(220,38,38,.07);
+  color:#dc2626;
+  font-size:.76rem;
+  font-weight:500;
+  white-space:nowrap;
+  cursor:pointer;
+  transition:background .15s, border-color .15s;
+  box-sizing:border-box;
+}
+.fq-reset:hover{ background:rgba(220,38,38,.14); border-color:rgba(220,38,38,.35); }
+.fq-reset i{ font-size:.8rem; line-height:1; }
   </style>
 
   @endpush
@@ -710,9 +729,9 @@ a{text-decoration:none;}
     <input type="date" name="to" value="{{ $filters['to'] ?? '' }}"
            max="{{ now()->toDateString() }}" class="fq-date">
     @if (! empty($filters['from']) || ! empty($filters['to']))
-     <a href="{{ url()->current() }}"
-   class="fq-clear {{ empty($filters['from']) && empty($filters['to']) ? 'is-off' : '' }}"
-   title="Clear date range">&times;</a>
+      <a href="{{ url()->current() }}" class="fq-reset" title="Clear all filters">
+            <i class="bi bi-arrow-counterclockwise"></i>Reset
+        </a>
     @endif
   </form>
 </div>

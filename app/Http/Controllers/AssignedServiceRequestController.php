@@ -69,8 +69,12 @@ class AssignedServiceRequestController extends Controller
 
     private function baseQuery(Request $request, bool $applyFilters = true)
     {
+            $user = auth()->user();
+
         $query = ServiceRequest::query()
             ->whereIn('status', $this->assignedStatuses)
+                    ->when($user?->role?->code === 'SE', fn($q) => $q->where('assigned_user_id', $user->id))
+
             ->with([
                 'client',
                 'project',
@@ -114,7 +118,13 @@ class AssignedServiceRequestController extends Controller
 
     private function stats(): array
     {
-        $base = fn() => ServiceRequest::whereIn('status', $this->assignedStatuses);
+        // $base = fn() => ServiceRequest::whereIn('status', $this->assignedStatuses);
+
+         $user = auth()->user();
+    $isSe = $user?->role?->code === 'SE';
+
+    $base = fn() => ServiceRequest::whereIn('status', $this->assignedStatuses)
+        ->when($isSe, fn($q) => $q->where('assigned_user_id', $user->id));
 
         return [
             'total'      => $base()->count(),

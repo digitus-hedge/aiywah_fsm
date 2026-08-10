@@ -13,23 +13,53 @@ class WhatsappLogController extends Controller
 
     public function index(Request $request)
     {
-        $logs = WhatsappLog::query()
-            ->search($request->input('sr'))
-            ->event($request->input('event'))
-            ->status($request->input('status'))
-            ->dateFrom($request->input('date_from'))
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
 
-        $stats = [
-            'delivered' => WhatsappLog::whereIn('status', [WhatsappLog::STATUS_DELIVERED, WhatsappLog::STATUS_SENT])
-                ->whereDate('created_at', today())->count(),
-            'pending'   => WhatsappLog::where('status', WhatsappLog::STATUS_PENDING)->count(),
-            'failed'    => WhatsappLog::where('status', WhatsappLog::STATUS_FAILED)->count(),
-            'total'     => WhatsappLog::whereMonth('created_at', now()->month)
-                ->whereYear('created_at', now()->year)->count(),
-        ];
+     $user = auth()->user();
+    $isSe = $user?->role?->code === 'SE';
+
+    $scope = fn($q) => $q->when($isSe, fn($x) =>
+        $x->whereHas('serviceRequest', fn($sr) => $sr->where('assigned_user_id', $user->id))
+    );
+
+        // $logs = WhatsappLog::query()
+        //     ->search($request->input('sr'))
+        //     ->event($request->input('event'))
+        //     ->status($request->input('status'))
+        //     ->dateFrom($request->input('date_from'))
+        //     ->latest()
+        //     ->paginate(25)
+        //     ->withQueryString();
+
+        // $stats = [
+        //     'delivered' => WhatsappLog::whereIn('status', [WhatsappLog::STATUS_DELIVERED, WhatsappLog::STATUS_SENT])
+        //         ->whereDate('created_at', today())->count(),
+        //     'pending'   => WhatsappLog::where('status', WhatsappLog::STATUS_PENDING)->count(),
+        //     'failed'    => WhatsappLog::where('status', WhatsappLog::STATUS_FAILED)->count(),
+        //     'total'     => WhatsappLog::whereMonth('created_at', now()->month)
+        //         ->whereYear('created_at', now()->year)->count(),
+        // ];
+
+
+         $logs = WhatsappLog::query()
+        ->tap($scope)
+        ->search($request->input('sr'))
+        ->event($request->input('event'))
+        ->status($request->input('status'))
+        ->dateFrom($request->input('date_from'))
+        ->latest()
+        ->paginate(25)
+        ->withQueryString();
+
+    $stats = [
+        'delivered' => WhatsappLog::tap($scope)
+            ->whereIn('status', [WhatsappLog::STATUS_DELIVERED, WhatsappLog::STATUS_SENT])
+            ->whereDate('created_at', today())->count(),
+        'pending'   => WhatsappLog::tap($scope)->where('status', WhatsappLog::STATUS_PENDING)->count(),
+        'failed'    => WhatsappLog::tap($scope)->where('status', WhatsappLog::STATUS_FAILED)->count(),
+        'total'     => WhatsappLog::tap($scope)
+            ->whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)->count(),
+    ];
 
         $rows = $logs->getCollection()->map->toRowArray()->values();
 
