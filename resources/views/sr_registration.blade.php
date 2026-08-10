@@ -1271,12 +1271,14 @@
                 <span class="cc warn" id="ccCount">0 / 20</span>
               </div>
             </div>
-            <div>
+
+            <!-- <div>
               <label class="form-label">Internal Remark <span class="opt">(Optional)</span></label>
               <textarea class="form-control" id="remark" name="internal_remark" rows="3"
                 placeholder="Notes for the service team — not visible to client..."></textarea>
               <div class="form-hint"><i class="bi bi-eye-slash"></i>Not shared with client</div>
-            </div>
+            </div> -->
+
           </div>
         </div>
 
