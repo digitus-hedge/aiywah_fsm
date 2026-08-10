@@ -108,7 +108,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @php $showWorkflow = $can('inquiry_approval') || $can('dispatch_engine') || $can('assigned') ||$can('qc_review') || $can('completed'); @endphp
         @if ($showWorkflow)
         <li class="sidebar-heading">Workflow</li>
-        @if ($can('inquiry_approval') && auth()->user()?->role?->code !== 'SE')
+        @if ($can('inquiry_approval') && !in_array(auth()->user()?->role?->code, ['SE', 'HP']))
         <li>
             <a href="{{ route('inquiry-approval.index') }}"
                 class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
@@ -196,7 +196,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
             </a>
         </li>
         @endif
-@if ($can('client_accounts') && !in_array(auth()->user()?->role?->code, ['SE', 'HOP']))
+@if ($can('client_accounts') && !in_array(auth()->user()?->role?->code, ['SE', 'HP']))
         <li>
             <a href="{{ route('user_provisioning') }}" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
                 <i data-feather="shield"></i>User Provisioning
