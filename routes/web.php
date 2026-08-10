@@ -161,6 +161,14 @@ Route::middleware('auth')->group(function () {
     Route::get('projects/{project}',       [ProjectController::class, 'show'])->name('projects.show');
     Route::post('projects/{project}/inquiries', [InquiryController::class, 'store'])->name('inquiries.store');
 
+
+
+
+    Route::get('/mls-by-category/{category}', [ServiceRequestController::class, 'mlsByCategory'])->name('mls.by_category');
+    Route::post('/qc/reallocate', [ServiceRequestController::class, 'reallocate'])->name('qc.reallocate');
+
+    
+
     // Whatapp notifcation
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

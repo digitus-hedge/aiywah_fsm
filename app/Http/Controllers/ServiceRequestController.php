@@ -127,6 +127,45 @@ class ServiceRequestController extends Controller
             ])->values(),
         ]);
     }
+
+
+
+
+    public function mlsByCategory($categoryId)
+    {
+        $users = User::whereHas('role', fn($r) => $r->where('code', 'ML'))
+            ->whereHas(
+                'serviceDomains',
+                fn($q) =>
+                $q->where('user_service_domain.service_category_id', $categoryId)
+            )
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json($users);
+    }
+    public function reallocate(Request $request)
+    {
+        $data = $request->validate([
+            'sr_id'       => 'required|exists:service_requests,id',
+            'category_id' => 'required|exists:service_categories,id',
+            'ml_id'       => 'required|exists:users,id',
+            'remark'      => 'nullable|string|max:1000',
+        ]);
+
+        $sr = ServiceRequest::findOrFail($data['sr_id']);
+        $sr->update([
+            'assigned_user_id' => $data['ml_id'],
+            'service_type_id'  => $data['category_id'],
+            // 'reallocate'           => 'Re',
+            'reallocate'  => true,
+
+        ]);
+
+        return response()->json(['ok' => true]);
+    }
+
+
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -306,7 +345,7 @@ class ServiceRequestController extends Controller
         $sr_explorer = $query->orderBy($sortCol, $sortDir === 'asc' ? 'asc' : 'desc')
             ->paginate(10)->withQueryString();
 
-            $statBase = fn() => ServiceRequest::when($isSe, fn($q) => $q->where('assigned_se', $user->id));
+        $statBase = fn() => ServiceRequest::when($isSe, fn($q) => $q->where('assigned_se', $user->id));
 
         // $stats = [
         //     'total'       => ServiceRequest::count(),
@@ -317,11 +356,11 @@ class ServiceRequestController extends Controller
 
 
         $stats = [
-    'total'       => $statBase()->count(),
-    'pendingRev'  => $statBase()->where('status', 'Pending')->count(),
-    'inProgress'  => $statBase()->where('status', 'Assigned')->count(),
-    'slaBreached' => $statBase()->whereDate('created_at', today())->count(),
-];
+            'total'       => $statBase()->count(),
+            'pendingRev'  => $statBase()->where('status', 'Pending')->count(),
+            'inProgress'  => $statBase()->where('status', 'Assigned')->count(),
+            'slaBreached' => $statBase()->whereDate('created_at', today())->count(),
+        ];
 
         if ($request->ajax() && $request->filled('frag')) {
             return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats', 'categories'))
@@ -946,7 +985,7 @@ class ServiceRequestController extends Controller
 
 
         $user = auth()->user();
-$isSe = $user->role?->code === 'SE';
+        $isSe = $user->role?->code === 'SE';
         $tickets = ServiceRequest::with(['client', 'project', 'assignedUser', 'category'])
             ->when($isSe, fn($q) => $q->where('assigned_se', $user->id))
 
@@ -1079,6 +1118,10 @@ $isSe = $user->role?->code === 'SE';
             ];
         })->values();
 
+
+        $categories = ServiceCategory::where('status', 1)->orderBy('category_name')->get(['id', 'category_name']);
+
+
         $today = today();
 
         $passedToday = ServiceRequest::whereIn('status', ['Completed', 'Pending Invoice'])
@@ -1107,7 +1150,8 @@ $isSe = $user->role?->code === 'SE';
             'passedToday',
             'returnedRework',
             'avgReviewTime',
-            'filters'
+            'filters',
+            'categories'
         ));
     }
 

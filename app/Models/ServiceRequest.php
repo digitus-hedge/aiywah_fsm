@@ -50,6 +50,7 @@ class ServiceRequest extends Model
         'feedback_submitted_at',
         'portal_link_sent_at',
         'assigned_se',
+        'reallocate'
     ];
 
     protected $casts = [
