@@ -73,7 +73,7 @@ class AssignedServiceRequestController extends Controller
 
         $query = ServiceRequest::query()
             ->whereIn('status', $this->assignedStatuses)
-                    ->when($user?->role?->code === 'SE', fn($q) => $q->where('assigned_user_id', $user->id))
+                    ->when($user?->role?->code === 'SE', fn($q) => $q->where('assigned_se', $user->id))
 
             ->with([
                 'client',
@@ -124,7 +124,7 @@ class AssignedServiceRequestController extends Controller
     $isSe = $user?->role?->code === 'SE';
 
     $base = fn() => ServiceRequest::whereIn('status', $this->assignedStatuses)
-        ->when($isSe, fn($q) => $q->where('assigned_user_id', $user->id));
+        ->when($isSe, fn($q) => $q->where('assigned_se', $user->id));
 
         return [
             'total'      => $base()->count(),
