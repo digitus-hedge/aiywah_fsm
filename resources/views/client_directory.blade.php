@@ -837,7 +837,12 @@
   <div class="cd-filter-actions">
     <a href="{{ route('clients.directory') }}" class="cd-btn cd-btn-ghost"><i class="bi bi-x-circle"></i>Reset</a>
     <button type="submit" class="cd-btn cd-btn-gold"><i class="bi bi-search"></i>Apply</button>
+
+    @if (auth()->user()?->role?->code !== 'SE')
+
     <a href="{{ route('clients.create') }}" class="cd-btn cd-btn-gold"><i class="bi bi-plus-lg"></i>New Client</a>
+@endif
+
   </div>
 </form>
 

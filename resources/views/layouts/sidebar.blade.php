@@ -42,7 +42,8 @@ $srExplorer = \App\Models\ServiceRequest::count();
             </a>
         </li>
         @endif
-        @if ($can('sr_registration'))
+       @if ($can('sr_registration') && auth()->user()->role?->code !== 'SE')
+
         <li>
             <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">
                 <i data-feather="file-plus"></i>SR Registration
@@ -52,9 +53,9 @@ $srExplorer = \App\Models\ServiceRequest::count();
          @if ($can('sr_explorer'))
         <li>
             <a href="{{ route('sr_explorer') }}" class="{{ request()->routeIs('sr_explorer') ? 'active' : '' }}" class="active"> <i data-feather="tag"></i>SR Explorer
-                @if ($srExplorer > 0)
+                <!-- @if ($srExplorer > 0)
                 <span class="badge-pill">{{ $srExplorer }}</span>
-                @endif
+                @endif -->
             </a>
         </li>
         @endif
@@ -69,9 +70,13 @@ $srExplorer = \App\Models\ServiceRequest::count();
 
         {{-- ══ Client management ══ --}}
         @php $showClientManagement = $can('client_accounts') || $can('client_directory'); @endphp
+
+        
+
         @if ($showClientManagement)
         <li class="sidebar-heading">Customer </li>
-        @if ($can('client_accounts'))
+        @if ($can('client_accounts') && auth()->user()?->role?->code !== 'SE')
+
         <li>
             <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.create', 'clients.edit') ? 'active' : '' }}">
                 <i data-feather="users"></i>Customer Accounts
@@ -103,7 +108,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @php $showWorkflow = $can('inquiry_approval') || $can('dispatch_engine') || $can('assigned') ||$can('qc_review') || $can('completed'); @endphp
         @if ($showWorkflow)
         <li class="sidebar-heading">Workflow</li>
-        @if ($can('inquiry_approval'))
+        @if ($can('inquiry_approval') && auth()->user()?->role?->code !== 'SE')
         <li>
             <a href="{{ route('inquiry-approval.index') }}"
                 class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
@@ -178,11 +183,11 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @if ($showSystem)
         <li class="sidebar-heading">System</li>
         @if ($can('analytics'))
-        <li>
+        <!-- <li>
             <a href="{{ route('analytics') }}" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
                 <i data-feather="bar-chart-2"></i>Analytics
             </a>
-        </li>
+        </li> -->
         @endif
         @if ($can('user_directory'))
         <li>
@@ -191,14 +196,14 @@ $srExplorer = \App\Models\ServiceRequest::count();
             </a>
         </li>
         @endif
-        @if ($can('user_provisioning'))
+@if ($can('client_accounts') && !in_array(auth()->user()?->role?->code, ['SE', 'HOP']))
         <li>
             <a href="{{ route('user_provisioning') }}" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
                 <i data-feather="shield"></i>User Provisioning
             </a>
         </li>
         @endif
-        @if ($can('master_data'))
+        @if ($can('master_data') && !in_array(auth()->user()?->role?->code, ['SE', 'HOP']))
         <li>
             <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}">
                 <i data-feather="database"></i>Master Data

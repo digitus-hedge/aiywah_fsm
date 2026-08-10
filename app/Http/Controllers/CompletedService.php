@@ -89,8 +89,12 @@ class CompletedService extends Controller
 
     private function baseQuery(Request $request, bool $applyFilters = true)
     {
+
+        $user = auth()->user();
+
         $query = ServiceRequest::query()
             ->whereIn('status', $this->completedStatuses)
+            ->when($user?->role?->code === 'SE', fn($q) => $q->where('assigned_user_id', $user->id))
             ->with([
                 'client',
                 'project',
@@ -153,7 +157,15 @@ class CompletedService extends Controller
 
     private function stats(): array
     {
-        $completedIds = ServiceRequest::whereIn('status', $this->completedStatuses)->pluck('id');
+        // $completedIds = ServiceRequest::whereIn('status', $this->completedStatuses)->pluck('id');
+
+          $user = auth()->user();
+    $isSe = $user?->role?->code === 'SE';
+
+    $scoped = fn() => ServiceRequest::whereIn('status', $this->completedStatuses)
+        ->when($isSe, fn($q) => $q->where('assigned_user_id', $user->id));
+
+    $completedIds = $scoped()->pluck('id');
 
         return [
             'total'     => $completedIds->count(),

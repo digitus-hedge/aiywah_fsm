@@ -241,6 +241,14 @@ class ServiceRequestController extends Controller
 
         $query = ServiceRequest::with(['client', 'project', 'assignedUser', 'category']);
 
+        // SE sees only their own assigned SRs
+        $user = auth()->user();
+        $isSe = $user->role?->code === 'SE';
+
+        if ($isSe) {
+            $query->where('assigned_se', $user->id);
+        }
+
         if ($request->filled('search')) {
             $s = trim($request->search);
 
@@ -298,12 +306,22 @@ class ServiceRequestController extends Controller
         $sr_explorer = $query->orderBy($sortCol, $sortDir === 'asc' ? 'asc' : 'desc')
             ->paginate(10)->withQueryString();
 
+            $statBase = fn() => ServiceRequest::when($isSe, fn($q) => $q->where('assigned_se', $user->id));
+
+        // $stats = [
+        //     'total'       => ServiceRequest::count(),
+        //     'pendingRev'  => ServiceRequest::where('status', 'Pending')->count(),
+        //     'inProgress'  => ServiceRequest::where('status', 'Assigned')->count(),
+        //     'slaBreached' => ServiceRequest::whereDate('created_at', today())->count(),
+        // ];
+
+
         $stats = [
-            'total'       => ServiceRequest::count(),
-            'pendingRev'  => ServiceRequest::where('status', 'Pending')->count(),
-            'inProgress'  => ServiceRequest::where('status', 'Assigned')->count(),
-            'slaBreached' => ServiceRequest::whereDate('created_at', today())->count(),
-        ];
+    'total'       => $statBase()->count(),
+    'pendingRev'  => $statBase()->where('status', 'Pending')->count(),
+    'inProgress'  => $statBase()->where('status', 'Assigned')->count(),
+    'slaBreached' => $statBase()->whereDate('created_at', today())->count(),
+];
 
         if ($request->ajax() && $request->filled('frag')) {
             return view('sr_explorer', compact('sr_explorer', 'statuses', 'statusMap', 'stats', 'categories'))
@@ -926,7 +944,12 @@ class ServiceRequestController extends Controller
             'On Hold'           => 'On Hold',
         ];
 
+
+        $user = auth()->user();
+$isSe = $user->role?->code === 'SE';
         $tickets = ServiceRequest::with(['client', 'project', 'assignedUser', 'category'])
+            ->when($isSe, fn($q) => $q->where('assigned_se', $user->id))
+
             ->latest()
             ->get()
             ->map(function ($sr) {

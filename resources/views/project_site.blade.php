@@ -1540,7 +1540,11 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
   </div>
   <div class="filter-actions">
     <button class="btn-ghost" onclick="resetFilters()"><i class="bi bi-x-circle"></i>Reset</button>
+
+        @if (auth()->user()?->role?->code !== 'SE')
+
     <button class="btn-gold" onclick="openAddModal()"><i class="bi bi-plus-lg"></i>Add Project</button>
+    @endif
   </div>
 </div>
 
