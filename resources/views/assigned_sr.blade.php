@@ -272,7 +272,16 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
                 && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
                     ? 'In Warranty'
                     : 'Out of Warranty',
-              'contact'     => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
+              // 'contact'     => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
+
+              'contact' => (function () use ($sr) {
+    $c = $sr->client;
+    if (! $c) return '—';
+    $num = $c->primary_mobile ?? $c->contact_number ?? null;
+    if (! $num) return '—';
+    return trim(($c->primary_country ?? '') . ' ' . $num);
+})(),
+
               'scheduled'   => $eta ? $eta->format('d M Y · h:i A') : '—',
               'assigned'    => $assignedAt->format('d M Y · h:i A'),
               'assigned_h'  => $assignedAt->diffForHumans(),

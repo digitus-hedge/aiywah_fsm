@@ -52,8 +52,9 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @endif
          @if ($can('sr_explorer'))
         <li>
-            <a href="{{ route('sr_explorer') }}" class="{{ request()->routeIs('sr_explorer') ? 'active' : '' }}" class="active"> <i data-feather="tag"></i>SR Explorer
-                <!-- @if ($srExplorer > 0)
+<a href="{{ route('sr_explorer') }}" class="{{ request()->routeIs('sr_explorer') ? 'active' : '' }}">
+    <i data-feather="tag"></i>SR Explorer
+                    <!-- @if ($srExplorer > 0)
                 <span class="badge-pill">{{ $srExplorer }}</span>
                 @endif -->
             </a>
@@ -93,10 +94,9 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @endif
         
         <li>
-            <a href="{{ route('project_site_directory') }}" class="{{ request()->routeIs('project_site_directory') ? 'active' : '' }}" class="active">
-                 <i data-feather="briefcase"></i>Projects and Site
-                
-            </a>
+           <a href="{{ route('project_site_directory') }}" class="{{ request()->routeIs('project_site_directory') ? 'active' : '' }}">
+    <i data-feather="briefcase"></i>Projects and Site
+</a>
         </li>
         
 

@@ -405,7 +405,13 @@ $srPayload = [
                 && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
                     ? 'In Warranty'
                     : 'Out of Warranty',
-  'contact'   => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
+'contact' => (function () use ($sr) {
+    $c = $sr->client;
+    if (! $c) return '—';
+    $num = $c->primary_mobile ?? $c->contact_number ?? null;
+    if (! $num) return '—';
+    return trim(($c->primary_country ?? '') . ' ' . $num);
+})(),
   'created'   => \Carbon\Carbon::parse($sr->created_at)->format('d M Y · h:i A'),
   'created_h' => \Carbon\Carbon::parse($sr->created_at)->diffForHumans(),
   'updated'   => $sr->updated_at ? \Carbon\Carbon::parse($sr->updated_at)->diffForHumans() : '—',
@@ -510,6 +516,8 @@ $srPayload = [
           <span class="sr-detail-label"><i class="bi bi-person-workspace"></i>Assigned To</span>
           <span class="sr-detail-value" id="sr-m-assigned">—</span>
         </div>
+
+        
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-telephone"></i>Customer Contact</span>
           <span class="sr-detail-value" id="sr-m-contact">—</span>

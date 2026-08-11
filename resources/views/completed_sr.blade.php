@@ -290,7 +290,15 @@ $qc        = $qcFor($qcHrs);
               'issue'       => $sr->issue_description ?? '—',
                 'warranty'    => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
 
-              'contact'     => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
+              // 'contact'     => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
+
+              'contact' => (function () use ($sr) {
+    $c = $sr->client;
+    if (! $c) return '—';
+    $num = $c->primary_mobile ?? $c->contact_number ?? null;
+    if (! $num) return '—';
+    return trim(($c->primary_country ?? '') . ' ' . $num);
+})(),
               'cust_name'   => $punch->customer_name ?? '—',
               'summary'     => $punch->completion_summary ?? '—',
               'punch_in'    => $punch && $punch->punch_in_at  ? \Carbon\Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A')  : '—',

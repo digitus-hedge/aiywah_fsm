@@ -348,24 +348,28 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
           <div class="form-group">
             <label class="form-label">
               Unique Customer Identification Token <span class="req">*</span>
-              <span class="auto-tag">AUTO</span>@if($isEdit)<span class="lock-tag">LOCKED</span>@endif
+           @if($isEdit)<span class="lock-tag">LOCKED</span>@endif
             </label>
-            <div class="auto-row">
-              <div style="flex:1;position:relative;">
-                <input type="text" class="form-control" id="clientToken" name="unique_code"
-                       value="{{ old('unique_code', $suggestedCode ?? '') }}" placeholder="CUST-XXXX-000" maxlength="20"
-                       style="font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.82rem;padding-right:40px;"
-                       {{ $isEdit ? 'readonly' : '' }}/>
-                <span class="input-right-icon">
-                <div class="check-spinner" id="tokenSpinner"><div class="spinner-border" style="width:14px;height:14px;border-width:2px;color:#fbbc06;" role="status"></div></div>
-                  <i class="bi bi-check-circle-fill check-ok" id="tokenOk"></i>
-                  <i class="bi bi-x-circle-fill check-err" id="tokenErr"></i>
-                </span>
-              </div>
-              <button type="button" class="btn-regen" onclick="regenToken()" title="Regenerate token" {{ $isEdit ? 'disabled' : '' }}>
-                <i class="bi bi-arrow-repeat"></i>Regenerate
-              </button>
-            </div>
+          <div class="auto-row">
+  <div style="flex:1;position:relative;">
+    <input type="text" class="form-control" id="clientToken" name="unique_code"
+           value="{{ old('unique_code', $isEdit ? $client->unique_code : '') }}"
+           placeholder="e.g. CUST-2026001" maxlength="20"
+           style="font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.82rem;padding-right:40px;"
+           oninput="onTokenInput(this)"
+           {{ $isEdit ? '' : '' }}/>
+    <span class="input-right-icon">
+      <div class="check-spinner" id="tokenSpinner">
+        <div class="spinner-border" style="width:14px;height:14px;border-width:2px;color:#fbbc06;" role="status"></div>
+      </div>
+      <i class="bi bi-check-circle-fill check-ok" id="tokenOk"></i>
+      <i class="bi bi-x-circle-fill check-err" id="tokenErr"></i>
+    </span>
+  </div>
+  <button type="button" class="btn-regen" onclick="regenToken()" title="Suggest a code" {{ $isEdit ? 'disabled' : '' }}>
+    <i class="bi bi-magic"></i>Suggest
+  </button>
+</div>
             <div class="field-msg" id="tokenMsg"></div>
           </div>
 
@@ -633,6 +637,10 @@ const IS_EDIT         = @json($isEdit);
 const CLIENT_DATA     = @json($clientData);
 const EXISTING_TOKENS = @json($existingTokens ?? []);
 
+const OLD_PROJECTS     = @json(array_values(old('projects', [])));
+const OLD_STAKEHOLDERS = @json(array_values(old('stakeholders', [])));
+const HAS_OLD          = @json($errors->any());
+
 let matchedClientId = null;
 let companyLookupTimer = null;
 window.warrantiesData = @json(($warranties ?? collect())->map(fn($w) => ['id' => $w->id, 'name' => $w->name])->values());
@@ -665,7 +673,7 @@ function applyMatchedClient(data) {
   // Lock token (auto-filled, not editable)
   const tokenEl = document.getElementById('clientToken');
   tokenEl.value    = data.unique_code;
-  tokenEl.readOnly = true;
+  tokenEl.readOnly = false;
   document.querySelector('.btn-regen').disabled = true;
 
   // Re-target the form at this client's update endpoint
@@ -1190,17 +1198,41 @@ function showToast(type, title, body) {
 @endif
 
 /* ── Init ── */
+/* ── Init ── */
 document.getElementById('contactName').addEventListener('input', () => { syncSummary(); updateChecklist(); });
 
-if (IS_EDIT && CLIENT_DATA) {
-  // Primary mobile now comes from the clients table columns directly
+if (HAS_OLD) {
+  OLD_STAKEHOLDERS.forEach(m => addStakeholder({
+    name:    m.name    || '',
+    country: m.country || '+971',
+    mobile:  m.mobile  || '',
+    notify:  !!m.notify,
+  }));
+
+  OLD_PROJECTS.forEach(p => addProject({
+    id:               p.id               || '',
+    project_name:     p.project_name     || '',
+    project_code:     p.project_code     || '',
+    site_name:        p.site_name        || '',
+    site_address:     p.site_address     || '',
+    completion_date:  p.completion_date  || '',
+    warranty_id:      p.warranty_id      || '',
+    project_engineer: p.project_engineer || '',
+    engineer_contact: p.engineer_contact || '',
+    engineer_country: p.engineer_country || '+971',
+  }, !!p.id));
+
+  if (!OLD_PROJECTS.length) addProject();
+
+} else if (IS_EDIT && CLIENT_DATA) {
   document.getElementById('primaryCountry').value = CLIENT_DATA.primary_country || '+971';
   document.getElementById('primaryMobile').value  = CLIENT_DATA.primary_mobile  || '';
   validatePhone(document.getElementById('primaryMobile'), 'primaryPhoneMsg');
 
-  CLIENT_DATA.mobiles.forEach(m => addStakeholder(m)); // all entries here are stakeholders now
+  CLIENT_DATA.mobiles.forEach(m => addStakeholder(m));
   (CLIENT_DATA.projects || []).forEach(p => addProject(p, true));
   if (!CLIENT_DATA.projects || !CLIENT_DATA.projects.length) addProject();
+
 } else {
   addProject();
 }
@@ -1208,4 +1240,5 @@ if (IS_EDIT && CLIENT_DATA) {
 syncSummary();
 updateChecklist();
 </script>
+
 @endpush
