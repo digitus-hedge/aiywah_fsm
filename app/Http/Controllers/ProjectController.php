@@ -34,10 +34,68 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $data = $this->validated($request);
-        Project::create($data);
+
+        if (empty($data['project_code'])) {
+            $data['project_code'] = $this->generateProjectCode();
+        }
+
+        $project = Project::create($data);
+        $project->load('client');
+
+        $this->notifyProjectAdded($project);
+
         return response()->json(['ok' => true, 'message' => 'Project created.']);
     }
+    private function generateProjectCode(): string
+{
+    do {
+        $code = 'PRJ-' . now()->year . '-' . strtoupper(Str::random(6));
+    } while (Project::withTrashed()->where('project_code', $code)->exists());
 
+    return $code;
+}
+
+private function notifyProjectAdded(Project $project): void
+{
+    $client = $project->client;
+
+    if (! $client) {
+        \Log::warning('Project-added notify skipped — no client', ['project_id' => $project->id]);
+        return;
+    }
+
+    // First project on this account gets the welcome instead
+    $isFirst = $client->projects()->count() === 1;
+
+    $portalUrl = route('portal.client', ['code' => $client->unique_code]);
+    $wa        = app(\App\Services\WhatsAppService::class);
+
+    try {
+        $isFirst
+            ? $wa->notifyClientWelcome($client, $project)
+            : $wa->notifyProjectAdded($client, $project);
+    } catch (\Throwable $e) {
+        \Log::error('Project-added WhatsApp failed', [
+            'project_id' => $project->id,
+            'error'      => $e->getMessage(),
+        ]);
+    }
+
+    try {
+        if ($client->email) {
+            \Mail::to($client->email)->send(
+                $isFirst
+                    ? new \App\Mail\ClientWelcomeMail($client, $project, $portalUrl)
+                    : new \App\Mail\ProjectAddedMail($client, $project, $portalUrl)
+            );
+        }
+    } catch (\Throwable $e) {
+        \Log::error('Project-added mail failed', [
+            'project_id' => $project->id,
+            'error'      => $e->getMessage(),
+        ]);
+    }
+}
     public function update(Request $request, Project $project)
     {
         $data = $this->validated($request);
