@@ -578,9 +578,9 @@ span#cds
 
        <td>
   @if($isInWarranty)
-    <span class="sbadge" style="background:rgba(16,185,129,.1);color:#059669;font-size:.66rem;"><i class="bi bi-shield-fill-check" style="font-size:.55rem;"></i>IW</span>
+    <span class="sbadge" style="background:rgba(16,185,129,.1);color:#059669;font-size:.66rem;"><i class="bi bi-shield-fill-check" style="font-size:.55rem;"></i>In Warranty</span>
   @else
-    <span class="sbadge" style="background:rgba(139,92,246,.1);color:#7c3aed;font-size:.66rem;"><i class="bi bi-currency-dollar" style="font-size:.55rem;"></i>OoW</span>
+    <span class="sbadge" style="background:rgba(139,92,246,.1);color:#7c3aed;font-size:.66rem;"><i class="bi bi-currency-dollar" style="font-size:.55rem;"></i> Non-Warranty</span>
   @endif
 </td>
 
@@ -654,6 +654,8 @@ span#cds
 @if(filled($project->engineer_contact))
   <div class="info-row"><span class="info-key">Engineer Contact</span><span class="info-val mono">{{ $project->engineer_contact }}</span></div>
 @endif
+  <div class="info-row"><span class="info-key">Project Date</span><span class="info-val">{{ $project->updated_at?->format('d M Y') ?? '—' }}</span></div>
+
 
   <div class="info-row">
     <span class="info-key">Status</span>

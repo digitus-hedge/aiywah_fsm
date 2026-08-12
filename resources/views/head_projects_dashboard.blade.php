@@ -1237,7 +1237,7 @@ var KPI = [
    delta:'Action', dc:'dd', sub:'', sp:[3,2,4,1,3,2,2], panel:'dispatch-queue'},
 
   {ico:'bi-speedometer2', cls:'i4 k4', val:'84%', lbl:'SLA Compliance',
-   delta:'+3%', dc:'du', sub:'3 breaches this month', sp:[78,80,82,79,84,81,84], panel:'sla-breach'},
+   delta:'+3%', dc:'du', sub:'', sp:[78,80,82,79,84,81,84], panel:'sla-breach'},
 
   {ico:'bi-check2-circle', cls:'i5 k5', val:{{$reworkCount}}, lbl:'SR Rework',
    delta:'Rework', dc:'du', sub:'', sp:[70,72,74,73,76,75,78], panel:'rework'},

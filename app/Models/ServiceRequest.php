@@ -50,7 +50,8 @@ class ServiceRequest extends Model
         'feedback_submitted_at',
         'portal_link_sent_at',
         'assigned_se',
-        'reallocate'
+        'reallocate',
+        'reallocate_user_id'
     ];
 
     protected $casts = [
@@ -78,6 +79,11 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
     }
+
+    public function reallocateUser()
+{
+    return $this->belongsTo(User::class, 'reallocate_user_id');
+}
 
     public function client(): BelongsTo
     {

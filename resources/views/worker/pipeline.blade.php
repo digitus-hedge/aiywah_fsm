@@ -277,6 +277,29 @@
 {
   margin-bottom: 12px;
 }
+
+.jc-from {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #FAEEDA;
+  color: #854F0B;
+  font-size: .68rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+
+
+.tx-del{
+  background:none;border:none;cursor:pointer;padding:4px 6px;margin-left:6px;
+  color:var(--muted);border-radius:6px;font-size:.9rem;line-height:1;
+}
+.tx-del:hover{color:var(--red,#ef4444);background:rgba(239,68,68,.08);}
+.tx-del:disabled{opacity:.4;cursor:not-allowed;}
+
 </style>
 @endpush
 
@@ -289,9 +312,16 @@
     <i class="bi bi-list-task"></i><span>Pipeline</span>
   </button>
   <button class="tab-btn" data-tab="terminal">
-    <i class="bi bi-broadcast"></i><span>Terminal</span>
+    <i class="bi bi-broadcast"></i><span>My Jobs</span>
     <span class="tab-live hidden" id="activeDot"></span>
   </button>
+
+
+ <button class="tab-btn" data-tab="realloc">
+  <i class="bi bi-arrow-left-right"></i><span>Reallocated</span>
+  <span class="pane-count" id="reallocDot"></span>
+</button>
+
   <button class="tab-btn" data-tab="history">
     <i class="bi bi-clock-history"></i><span>History</span>
   </button>
@@ -322,6 +352,12 @@
     <button class="tf-btn" data-filter="Review">Review</button>
     <button class="tf-btn" data-filter="Completed">Completed</button>
   </div>
+
+
+  <div class="tab-filter" id="sourceFilter" style="display:none;margin-top:8px;">
+  <button class="tf-btn active" data-source="own">Own</button>
+  <button class="tf-btn" data-source="reallocated">Reallocated</button>
+</div>
 
   <div id="jobList"></div>
 </div>
@@ -419,6 +455,60 @@
       </div>
     </div>
   </div>
+</div>
+
+
+
+<!-- <div class="tab-pane" id="tab-realloc">
+  <div class="pane-head">
+    <div>
+      <div class="pane-title cg"><i class="bi bi-arrow-left-right"></i>Reallocated to me</div>
+      <div class="pane-sub" id="reallocSubtitle">Jobs moved over from another ML</div>
+    </div>
+    <span class="pane-count" id="reallocCount">0 jobs</span>
+  </div>
+
+  <div id="reallocList"></div>
+</div> -->
+
+
+<div class="tab-pane" id="tab-realloc">
+  <div class="pane-head">
+    <div>
+      <div class="pane-title cg"><i class="bi bi-arrow-left-right"></i>Reallocated Jobs</div>
+      <div class="pane-sub">Jobs moved over from another ML</div>
+    </div>
+    <span class="pane-count">{{ count($reallocated ?? []) }} jobs</span>
+  </div>
+
+  @forelse ($reallocated ?? [] as $r)
+    <article class="pl-card">
+      <div class="jc-main">
+        <div class="jc-top">
+          <span class="jc-sr">{{ $r['ref'] }}</span>
+          <span class="pill pill-red">{{ $r['status'] }}</span>
+        </div>
+
+        <div class="jc-client">{{ $r['client'] }}</div>
+        <div class="jc-contract"><i class="bi bi-file-earmark-text"></i> {{ $r['project'] }}</div>
+
+        <div class="jc-meta">
+          <span class="jc-meta-item"><i class="bi bi-geo-alt"></i><span>{{ $r['site'] }}</span></span>
+          <span class="jc-meta-item"><i class="bi bi-person-fill"></i><span>Reallocated To: {{ $r['reallocateUser'] }}</span></span>
+          <span class="jc-meta-item"><i class="bi bi-calendar3"></i><span>{{ $r['eta'] }}</span></span>
+          <!-- <span class="pill pill-blue">Reallocated: {{ $r['reallocate'] }}</span> -->
+        </div>
+      </div>
+    </article>
+  @empty
+    <div class="card">
+      <div class="empty-state">
+        <i class="bi bi-inbox"></i>
+        <h6>Nothing reallocated</h6>
+        <p>Jobs moved to you from another ML appear here.</p>
+      </div>
+    </div>
+  @endforelse
 </div>
 
 <!-- ─────────── HISTORY ─────────── -->
@@ -615,6 +705,8 @@
 
 {{-- ══════════════════════════════════════════════════════ SCRIPT ═══ --}}
 @push('scripts')
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 'use strict';
 
@@ -779,13 +871,36 @@ const BADGE_MAP = {
   'Review': 'pill-purple', 'Completed': 'pill-green',
 };
 
+
+// function renderPipeline() {
+//   const list = $('jobList');
+//   const visible = JOBS.filter((j) => j.status === currentFilter);
+//   const reworkCount = JOBS.filter((j) => j.status === 'Rework').length;
+
+//   $('pipelineCount').textContent = `${visible.length} job${visible.length === 1 ? '' : 's'}`;
+//   $('pipelineSubtitle').textContent = `${JOBS.length} total \u00b7 ${reworkCount} need rework`;
+
+//   if (!visible.length) {
+//     list.innerHTML =
+//       '<div class="card"><div class="empty-state"><i class="bi bi-check2-all"></i>' +
+//       '<h6>All clear</h6><p>No jobs in this category.</p></div></div>';
+//     return;
+//   }
+//   list.innerHTML = visible.map(buildJobCard).join('');
+// }
+
+
 function renderPipeline() {
   const list = $('jobList');
-  const visible = JOBS.filter((j) => j.status === currentFilter);
-  const reworkCount = JOBS.filter((j) => j.status === 'Rework').length;
+  let visible = JOBS.filter((j) => j.status === currentFilter);
 
+  if (currentFilter === 'Rework') {
+    visible = visible.filter((j) => j.source === currentSource);
+  }
+
+  const reworkCount = JOBS.filter((j) => j.status === 'Rework').length;
   $('pipelineCount').textContent = `${visible.length} job${visible.length === 1 ? '' : 's'}`;
-  $('pipelineSubtitle').textContent = `${JOBS.length} total \u00b7 ${reworkCount} need rework`;
+  $('pipelineSubtitle').textContent = `${JOBS.length} total · ${reworkCount} need rework`;
 
   if (!visible.length) {
     list.innerHTML =
@@ -941,7 +1056,12 @@ function buildJobCard(job) {
             <i class="bi bi-chevron-down jc-chevron${isExpanded ? ' open' : ''}"></i>
           </div>
         </div>
-        <div class="jc-client">${esc(job.client)}</div>
+        <div class="jc-client" style="display:flex;align-items:center;gap:8px;">
+  <span>${esc(job.client)}</span>
+  ${job.source === 'reallocated'
+    ? `<span class="jc-from">Own:<i class="bi bi-person-fill"></i>${esc(job.ownerName)}</span>`
+    : ''}
+</div>
         <div class="jc-contract"><i class="bi bi-file-earmark-text"></i> ${esc(job.contract)}</div>
         <div class="jc-meta">
           <span class="jc-meta-item"><i class="bi bi-tools"></i><span>${esc(job.domain)}</span></span>
@@ -1047,11 +1167,43 @@ $('jobList').addEventListener('change', (e) => {
   refreshAcceptBtn(ref);
 });
 
+
+// $('tabFilter').addEventListener('click', (e) => {
+//   const btn = e.target.closest('[data-filter]');
+//   if (!btn) return;
+//   currentFilter = btn.dataset.filter;
+//   document.querySelectorAll('.tf-btn').forEach((b) => b.classList.remove('active'));
+//   btn.classList.add('active');
+//   renderPipeline();
+// });
+
+
+let currentSource = 'own';
+
 $('tabFilter').addEventListener('click', (e) => {
   const btn = e.target.closest('[data-filter]');
   if (!btn) return;
   currentFilter = btn.dataset.filter;
-  document.querySelectorAll('.tf-btn').forEach((b) => b.classList.remove('active'));
+  document.querySelectorAll('#tabFilter .tf-btn').forEach((b) => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const sf = $('sourceFilter');
+  sf.style.display = currentFilter === 'Rework' ? 'flex' : 'none';
+  if (currentFilter === 'Rework') {
+    currentSource = 'own';
+    document.querySelectorAll('#sourceFilter .tf-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  }
+
+  renderPipeline();
+});
+
+
+
+$('sourceFilter').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-source]');
+  if (!btn) return;
+  currentSource = btn.dataset.source;
+  document.querySelectorAll('#sourceFilter .tf-btn').forEach((b) => b.classList.remove('active'));
   btn.classList.add('active');
   renderPipeline();
 });
@@ -1598,6 +1750,7 @@ $('expSaveBtn').addEventListener('click', async () => {
     const res = await apiPost(ROUTES.expense, form, true);
 
     expenses.push({
+        id: res.item_id,                    // ← add
       category, name,
       amount: parseFloat(amount).toFixed(2),
       time: hhmm(new Date()),
@@ -1645,12 +1798,55 @@ function renderExpenses() {
           <div class="ec">${esc(e.category)}</div>
         </div>
         <span class="ea">AED ${esc(e.amount)}</span>
-        <span class="er">${esc(e.time)}</span>
+         <span class="er">${esc(e.time)}</span>
+        ${e.id ? `<button class="tx-del" data-delexp="${Number(e.id)}" title="Remove">
+                    <i class="bi bi-trash"></i>
+                  </button>` : ''}
       </div>`).join('') +
     `<div class="tx-total">Total: AED ${total}</div>`;
 }
 
-$('expenseListWrap').addEventListener('click', (e) => {
+// $('expenseListWrap').addEventListener('click', (e) => {
+//   const img = e.target.closest('[data-receipt]');
+//   if (img) openLightbox('image', img.dataset.receipt, 'Receipt');
+// });
+
+$('expenseListWrap').addEventListener('click', async (e) => {
+  const del = e.target.closest('[data-delexp]');
+  if (del) {
+    const id  = Number(del.dataset.delexp);
+    const row = del.closest('.tx-item');
+    const name = row?.querySelector('.en')?.textContent ?? 'this entry';
+    const amt  = row?.querySelector('.ea')?.textContent ?? '';
+
+    const result = await Swal.fire({
+      title: 'Remove this expense?',
+      html: `<strong>${name}</strong><br><span style="color:#6b6862;">${amt}</span>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, remove it',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#9c9a92',
+      reverseButtons: true,
+      focusCancel: true,
+    });
+
+    if (!result.isConfirmed) return;
+
+    del.disabled = true;
+    try {
+      await apiPost(ROUTES.expenseDelete, { sr_id: activeSrId, item_id: id });
+      expenses = expenses.filter((x) => Number(x.id) !== id);
+      renderExpenses();
+      showToast('success', 'Expense removed', 'Entry deleted and totals updated.');
+    } catch (err) {
+      del.disabled = false;
+      showToast('error', 'Could not remove', err.message);
+    }
+    return;
+  }
+
   const img = e.target.closest('[data-receipt]');
   if (img) openLightbox('image', img.dataset.receipt, 'Receipt');
 });
