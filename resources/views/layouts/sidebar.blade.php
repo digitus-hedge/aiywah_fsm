@@ -228,3 +228,87 @@ $srExplorer = \App\Models\ServiceRequest::count();
 
     </ul>
 </aside>
+
+<style>
+    /* Reserve icon space BEFORE feather swaps <i> for <svg> */
+    .sidebar-nav a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .sidebar-nav a > i[data-feather],
+    .sidebar-nav a > svg {
+        flex: 0 0 18px;
+        width: 18px;
+        height: 18px;
+        stroke-width: 2;
+    }
+    .sidebar-nav a > .badge-pill {
+        margin-left: auto;
+    }
+    /* Section headings — fixed height so they don't reflow */
+    .sidebar-heading {
+        min-height: 28px;
+        line-height: 28px;
+    }
+    /* Kill transitions until the page has settled */
+    .sidebar.preload,
+    .sidebar.preload * {
+        transition: none !important;
+        animation: none !important;
+    }
+</style>
+
+
+<script>
+(function () {
+    var sidebar = document.getElementById('sidebar');
+    var overlay = document.getElementById('sidebarOverlay');
+    if (!sidebar) return;
+
+    sidebar.classList.add('preload');
+
+    // 1. Draw icons immediately so nothing shifts after paint
+    if (window.feather) feather.replace();
+
+    // 2. Restore scroll position of the sidebar (per section, survives reload)
+    var KEY = 'mm_sidebar_scroll';
+    var saved = sessionStorage.getItem(KEY);
+    if (saved) sidebar.scrollTop = parseInt(saved, 10) || 0;
+
+    sidebar.addEventListener('scroll', function () {
+        sessionStorage.setItem(KEY, sidebar.scrollTop);
+    }, { passive: true });
+
+    // 3. Instant active highlight + remember position on click
+    sidebar.querySelectorAll('.sidebar-nav a').forEach(function (link) {
+        link.addEventListener('click', function () {
+            sidebar.querySelectorAll('.sidebar-nav a.active')
+                   .forEach(function (a) { a.classList.remove('active'); });
+            this.classList.add('active');
+            sessionStorage.setItem(KEY, sidebar.scrollTop);
+        });
+    });
+
+    // 4. Scroll the active link into view without animating
+    var active = sidebar.querySelector('.sidebar-nav a.active');
+    if (active && !saved) {
+        active.scrollIntoView({ block: 'nearest' });
+    }
+
+    // 5. Mobile drawer close
+    if (overlay) {
+        overlay.addEventListener('click', function () {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('show');
+        });
+    }
+
+    // 6. Re-enable transitions once everything is settled
+    window.addEventListener('load', function () {
+        requestAnimationFrame(function () {
+            sidebar.classList.remove('preload');
+        });
+    });
+})();
+</script>
