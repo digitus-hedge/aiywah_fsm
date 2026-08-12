@@ -608,6 +608,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
   $clientData = null;
   if ($isEdit) {
      $clientData = $isEdit ? [
+    'email'           => $client->email,
     'primary_country' => $client->primary_country,
     'primary_mobile'  => $client->primary_mobile,
     'mobiles'  => $client->mobiles->map(fn ($m) => [
@@ -626,7 +627,8 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
         'project_engineer'=> $p->project_engineer,
         'engineer_contact' => $p->engineer_contact,
         'completion_date' => optional($p->completion_date)->format('Y-m-d'),
-          'warranty_id'     => $p->warranty_id,
+                     'warranty_id'      => $p->warranty_id ? (int) $p->warranty_id : null,
+
 
     ])->values(),
 ] : null;
@@ -684,6 +686,7 @@ function applyMatchedClient(data) {
   // Everything else stays editable and is just pre-filled
   document.getElementById('contactName').value = data.contact_name || '';
   document.getElementById('designation').value  = data.designation  || '';
+   document.getElementById('primaryEmail').value  = data.email  || '';
 
   document.getElementById('primaryCountry').value = data.primary_country || '+971';
   document.getElementById('primaryMobile').value  = data.primary_mobile  || '';
@@ -911,19 +914,24 @@ function addProject(prefill, existing) {
   const div  = document.createElement('div');
   div.className = `ps-row ${existing ? 'existing-row' : 'new-row'}`;
   div.id        = `ps-${idx}`;
-  const pn = prefill && prefill.project_name ? prefill.project_name.replace(/"/g,'&quot;') : '';
-  const pc = prefill && prefill.project_code ? prefill.project_code.replace(/"/g,'&quot;') : '';
-  const sn = prefill && prefill.site_name ? prefill.site_name.replace(/"/g,'&quot;') : '';
-  const sa = prefill && prefill.site_address ? prefill.site_address : '';
-  const cd = prefill && prefill.completion_date ? prefill.completion_date : '';
-  const wid = prefill && prefill.warranty_id ? String(prefill.warranty_id) : '';
-  const pid = prefill && prefill.id ? String(prefill.id) : '';
-  const pe  = prefill && prefill.project_engineer ? prefill.project_engineer.replace(/"/g,'&quot;') : '';
-  const pec = prefill && prefill.engineer_contact ? prefill.engineer_contact.replace(/"/g,'&quot;') : '';
 
-  const warrantyOptions = (window.warrantiesData || [])
-    .map(w => `<option value="${w.id}" ${String(w.id) === wid ? 'selected' : ''}>${w.name}</option>`)
-    .join('');
+  const pn   = prefill && prefill.project_name ? prefill.project_name.replace(/"/g,'&quot;') : '';
+  const pc   = prefill && prefill.project_code ? prefill.project_code.replace(/"/g,'&quot;') : '';
+  const sn   = prefill && prefill.site_name ? prefill.site_name.replace(/"/g,'&quot;') : '';
+  const sa   = prefill && prefill.site_address ? prefill.site_address : '';
+  const cd   = prefill && prefill.completion_date ? prefill.completion_date : '';
+  const wid  = prefill && prefill.warranty_id ? String(prefill.warranty_id) : '';
+  const pid  = prefill && prefill.id ? String(prefill.id) : '';
+  const pe   = prefill && prefill.project_engineer ? prefill.project_engineer.replace(/"/g,'&quot;') : '';
+  const pec  = prefill && prefill.engineer_contact ? prefill.engineer_contact.replace(/"/g,'&quot;') : '';
+  const pecc = prefill && prefill.engineer_country ? prefill.engineer_country : '+971';
+
+  const known = (window.warrantiesData || []).some(w => String(w.id) === wid);
+  const warrantyOptions =
+    (window.warrantiesData || [])
+      .map(w => `<option value="${w.id}" ${String(w.id) === wid ? 'selected' : ''}>${w.name}</option>`)
+      .join('')
+    + (wid && !known ? `<option value="${wid}" selected>Current warranty (archived)</option>` : '');
 
   div.innerHTML = `
     <div class="ps-row-hdr">
@@ -933,7 +941,7 @@ function addProject(prefill, existing) {
       ${idx > 1 || existing ? `<button type="button" class="ps-remove" onclick="removePS('ps-${idx}')" title="Remove entry"><i class="bi bi-trash3"></i></button>` : ''}
     </div>
     <div class="ps-fields">
-        <input type="hidden" name="projects[${idx}][id]" value="${pid}"/>
+      <input type="hidden" name="projects[${idx}][id]" value="${pid}"/>
       <div>
         <span class="ps-label">Project Name <span style="color:#ff3366;">*</span></span>
         <input type="text" class="ps-input" name="projects[${idx}][project_name]" value="${pn}" placeholder="e.g. HQ Maintenance Contract" oninput="syncSummary()"/>
@@ -950,7 +958,7 @@ function addProject(prefill, existing) {
         <span class="ps-label">Completion Date <span style="color:#ff3366;">*</span></span>
         <input type="date" class="ps-input" name="projects[${idx}][completion_date]" value="${cd}" oninput="syncSummary()"/>
       </div>
-       <div>
+      <div>
         <span class="ps-label">Warranty <span style="color:#ff3366;">*</span></span>
         <select class="ps-input" name="projects[${idx}][warranty_id]" onchange="syncSummary()">
           <option value="">Select Warranty</option>
@@ -964,20 +972,20 @@ function addProject(prefill, existing) {
         <input type="text" class="ps-input" name="projects[${idx}][project_engineer]" id="pseng-${idx}"
                value="${pe}" placeholder="e.g. Rahul Menon" oninput="syncSummary()"/>
       </div>
-     <div>
+      <div>
         <span class="ps-label">Engineer Contact</span>
         <div class="ps-phone">
           <select class="ps-code" name="projects[${idx}][engineer_country]" id="psengcc-${idx}"
                   onchange="syncSummary()">
-            <option value="+971" ${pec === '+971' ? 'selected' : ''}>🇦🇪 +971</option>
-            <option value="+91"  ${pec === '+91'  ? 'selected' : ''}>🇮🇳 +91</option>
-            <option value="+1"   ${pec === '+1'   ? 'selected' : ''}>🇺🇸 +1</option>
-            <option value="+44"  ${pec === '+44'  ? 'selected' : ''}>🇬🇧 +44</option>
-            <option value="+966" ${pec === '+966' ? 'selected' : ''}>🇸🇦 +966</option>
-            <option value="+974" ${pec === '+974' ? 'selected' : ''}>🇶🇦 +974</option>
-            <option value="+965" ${pec === '+965' ? 'selected' : ''}>🇰🇼 +965</option>
-            <option value="+973" ${pec === '+973' ? 'selected' : ''}>🇧🇭 +973</option>
-            <option value="+968" ${pec === '+968' ? 'selected' : ''}>🇴🇲 +968</option>
+            <option value="+971" ${pecc === '+971' ? 'selected' : ''}>🇦🇪 +971</option>
+            <option value="+91"  ${pecc === '+91'  ? 'selected' : ''}>🇮🇳 +91</option>
+            <option value="+1"   ${pecc === '+1'   ? 'selected' : ''}>🇺🇸 +1</option>
+            <option value="+44"  ${pecc === '+44'  ? 'selected' : ''}>🇬🇧 +44</option>
+            <option value="+966" ${pecc === '+966' ? 'selected' : ''}>🇸🇦 +966</option>
+            <option value="+974" ${pecc === '+974' ? 'selected' : ''}>🇶🇦 +974</option>
+            <option value="+965" ${pecc === '+965' ? 'selected' : ''}>🇰🇼 +965</option>
+            <option value="+973" ${pecc === '+973' ? 'selected' : ''}>🇧🇭 +973</option>
+            <option value="+968" ${pecc === '+968' ? 'selected' : ''}>🇴🇲 +968</option>
           </select>
           <input type="text" class="ps-input" name="projects[${idx}][engineer_contact]" id="psengc-${idx}"
                  value="${pec}" placeholder="Phone"
@@ -995,6 +1003,7 @@ function addProject(prefill, existing) {
         <textarea class="ps-textarea" name="projects[${idx}][site_address]" rows="2" placeholder="Building name, floor, area, city…" oninput="syncSummary()">${sa}</textarea>
       </div>
     </div>`;
+
   grid.appendChild(div);
   if (!pc) genProjectCode(idx);
   syncSummary();

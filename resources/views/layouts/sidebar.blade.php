@@ -142,6 +142,15 @@ $srExplorer = \App\Models\ServiceRequest::count();
             </a>
         </li>
         @endif
+
+
+         <li>
+            <a href="{{ route('rework_sr') }}" class="{{ request()->routeIs('rework_sr') ? 'active' : '' }}">
+                <i data-feather="check-circle"></i>Rework SR
+            </a>
+        </li>
+        
+
          @if ($can('completed'))
         <li>
             <a href="{{ route('completed') }}" class="{{ request()->routeIs('completed') ? 'active' : '' }}">
@@ -153,7 +162,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
 
         {{-- ══ FINANCE ══ --}}
         @php $showFinance = $can('quotation_desk') || $can('invoice_panel') || $can('expense_ledger'); @endphp
-        @if ($showFinance)
+        @if ($showFinance && auth()->user()?->role?->code !== 'SE')
         <li class="sidebar-heading">Finance</li>
         @if ($can('quotation_desk'))
         <li>

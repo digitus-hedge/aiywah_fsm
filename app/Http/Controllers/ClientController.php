@@ -439,7 +439,7 @@ class ClientController extends Controller
             return $client;
         });
 
-       // Send welcome notifications (outside transaction)
+        // Send welcome notifications (outside transaction)
         $firstProject = $client->projects()->oldest('id')->first();
 
         $portalUrl = route('portal.client', ['code' => $client->unique_code]);
@@ -862,6 +862,8 @@ class ClientController extends Controller
             'unique_code'     => $client->unique_code,
             'contact_name'    => $client->contact_name,
             'designation'     => $client->designation,
+            'email'           => $client->email,          // ← was missing
+
             'primary_country' => $client->primary_country,
             'primary_mobile'  => $client->primary_mobile,
             'mobiles'         => $client->mobiles->map(fn($m) => [
@@ -870,10 +872,15 @@ class ClientController extends Controller
                 'mobile'  => $m->mobile,
             ])->values(),
             'projects' => $client->projects->map(fn($p) => [
-                'project_name'    => $p->project_name,
-                'project_code'    => $p->project_code,
-                'site_name'       => $p->site_name,
-                'site_address'    => $p->site_address,
+                'id'               => $p->id,
+                'project_name'     => $p->project_name,
+                'project_code'     => $p->project_code,
+                'site_name'        => $p->site_name,
+                'site_address'     => $p->site_address,
+                'project_engineer' => $p->project_engineer,
+                'engineer_contact' => $p->engineer_contact,
+                'engineer_country' => $p->engineer_country,
+                'warranty_id'      => $p->warranty_id ? (int) $p->warranty_id : null,
                 'completion_date' => optional($p->completion_date)->format('Y-m-d'),
                 'warranty_end_date' => optional($p->warranty_end_date)->format('Y-m-d'),
             ])->values(),

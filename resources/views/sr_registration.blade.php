@@ -1016,6 +1016,21 @@
 }
 .ct-foot .btn-gold:active{transform:translateY(0)}
 .ct-foot .btn-gold:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+
+
+
+
+
+.sidebar        { z-index: 1000; }
+
+#ctModal        { display: none; }
+#ctModal.show   { display: flex; align-items: center; justify-content: center;
+                  position: fixed; inset: 0; z-index: 1200;
+                  background: rgba(15, 23, 42, .45); }
+
+body.modal-open { overflow: hidden; }
+body.modal-open .sidebar,
+body.modal-open .topbar { pointer-events: none; }
 </style>
 @endpush
 
@@ -1216,7 +1231,7 @@
                oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="flex:1;">
       </div>
 
-      <label class="ct-chk-lbl" style="margin-top:10px;display:none;">
+      <label class="ct-chk-lbl" style="margin-top: 20px;">
         <input type="checkbox" id="ctNotify" value="1">
         <span>Send WhatsApp updates</span>
       </label>
@@ -1440,15 +1455,30 @@
 
 function openCtModal() {
   if (!window.__clientId) { toast('error','Validation','Verify a customer first.'); return; }
-  document.getElementById('ctName').value = '';
-  document.getElementById('ctMobile').value = '';
-  document.getElementById('ctNotify').checked = false;
-  document.getElementById('ctModal').classList.add('show');
+
+  const m = document.getElementById('ctModal');
+
+  // Escape any stacking context created by .main / .page-content
+  if (m.parentElement !== document.body) document.body.appendChild(m);
+
+  document.getElementById('ctName').value      = '';
+  document.getElementById('ctMobile').value    = '';
+  document.getElementById('ctNotify').checked  = false;
+
+  m.classList.add('show');
+  document.body.classList.add('modal-open');
+
+  setTimeout(() => document.getElementById('ctName').focus(), 50);
 }
 
 function closeCtModal() {
   document.getElementById('ctModal').classList.remove('show');
+  document.body.classList.remove('modal-open');
 }
+
+// function closeCtModal() {
+//   document.getElementById('ctModal').classList.remove('show');
+// }
 
 async function saveContact() {
   const name    = document.getElementById('ctName').value.trim();

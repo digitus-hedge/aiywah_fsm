@@ -330,6 +330,8 @@
 .fail-mode-btn.active{background:rgba(154,128,83,.1);border-color:#9a8053;color:#9a8053;font-weight:600;}
 
 
+.qc-lock-note      { display: none; }
+.qc-lock-note.show { display: flex; }
 </style>
 @endpush
 
@@ -512,20 +514,37 @@
   <div class="action-body">
     <div class="scope-indicator" id="scope-indicator"></div>
 
-    <div class="qc-lock-note" id="qc-lock-note">
+    <!-- <div class="qc-lock-note" id="qc-lock-note">
       <i class="bi bi-lock-fill"></i>
       <span>QC on this ticket is allocated to <strong id="qc-owner-name">—</strong>. You can review the evidence here, but only they can pass or return it.</span>
-    </div>
+    </div> -->
 
     {{-- Two main buttons only --}}
-    <div class="action-btns" id="action-btns">
+    <!-- <div class="action-btns" id="action-btns">
       <button class="btn-qc-fail" id="btn-fail" onclick="initiateFail()">
         <i class="bi bi-arrow-counterclockwise"></i>QC Fail — Return to Rework
       </button>
       <button class="btn-qc-pass" id="btn-pass" onclick="initiatePass()">
         <i class="bi bi-patch-check-fill"></i>QC Pass — Authorize Closeout
       </button>
-    </div>
+    </div> -->
+
+
+
+    <div class="qc-lock-note" id="qc-lock-note">
+  <i class="bi bi-lock-fill"></i>
+  <span>QC on this ticket is allocated to <strong id="qc-owner-name">—</strong>. You can review the evidence here, but only they can pass or return it.</span>
+</div>
+
+{{-- Two main buttons only --}}
+<div class="action-btns" id="action-btns" style="display:none;">
+  <button class="btn-qc-fail" id="btn-fail" onclick="initiateFail()">
+    <i class="bi bi-arrow-counterclockwise"></i>QC Fail — Return to Rework
+  </button>
+  <button class="btn-qc-pass" id="btn-pass" onclick="initiatePass()">
+    <i class="bi bi-patch-check-fill"></i>QC Pass — Authorize Closeout
+  </button>
+</div>
 
     {{-- Opens ONLY after QC Fail is clicked --}}
     <div id="fail-wrap" style="display:none;margin-top:12px;">
@@ -761,14 +780,22 @@ function setProofPdf(elId, statusId, url){
 }
 
 /* ---------- SELECT SR ---------- */
+// function applyQcPermission(sr){
+//   const canAct = !!sr.canAct;
+//   document.getElementById('qc-lock-note').classList.toggle('show', !canAct);
+//   document.getElementById('action-btns').style.display = canAct ? '' : 'none';
+//   document.getElementById('fail-wrap').style.display   = 'none';
+//   if(!canAct){
+//     document.getElementById('qc-owner-name').textContent = sr.qcOwner || 'another reviewer';
+//   }
+// }
+
 function applyQcPermission(sr){
   const canAct = !!sr.canAct;
   document.getElementById('qc-lock-note').classList.toggle('show', !canAct);
   document.getElementById('action-btns').style.display = canAct ? '' : 'none';
   document.getElementById('fail-wrap').style.display   = 'none';
-  if(!canAct){
-    document.getElementById('qc-owner-name').textContent = sr.qcOwner || 'another reviewer';
-  }
+  document.getElementById('qc-owner-name').textContent = sr.qcOwner || 'another reviewer';
 }
 
 function selectSR(id){
@@ -1064,16 +1091,30 @@ function dropFromQueue(id){
 }
 
 /* ---------- NEXT TICKET ---------- */
+
+// function nextTicket(){
+//   document.getElementById('ws-success').classList.remove('show');
+//   if(QC_FILTERED.length){
+//     selectSR(QC_FILTERED[0].id);
+//   } else {
+//     document.getElementById('ws-empty').style.display='';
+//     showToast('ok','Queue Clear','All pending QC tickets have been reviewed.');
+//   }
+//   const next = QC_FILTERED.find(s => s.canAct) || QC_FILTERED[0];
+// if(next) selectSR(next.id);
+// }
+
+
 function nextTicket(){
   document.getElementById('ws-success').classList.remove('show');
-  if(QC_FILTERED.length){
-    selectSR(QC_FILTERED[0].id);
+
+  const next = QC_FILTERED.find(s => s.canAct) || QC_FILTERED[0];
+  if(next){
+    selectSR(next.id);
   } else {
-    document.getElementById('ws-empty').style.display='';
+    document.getElementById('ws-empty').style.display = '';
     showToast('ok','Queue Clear','All pending QC tickets have been reviewed.');
   }
-  const next = QC_FILTERED.find(s => s.canAct) || QC_FILTERED[0];
-if(next) selectSR(next.id);
 }
 
 /* ---------- FILTER QUEUE ---------- */
