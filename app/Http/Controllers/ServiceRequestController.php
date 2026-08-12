@@ -470,21 +470,35 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
+        $serviceRequest->loadMissing(['client', 'project', 'creator']);
 
 
-        $wa = app(\App\Services\WhatsAppService::class);
+        $warrantyEnd = optional($serviceRequest->project)->warranty_end_date;
 
-        $inWarranty = optional($serviceRequest->project)->warranty_end_date
-            && \Carbon\Carbon::parse($serviceRequest->project->warranty_end_date)
-            ->endOfDay()->isFuture();
+        $inWarranty = $warrantyEnd
+            && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
 
-        if ($inWarranty) {
-            $wa->notifyWarrantyApproved($serviceRequest);
-        } else {
-            // no live warranty on the project — fall back to the generic status message
-            $wa->notifyServiceStatus($serviceRequest, 'Approved');
+        Log::info('Approve warranty branch', [
+            'sr_id'        => $serviceRequest->id,
+            'project_id'   => $serviceRequest->project_id,
+            'warranty_end' => $warrantyEnd,
+            'in_warranty'  => $inWarranty,
+        ]);
+
+        try {
+            $wa = app(\App\Services\WhatsAppService::class);
+
+            $inWarranty
+                ? $wa->notifyWarrantyApproved($serviceRequest)
+                : $wa->notifyServiceStatus($serviceRequest, 'Approved');
+
+            $wa->notifyInternalSrAccepted($serviceRequest);
+        } catch (\Throwable $e) {
+            Log::error('Approve WhatsApp failed', [
+                'sr_id' => $serviceRequest->id,
+                'error' => $e->getMessage(),
+            ]);
         }
-        $wa->notifyInternalSrAccepted($serviceRequest);
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -881,15 +895,6 @@ class ServiceRequestController extends Controller
         ]);
 
         try {
-            app(\App\Services\WhatsAppService::class)
-                ->notifyInternalTechnicianAssigned($serviceRequest);
-        } catch (\Throwable $e) {
-            Log::error('Internal tech-assigned WhatsApp failed', [
-                'sr_id' => $serviceRequest->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-        try {
             $serviceRequest->loadMissing(['client', 'project', 'assignedUser']);
             $ref = $this->buildSrRef($serviceRequest);
 
@@ -912,6 +917,21 @@ class ServiceRequestController extends Controller
             }
         } catch (\Throwable $e) {
             Log::error('Tech-assigned mail failed', [
+                'sr_id' => $serviceRequest->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+
+        //whatsapp message 
+        try {
+            $serviceRequest->loadMissing(['client', 'project', 'assignedUser', 'creator']);
+
+            $wa = app(\App\Services\WhatsAppService::class);
+            $wa->notifyTechnicianAssigned($serviceRequest);          // ← customer
+            $wa->notifyInternalTechnicianAssigned($serviceRequest);  // ← staff
+        } catch (\Throwable $e) {
+            Log::error('Tech-assigned WhatsApp failed', [
                 'sr_id' => $serviceRequest->id,
                 'error' => $e->getMessage(),
             ]);
@@ -1832,11 +1852,17 @@ class ServiceRequestController extends Controller
         }
 
         try {
-            $wa = app(\App\Services\WhatsAppService::class);
-            $wa->notifyMaintenanceCompleted($sr, null, $customerLink);
-            $wa->notifyInternalMaintenanceCompleted($sr, null, $customerLink);
+            app(\App\Services\WhatsAppService::class)
+                ->notifyMaintenanceCompleted($sr, null, $customerLink);
         } catch (\Throwable $e) {
-            Log::error('Completion WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+            Log::error('Completion WhatsApp (customer) failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+        }
+
+        try {
+            app(\App\Services\WhatsAppService::class)
+                ->notifyInternalMaintenanceCompleted($sr, null, $customerLink);
+        } catch (\Throwable $e) {
+            Log::error('Completion WhatsApp (internal) failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
         }
 
         \App\Jobs\SendSatisfactionSurvey::dispatch($sr)

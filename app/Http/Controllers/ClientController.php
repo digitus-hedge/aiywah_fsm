@@ -439,13 +439,34 @@ class ClientController extends Controller
             return $client;
         });
 
-        // Send WhatsApp welcome (outside transaction)
+       // Send welcome notifications (outside transaction)
         $firstProject = $client->projects()->oldest('id')->first();
 
+        $portalUrl = route('portal.client', ['code' => $client->unique_code]);
+
+        // Email
+        try {
+            if ($client->email) {
+                \Mail::to($client->email)->send(
+                    new \App\Mail\ClientWelcomeMail($client, $firstProject, $portalUrl)
+                );
+            } else {
+                \Log::warning('Client welcome mail skipped — no email', ['client_id' => $client->id]);
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Client welcome mail failed', [
+                'client_id' => $client->id,
+                'error'     => $e->getMessage(),
+            ]);
+        }
+
+        // WhatsApp
         try {
             if ($firstProject) {
                 app(\App\Services\WhatsAppService::class)
                     ->notifyClientWelcome($client, $firstProject);
+            } else {
+                \Log::warning('Welcome WhatsApp skipped — no project', ['client_id' => $client->id]);
             }
         } catch (\Throwable $e) {
             \Log::error('Welcome WhatsApp failed', [
