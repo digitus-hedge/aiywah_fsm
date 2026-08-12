@@ -27,6 +27,7 @@
 
 * { box-sizing: border-box; }
 
+html { scrollbar-gutter: stable; }
 body {
     font-family: var(--font-sans, 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
     font-size: 0.875rem;
@@ -136,12 +137,16 @@ body {
     font-weight: 500;
 }
 
-.sidebar-nav a svg {
+
+
+.sidebar-nav a svg,
+.sidebar-nav a [data-feather] {
     width: 16px;
     height: 16px;
     margin-right: 12px;
     stroke-width: 2;
     flex-shrink: 0;
+    display: inline-block;
 }
 
 .sidebar-nav .badge-pill {
@@ -622,7 +627,9 @@ body {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.4);
-    z-index: 999;
+   
+      z-index: 1040;          /* was 999 — same as .topbar, causes flicker */
+    backdrop-filter: blur(2px);
 }
 
 .sidebar-overlay.show { display: block; }

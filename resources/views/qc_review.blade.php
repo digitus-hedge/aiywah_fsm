@@ -181,11 +181,22 @@
 .qc-wrap .rework-hint.active{color:#ef4444;}
 
 /* ACTION BUTTONS */
-.qc-wrap .action-btns{display:flex;gap:10px;flex-wrap:wrap;}
-.qc-wrap .btn-qc-pass{flex:1;padding:11px 16px;background:linear-gradient(135deg,#9A7B4F,#7A6140);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;min-width:180px;}
+/* .qc-wrap .action-btns{display:flex;gap:10px;flex-wrap:wrap;} */
+
+.qc-wrap .action-btns{display:flex;gap:10px;flex-wrap:nowrap;}
+.qc-wrap .action-btns > button{
+  flex:1 1 0;
+  min-width:0;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  white-space:nowrap;
+}
+.qc-wrap .btn-qc-pass{flex:1;padding:11px 16px;background:linear-gradient(135deg,#9A7B4F,#7A6140);color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;min-width:0;}
 .qc-wrap .btn-qc-pass:hover{opacity:.88;}
 .qc-wrap .btn-qc-pass:disabled{opacity:.4;cursor:not-allowed;}
-.qc-wrap .btn-qc-fail{flex:1;padding:11px 16px;background:var(--surface-2);color:var(--text-muted);border:2px solid var(--border-color);border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;min-width:180px;}
+.qc-wrap .btn-qc-fail{flex:1;padding:11px 16px;background:var(--surface-2);color:var(--text-muted);border:2px solid var(--border-color);border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;min-width:0;}
 .qc-wrap .btn-qc-fail:hover{border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,.04);}
 .qc-wrap .btn-qc-fail.active{border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,.06);}
 .qc-wrap .btn-confirm-rework{display:none;width:100%;padding:11px;background:#ef4444;color:#fff;border:none;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;gap:7px;align-items:center;justify-content:center;transition:background .15s;margin-top:10px;}
@@ -306,6 +317,19 @@
   outline: none;
   border-color: #b8b4aa;
 }
+
+
+
+.fail-mode-row{display:flex;gap:8px;margin-bottom:12px;}
+.fail-mode-btn{
+  flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 10px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;
+  color:var(--text-muted);font-size:.78rem;font-weight:500;cursor:pointer;transition:.15s;
+}
+.fail-mode-btn:hover{border-color:#9a8053;color:#9a8053;}
+.fail-mode-btn.active{background:rgba(154,128,83,.1);border-color:#9a8053;color:#9a8053;font-weight:600;}
+
+
 </style>
 @endpush
 
@@ -480,63 +504,86 @@
         </div>
 
         {{-- QC Action Panel --}}
-        <div class="action-card">
-          <div class="action-hdr">
-            <div class="action-hdr-icon"><i class="bi bi-clipboard2-check"></i></div>
-            <h6>QC Decision</h6>
-          </div>
-          <div class="action-body">
-            <div class="scope-indicator" id="scope-indicator"></div>
-            <div class="qc-lock-note" id="qc-lock-note">
-            <i class="bi bi-lock-fill"></i>
-            <span>QC on this ticket is allocated to <strong id="qc-owner-name">—</strong>. You can review the evidence here, but only they can pass or return it.</span>
-          </div>
-            <div class="rework-wrap" id="rework-wrap">
-              <div class="rework-label-row">
-                <div class="rework-label"><i class="bi bi-pencil-square"></i>Mandatory Rework Requirements</div>
-                <span class="rework-locked-tag" id="rework-locked-tag"><i class="bi bi-lock-fill"></i> Locked</span>
-                <span class="rework-unlocked-tag" id="rework-unlocked-tag"><i class="bi bi-unlock-fill"></i> Required</span>
-              </div>
-              <textarea class="rework-textarea" id="rework-textarea" disabled placeholder="This field is locked. Click 'QC Fail — Return to Rework' to activate and enter your mandatory rework requirements for the technician…"></textarea>
-              <div class="rework-hint" id="rework-hint">This field unlocks only when initiating a rework rejection. SLA timers will be preserved.</div>
-            </div>
+       <div class="action-card">
+  <div class="action-hdr">
+    <div class="action-hdr-icon"><i class="bi bi-clipboard2-check"></i></div>
+    <h6>QC Decision</h6>
+  </div>
+  <div class="action-body">
+    <div class="scope-indicator" id="scope-indicator"></div>
 
-            <div class="action-btns" id="action-btns">
-              <button class="btn-qc-fail" id="btn-fail" onclick="initiateFail()"><i class="bi bi-arrow-counterclockwise"></i>QC Fail — Return to Rework</button>
-              <button class="btn-qc-pass" id="btn-pass" onclick="initiatePass()"><i class="bi bi-patch-check-fill"></i>QC Pass — Authorize Closeout</button>
-              <button class="btn-qc-realloc" id="btn-realloc" onclick="initiateRealloc()"><i class="bi bi-arrow-left-right"></i>Reallocate to ML</button>
+    <div class="qc-lock-note" id="qc-lock-note">
+      <i class="bi bi-lock-fill"></i>
+      <span>QC on this ticket is allocated to <strong id="qc-owner-name">—</strong>. You can review the evidence here, but only they can pass or return it.</span>
+    </div>
 
-            </div>
+    {{-- Two main buttons only --}}
+    <div class="action-btns" id="action-btns">
+      <button class="btn-qc-fail" id="btn-fail" onclick="initiateFail()">
+        <i class="bi bi-arrow-counterclockwise"></i>QC Fail — Return to Rework
+      </button>
+      <button class="btn-qc-pass" id="btn-pass" onclick="initiatePass()">
+        <i class="bi bi-patch-check-fill"></i>QC Pass — Authorize Closeout
+      </button>
+    </div>
 
+    {{-- Opens ONLY after QC Fail is clicked --}}
+    <div id="fail-wrap" style="display:none;margin-top:12px;">
 
-            <div class="realloc-wrap" id="realloc-wrap" style="display:none;margin-top:12px;">
-  <div class="rework-label"><i class="bi bi-diagram-3"></i>Service category</div>
-  <select id="realloc-category" class="realloc-select" onchange="loadMls(this.value)">
-  <option value="">Select category…</option>
-  @foreach ($categories as $c)
-    <option value="{{ $c->id }}">{{ $c->category_name }}</option>
-  @endforeach
-</select>
+      <div class="fail-mode-row">
+        <button type="button" class="fail-mode-btn active" data-mode="rework" onclick="setFailAction('rework')">
+          <i class="bi bi-pencil-square"></i>Send back to technician
+        </button>
+        <button type="button" class="fail-mode-btn" data-mode="realloc" onclick="setFailAction('realloc')">
+          <i class="bi bi-arrow-left-right"></i>Reallocate to ML
+        </button>
+      </div>
 
-  <div class="rework-label" style="margin-top:10px;"><i class="bi bi-person-badge"></i>Assign to ML</div>
- <select id="realloc-ml" class="realloc-select" disabled>
-  <option value="">Select a category first…</option>
-</select>
+      {{-- MODE A: rework --}}
+      <div class="rework-wrap" id="rework-wrap">
+        <div class="rework-label-row">
+          <div class="rework-label"><i class="bi bi-pencil-square"></i>Mandatory Rework Requirements</div>
+          <span class="rework-unlocked-tag" id="rework-unlocked-tag" style="display:flex;">
+            <i class="bi bi-unlock-fill"></i> Required
+          </span>
+        </div>
+        <textarea class="rework-textarea" id="rework-textarea"
+          placeholder="Describe the rework requirements clearly — this will be sent directly to the technician's mobile view…"></textarea>
+        <div class="rework-hint active" id="rework-hint">
+          Required — SLA timers and historical timestamps will be preserved for the rework cycle.
+        </div>
+      </div>
 
-  <textarea class="rework-textarea" id="realloc-remark" style="margin-top:10px;" placeholder="Reason for reallocation…"></textarea>
+      {{-- MODE B: reallocate --}}
+      {{-- MODE B: reallocate --}}
+<div class="realloc-wrap" id="realloc-wrap" style="display:none;">
+  <div class="rework-label">
+    <i class="bi bi-person-badge"></i>Assign to ML
+    <span id="realloc-cat-name" style="font-weight:500;color:var(--text-muted);margin-left:4px;"></span>
+  </div>
+  <select id="realloc-ml" class="realloc-select" disabled>
+    <option value="">Loading MLs…</option>
+  </select>
+  <div class="rework-hint" id="realloc-ml-hint">Number in brackets = jobs currently open with that ML (Accepted, In Progress, Rescheduled, Hold).</div>
 
-  <button class="btn-confirm-rework" id="btn-confirm-realloc" onclick="confirmRealloc()" style="display:block;">
-    <i class="bi bi-send-fill"></i>Confirm reallocation
-  </button>
+  <textarea class="rework-textarea" id="realloc-remark" style="margin-top:10px;"
+    placeholder="Reason for reallocation…"></textarea>
 </div>
 
+      {{-- One shared confirm button --}}
+      <button class="btn-confirm-rework show" id="btn-confirm-fail" onclick="confirmFail()">
+        <i class="bi bi-send-fill"></i><span id="btn-confirm-fail-text">Confirm — Send Back to Technician</span>
+      </button>
 
-            <button class="btn-confirm-rework" id="btn-confirm-rework" onclick="confirmRework()"><i class="bi bi-send-fill"></i>Confirm — Send Back to Technician</button>
-            <div id="cancel-fail-wrap" style="display:none;margin-top:8px;text-align:center;">
-              <button onclick="cancelFail()" style="background:none;border:none;font-size:.78rem;color:var(--text-muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">Cancel — keep current assessment</button>
-            </div>
-          </div>
-        </div>
+      <div id="cancel-fail-wrap" style="margin-top:8px;text-align:center;">
+        <button onclick="cancelFail()" style="background:none;border:none;font-size:.78rem;color:var(--text-muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">
+          Cancel — keep current assessment
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
 
       </div>{{-- /ws-detail --}}
 
@@ -715,21 +762,12 @@ function setProofPdf(elId, statusId, url){
 
 /* ---------- SELECT SR ---------- */
 function applyQcPermission(sr){
-  const canAct   = !!sr.canAct;
-  const note     = document.getElementById('qc-lock-note');
-  const btns     = document.getElementById('action-btns');
-  const rework   = document.getElementById('rework-wrap');
-  const confirmB = document.getElementById('btn-confirm-rework');
-  const cancelW  = document.getElementById('cancel-fail-wrap');
-
-  note.classList.toggle('show', !canAct);
-  btns.classList.toggle('hidden', !canAct);
-  rework.classList.toggle('hidden', !canAct);
-
+  const canAct = !!sr.canAct;
+  document.getElementById('qc-lock-note').classList.toggle('show', !canAct);
+  document.getElementById('action-btns').style.display = canAct ? '' : 'none';
+  document.getElementById('fail-wrap').style.display   = 'none';
   if(!canAct){
     document.getElementById('qc-owner-name').textContent = sr.qcOwner || 'another reviewer';
-    confirmB.classList.remove('show');
-    cancelW.style.display = 'none';
   }
 }
 
@@ -872,6 +910,59 @@ function executePass(){
 }
 
 /* ---------- QC FAIL / REWORK FLOW ---------- */
+
+// function initiateFail(){
+//   if(!selectedSR) return;
+//   if(!selectedSR.canAct){
+//     showToast('err','Not Permitted',`QC on ${selectedSR.id} is allocated to ${selectedSR.qcOwner}.`);
+//     return;
+//   }
+//   failMode = true;
+//   const ta = document.getElementById('rework-textarea');
+//   ta.disabled = false;
+//   ta.style.borderColor = '';
+//   ta.placeholder = 'Describe the rework requirements clearly — this will be sent directly to the technician\'s mobile view…';
+//   ta.focus();
+//   document.getElementById('rework-locked-tag').style.display='none';
+//   document.getElementById('rework-unlocked-tag').style.display='flex';
+//   const hint = document.getElementById('rework-hint');
+//   hint.textContent = 'Required — SLA timers and historical timestamps will be preserved for the rework cycle.';
+//   hint.classList.add('active');
+//   document.getElementById('btn-fail').classList.add('active');
+//   document.getElementById('btn-pass').disabled = true;
+//   document.getElementById('btn-pass').style.opacity='.3';
+//   document.getElementById('btn-confirm-rework').classList.add('show');
+//   document.getElementById('cancel-fail-wrap').style.display='block';
+// }
+
+
+// function cancelFail(){failMode=false;resetFailMode();}
+// function resetFailMode(){
+//   const ta = document.getElementById('rework-textarea');
+//   ta.disabled = true;
+//   ta.value = '';
+//   ta.style.borderColor = '';
+//   ta.placeholder = 'This field is locked. Click \'QC Fail — Return to Rework\' to activate…';
+//   document.getElementById('rework-locked-tag').style.display='flex';
+//   document.getElementById('rework-unlocked-tag').style.display='none';
+//   const hint = document.getElementById('rework-hint');
+//   hint.textContent = 'This field unlocks only when initiating a rework rejection. SLA timers will be preserved.';
+//   hint.classList.remove('active');
+//   document.getElementById('btn-fail').classList.remove('active');
+//   document.getElementById('btn-pass').disabled = false;
+//   document.getElementById('btn-pass').style.opacity='1';
+//   document.getElementById('btn-confirm-rework').classList.remove('show');
+//   document.getElementById('cancel-fail-wrap').style.display='none';
+// }
+
+
+
+
+
+
+/* ---------- QC FAIL FLOW (rework OR reallocate) ---------- */
+let failAction = 'rework';
+
 function initiateFail(){
   if(!selectedSR) return;
   if(!selectedSR.canAct){
@@ -879,39 +970,57 @@ function initiateFail(){
     return;
   }
   failMode = true;
-  const ta = document.getElementById('rework-textarea');
-  ta.disabled = false;
-  ta.style.borderColor = '';
-  ta.placeholder = 'Describe the rework requirements clearly — this will be sent directly to the technician\'s mobile view…';
-  ta.focus();
-  document.getElementById('rework-locked-tag').style.display='none';
-  document.getElementById('rework-unlocked-tag').style.display='flex';
-  const hint = document.getElementById('rework-hint');
-  hint.textContent = 'Required — SLA timers and historical timestamps will be preserved for the rework cycle.';
-  hint.classList.add('active');
-  document.getElementById('btn-fail').classList.add('active');
-  document.getElementById('btn-pass').disabled = true;
-  document.getElementById('btn-pass').style.opacity='.3';
-  document.getElementById('btn-confirm-rework').classList.add('show');
-  document.getElementById('cancel-fail-wrap').style.display='block';
+  document.getElementById('action-btns').style.display = 'none';
+  document.getElementById('fail-wrap').style.display   = 'block';
+  setFailAction('rework');
+  document.getElementById('rework-textarea').focus();
 }
-function cancelFail(){failMode=false;resetFailMode();}
+
+function setFailAction(mode){
+  failAction = mode;
+  document.querySelectorAll('.fail-mode-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  const isRework = mode === 'rework';
+  document.getElementById('rework-wrap').style.display  = isRework ? 'block' : 'none';
+  document.getElementById('realloc-wrap').style.display = isRework ? 'none'  : 'block';
+  document.getElementById('btn-confirm-fail-text').textContent =
+    isRework ? 'Confirm — Send Back to Technician' : 'Confirm Reallocation to ML';
+
+  if(!isRework && selectedSR){
+    document.getElementById('realloc-cat-name').textContent =
+      selectedSR.categoryName ? `(${selectedSR.categoryName})` : '';
+    loadMls(selectedSR.categoryId);
+  }
+}
+
+function confirmFail(){
+  if(failAction === 'rework') confirmRework();
+  else 
+  confirmRealloc();
+}
+
+function cancelFail(){ resetFailMode(); }
+
 function resetFailMode(){
+  failMode = false;
+  failAction = 'rework';
+
+  const fw = document.getElementById('fail-wrap');
+  if(fw) fw.style.display = 'none';
+
+  const ab = document.getElementById('action-btns');
+  if(ab && selectedSR && selectedSR.canAct) ab.style.display = '';
+
   const ta = document.getElementById('rework-textarea');
-  ta.disabled = true;
-  ta.value = '';
-  ta.style.borderColor = '';
-  ta.placeholder = 'This field is locked. Click \'QC Fail — Return to Rework\' to activate…';
-  document.getElementById('rework-locked-tag').style.display='flex';
-  document.getElementById('rework-unlocked-tag').style.display='none';
-  const hint = document.getElementById('rework-hint');
-  hint.textContent = 'This field unlocks only when initiating a rework rejection. SLA timers will be preserved.';
-  hint.classList.remove('active');
-  document.getElementById('btn-fail').classList.remove('active');
-  document.getElementById('btn-pass').disabled = false;
-  document.getElementById('btn-pass').style.opacity='1';
-  document.getElementById('btn-confirm-rework').classList.remove('show');
-  document.getElementById('cancel-fail-wrap').style.display='none';
+  if(ta){ ta.value=''; ta.style.borderColor=''; }
+  const rr = document.getElementById('realloc-remark');   if(rr) rr.value='';
+  const rc = document.getElementById('realloc-category'); if(rc) rc.value='';
+  const rm = document.getElementById('realloc-ml');
+  if(rm){ rm.innerHTML='<option value="">Select a category first…</option>'; rm.disabled=true; }
+
+  const bp = document.getElementById('btn-pass');
+  if(bp){ bp.disabled=false; bp.style.opacity='1'; }
 }
 
 function confirmRework(){
@@ -1099,53 +1208,96 @@ document.addEventListener('DOMContentLoaded', function(){
 
 // Reallocatopn
 
-function initiateRealloc() {
+// function initiateRealloc() {
+//   document.getElementById('realloc-wrap').style.display = 'block';
+//   document.getElementById('action-btns').style.display = 'none';
+// }
+
+
+function initiateRealloc(){
+  if(!selectedSR) return;
+  if(!selectedSR.canAct){
+    showToast('err','Not Permitted',`QC on ${selectedSR.id} is allocated to ${selectedSR.qcOwner}.`);
+    return;
+  }
   document.getElementById('realloc-wrap').style.display = 'block';
   document.getElementById('action-btns').style.display = 'none';
 }
 
-async function loadMls(categoryId) {
+
+/* ---------- REALLOCATION ---------- */
+
+async function loadMls(categoryId){
   const sel = document.getElementById('realloc-ml');
   sel.innerHTML = '<option value="">Loading…</option>';
-  sel.disabled = true;
-  if (!categoryId) { sel.innerHTML = '<option value="">Select a category first…</option>'; return; }
+  sel.disabled  = true;
 
-  try {
-    const res = await fetch(`/mls-by-category/${categoryId}`);
+  if(!categoryId){
+    sel.innerHTML = '<option value="">No category set on this SR</option>';
+    return;
+  }
+
+  try{
+    const res   = await fetch(`/mls-by-category/${categoryId}`, {headers:{'Accept':'application/json'}});
     const users = await res.json();
-    sel.innerHTML = users.length
-      ? '<option value="">Select ML…</option>' + users.map(u => `<option value="${u.id}">${u.name}</option>`).join('')
-      : '<option value="">No ML mapped to this category</option>';
-    sel.disabled = users.length === 0;
-  } catch (e) {
+
+    if(!users.length){
+      sel.innerHTML = '<option value="">No ML mapped to this category</option>';
+      return;
+    }
+
+    sel.innerHTML = '<option value="">Select ML…</option>' + users.map(u => {
+      const n = Number(u.active_count) || 0;
+      return `<option value="${u.id}">${u.name}${n > 0 ? ` — ${n} open` : ''}</option>`;
+    }).join('');
+    sel.disabled = false;
+  }catch(e){
     sel.innerHTML = '<option value="">Could not load</option>';
   }
 }
 
-async function confirmRealloc() {
-  const btn = document.getElementById('btn-confirm-realloc');
-  const payload = {
-    sr_id:       activeSrId,
-    category_id: document.getElementById('realloc-category').value,
-    ml_id:       document.getElementById('realloc-ml').value,
-    remark:      document.getElementById('realloc-remark').value.trim(),
-  };
-  if (!payload.category_id || !payload.ml_id || !payload.remark) {
-    showToast('warning', 'Required', 'Pick a category, an ML, and enter a reason.');
+function confirmRealloc(){
+  const sr = selectedSR;
+  if(!sr) return;
+
+  const mlId   = document.getElementById('realloc-ml').value;
+  const remark = document.getElementById('realloc-remark').value.trim();
+
+  if(!mlId){
+    showToast('err','Required Field','Select an ML before confirming.');
     return;
   }
 
-  if (btn.disabled) return;
-  const restore = busy(btn, 'Saving…');
-  try {
-    await apiPost('/qc/reallocate', payload);
-    showToast('success', 'Reallocated', 'Job moved to the selected ML.');
-    setTimeout(() => location.reload(), 1200);
-  } catch (err) {
-    showToast('error', 'Could not reallocate', err.message);
-  } finally {
-    restore();
-  }
+  const btn = document.getElementById('btn-confirm-fail');
+  if(btn.disabled) return;
+  btn.disabled = true;
+  const original = btn.innerHTML;
+  btn.innerHTML = '<i class="bi bi-hourglass-split"></i>Saving…';
+
+  fetch('/qc/reallocate', {
+    method:'POST',
+    headers:{
+      'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,
+      'Accept':'application/json','Content-Type':'application/json'
+    },
+    body:JSON.stringify({sr_id: sr.dbId, ml_id: mlId, remark: remark})
+  })
+  .then(r=>r.json())
+  .then(res=>{
+    if(!res.ok){ showToast('err','Failed', res.message || 'Could not reallocate.'); return; }
+    dropFromQueue(sr.id);
+    document.getElementById('ws-detail').classList.remove('show');
+    document.getElementById('success-icon').style.background='rgba(37,99,235,.1)';
+    document.getElementById('success-icon').innerHTML='<i class="bi bi-arrow-left-right" style="color:#2563eb;font-size:1.8rem;"></i>';
+    document.getElementById('success-title').textContent=`${sr.id} — Reallocated`;
+    document.getElementById('success-body').textContent='The job has been moved to the selected ML.';
+    document.getElementById('ws-success').classList.add('show');
+    showToast('ok','Reallocated',`${sr.id} moved to a new ML.`);
+    selectedSR = null;
+    resetFailMode();
+  })
+  .catch(()=>showToast('err','Network Error','Could not reach the server.'))
+  .finally(()=>{ btn.disabled = false; btn.innerHTML = original; });
 }
 
 

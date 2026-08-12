@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Support\PortalLink;
 use App\Mail\ServiceRequestReceivedMail;
 use Illuminate\Support\Facades\Mail;
-
+use App\Jobs\SendSrCreatedNotifications;
 class ServiceRequestController extends Controller
 {
     /* ============================================================
@@ -131,34 +131,43 @@ class ServiceRequestController extends Controller
 
 
 
-    public function mlsByCategory($categoryId)
-    {
-        $users = User::whereHas('role', fn($r) => $r->where('code', 'ML'))
-            ->whereHas(
-                'serviceDomains',
-                fn($q) =>
-                $q->where('user_service_domain.service_category_id', $categoryId)
-            )
-            ->orderBy('name')
-            ->get(['id', 'name']);
+ public function mlsByCategory($categoryId)
+{
+    $openStatuses = ['Accepted', 'In Progress', 'Reschedule', 'On Hold'];
 
-        return response()->json($users);
-    }
+    $mls = DB::table('user_service_domain as usd')
+        ->join('users as u', 'u.id', '=', 'usd.user_id')
+        ->leftJoin('service_requests as sr', function ($j) use ($openStatuses) {
+            $j->on('sr.assigned_user_id', '=', 'u.id')
+              ->whereIn('sr.status', $openStatuses);
+        })
+        ->where('usd.service_category_id', $categoryId)
+        ->groupBy('u.id', 'u.name')
+        ->select('u.id', 'u.name', DB::raw('COUNT(DISTINCT sr.id) as active_count'))
+        ->orderBy('active_count')
+        ->orderBy('u.name')
+        ->get();
+
+    return response()->json($mls);
+}
     public function reallocate(Request $request)
     {
         $data = $request->validate([
             'sr_id'       => 'required|exists:service_requests,id',
-            'category_id' => 'required|exists:service_categories,id',
+            // 'category_id' => 'required|exists:service_categories,id',
             'ml_id'       => 'required|exists:users,id',
             'remark'      => 'nullable|string|max:1000',
         ]);
 
         $sr = ServiceRequest::findOrFail($data['sr_id']);
         $sr->update([
-            'assigned_user_id' => $data['ml_id'],
-            'service_type_id'  => $data['category_id'],
+            // 'assigned_user_id' => $data['ml_id'],
+            // 'service_type_id'       => $data['category_id'],
+            'reallocate_user_id'    =>  $data['ml_id'],
+            'reallocate'            => true,
+             'status'            => 'Rework',
             // 'reallocate'           => 'Re',
-            'reallocate'  => true,
+          
 
         ]);
 
@@ -167,86 +176,62 @@ class ServiceRequestController extends Controller
 
 
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'client_id'         => ['required', 'exists:clients,id'],
-            'project_id'        => ['required', 'exists:projects,id'],
-            'service_type_id'   => ['required', 'exists:service_categories,id'],
-            'reported_by'       => ['required', 'string', 'max:255'],
-            'priority_level'    => ['required', 'exists:priorities,name'],
-            'issue_description' => ['required', 'string', 'min:20'],
-            'internal_remark'   => ['nullable', 'string'],
-            'attachments.*'     => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
+{
+    $data = $request->validate([
+        'client_id'         => ['required', 'exists:clients,id'],
+        'project_id'        => ['required', 'exists:projects,id'],
+        'service_type_id'   => ['required', 'exists:service_categories,id'],
+        'reported_by'       => ['required', 'string', 'max:255'],
+        'priority_level'    => ['required', 'exists:priorities,name'],
+        'issue_description' => ['required', 'string', 'min:20'],
+        'internal_remark'   => ['nullable', 'string'],
+        'attachments.*'     => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
+    ]);
+
+    // Store files OUTSIDE the transaction — disk writes shouldn't hold a DB lock.
+    $paths = [];
+    if ($request->hasFile('attachments')) {
+        foreach ($request->file('attachments') as $file) {
+            $paths[] = $file->store('service-requests', 'public');
+        }
+    }
+
+    $sr = DB::transaction(function () use ($data, $paths) {
+        $sr = ServiceRequest::create([
+            'client_id'         => $data['client_id'],
+            'project_id'        => $data['project_id'],
+            'service_type_id'   => $data['service_type_id'],
+            'reported_by'       => $data['reported_by'],
+            'priority_level'    => $data['priority_level'],
+            'issue_description' => $data['issue_description'],
+            'internal_remark'   => $data['internal_remark'] ?? null,
+            'status'            => 'Pending',
+            'created_by'        => auth()->id(),
+            'attachments'       => $paths ?: null,
         ]);
-
-        $sr = DB::transaction(function () use ($request, $data) {
-            $paths = [];
-            if ($request->hasFile('attachments')) {
-                foreach ($request->file('attachments') as $file) {
-                    $paths[] = $file->store('service-requests', 'public');
-                }
-            }
-
-            return ServiceRequest::create([
-                'client_id'         => $data['client_id'],
-                'project_id'        => $data['project_id'],
-                'service_type_id'   => $data['service_type_id'],
-                'reported_by'       => $data['reported_by'],
-                'priority_level'    => $data['priority_level'],
-                'issue_description' => $data['issue_description'],
-                'internal_remark'   => $data['internal_remark'] ?? null,
-                'status'            => 'Pending',
-                'created_by'        => auth()->id(),
-                'attachments'       => $paths ?: null,
-            ]);
-        });
 
         NotificationLog::create([
             'service_request_id' => $sr->id,
             'event'     => 'sr_created',
             'title'     => 'New Service Request',
-            'message'   => $this->buildSrRef($sr) . ' created for '
-                . (optional($sr->client)->company_name ?? 'client'),
-            // e.g. 'Pending'
-            'to_status'   => 'Pending',
-            'caused_by'   => auth()->id(),
+            'message'   => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                           . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT) . ' created',
+            'to_status' => 'Pending',
+            'caused_by' => auth()->id(),
         ]);
 
-        // Send WhatsApp notification (outside transaction)
-        // $this->sendServiceRequestMessage($sr, $this->buildSrRef($sr), 'Pending');
-        try {
-            $sr->load(['client', 'project', 'creator']);
-            $wa = app(\App\Services\WhatsAppService::class);
-            $wa->notifyServiceRequestReceived($sr);
-            $wa->notifyInternalNewRequest($sr);
-        } catch (\Throwable $e) {
-            Log::error('SR created WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
-        }
+        return $sr;
+    });
 
-        try {
-            $sr->loadMissing(['client', 'project']);
+    // WhatsApp + email are slow network calls — hand them to the queue.
+    SendSrCreatedNotifications::dispatch($sr->id, $this->buildSrRef($sr));
 
-            $to = optional($sr->client)->email;
-
-            if ($to) {
-                Mail::to($to)->send(
-                    new ServiceRequestReceivedMail($sr, $this->buildSrRef($sr))
-                );
-            } else {
-                Log::warning('SR created but client has no email', ['sr_id' => $sr->id]);
-            }
-        } catch (\Throwable $e) {
-            Log::error('SR created mail failed', [
-                'sr_id' => $sr->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-        return response()->json([
-            'success'      => true,
-            'id'           => $sr->id,
-            'sr_reference' => $this->buildSrRef($sr),
-        ]);
-    }
+    return response()->json([
+        'success'      => true,
+        'id'           => $sr->id,
+        'sr_reference' => $this->buildSrRef($sr),
+    ]);
+}
 
     /* ============================================================
      |  SR EXPLORER (list + filter + export)
@@ -485,7 +470,7 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        // $this->sendServiceRequestMessage($serviceRequest, $ref, 'Approved');
+
 
         $wa = app(\App\Services\WhatsAppService::class);
 
@@ -1081,6 +1066,9 @@ class ServiceRequestController extends Controller
                 'scope'      => $isInWarranty ? 'iw' : 'oow',
                 'scopeLabel' => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
                 'warranty'   => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
+
+                'categoryId'   => $sr->service_type_id,
+               'categoryName' => optional($sr->category)->category_name ?? '',
 
                 'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
                 'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',

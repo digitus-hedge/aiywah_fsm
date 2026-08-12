@@ -60,6 +60,11 @@ class DashboardController extends Controller
     /** Field-time target per service request, in hours. */
     private const FIELD_HOURS_TARGET = 8;
 
+
+    private const SLA_HOURS     = 48;
+    private const SLA_RESOLVED  = ['Completed', 'Rejected', 'Pending Invoice', 'Invoice Submitted'];
+
+
     /**
      * Set this once you tell me the WhatsApp log table. Left null, the WhatsApp
      * card renders its empty state instead of breaking.

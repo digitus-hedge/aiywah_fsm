@@ -33,19 +33,10 @@
 
 /* ── Shell ── */
 .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 60px;
-    padding: 0 22px;
+
     background: var(--topbar-bg);
     border-bottom: 1px solid var(--topbar-border);
     box-shadow: var(--topbar-shadow);
-    position: fixed;
-    top: 0;
-    left: var(--sidebar-width, 256px);
-    right: 0;
-    z-index: 200;
     transition: background .25s, border-color .25s, left .28s;
 }
 @media (max-width: 991.98px) { .topbar { left: 0; } }
@@ -236,23 +227,7 @@
 }
 
 /* ── Sidebar overlay (mobile backdrop) ── */
-.sidebar-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.45);
-    z-index: 299;
-    backdrop-filter: blur(2px);
-}
-.sidebar-overlay.show { display: block; }
+
+
 
 /* ── Sidebar mobile open state ── */
-@media (max-width: 991.98px) {
-    #sidebar {
-        transform: translateX(-100%);
-        transition: transform .28s cubic-bezier(.4,0,.2,1);
-    }
-    #sidebar.show {
-        transform: translateX(0);
-    }
-}

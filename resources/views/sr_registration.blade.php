@@ -1891,7 +1891,7 @@ async function verify(val) {
     document.getElementById('svcType').value = '';
     document.getElementById('reporter').value = '';
     document.getElementById('svcDesc').value = '';
-    document.getElementById('remark').value = '';
+   
     document.getElementById('ccCount').textContent = '0 / 20';
     document.getElementById('ccCount').className = 'cc warn';
     document.getElementById('priorityVal').value = '';

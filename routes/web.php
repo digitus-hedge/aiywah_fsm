@@ -316,10 +316,11 @@ Route::prefix('worker')->name('worker.')->group(function () {
             Route::post('/punch/out',       [WorkerpunchController::class, 'punchOut'])->name('punch.out');
             Route::post('/punch/upload',    [WorkerpunchController::class, 'upload'])->name('punch.upload');
             Route::post('/punch/expense',   [WorkerpunchController::class, 'expense'])->name('punch.expense');
-            Route::post('/punch/signature', [WorkerpunchController::class, 'signature'])->name('punch.signature');
+            Route::post('/punch/expense/delete', [WorkerPipelineController::class, 'expenseDelete'])->name('punch.expense.delete');            Route::post('/punch/signature', [WorkerpunchController::class, 'signature'])->name('punch.signature');
 
             Route::get('/history', [WorkerPipelineController::class, 'history'])->name('history');
             Route::get('/profile', [WorkerPipelineController::class, 'profile'])->name('profile');
+
 
             Route::post('/punch/photo/delete', [WorkerpunchController::class, 'deletePhoto'])->name('punch.photo.delete');
         });

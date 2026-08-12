@@ -678,6 +678,8 @@ const RC = (@json($rolesData)).reduce((acc, r) => { acc[r.code] = r.color; retur
 /* FD extra grants state (stores permission KEYS). */
 let fdGrants = new Set();
 
+let accountPermissions = new Set();
+
 /* ════════════════════════════════
    DOMAIN MASTER — fully dynamic, sourced from service_categories / service_domains
 ════════════════════════════════ */
@@ -747,73 +749,342 @@ function onRoleChange(val){
   syncAll();
 }
 
-function renderPermTable(roleId){
-  const isFD = roleId === 'FD';
-  let html=`<div class="perm-toggle-row">
-      <span class="perm-toggle-label"><i class="bi bi-list-check"></i>Permission Matrix</span>
-      <button type="button" class="perm-view-btn" id="permViewBtn" onclick="togglePermTable()">
-        <i class="bi bi-eye" id="permViewIcon"></i><span id="permViewTxt">View</span>
-      </button>
-    </div>
-    <div class="perm-collapse" id="permCollapse">
-    <table class="perm-table">
-    <thead>
-      <tr>
-        <th>Module / Feature</th>
-        <th>Access</th>
-        ${isFD?'<th style="width:80px;">Extend<br/><span style="font-weight:400;font-size:.6rem;text-transform:none;letter-spacing:0;">(Admin grant)</span></th>':''}
-      </tr>
-    </thead>
-    <tbody>`;
+function renderPermTable(roleId) {
 
-  (PERM_SECTIONS||[]).forEach(sec=>{
-    html+=`<tr class="perm-section-hdr"><td colspan="${isFD?3:2}">${sec.label}</td></tr>`;
-    (sec.items||[]).forEach(item=>{
-      const label = item.name;
-      const icon  = item.icon || 'bi-dot';
-      const val   = (item.access && item.access[roleId]) || 'no';
-      const isGrantable = isFD && item.grant && item.grant['FD'];
-      const isGranted   = fdGrants.has(item.key);
+    const isFD = roleId === 'FD';
+    const isAC = roleId === 'AC';
 
-      let cell='';
-      if(val==='yes'){
-        cell=`<td><i class="bi bi-check-circle-fill perm-cell-yes"></i></td>`;
-      } else if(val==='rls'){
-        cell=`<td><i class="bi bi-slash-circle perm-cell-partial" title="Filtered view only"></i></td>`;
-      } else {
-        cell=`<td><i class="bi bi-dash perm-cell-no"></i></td>`;
-      }
-      const grantCell = isFD
-        ? `<td class="fd-cell">${isGrantable
-            ? `<input type="checkbox" ${isGranted?'checked':''} onchange="toggleFdGrant('${item.key}',this.checked)" title="Grant this permission to FD user"/>`
-            : '<span style="color:var(--text-light);font-size:.75rem;">—</span>'}</td>`
-        : '';
+    let html = `
+        <div class="perm-toggle-row">
+            <span class="perm-toggle-label">
+                <i class="bi bi-list-check"></i>
+                Permission Matrix
+            </span>
 
-      html+=`<tr>
-        <td><i class="bi ${icon}"></i>${label}</td>
-        ${cell}
-        ${grantCell}
-      </tr>`;
+            <button type="button"
+                    class="perm-view-btn"
+                    id="permViewBtn"
+                    onclick="togglePermTable()">
+                <i class="bi bi-eye" id="permViewIcon"></i>
+                <span id="permViewTxt">View</span>
+            </button>
+        </div>
+
+        <div class="perm-collapse" id="permCollapse">
+
+        <table class="perm-table">
+
+            <thead>
+                <tr>
+                    <th>Module / Feature</th>
+                    <th>Access</th>
+
+                    ${
+                        isFD
+                        ? `
+                            <th style="width:80px;">
+                                Extend<br>
+                                <span style="
+                                    font-weight:400;
+                                    font-size:.6rem;
+                                    text-transform:none;
+                                    letter-spacing:0;
+                                ">
+                                    (Admin grant)
+                                </span>
+                            </th>
+                          `
+                        : ''
+                    }
+
+                    ${
+                        isAC
+                        ? `
+                            <th style="width:80px;">
+                                Allow
+                            </th>
+                          `
+                        : ''
+                    }
+
+                </tr>
+            </thead>
+
+            <tbody>
+    `;
+
+
+    (PERM_SECTIONS || []).forEach(sec => {
+
+        /*
+         * AC has an extra checkbox column,
+         * FD also has an extra checkbox column.
+         */
+        const colspan = (isFD || isAC) ? 3 : 2;
+
+        html += `
+            <tr class="perm-section-hdr">
+                <td colspan="${colspan}">
+                    ${sec.label}
+                </td>
+            </tr>
+        `;
+
+
+        (sec.items || []).forEach(item => {
+
+            const label = item.name;
+            const icon  = item.icon || 'bi-dot';
+
+            const val =
+                (item.access && item.access[roleId]) || 'no';
+
+
+            /*
+             * FD permission
+             */
+            const isGrantable =
+                isFD &&
+                item.grant &&
+                item.grant['FD'];
+
+            const isGranted =
+                fdGrants.has(item.key);
+
+
+            /*
+             * Account permissions
+             */
+            const isAccountPermission =
+                isAC &&
+                (
+                    item.key === 'quotation_desk' ||
+                    item.key === 'invoice_panel'
+                );
+
+            const isAccountGranted =
+                accountPermissions.has(item.key);
+
+
+            /*
+             * Normal Access column
+             */
+            let cell = '';
+
+            if (val === 'yes') {
+
+                cell = `
+                    <td>
+                        <i class="bi bi-check-circle-fill perm-cell-yes"></i>
+                    </td>
+                `;
+
+            } else if (val === 'rls') {
+
+                cell = `
+                    <td>
+                        <i class="bi bi-slash-circle perm-cell-partial"
+                           title="Filtered view only"></i>
+                    </td>
+                `;
+
+            } else {
+
+                cell = `
+                    <td>
+                        <i class="bi bi-dash perm-cell-no"></i>
+                    </td>
+                `;
+            }
+
+
+            /*
+             * FD checkbox
+             */
+            const fdCell = isFD
+                ? `
+                    <td class="fd-cell">
+
+                        ${
+                            isGrantable
+
+                            ? `
+                                <input
+                                    type="checkbox"
+                                    ${isGranted ? 'checked' : ''}
+                                    onchange="toggleFdGrant(
+                                        '${item.key}',
+                                        this.checked
+                                    )"
+                                    title="Grant this permission to FD user"
+                                />
+                              `
+
+                            : `
+                                <span style="
+                                    color:var(--text-light);
+                                    font-size:.75rem;
+                                ">
+                                    —
+                                </span>
+                              `
+                        }
+
+                    </td>
+                  `
+                : '';
+
+
+            /*
+             * AC checkbox
+             */
+            const accountCell = isAC
+                ? `
+                    <td class="fd-cell">
+
+                        ${
+                            isAccountPermission
+
+                            ? `
+                                <input
+                                    type="checkbox"
+                                    ${isAccountGranted ? 'checked' : ''}
+                                    onchange="toggleAccountPermission(
+                                        '${item.key}',
+                                        this.checked
+                                    )"
+                                    title="Allow Account user to access ${label}"
+                                />
+                              `
+
+                            : `
+                                <span style="
+                                    color:var(--text-light);
+                                    font-size:.75rem;
+                                ">
+                                    —
+                                </span>
+                              `
+                        }
+
+                    </td>
+                  `
+                : '';
+
+
+            html += `
+                <tr>
+
+                    <td>
+                        <i class="bi ${icon}"></i>
+                        ${label}
+                    </td>
+
+                    ${cell}
+
+                    ${fdCell}
+
+                    ${accountCell}
+
+                </tr>
+            `;
+
+        });
+
     });
-  });
 
-  html+=`</tbody></table></div>`;
 
-  if(roleId==='SA'){
-    html+=`<div class="perm-note"><i class="bi bi-shield-fill-check"></i>Super Admin has unrestricted access to all features including system configuration and master data. This role cannot be further restricted.</div>`;
-  } else if(roleId==='AD'){
-    html+=`<div class="perm-note"><i class="bi bi-info-circle-fill"></i>Full operational control — includes all Head of Projects access plus user and system management.</div>`;
-  } else if(roleId==='HP'){
-    html+=`<div class="perm-note"><i class="bi bi-info-circle-fill"></i>Head of Projects has full operational scope — approvals, dispatch, QC, and a filtered analytics view. Financial flows (quotation/invoice) route through Accounts.</div>`;
-  } else if(roleId==='FD'){
-    html+=`<div class="perm-note fd-upgrade-note"><i class="bi bi-sliders2"></i>Front Desk Executive has a defined base permission set. The checkboxes above allow an Admin or Super Admin to selectively extend specific higher-level access when needed.</div>`;
-  } else if(roleId==='ML'){
-    html+=`<div class="perm-note"><i class="bi bi-info-circle-fill"></i>Maintenance Lead sees only their own assigned pipeline. Domain expertise tags below determine which tickets are routed to this user.</div>`;
-  } else if(roleId==='AC'){
-    html+=`<div class="perm-note"><i class="bi bi-info-circle-fill"></i>Accounts / AR is scoped to out-of-warranty financial flows only — quotations, invoices, and expense reconciliation.</div>`;
-  }
+    html += `
+            </tbody>
+        </table>
 
-  document.getElementById('permTableWrap').innerHTML=html;
+        </div>
+    `;
+
+
+    /*
+     * Role notes
+     */
+
+    if (roleId === 'SA') {
+
+        html += `
+            <div class="perm-note">
+                <i class="bi bi-shield-fill-check"></i>
+                Super Admin has unrestricted access to all features including
+                system configuration and master data. This role cannot be
+                further restricted.
+            </div>
+        `;
+
+    } else if (roleId === 'AD') {
+
+        html += `
+            <div class="perm-note">
+                <i class="bi bi-info-circle-fill"></i>
+                Full operational control — includes all Head of Projects
+                access plus user and system management.
+            </div>
+        `;
+
+    } else if (roleId === 'HP') {
+
+        html += `
+            <div class="perm-note">
+                <i class="bi bi-info-circle-fill"></i>
+                Head of Projects has full operational scope — approvals,
+                dispatch, QC, and a filtered analytics view. Financial flows
+                (quotation/invoice) route through Accounts.
+            </div>
+        `;
+
+    } else if (roleId === 'FD') {
+
+        html += `
+            <div class="perm-note fd-upgrade-note">
+                <i class="bi bi-sliders2"></i>
+                Front Desk Executive has a defined base permission set.
+                The checkboxes above allow an Admin or Super Admin to
+                selectively extend specific higher-level access when needed.
+            </div>
+        `;
+
+    } else if (roleId === 'ML') {
+
+        html += `
+            <div class="perm-note">
+                <i class="bi bi-info-circle-fill"></i>
+                Maintenance Lead sees only their own assigned pipeline.
+                Domain expertise tags below determine which tickets are
+                routed to this user.
+            </div>
+        `;
+
+    } else if (roleId === 'AC') {
+
+        html += `
+            <div class="perm-note">
+                <i class="bi bi-info-circle-fill"></i>
+                Accounts / AR is scoped to out-of-warranty financial flows
+                only — quotations, invoices, and expense reconciliation.
+                Select the modules this Account user is allowed to access.
+            </div>
+        `;
+    }
+
+
+    document.getElementById('permTableWrap').innerHTML = html;
+}
+
+
+function toggleAccountPermission(key, checked) {
+
+    if (checked) {
+        accountPermissions.add(key);
+    } else {
+        accountPermissions.delete(key);
+    }
+
 }
 
 function togglePermTable(){

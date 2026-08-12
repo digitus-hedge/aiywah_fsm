@@ -41,29 +41,86 @@ class WorkerPipelineController extends Controller
 
     public function index(Request $request)
     {
-        $user = $this->worker($request);
-        $user->loadMissing('role');
+         $user = $this->worker($request);
+    $user->loadMissing('role');
 
-        $requests = ServiceRequest::with([
-            'client',
-            'project',
-            'category',
-            'domain',
-            'punches.user.role',
-            'createdBy.role',
-            'qcReviewedBy.role',
-            'assignedUser',
-        ])
-            ->where('assigned_user_id', $user->id)
-            ->whereIn('status', self::OPEN_STATUSES)
-            ->orderByDesc('dispatched_at')
-            ->orderByDesc('id')
-            ->get();
+    $me = (int) $user->id;
+
+    $requests = ServiceRequest::with([
+        'client',
+        'project',
+        'category',
+        'domain',
+        'punches.user.role',
+        'createdBy.role',
+        'qcReviewedBy.role',
+        'assignedUser',
+        
+        'reschedules.user',
+    ])
+    ->where(function ($q) use ($me) {
+
+        // Own jobs:
+        // assigned to me AND NOT reallocated
+        $q->where(function ($w) use ($me) {
+            $w->where('assigned_user_id', $me)
+              ->where(function ($r) {
+                  $r->whereNull('reallocate')
+                    ->orWhere('reallocate', 0);
+              });
+        })
+
+        // Reallocated jobs:
+        // reallocated TO me
+        ->orWhere(function ($w) use ($me) {
+            $w->where('reallocate_user_id', $me)
+              ->where('reallocate', 1);
+        });
+
+    })
+    ->whereIn('status', self::OPEN_STATUSES)
+    ->orderByDesc('dispatched_at')
+    ->orderByDesc('id')
+    ->get();
 
 
+    /*
+     * Reallocated Jobs
+     *
+     * Only jobs where:
+     * reallocate_user_id = logged-in user
+     * AND reallocate = 1
+     */
+   $reallocated = ServiceRequest::with([
+    'client',
+    'project',
+    'assignedUser',
+    'reallocateUser'
+])
+->where('assigned_user_id', $me)
+->where('reallocate', 1)
+->whereIn('status', self::OPEN_STATUSES)
+->orderByDesc('dispatched_at')
+->orderByDesc('id')
+->get()
+->map(fn (ServiceRequest $sr) => [
+    'ref'        => $sr->ref,
+    'srId'       => $sr->id,
+    'project'    => optional($sr->project)->project_name ?? '—',
+    'site'       => optional($sr->project)->site_name ?? '—',
+    'client'     => optional($sr->client)->company_name ?? '—',
+    'status'     => $sr->status,
+    'ownerName'  => optional($sr->assignedUser)->name ?? '—',
+    'reallocateUser' => optional($sr->reallocateUser)->name ?? '—',
+    'reallocate' => 'Yes',
+    'eta'        => optional($sr->eta_at)->format('d M Y, H:i') ?? '—',
+])
+->values();
 
         return view('worker.pipeline', [
-            'jobs'              => $requests->map(fn(ServiceRequest $sr) => $this->transform($sr))->values(),
+            // 'jobs'              => $requests->map(fn(ServiceRequest $sr) => $this->transform($sr))->values(),
+            'jobs'              => $requests->map(fn(ServiceRequest $sr) => $this->transform($sr, $user))->values(),
+            'reallocated'       => $reallocated,
             'activeJob'         => $this->activeJob($user),
             'routes'            => $this->routes(),
             'expenseCategories' => $this->expenseCategories(),
@@ -155,6 +212,43 @@ class WorkerPipelineController extends Controller
             ])->values(),
         ]);
     }
+
+
+    public function expenseDelete(Request $request)
+{
+    $data = $request->validate([
+        'sr_id'   => ['required', 'integer'],
+        'item_id' => ['required', 'integer'],
+    ]);
+
+    $sr = $this->ownedRequest($request, $data['sr_id']);
+
+    $item = Punchitem::whereKey($data['item_id'])
+        ->whereHas('punch', fn ($q) => $q
+            ->where('service_request_id', $sr->id)
+            ->whereIn('status', ['draft', 'punched_in']))
+        ->firstOrFail();
+
+    $punch = $item->punch;
+
+    DB::transaction(function () use ($item, $punch) {
+        $item->delete();                       // sets deleted_at
+
+        $subtotal = (float) $punch->items()->sum('line_total');
+        $punch->update([
+            'materials_subtotal' => $subtotal,
+            'grand_total'        => $subtotal + (float) $punch->labour_charge,
+        ]);
+    });
+
+    $punch->refresh();
+
+    return response()->json([
+        'ok'                 => true,
+        'materials_subtotal' => number_format((float) $punch->materials_subtotal, 2, '.', ''),
+        'grand_total'        => number_format((float) $punch->grand_total, 2, '.', ''),
+    ]);
+}
 
 
     private function buildSrRef(ServiceRequest $sr): string
@@ -494,6 +588,7 @@ class WorkerPipelineController extends Controller
             ] : null,
             'expenses' => $punch
                 ? $punch->items->map(fn(Punchitem $i) => [
+                    'id'         => $i->id,          // ← add
                     'category'   => $i->category,
                     'name'       => $i->name,
                     'amount'     => number_format((float) $i->line_total, 2, '.', ''),
@@ -505,70 +600,77 @@ class WorkerPipelineController extends Controller
         ];
     }
 
-    private function transform(ServiceRequest $sr): array
-{
-    // Clock runs dispatch → accept. Fall back to created_at on rows that were
-    // never formally dispatched, so the card still shows a number.
-    $dispatched = $sr->dispatched_at ?: $sr->created_at;
-    $accepted   = $sr->accepted_at;
-    $stop       = $accepted ?: now();
+    private function transform(ServiceRequest $sr, ?User $user = null): array
+    {
+        // Clock runs dispatch → accept. Fall back to created_at on rows that were
+        // never formally dispatched, so the card still shows a number.
+        $dispatched = $sr->dispatched_at ?: $sr->created_at;
+        $accepted   = $sr->accepted_at;
+        $stop       = $accepted ?: now();
 
-    $hrs = $dispatched ? (int) abs($dispatched->diffInHours($stop, false)) : 0;
+        $hrs = $dispatched ? (int) abs($dispatched->diffInHours($stop, false)) : 0;
 
-    // 1. Map real DB statuses into explicit UI Filter states
-    $uiStatus = match (strtolower((string) $sr->status)) {
-        'rework'            => 'Rework',
-        'on hold'           => 'On Hold',
-        'reschedule'        => 'Rescheduled',
-        'qc review'         => 'Review',
-        'completed',
-        'pending invoice',
-        'invoice submitted' => 'Completed',
-        default             => 'Pending',
-    };
+        // 1. Map real DB statuses into explicit UI Filter states
+        $uiStatus = match (strtolower((string) $sr->status)) {
+            'rework'            => 'Rework',
+            'on hold'           => 'On Hold',
+            'reschedule'        => 'Rescheduled',
+            'qc review'         => 'Review',
+            'completed',
+            'pending invoice',
+            'invoice submitted' => 'Completed',
+            default             => 'Pending',
+        };
 
-    if ($uiStatus === 'Pending' && ($sr->accepted_at
-        || strtolower((string) $sr->status) === 'accepted'
-        || strtolower((string) $sr->status) === 'in progress')) {
-        $uiStatus = 'Accepted';
+        if ($uiStatus === 'Pending' && ($sr->accepted_at
+            || strtolower((string) $sr->status) === 'accepted'
+            || strtolower((string) $sr->status) === 'in progress')) {
+            $uiStatus = 'Accepted';
+        }
+
+        $lastReschedule = $sr->reschedules->first();
+
+        return [
+            'id'          => $sr->ref,
+            'sr_id'       => $sr->id,
+            'status'      => $uiStatus,
+     
+            // 'source' => ($user && $sr->reallocate_user_id == $user->id) ? 'reallocated' : 'own',
+            'source' => ($user && (int) $sr->reallocate_user_id === (int) $user->id && (int) $sr->reallocate === 1)
+    ? 'reallocated' : 'own',
+
+            'ownerName' => optional($sr->assignedUser)->name ?? '—',
+
+            'client'      => optional($sr->client)->company_name ?? '—',
+            'contract'    => optional($sr->project)->project_name ?? ($sr->invoice_code ?? '—'),
+            'domain'      => optional($sr->domain)->domain_name
+                ?? optional($sr->category)->name
+                ?? '—',
+            'site'        => optional($sr->project)->site_address ?? '—',
+            'siteName'    => optional($sr->project)->site_name ?? '—',
+            'description' => $sr->issue_description ?? '—',
+            'priority'    => ucfirst($sr->priority_level ?? 'Normal'),
+
+            // --- Dispatch → Accept clock (whole hours) ---
+            'hrsAgo'        => $hrs,
+            'hasClock'      => (bool) $dispatched,
+            'clockRunning'  => (bool) ($dispatched && !$accepted),
+            'clockFrom'     => $sr->dispatched_at ? 'dispatch' : 'created',
+            'dispatchedStr' => optional($sr->dispatched_at)->format('d M Y, h:i A') ?? '—',
+            'acceptedStr'   => optional($accepted)->format('d M Y, h:i A') ?? '—',
+
+            'reworkNote'  => $sr->rework_notes,
+
+            'eta'             => optional($sr->eta_at)->format('Y-m-d H:i'),
+            'rescheduleCount' => $sr->reschedules->count(),
+            'rescheduleReason' => $lastReschedule?->reason,
+            'rescheduledAt'   => optional($lastReschedule?->created_at)->format('d M Y, H:i'),
+            'previousEta'     => optional($lastReschedule?->previous_eta_at)->format('d M Y, H:i'),
+            'accepted'    => (bool) $sr->accepted_at,
+            'attachments' => collect($sr->attachments ?? [])->values()->all(),
+            'history'     => $this->srHistory($sr),
+        ];
     }
-
-    $lastReschedule = $sr->reschedules->first();
-
-    return [
-        'id'          => $sr->ref,
-        'sr_id'       => $sr->id,
-        'status'      => $uiStatus,
-        'client'      => optional($sr->client)->company_name ?? '—',
-        'contract'    => optional($sr->project)->project_name ?? ($sr->invoice_code ?? '—'),
-        'domain'      => optional($sr->domain)->domain_name
-            ?? optional($sr->category)->name
-            ?? '—',
-        'site'        => optional($sr->project)->site_address ?? '—',
-        'siteName'    => optional($sr->project)->site_name ?? '—',
-        'description' => $sr->issue_description ?? '—',
-        'priority'    => ucfirst($sr->priority_level ?? 'Normal'),
-
-        // --- Dispatch → Accept clock (whole hours) ---
-        'hrsAgo'        => $hrs,
-        'hasClock'      => (bool) $dispatched,
-        'clockRunning'  => (bool) ($dispatched && !$accepted),
-        'clockFrom'     => $sr->dispatched_at ? 'dispatch' : 'created',
-        'dispatchedStr' => optional($sr->dispatched_at)->format('d M Y, h:i A') ?? '—',
-        'acceptedStr'   => optional($accepted)->format('d M Y, h:i A') ?? '—',
-
-        'reworkNote'  => $sr->rework_notes,
-
-        'eta'             => optional($sr->eta_at)->format('Y-m-d H:i'),
-        'rescheduleCount' => $sr->reschedules->count(),
-        'rescheduleReason' => $lastReschedule?->reason,
-        'rescheduledAt'   => optional($lastReschedule?->created_at)->format('d M Y, H:i'),
-        'previousEta'     => optional($lastReschedule?->previous_eta_at)->format('d M Y, H:i'),
-        'accepted'    => (bool) $sr->accepted_at,
-        'attachments' => collect($sr->attachments ?? [])->values()->all(),
-        'history'     => $this->srHistory($sr),
-    ];
-}
     private function srHistory(ServiceRequest $sr): array
     {
         $log = [];
@@ -629,6 +731,7 @@ class WorkerPipelineController extends Controller
             'signature'     => route('worker.punch.signature'),
             'photoDelete'   => route('worker.punch.photo.delete'),
             'changePassword' => route('worker.password.change'),
+            'expenseDelete' => route('worker.punch.expense.delete'),
 
         ];
     }
