@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Concerns\ScopesToOwner;
 use App\Traits\LogsActivity;
 class ServiceRequest extends Model
 {
-    use LogsActivity;
+    use LogsActivity, ScopesToOwner;
     protected $fillable = [
         'client_id',
         'project_id',
@@ -77,7 +78,19 @@ class ServiceRequest extends Model
         'reallocated_submit_at' => 'datetime',
     ];
 
-
+    /**
+     * A row is "theirs" if they raised it, or it's currently on their plate.
+     */
+    protected function ownershipColumns(): array
+    {
+        return [
+            'created_by',
+            'assigned_user_id',
+            'assigned_se',
+            'reallocate_user_id',
+        ];
+    }
+    
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');

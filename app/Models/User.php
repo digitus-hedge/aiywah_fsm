@@ -74,6 +74,11 @@ class User extends Authenticatable
         return optional($this->role)->code === 'ML';
     }
 
+    // Is this user a Super Admin?
+    public function isSuperAdmin(): bool
+    {
+        return optional($this->role)->code === 'SA';
+    }
     // Two-letter avatar initials, e.g. "Rajesh Kumar" -> "RK"
     public function getInitialsAttribute(): string
     {

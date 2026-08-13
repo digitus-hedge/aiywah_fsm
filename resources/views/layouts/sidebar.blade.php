@@ -222,13 +222,13 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
                 </li>
             @endif
 
-           {{--   @if ($show('user_provisioning', ['SE', 'HP']))
+              @if ($show('user_provisioning', ['SE', 'HP']))
                 <li>
                     <a href="{{ route('user_provisioning') }}" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
                         <i data-feather="shield"></i><span>User Provisioning</span>
                     </a>
                 </li>
-            @endif --}}
+            @endif 
 
             @if ($show('master_data', ['SE', 'HP']))
                 <li>
