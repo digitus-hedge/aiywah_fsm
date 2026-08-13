@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Support\PortalLink;
 use App\Mail\ServiceRequestReceivedMail;
 use Illuminate\Support\Facades\Mail;
-use App\Jobs\SendSrCreatedNotifications;
+use App\Jobs\SendSrNotifications;
 class ServiceRequestController extends Controller
 {
     /* ============================================================
@@ -224,8 +224,7 @@ class ServiceRequestController extends Controller
     });
 
     // WhatsApp + email are slow network calls — hand them to the queue.
-    SendSrCreatedNotifications::dispatch($sr->id, $this->buildSrRef($sr));
-
+    SendSrNotifications::dispatch($sr->id, SendSrNotifications::CREATED, $this->buildSrRef($sr));
     return response()->json([
         'success'      => true,
         'id'           => $sr->id,
@@ -485,20 +484,7 @@ class ServiceRequestController extends Controller
             'in_warranty'  => $inWarranty,
         ]);
 
-        try {
-            $wa = app(\App\Services\WhatsAppService::class);
-
-            $inWarranty
-                ? $wa->notifyWarrantyApproved($serviceRequest)
-                : $wa->notifyServiceStatus($serviceRequest, 'Approved');
-
-            $wa->notifyInternalSrAccepted($serviceRequest);
-        } catch (\Throwable $e) {
-            Log::error('Approve WhatsApp failed', [
-                'sr_id' => $serviceRequest->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::APPROVED, $ref);
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -554,17 +540,7 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        try {
-            $wa = app(\App\Services\WhatsAppService::class);
-            $wa->notifyServiceStatus($serviceRequest, 'Approved');
-            $wa->notifyInternalSrAccepted($serviceRequest);
-        } catch (\Throwable $e) {
-            Log::error('OOW release WhatsApp failed', [
-                'sr_id' => $serviceRequest->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
+        SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::OOW_RELEASED, $ref);
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -592,9 +568,7 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        $wa = app(\App\Services\WhatsAppService::class);
-        $wa->notifyOutsideWarranty($serviceRequest);
-        $wa->notifyInternalOutsideWarranty($serviceRequest);
+        SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::FORWARDED, $ref);
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -620,7 +594,7 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        app(\App\Services\WhatsAppService::class)->notifyOutsideScope($serviceRequest);
+        SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::ADDITIONAL, $ref);
 
         return response()->json([
             'ok'      => true,
@@ -656,7 +630,7 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        $this->sendServiceRequestMessage($serviceRequest, $ref, 'Rejected');
+        SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::REJECTED, $ref);
 
         return response()->json([
             'ok'      => true,
@@ -865,7 +839,7 @@ class ServiceRequestController extends Controller
         $data = $request->validate([
             'assigned_user_id'  => ['required', 'exists:users,id'],
             'service_domain_id' => ['nullable', 'exists:service_domains,id'],
-            'eta_at'            => ['nullable', 'date'],          // ADDED
+            'eta_at'            => ['nullable', 'date'],
         ]);
 
         $oldStatus = $serviceRequest->status;
@@ -874,7 +848,7 @@ class ServiceRequestController extends Controller
             'status'            => 'Assigned',
             'assigned_user_id'  => $data['assigned_user_id'],
             'service_domain_id' => $data['service_domain_id'] ?? null,
-            'eta_at'            => $data['eta_at'] ?? null,       // ADDED
+            'eta_at'            => $data['eta_at'] ?? null,
             'dispatched_at'     => now(),
         ]);
 
@@ -894,80 +868,52 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        try {
-            $serviceRequest->loadMissing(['client', 'project', 'assignedUser']);
-            $ref = $this->buildSrRef($serviceRequest);
+        // Two mails and two WhatsApp round-trips — off the request entirely.
+        \App\Jobs\SendSrNotifications::dispatch(
+            $serviceRequest->id,
+            \App\Jobs\SendSrNotifications::DISPATCHED,
+            $ref
+        );
 
-            // Customer
-            if ($to = $serviceRequest->client?->email) {
-                Mail::to($to)->send(
-                    new \App\Mail\TechnicianAssignedMail($serviceRequest, $ref)
-                );
-            } else {
-                Log::warning('Tech-assigned mail skipped — client has no email', [
-                    'sr_id' => $serviceRequest->id,
-                ]);
-            }
-
-            // Assigned maintenance lead
-            if ($techEmail = $serviceRequest->assignedUser?->email) {
-                Mail::to($techEmail)->send(
-                    new \App\Mail\TechnicianAssignedMail($serviceRequest, $ref, true)
-                );
-            }
-        } catch (\Throwable $e) {
-            Log::error('Tech-assigned mail failed', [
-                'sr_id' => $serviceRequest->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-
-        //whatsapp message 
-        try {
-            $serviceRequest->loadMissing(['client', 'project', 'assignedUser', 'creator']);
-
-            $wa = app(\App\Services\WhatsAppService::class);
-            $wa->notifyTechnicianAssigned($serviceRequest);          // ← customer
-            $wa->notifyInternalTechnicianAssigned($serviceRequest);  // ← staff
-        } catch (\Throwable $e) {
-            Log::error('Tech-assigned WhatsApp failed', [
-                'sr_id' => $serviceRequest->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
         return response()->json([
             'ok'      => true,
             'success' => true,
             'message' => 'Ticket ' . $ref . ' dispatched to ' . ($tech->name ?? 'technician') . '. Status: Assigned.',
         ]);
     }
-
     /* ============================================================
      |  KANBAN / TICKET SUMMARY
      * ============================================================ */
-
+     /** A completed SR drops into the Archived lane once it is this old. */
+    private const ARCHIVE_AFTER_MONTHS = 1;
+ 
     public function ticketSummary()
     {
+        /* Lane order, left → right. 'Archived' is a view-only lane: nothing in
+           the database changes, a Completed ticket simply renders there once
+           it passes the archive cutoff. */
         $statuses = [
             'Pending',
             'Approved',
             'Forwarded',
-            'Rejected',
-            'Assigned',
+            'Additional',
             'Quoted',
+            'Quote Approved',
+            'Assigned',
+            'Accepted',
             'In Progress',
-            'Quote Rejected',
+            'Reschedule',
+            'On Hold',
             'Qc Review',
             'Rework',
-            'Reschedule',
-            'Accepted',
             'Pending Invoice',
             'Invoice Submitted',
             'Completed',
-            'On Hold',
+            'Archived',
+            'Rejected',
+            'Quote Rejected',
         ];
-
+ 
         $labels = [
             'Pending'           => 'Pending',
             'Approved'          => 'Approved',
@@ -976,6 +922,7 @@ class ServiceRequestController extends Controller
             'Rejected'          => 'Rejected',
             'Assigned'          => 'Assigned',
             'Quoted'            => 'Quoted',
+            'Quote Approved'    => 'Quote Approved',
             'In Progress'       => 'In Progress',
             'Quote Rejected'    => 'Quote Rejected',
             'Qc Review'         => 'QC Review',
@@ -985,35 +932,155 @@ class ServiceRequestController extends Controller
             'Pending Invoice'   => 'Pending Invoice',
             'Invoice Submitted' => 'Invoice Submitted',
             'Completed'         => 'Completed',
+            'Archived'          => 'Archived',
             'On Hold'           => 'On Hold',
         ];
-
-
+ 
+        /* The stat cards across the top. Every status maps to exactly one
+           bucket below, so the counts always reconcile with the lanes. */
+        $statGroups = [
+            ['key' => 'pending',  'label' => 'Open / Intake',     'color' => '#f5c842'],
+            ['key' => 'progress', 'label' => 'In Progress',       'color' => '#9a8053'],
+            ['key' => 'review',   'label' => 'Awaiting Review',   'color' => '#b44fd4'],
+            ['key' => 'rework',   'label' => 'Rework',            'color' => '#ff3366'],
+            ['key' => 'done',     'label' => 'Completed',         'color' => '#05a34a'],
+            ['key' => 'archive',  'label' => 'Archived',          'color' => '#4f9a8e'],
+            ['key' => 'cancel',   'label' => 'Closed / Rejected', 'color' => '#aeb7c5'],
+        ];
+ 
+        /* Lane colour + stat bucket per status. The Blade tints this single
+           hex for the lane header, its border and the count pill. */
+        $statusCfg = [
+            'Pending'           => ['color' => '#f5c842', 'group' => 'pending'],
+            'Forwarded'         => ['color' => '#f5c842', 'group' => 'pending'],
+            'Additional'        => ['color' => '#f5c842', 'group' => 'pending'],
+            'Quoted'            => ['color' => '#f5c842', 'group' => 'pending'],
+            'Quote Approved'    => ['color' => '#f5c842', 'group' => 'pending'],
+            'On Hold'           => ['color' => '#f5c842', 'group' => 'pending'],
+ 
+            'Approved'          => ['color' => '#9a8053', 'group' => 'progress'],
+            'Assigned'          => ['color' => '#9a8053', 'group' => 'progress'],
+            'Accepted'          => ['color' => '#9a8053', 'group' => 'progress'],
+            'In Progress'       => ['color' => '#9a8053', 'group' => 'progress'],
+            'Reschedule'        => ['color' => '#9a8053', 'group' => 'progress'],
+ 
+            'Qc Review'         => ['color' => '#b44fd4', 'group' => 'review'],
+            'Pending Invoice'   => ['color' => '#b44fd4', 'group' => 'review'],
+            'Invoice Submitted' => ['color' => '#b44fd4', 'group' => 'review'],
+ 
+            'Rework'            => ['color' => '#ff3366', 'group' => 'rework'],
+ 
+            'Completed'         => ['color' => '#05a34a', 'group' => 'done'],
+ 
+            'Archived'          => [
+                'color' => '#4f9a8e',
+                'group' => 'archive',
+                'note'  => 'Completed more than ' . self::ARCHIVE_AFTER_MONTHS
+                           . ' month ago. Read-only history.',
+            ],
+ 
+            'Rejected'          => ['color' => '#aeb7c5', 'group' => 'cancel'],
+            'Quote Rejected'    => ['color' => '#aeb7c5', 'group' => 'cancel'],
+        ];
+ 
         $user = auth()->user();
         $isSe = $user->role?->code === 'SE';
-        $tickets = ServiceRequest::with(['client', 'project', 'assignedUser', 'category'])
+ 
+        $requests = ServiceRequest::with([
+            'client',
+            'project',
+            'assignedUser',
+            'category',
+            'punches' => fn($q) => $q->latest('punch_out_at')->latest('id')->with('photos'),
+        ])
             ->when($isSe, fn($q) => $q->where('assigned_se', $user->id))
-
             ->latest()
-            ->get()
-            ->map(function ($sr) {
-                return [
-                    'id'           => $this->buildSrRef($sr),
-                    'dbId'         => $sr->id,
-                    'client'       => optional($sr->client)->company_name ?? '—',
-                    'contract'     => optional($sr->project)->project_name ?? '—',
-                    'site'         => optional($sr->project)->site_name ?? '—',
-                    'category'     => optional($sr->category)->category_name ?? '—',
-                    'status'       => $sr->status,
-                    'priority'     => $sr->priority_level,
-                    'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
-                    'techInitials' => $this->initials(optional($sr->assignedUser)->name),
-                    'createdAt'    => $sr->created_at?->format('d M Y h:i A') ?? '—',
-                    'createdRaw'   => $sr->created_at?->toIso8601String(),
-                ];
-            })->values();
-
-        return view('kanban_view', compact('tickets', 'statuses', 'labels'));
+            ->get();
+ 
+        /* "Last moved by" — newest notification log per SR. Ordering ascending
+           and keying by SR means the final write wins, i.e. the latest entry. */
+        $logs = NotificationLog::whereIn('service_request_id', $requests->pluck('id'))
+            ->orderBy('id')
+            ->get(['service_request_id', 'caused_by', 'created_at'])
+            ->keyBy('service_request_id');
+ 
+        $moverNames = User::whereIn('id', $logs->pluck('caused_by')->filter()->unique())
+            ->pluck('name', 'id');
+ 
+        $archiveCutoff = now()->subMonths(self::ARCHIVE_AFTER_MONTHS);
+ 
+        $tickets = $requests->map(function ($sr) use ($logs, $moverNames, $archiveCutoff) {
+            $punch = $sr->punches->first();
+            $log   = $logs->get($sr->id);
+ 
+            /* Archived is derived at render time — the stored status stays
+               'Completed', so nothing else in the system is affected. */
+            $closedAt   = $this->srClosedAt($sr);
+            $isArchived = $sr->status === 'Completed'
+                && $closedAt
+                && $closedAt->lt($archiveCutoff);
+ 
+            $laneStatus = $isArchived ? 'Archived' : $sr->status;
+ 
+            /* Site photos and the signed sheet are completion artefacts — they
+               only exist after the job is closed, so they are only offered on
+               the Completed and Archived lanes. */
+            $showProof = in_array($laneStatus, ['Completed', 'Archived'], true);
+ 
+            $moverName = $log && $log->caused_by
+                ? ($moverNames[$log->caused_by] ?? null)
+                : null;
+ 
+            $site = $punch?->site_location
+                ?? optional($sr->project)->site_name
+                ?? '—';
+ 
+            return [
+                'id'           => $this->buildSrRef($sr),
+                'dbId'         => $sr->id,
+                'client'       => optional($sr->client)->company_name ?? '—',
+                'contract'     => optional($sr->project)->project_name ?? '—',
+                'site'         => $site,
+                'category'     => optional($sr->category)->category_name ?? '—',
+                'status'       => $laneStatus,
+                'realStatus'   => $sr->status,          // untouched DB value
+                'priority'     => $sr->priority_level,
+                'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
+                'techInitials' => $this->initials(optional($sr->assignedUser)->name),
+                'createdAt'    => $sr->created_at?->format('d M Y h:i A') ?? '—',
+                'createdRaw'   => $sr->created_at?->toIso8601String(),
+                'closedAt'     => $closedAt?->format('d M Y') ?? '—',
+ 
+                'warranty'     => $this->srWarrantyLabel($sr),
+ 
+                'showProof'    => $showProof,
+ 
+                'photosBefore' => $showProof && $punch
+                    ? $punch->photos->where('type', 'before')->map(fn($p) => $p->url)->values()->all()
+                    : [],
+                'photosAfter'  => $showProof && $punch
+                    ? $punch->photos->where('type', 'after')->map(fn($p) => $p->url)->values()->all()
+                    : [],
+ 
+                'signedPdfUrl' => $showProof
+                    ? $this->srSignedSheetUrl($punch)
+                    : null,
+ 
+                'mover' => [
+                    'name'     => $moverName,
+                    'initials' => $this->initials($moverName),
+                    'at'       => $log?->created_at?->format('d M Y h:i A') ?? '—',
+                ],
+            ];
+        })->values();
+ 
+        return view('kanban_view', compact(
+            'tickets',
+            'statuses',
+            'labels',
+            'statusCfg',
+            'statGroups'
+        ));
     }
     /* ============================================================
      |  QC REVIEW
@@ -1923,4 +1990,57 @@ class ServiceRequestController extends Controller
             ->where('roles.code', 'SE')
             ->exists();
     }
+
+    /** When a ticket was actually closed — drives the archive cutoff. */
+    private function srClosedAt(ServiceRequest $sr): ?\Carbon\Carbon
+    {
+        $raw = $sr->hop_approved_at
+            ?? $sr->qc_reviewed_at
+            ?? $sr->updated_at;
+ 
+        if (!$raw) {
+            return null;
+        }
+ 
+        return $raw instanceof \Carbon\Carbon
+            ? $raw
+            : \Carbon\Carbon::parse($raw);
+    }
+ 
+    /** Warranty badge text for a ticket card. */
+    private function srWarrantyLabel(ServiceRequest $sr): string
+    {
+        // An explicit out-of-warranty stamp always wins.
+        if ($sr->warranty_scope === 'oow') {
+            return 'Not Covered';
+        }
+ 
+        $end = optional($sr->project)->warranty_end_date;
+ 
+        return ($end && \Carbon\Carbon::parse($end)->endOfDay()->isFuture())
+            ? 'Covered'
+            : 'Not Covered';
+    }
+ 
+    /**
+     * The signed acceptance sheet for a completed job.
+     *
+     * Falls through a few likely column names — a column that doesn't exist
+     * on the punches table simply reads as null, so this is safe either way.
+     * If your signed sheet lives somewhere else, point the first line at it.
+     */
+    private function srSignedSheetUrl($punch): ?string
+    {
+        if (!$punch) {
+            return null;
+        }
+ 
+        $path = $punch->acceptance_pdf_path
+            ?? $punch->signed_sheet_path
+            ?? $punch->customer_signature_path
+            ?? null;
+ 
+        return $path ? asset('storage/' . $path) : null;
+    }
+ 
 }
