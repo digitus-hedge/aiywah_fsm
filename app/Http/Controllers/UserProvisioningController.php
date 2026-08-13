@@ -13,6 +13,7 @@ use Illuminate\Validation\Rule;
 use App\Mail\UserWelcomeMail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use App\Jobs\SendUserWelcomeMail;
 class UserProvisioningController extends Controller
 {
     /**
@@ -76,7 +77,7 @@ class UserProvisioningController extends Controller
                 'roleId'   => optional($u->role)->code ?? '',
                 'domains'  => $u->serviceDomains->pluck('id')->values()->all(),
                 'fdGrants' => $u->fd_grants ?? [],
-
+                'acGrants' => $u->ac_grants ?? [],
                 'categories' => $u->serviceCategories->pluck('id')->values()->all(),
                 'qcReview'   => (bool) $u->can_qc_review,
 
@@ -111,10 +112,13 @@ class UserProvisioningController extends Controller
 
             'fdGrants'   => 'array',
             'fdGrants.*' => 'string',
+            'acGrants'   => 'array',     
+            'acGrants.*' => 'string', 
         ]);
 
         $isSE = $data['roleId'] === 'SE';
-
+        $isFD = $data['roleId'] === 'FD';   
+        $isAC = $data['roleId'] === 'AC';   
         $user = User::create([
             'name'              => $data['name'],
             'email'             => strtolower($data['email']),
@@ -122,7 +126,8 @@ class UserProvisioningController extends Controller
             'phone'             => $data['phone'] ?? null,
             'password'          => Hash::make($data['password']),
             'role_id'           => Role::where('code', $data['roleId'])->value('id'),
-            'fd_grants'         => $data['fdGrants'] ?? [],
+            'fd_grants'         => $isFD ? ($data['fdGrants'] ?? []) : [],   
+            'ac_grants'         => $isAC ? ($data['acGrants'] ?? []) : [],   
             'can_qc_review'     => $isSE && ($data['qcReview'] ?? false),
             'status'            => 'pending',
             'email_verified_at' => now(),
@@ -131,18 +136,12 @@ class UserProvisioningController extends Controller
         $this->syncDomains($user, $data['domains'] ?? []);
 
         $user->serviceCategories()->sync($isSE ? ($data['categories'] ?? []) : []);
-        try {
-            $user->load('role');
+        $this->syncDomains($user, $data['domains'] ?? []);
 
-            Mail::to($user->email)->send(
-                new UserWelcomeMail($user, $data['password'], $data['role'])
-            );
-        } catch (\Throwable $e) {
-            Log::error('User welcome mail failed', [
-                'user_id' => $user->id,
-                'error'   => $e->getMessage(),
-            ]);
-        }
+        $user->serviceCategories()->sync($isSE ? ($data['categories'] ?? []) : []);
+
+        // Mail is a slow network call — queue it so provisioning returns immediately.
+        SendUserWelcomeMail::dispatch($user->id, $data['password'], $data['role']);
         return response()->json([
             'user' => [
                 'id'       => $user->id,
@@ -156,6 +155,7 @@ class UserProvisioningController extends Controller
                 'categories' => $user->serviceCategories()->pluck('service_categories.id')->values()->all(),
                 'qcReview'     => (bool) $user->can_qc_review,
                 'fdGrants' => $user->fd_grants ?? [],
+                'acGrants' => $user->ac_grants ?? [], 
                 'created'  => $user->created_at->format('d M Y'),
                 'status'   => $user->status ?? 'pending',
             ],
@@ -180,17 +180,21 @@ class UserProvisioningController extends Controller
             'domains'    => 'array',
             'domains.*'  => 'integer|exists:service_domains,id',
 
-            'categories'   => 'array',                                    // ← add
-            'categories.*' => 'integer|exists:service_categories,id',      // ← add
-            'qcReview'     => 'boolean',                                   // ← add
+            'categories'   => 'array',                                    
+            'categories.*' => 'integer|exists:service_categories,id',      
+            'qcReview'     => 'boolean',                                   
 
             'fdGrants'   => 'array',
             'fdGrants.*' => 'string',
+            'acGrants'   => 'array',     
+            'acGrants.*' => 'string',
         ]);
 
 
         $isSE = $data['roleId'] === 'SE';
         $isML = $data['roleId'] === 'ML';
+        $isFD = $data['roleId'] === 'FD';   
+        $isAC = $data['roleId'] === 'AC'; 
 
         $emailChanged = strtolower($data['email']) !== strtolower($user->email);
 
@@ -201,6 +205,7 @@ class UserProvisioningController extends Controller
             'phone'             => $data['phone'] ?? null,
             'role_id'           => Role::where('code', $data['roleId'])->value('id'),
             'fd_grants'         => $data['fdGrants'] ?? [],
+            'ac_grants'         => $data['acGrants'] ?? [],
             'can_qc_review'     => $isSE && ($data['qcReview'] ?? false),   // ← add
             'email_verified_at' => $emailChanged ? now() : $user->email_verified_at,
         ]);

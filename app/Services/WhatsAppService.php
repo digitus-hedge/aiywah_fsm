@@ -778,8 +778,7 @@ public function notifyOutsideScope(
  */
 private function internalRecipients(\App\Models\ServiceRequest $sr): array
 {
-    $sr->loadMissing(['creator', 'project']);
-
+    $sr->loadMissing(['creator', 'project', 'assignedSe']);
     $out  = [];
     $seen = [];
 
@@ -806,7 +805,6 @@ private function internalRecipients(\App\Models\ServiceRequest $sr): array
     foreach ($staff as $u) {
         $add($u->name, $u->country_code, $u->phone);
     }
-
     // 4. Project engineer — stored on the project row, not a user account
     if ($sr->project?->engineer_contact) {
         $add(
@@ -814,6 +812,11 @@ private function internalRecipients(\App\Models\ServiceRequest $sr): array
             $sr->project->engineer_country,
             $sr->project->engineer_contact
         );
+    }
+
+    // 5. Service Engineer allocated at approval
+    if ($sr->assignedSe) {
+        $add($sr->assignedSe->name, $sr->assignedSe->country_code, $sr->assignedSe->phone);
     }
 
     return $out;
@@ -1212,4 +1215,96 @@ public function notifyServiceCompleted(ServiceRequest $sr): void
     // only dynamic part that matters — pass $link as the button URL suffix or
     // as a body variable, depending on how the template is registered.
 }
+
+/**
+     * Send one template to a single named person, bypassing the client fan-out
+     * and the internal staff list. Use for recipients who need their own
+     * wording — a technician getting a job, not a manager getting an alert.
+     */
+    private function sendToOne(
+        ?\App\Models\ServiceRequest $sr,
+        string $label,
+        ?string $name,
+        ?string $country,
+        ?string $mobile,
+        string $event,
+        string $template,
+        array $components,
+        string $preview
+    ): void {
+        $phone = $this->formatWhatsAppNumber($country, $mobile);
+
+        if (!$phone) {
+            Log::warning("WhatsApp skipped — no usable number [{$label}]", [
+                'sr_id'  => $sr?->id,
+                'name'   => $name,
+                'mobile' => $mobile,
+            ]);
+            return;
+        }
+
+        $this->sendLogged(
+            $sr,
+            $sr?->client,
+            $phone,
+            $event,
+            $template,
+            $components,
+            $preview
+        );
+    }
+
+    /**
+     * Job assigned to the Maintenance Lead.
+     *
+     * Reuses the approved `internal_technician_assigned` template — same ten
+     * variables as the staff alert, but sent to the ML's number alone rather
+     * than through the internal recipient list.
+     */
+    public function notifyMlJobAssigned(
+        \App\Models\ServiceRequest $sr,
+        string $event = 'ML - Job Assigned'
+    ): void {
+        $sr->loadMissing(['client', 'creator', 'assignedUser']);
+
+        $ml = $sr->assignedUser;
+
+        if (!$ml) {
+            Log::warning('ML job alert skipped — no technician assigned', ['sr_id' => $sr->id]);
+            return;
+        }
+
+        $c    = $this->srContext($sr);
+        $tech = $this->techContext($sr);
+
+        $customer  = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
+        $createdBy = $this->cleanParam(optional($sr->creator)->name ?: $sr->reported_by) ?: 'N/A';
+        $priority  = $this->cleanParam($sr->priority_level) ?: 'Normal';
+        $when      = ($sr->created_at ?? now())->format('d M Y, h:i A');
+
+        $components = [[
+            "type" => "body",
+            "parameters" => [
+                $this->txt($c['project']),
+                $this->txt($c['location']),
+                $this->txt($c['ref']),
+                $this->txt($customer),
+                $this->txt($createdBy),
+                $this->txt($c['issue']),
+                $this->txt($priority),
+                $this->txt($when),
+                $this->txt($tech['name']),
+                $this->txt($tech['phone']),
+            ],
+        ]];
+
+        $preview = "Job assigned — {$c['ref']} | {$customer} | {$c['location']} | "
+            . "Priority: {$priority}";
+
+        $this->sendToOne(
+            $sr, 'wa.ml_job',
+            $ml->name, $ml->country_code, $ml->phone,
+            $event, 'internal_technician_assigned', $components, $preview
+        );
+    }
 }

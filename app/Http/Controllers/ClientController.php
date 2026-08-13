@@ -11,7 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
-
+use App\Jobs\SendClientWelcomeNotifications;
 class ClientController extends Controller
 {
     /**
@@ -444,36 +444,15 @@ class ClientController extends Controller
 
         $portalUrl = route('portal.client', ['code' => $client->unique_code]);
 
-        // Email
-        try {
-            if ($client->email) {
-                \Mail::to($client->email)->send(
-                    new \App\Mail\ClientWelcomeMail($client, $firstProject, $portalUrl)
-                );
-            } else {
-                \Log::warning('Client welcome mail skipped — no email', ['client_id' => $client->id]);
-            }
-        } catch (\Throwable $e) {
-            \Log::error('Client welcome mail failed', [
-                'client_id' => $client->id,
-                'error'     => $e->getMessage(),
-            ]);
-        }
+       // Welcome email + WhatsApp are slow network calls — queue them so the
+        // redirect fires as soon as the client and projects are written.
+        $firstProject = $client->projects()->oldest('id')->first();
 
-        // WhatsApp
-        try {
-            if ($firstProject) {
-                app(\App\Services\WhatsAppService::class)
-                    ->notifyClientWelcome($client, $firstProject);
-            } else {
-                \Log::warning('Welcome WhatsApp skipped — no project', ['client_id' => $client->id]);
-            }
-        } catch (\Throwable $e) {
-            \Log::error('Welcome WhatsApp failed', [
-                'client_id' => $client->id,
-                'error'     => $e->getMessage(),
-            ]);
-        }
+        SendClientWelcomeNotifications::dispatch(
+            $client->id,
+            $firstProject?->id,
+            route('portal.client', ['code' => $client->unique_code]),
+        );
         return redirect()
             ->route('clients.create')
             ->with('success', true)
@@ -511,16 +490,14 @@ class ClientController extends Controller
             $wa    = app(\App\Services\WhatsAppService::class);
             $fresh = $client->fresh();
 
-            foreach (Project::whereIn('id', $newProjectIds)->get() as $project) {
-                try {
-                    $wa->notifyProjectAdded($fresh, $project);
-                } catch (\Throwable $e) {
-                    \Log::error('Project-added WhatsApp failed', [
-                        'client_id'  => $client->id,
-                        'project_id' => $project->id,
-                        'error'      => $e->getMessage(),
-                    ]);
-                }
+           // Notify only about projects created in this save.
+            foreach ($newProjectIds as $projectId) {
+                SendClientWelcomeNotifications::dispatch(
+                    $client->id,
+                    $projectId,
+                    null,
+                    SendClientWelcomeNotifications::EVENT_PROJECT_ADDED,
+                );
             }
         }
 

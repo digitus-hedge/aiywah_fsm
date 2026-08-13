@@ -161,14 +161,12 @@ class ServiceRequestController extends Controller
         ]);
 
         $sr = ServiceRequest::findOrFail($data['sr_id']);
-        
         $sr->update([
             // 'assigned_user_id' => $data['ml_id'],
             // 'service_type_id'       => $data['category_id'],
             'reallocate_user_id'    =>  $data['ml_id'],
             'reallocate'            => true,
             'reallocated_submit_at' => now(),
-            'relocation_remarks'    =>  $data['remark'],
             'status'                => 'Rework',
             // 'reallocate'           => 'Re',
 
