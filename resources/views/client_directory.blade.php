@@ -840,7 +840,7 @@
 
     @if (auth()->user()?->role?->code !== 'SE')
 
-    <a href="{{ route('clients.create') }}" class="cd-btn cd-btn-gold"><i class="bi bi-plus-lg"></i>New Client</a>
+    <a href="{{ route('clients.create') }}" class="cd-btn cd-btn-gold"><i class="bi bi-plus-lg"></i>New Customer</a>
 @endif
 
   </div>
@@ -950,7 +950,7 @@
           <td colspan="8">
             <i class="bi bi-inboxes"></i>
             No clients found. Try adjusting your search or
-            <a href="{{ route('clients.create') }}" style="color:#9A7B4F;">create a new client</a>.
+            <a href="{{ route('clients.create') }}" style="color:#9A7B4F;">create a new Customer</a>.
           </td>
         </tr>
         @endforelse

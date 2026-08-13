@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 class PermissionSeeder extends Seeder
 {
@@ -11,10 +12,20 @@ class PermissionSeeder extends Seeder
      * Seed the sidebar pages as permissions, then attach per-role access
      * levels via the permission_role pivot.
      *
-     * Access values: 'yes' = full, 'no' = none, 'rls' = filtered/partial.
-     * 'grant' means access is 'no' by default but an Admin may extend it —
-     * stored as access='no', can_grant=true.
+     * Matrix tokens
+     * ─────────────
+     *   'yes'      → access=yes,  can_grant=false, is_readonly=false
+     *   'no'       → access=no,   can_grant=false, is_readonly=false
+     *   'rls'      → access=rls,  can_grant=false, is_readonly=false
+     *   'grant'    → access=no,   can_grant=true,  is_readonly=false
+     *   'view'     → access=yes,  can_grant=false, is_readonly=true
+     *   'view_rls' → access=rls,  can_grant=false, is_readonly=true
+     *
+     * `access` answers "which rows?", `is_readonly` answers "may they change
+     * them?". The two are independent, which is why 'view_rls' exists.
      */
+    private const TOKENS = ['yes', 'no', 'rls', 'grant', 'view', 'view_rls'];
+
     public function run(): void
     {
         // ── 1. Sidebar pages ─────────────────────────────────────────
@@ -38,21 +49,22 @@ class PermissionSeeder extends Seeder
             ['inquiry_approval',       'Inquiry Approval',       'Workflow',          'inbox',          'inquiry-approval.index', 8],
             ['dispatch_engine',        'Dispatch Engine',        'Workflow',          'send',           'dispatch_engine',        9],
             ['assigned',               'Approved SR',            'Workflow',          'user-check',     'assigned',              10],
-            ['qc_review',              'QC Review',              'Workflow',          'check-circle',   null,                    11],
-            ['completed',              'Completed SR',           'Workflow',          'award',          'completed',             12],
+            ['qc_review',              'QC Review',              'Workflow',          'check-circle',   'qc_review',             11],
+            ['rework_sr',              'Rework SR',              'Workflow',          'rotate-ccw',     'rework_sr',             12],
+            ['completed',              'Completed SR',           'Workflow',          'award',          'completed',             13],
 
             // Finance
-            ['quotation_desk',         'Quotation Desk',         'Finance',           'file-text',      null,                    13],
-            ['invoice_panel',          'Invoice Panel',          'Finance',           'credit-card',    null,                    14],
-            ['expense_ledger',         'Expense Ledger',         'Finance',           'dollar-sign',    null,                    15],
+            ['quotation_desk',         'Quotation Desk',         'Finance',           'file-text',      'quotation_desk',        14],
+            ['invoice_panel',          'Invoice Panel',          'Finance',           'credit-card',    'invoice_panel',         15],
+            ['expense_ledger',         'Expense Ledger',         'Finance',           'dollar-sign',    'expense_ledger',        16],
 
             // System
-            ['analytics',              'Analytics',              'System',            'bar-chart-2',    null,                    16],
-            ['user_directory',         'User Directory',         'System',            'users',          'user_directory',        17],
-            ['user_provisioning',      'User Provisioning',      'System',            'shield',         'user_provisioning',     18],
-            ['master_data',            'Master Data',            'System',            'database',       'masters.index',         19],
-            ['wa_notification_log',    'WhatsApp Notifications', 'System',            'message-circle', 'wa_notification_log',   20],
-            ['activity-log',           'Activity Log',           'System',            'activity',       'activity-log',          21],
+            ['analytics',              'Analytics',              'System',            'bar-chart-2',    null,                    17],
+            ['user_directory',         'User Directory',         'System',            'users',          'user_directory',        18],
+            ['user_provisioning',      'User Provisioning',      'System',            'shield',         'user_provisioning',     19],
+            ['master_data',            'Master Data',            'System',            'database',       'masters.index',         20],
+            ['wa_notification_log',    'WhatsApp Notifications', 'System',            'message-circle', 'wa_notification_log',   21],
+            ['activity-log',           'Activity Log',           'System',            'activity',       'activity-log',          22],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -70,7 +82,7 @@ class PermissionSeeder extends Seeder
             );
         }
 
-        // ── 2. Access matrix: role code → (permission key → access) ──
+        // ── 2. Access matrix: role code → (permission key → token) ───
         // Every key is listed for every role, so the pivot always holds a
         // definitive row rather than relying on a missing row meaning "no".
         $all = array_column($permissions, 0);
@@ -85,34 +97,43 @@ class PermissionSeeder extends Seeder
             // Admin — everything.
             'AD' => array_fill_keys($all, 'yes'),
 
-            // Head of Projects — operational scope, no finance panels, no user mgmt.
+            // Head of Projects — operational scope.
             'HP' => array_merge($deny, [
-                'dashboard'           => 'yes',
-                'sr_registration'     => 'yes',
-                'sr_explorer'         => 'yes',
-                'kanban_view'         => 'yes',
-                'client_accounts'     => 'yes',
-                'client_directory'    => 'yes',
+                'dashboard'              => 'yes',
+                'sr_registration'        => 'yes',
+                'sr_explorer'            => 'yes',
+                'kanban_view'            => 'yes',
+                'client_accounts'        => 'yes',
+                'client_directory'       => 'yes',
                 'project_site_directory' => 'yes',
-                'dispatch_engine'     => 'yes',
-                'assigned'            => 'yes',
-                'qc_review'           => 'yes',
-                'completed'           => 'yes',
-                'expense_ledger'      => 'yes',
-                'analytics'           => 'rls',
-                'wa_notification_log' => 'yes',
+                'inquiry_approval'       => 'yes',
+                'dispatch_engine'        => 'yes',
+                'assigned'               => 'yes',
+                'quotation_desk'         => 'view',
+                'invoice_panel'          => 'yes',
+                'qc_review'              => 'yes',
+                'completed'              => 'view',
+                'expense_ledger'         => 'view',
+                'analytics'              => 'rls',
+                'wa_notification_log'    => 'view',
+                'rework_sr'              => 'yes',
+                'master_data'            => 'view',
+                'user_directory'         => 'view',
+                'user_provisioning'      => 'view',
             ]),
 
             // Service Engineer — own tickets only.
             'SE' => array_merge($deny, [
                 'dashboard'        => 'yes',
-                'sr_explorer'      => 'rls',
-                'kanban_view'      => 'rls',
-                'client_directory' => 'yes',
+                'sr_explorer'      => 'view_rls',
+                'kanban_view'      => 'view_rls',
+                'project_site_directory' => 'view',
+                'client_directory' => 'view',
                 'dispatch_engine'  => 'rls',
                 'assigned'         => 'rls',
                 'qc_review'        => 'rls',
                 'completed'        => 'rls',
+                'wa_notification_log'    => 'view_rls',
             ]),
 
             // Maintenance Lead — own pipeline only.
@@ -126,25 +147,28 @@ class PermissionSeeder extends Seeder
             'FD' => array_merge($deny, [
                 'dashboard'         => 'yes',
                 'sr_registration'   => 'yes',
-                'sr_explorer'       => 'yes',
-                'kanban_view'       => 'rls',
+                'sr_explorer'       => 'view_rls',
+                'kanban_view'       => 'view_rls',
                 'client_accounts'   => 'yes',
                 'client_directory'  => 'yes',
+                'project_site_directory' => 'yes',
                 'inquiry_approval'  => 'grant',
                 'dispatch_engine'   => 'grant',
                 'qc_review'         => 'grant',
+                'assigned'          => 'rls',
                 'expense_ledger'    => 'grant',
                 'analytics'         => 'grant',
                 'user_provisioning' => 'grant',
+                'wa_notification_log'    => 'view_rls',
             ]),
 
             // Accounts / AR — out-of-warranty financial flows only.
             'AC' => array_merge($deny, [
-                'dashboard'       => 'yes',
-                'kanban_view'     => 'rls',
-                'quotation_desk'  => 'grant',
-                'invoice_panel'   => 'grant',
-                'expense_ledger'  => 'yes',
+                'dashboard'      => 'yes',
+                'kanban_view'    => 'rls',
+                'quotation_desk' => 'grant',
+                'invoice_panel'  => 'grant',
+                'expense_ledger' => 'yes',
             ]),
         ];
 
@@ -158,26 +182,40 @@ class PermissionSeeder extends Seeder
                 continue; // role not seeded — skip
             }
 
-            foreach ($perms as $permKey => $value) {
+            foreach ($perms as $permKey => $token) {
                 $permId = $permissionIds[$permKey] ?? null;
                 if (! $permId) {
                     continue;
                 }
 
-                // Translate 'grant' → access 'no' + can_grant true.
-                $canGrant = $value === 'grant';
-                $access   = $canGrant ? 'no' : $value; // yes | no | rls
+                // Fail loudly on a typo rather than writing a bad row.
+                if (! in_array($token, self::TOKENS, true)) {
+                    throw new InvalidArgumentException(
+                        "Unknown access token '{$token}' for {$roleCode}.{$permKey}"
+                    );
+                }
+
+                $canGrant   = $token === 'grant';
+                $isReadonly = str_starts_with($token, 'view');
+
+                $access = match ($token) {
+                    'grant'    => 'no',
+                    'view'     => 'yes',
+                    'view_rls' => 'rls',
+                    default    => $token,   // yes | no | rls
+                };
 
                 DB::table('permission_role')->updateOrInsert(
                     ['role_id' => $roleId, 'permission_id' => $permId],
                     [
-                        'access'     => $access,
-                        'can_grant'  => $canGrant,
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'access'      => $access,
+                        'can_grant'   => $canGrant,
+                        'is_readonly' => $isReadonly,
+                        'created_at'  => now(),
+                        'updated_at'  => now(),
                     ]
                 );
             }
         }
     }
-}
+}  

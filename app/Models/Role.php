@@ -11,15 +11,15 @@ class Role extends Model
     protected $casts = [
         'is_grantable' => 'boolean',
     ];
-
+    
     /**
      * Permissions attached to this role.
-     * Pivot carries: access (yes|no|rls) and can_grant (bool).
+     * Pivot carries: access (yes|no|rls), can_grant (bool), is_readonly (bool).
      */
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class)
-            ->withPivot(['access', 'can_grant'])
+            ->withPivot(['access', 'can_grant', 'is_readonly'])
             ->withTimestamps()
             ->orderBy('permissions.sort_order');
     }
