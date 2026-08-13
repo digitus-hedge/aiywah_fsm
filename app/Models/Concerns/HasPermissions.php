@@ -129,15 +129,19 @@ trait HasPermissions
     }
 
     /**
-     * Is this permission key explicitly granted to the user via fd_grants?
+     * Is this permission key explicitly granted to the user?
+     * Reads both grant columns: fd_grants (Front Desk) and ac_grants (Accounts).
      */
     public function hasGrant(?string $key): bool
     {
         if (!$key) {
             return false;
         }
-        $grants = $this->fd_grants ?? [];
-        return is_array($grants) && in_array($key, $grants, true);
+        $grants = array_merge(
+            is_array($this->fd_grants) ? $this->fd_grants : [],
+            is_array($this->ac_grants) ? $this->ac_grants : [],
+        );
+        return in_array($key, $grants, true);
     }
 
     /**
@@ -179,6 +183,23 @@ trait HasPermissions
                 ],
             ])
             ->toArray();
+    }
+
+    /**
+     * May the user mutate this specific record?
+     * Page-level write capability, narrowed by ownership when access is 'rls'.
+     */
+    public function canWriteRecord(?string $key, $record): bool
+    {
+        if (! $this->canWrite($key)) {
+            return false;
+        }
+
+        if (! $this->isFiltered($key)) {
+            return true;
+        }
+
+        return method_exists($record, 'isOwnedBy') && $record->isOwnedBy($this);
     }
 
     /**
