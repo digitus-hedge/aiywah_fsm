@@ -15,11 +15,12 @@ class User extends Authenticatable
     use LogsActivity;
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasPermissions;
-    protected $fillable = ['name', 'email', 'country_code', 'phone', 'password', 'role_id', 'fd_grants', 'status', 'can_qc_review'];
+    protected $fillable = ['name', 'email', 'country_code', 'phone', 'password', 'role_id', 'fd_grants', 'ac_grants', 'status', 'can_qc_review'];
 
     protected $casts = [
         'password'  => 'hashed',
         'fd_grants' => 'array',
+        'ac_grants' => 'array',
         'email_verified_at'   => 'datetime',
         'must_reset_password' => 'boolean',
         'can_qc_review'       => 'boolean',

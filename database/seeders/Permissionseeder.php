@@ -8,48 +8,51 @@ use Illuminate\Support\Facades\DB;
 class PermissionSeeder extends Seeder
 {
     /**
-     * Seed the 13 sidebar pages as permissions, then attach per-role access
+     * Seed the sidebar pages as permissions, then attach per-role access
      * levels via the permission_role pivot.
      *
      * Access values: 'yes' = full, 'no' = none, 'rls' = filtered/partial.
-     * 'grant' (in the matrix below) means access is 'no' by default but an
-     * Admin may extend it — stored as access='no', can_grant=true.
+     * 'grant' means access is 'no' by default but an Admin may extend it —
+     * stored as access='no', can_grant=true.
      */
     public function run(): void
     {
-        // ── 1. The 13 sidebar pages ──────────────────────────────────
+        // ── 1. Sidebar pages ─────────────────────────────────────────
         // [key, name, section, icon, route, sort_order]
+        //
+        // Keys must be unique: updateOrInsert matches on `key`, so a repeated
+        // key silently overwrites the earlier row rather than adding one.
         $permissions = [
             // Main
-            ['dashboard',         'Dashboard',              'Main',     'layout',       'dashboard',              1],
-            ['sr_registration',   'SR Registration',        'Main',     'file-plus',    'sr_registration',        2],
-            ['sr_explorer',       'SR Explorer',            'Main',     'badge-pill',   'sr_explorer',            3],
-            ['kanban_view',       'Ticket Summary',         'Main',     'clipboard',    'kanban_view',            4],
+            ['dashboard',              'Dashboard',              'Main',              'grid',           'dashboard',              1],
+            ['sr_registration',        'SR Registration',        'Main',              'file-plus',      'sr_registration',        2],
+            ['sr_explorer',            'SR Explorer',            'Main',              'search',         'sr_explorer',            3],
+            ['kanban_view',            'Ticket Summary',         'Main',              'trello',         'kanban_view',            4],
 
-             // Client Management
-            ['client_accounts',   'Client Accounts',        'Client Management', 'users',        'clients.create', 5],
-            ['client_directory',  'Client Directory',        'Client Management', 'bi bi-buildings',        'clients.directory',6],
-            
+            // Customer
+            ['client_accounts',        'Customer Accounts',      'Customer',          'user-plus',      'clients.create',         5],
+            ['client_directory',       'Customer Directory',     'Customer',          'book-open',      'clients.directory',      6],
+            ['project_site_directory', 'Projects & Sites',       'Customer',          'map-pin',        'project_site_directory', 7],
+
             // Workflow
-            ['inquiry_approval',  'Inquiry Approval',       'Workflow', 'clipboard',    'inquiry-approval.index', 7],
-            ['client_accounts',   'Client Accounts',        'Workflow', 'users',        'clients.create',         8],
-            ['dispatch_engine',   'Dispatch Engine',        'Workflow', 'user-check',   'dispatch_engine',        9],
-            ['assigned',          'Approved SR',            'Workflow', 'clipboard',    'assigned',               10],
-            ['qc_review',         'QC Review',              'Workflow', 'check-circle', null,                     11],
-            ['completed',         'Completed SR',           'Workflow', 'clipboard',    'completed',              12],
+            ['inquiry_approval',       'Inquiry Approval',       'Workflow',          'inbox',          'inquiry-approval.index', 8],
+            ['dispatch_engine',        'Dispatch Engine',        'Workflow',          'send',           'dispatch_engine',        9],
+            ['assigned',               'Approved SR',            'Workflow',          'user-check',     'assigned',              10],
+            ['qc_review',              'QC Review',              'Workflow',          'check-circle',   null,                    11],
+            ['completed',              'Completed SR',           'Workflow',          'award',          'completed',             12],
 
             // Finance
-            ['quotation_desk',    'Quotation Desk',         'Finance',  'file-text',    null,                     13],
-            ['invoice_panel',     'Invoice Panel',          'Finance',  'file',         null,                     14],
-            ['expense_ledger',    'Expense Ledger',         'Finance',  'check-square', null,                    15],
+            ['quotation_desk',         'Quotation Desk',         'Finance',           'file-text',      null,                    13],
+            ['invoice_panel',          'Invoice Panel',          'Finance',           'credit-card',    null,                    14],
+            ['expense_ledger',         'Expense Ledger',         'Finance',           'dollar-sign',    null,                    15],
 
             // System
-            ['analytics',         'Analytics',              'System',   'bar-chart-2',  null,                    16],
-            ['user_directory',    'User Directory',         'System',   'database',     'user_directory',        17],
-            ['user_provisioning', 'User Provisioning',      'System',   'shield',       'user_provisioning',     18],
-            ['master_data',       'Master Data',            'System',   'database',     'masters.index',         19],
-            ['wa_notification_log','WhatsApp Notifications','System',   'settings',     'wa_notification_log',   20],
-            ['activity-log',     'Activity Log',          'System',     'activity',       'activity-log',        21],
+            ['analytics',              'Analytics',              'System',            'bar-chart-2',    null,                    16],
+            ['user_directory',         'User Directory',         'System',            'users',          'user_directory',        17],
+            ['user_provisioning',      'User Provisioning',      'System',            'shield',         'user_provisioning',     18],
+            ['master_data',            'Master Data',            'System',            'database',       'masters.index',         19],
+            ['wa_notification_log',    'WhatsApp Notifications', 'System',            'message-circle', 'wa_notification_log',   20],
+            ['activity-log',           'Activity Log',           'System',            'activity',       'activity-log',          21],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -68,60 +71,81 @@ class PermissionSeeder extends Seeder
         }
 
         // ── 2. Access matrix: role code → (permission key → access) ──
-        // Values: 'yes' | 'no' | 'rls' | 'grant'
-        //   'grant' = default no, but Admin can extend (can_grant=true).
-        // Anything omitted defaults to 'no'.
+        // Every key is listed for every role, so the pivot always holds a
+        // definitive row rather than relying on a missing row meaning "no".
+        $all = array_column($permissions, 0);
+
+        /** Start from a full deny, then override. */
+        $deny = array_fill_keys($all, 'no');
+
         $matrix = [
             // Super Admin — everything.
-            'SA' => [
-                'dashboard' => 'yes', 'sr_registration' => 'yes', 'sr_explorer' => 'yes', 'kanban_view' => 'yes',
-                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes','assigned' => 'yes','completed' => 'yes',
-                'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes','user_directory' => 'yes', 'user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','activity-log' => 'yes',
-            ],
-            // Admin — everything except master System Config.
-            'AD' => [
-                'dashboard' => 'yes' ,'sr_registration' => 'yes', 'sr_explorer' => 'yes', 'kanban_view' => 'yes',
-                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes','assigned' => 'yes','completed' => 'yes',
-                'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes','user_directory' => 'yes','user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','activity-log' => 'yes',
-            ],
-            // Head of Projects — operational scope, filtered analytics, no finance panels / no user mgmt.
-            'HP' => [
-                'dashboard' => 'yes', 'kanban_view' => 'yes', 'sr_registration' => 'yes',
-                'inquiry_approval' => 'yes', 'client_accounts' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes',
-                'quotation_desk' => 'no', 'invoice_panel' => 'no', 'expense_ledger' => 'yes',
-                'analytics' => 'rls', 'user_provisioning' => 'no', 'activity-log' => 'no',
-            ],
-            // Maintenance Lead — own pipeline only (kanban view of assigned work).
-            'ML' => [
-                'dashboard' => 'yes', 'kanban_view' => 'rls', 'sr_registration' => 'no',
-                'inquiry_approval' => 'no', 'client_accounts' => 'no', 'dispatch_engine' => 'no', 'qc_review' => 'no',
-                'quotation_desk' => 'no', 'invoice_panel' => 'no', 'expense_ledger' => 'no',
-                'analytics' => 'no', 'user_provisioning' => 'no', 'activity-log' => 'no',
-            ],
-            // Front Desk Executive — intake + client onboarding base; several grantable extensions.
-            'FD' => [
-                'dashboard' => 'yes', 'kanban_view' => 'rls', 'sr_registration' => 'yes',
-                'inquiry_approval' => 'grant', 'client_accounts' => 'yes', 'dispatch_engine' => 'grant', 'qc_review' => 'grant',
-                'quotation_desk' => 'no', 'invoice_panel' => 'no', 'expense_ledger' => 'grant',
-                'analytics' => 'grant', 'user_provisioning' => 'grant', 'activity-log' => 'no',
-            ],
-            // Accounts / AR — out-of-warranty financial flows only, filtered ticket view.
-            'AC' => [
-                'dashboard' => 'yes', 'kanban_view' => 'rls', 'sr_registration' => 'no',
-                'inquiry_approval' => 'no', 'client_accounts' => 'no', 'dispatch_engine' => 'no', 'qc_review' => 'no',
-                'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'no', 'user_provisioning' => 'no', 'activity-log' => 'no',
-            ],
+            'SA' => array_fill_keys($all, 'yes'),
 
-             'SE' => [
-                'dashboard' => 'yes' ,'sr_registration' => 'yes', 'sr_explorer' => 'yes', 'kanban_view' => 'yes',
-                'inquiry_approval' => 'yes', 'client_accounts' => 'yes','client_directory' => 'yes', 'dispatch_engine' => 'yes', 'qc_review' => 'yes','assigned' => 'yes','completed' => 'yes',
-                'quotation_desk' => 'yes', 'invoice_panel' => 'yes', 'expense_ledger' => 'yes',
-                'analytics' => 'yes','user_directory' => 'yes','user_provisioning' => 'yes','master_data' => 'yes', 'wa_notification_log' => 'yes','activity-log' => 'yes',
-            ],
+            // Admin — everything.
+            'AD' => array_fill_keys($all, 'yes'),
 
+            // Head of Projects — operational scope, no finance panels, no user mgmt.
+            'HP' => array_merge($deny, [
+                'dashboard'           => 'yes',
+                'sr_registration'     => 'yes',
+                'sr_explorer'         => 'yes',
+                'kanban_view'         => 'yes',
+                'client_accounts'     => 'yes',
+                'client_directory'    => 'yes',
+                'project_site_directory' => 'yes',
+                'dispatch_engine'     => 'yes',
+                'assigned'            => 'yes',
+                'qc_review'           => 'yes',
+                'completed'           => 'yes',
+                'expense_ledger'      => 'yes',
+                'analytics'           => 'rls',
+                'wa_notification_log' => 'yes',
+            ]),
+
+            // Service Engineer — own tickets only.
+            'SE' => array_merge($deny, [
+                'dashboard'        => 'yes',
+                'sr_explorer'      => 'rls',
+                'kanban_view'      => 'rls',
+                'client_directory' => 'yes',
+                'dispatch_engine'  => 'rls',
+                'assigned'         => 'rls',
+                'qc_review'        => 'rls',
+                'completed'        => 'rls',
+            ]),
+
+            // Maintenance Lead — own pipeline only.
+            'ML' => array_merge($deny, [
+                'dashboard'   => 'yes',
+                'kanban_view' => 'rls',
+                'assigned'    => 'rls',
+            ]),
+
+            // Front Desk Executive — intake + onboarding; several grantable extensions.
+            'FD' => array_merge($deny, [
+                'dashboard'         => 'yes',
+                'sr_registration'   => 'yes',
+                'sr_explorer'       => 'yes',
+                'kanban_view'       => 'rls',
+                'client_accounts'   => 'yes',
+                'client_directory'  => 'yes',
+                'inquiry_approval'  => 'grant',
+                'dispatch_engine'   => 'grant',
+                'qc_review'         => 'grant',
+                'expense_ledger'    => 'grant',
+                'analytics'         => 'grant',
+                'user_provisioning' => 'grant',
+            ]),
+
+            // Accounts / AR — out-of-warranty financial flows only.
+            'AC' => array_merge($deny, [
+                'dashboard'       => 'yes',
+                'kanban_view'     => 'rls',
+                'quotation_desk'  => 'grant',
+                'invoice_panel'   => 'grant',
+                'expense_ledger'  => 'yes',
+            ]),
         ];
 
         // Lookup id maps.
