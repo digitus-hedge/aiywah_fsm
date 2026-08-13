@@ -167,6 +167,7 @@ class ServiceRequestController extends Controller
             'reallocate'            => true,
             'reallocated_submit_at' => now(),
             'status'                => 'Rework',
+            'relocation_remarks'    => $data['remark']
             // 'reallocate'           => 'Re',
 
 
