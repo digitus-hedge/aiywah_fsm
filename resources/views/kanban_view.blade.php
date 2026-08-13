@@ -236,6 +236,8 @@
   @endforeach
 </div>
 
+
+
 {{-- FILTER BAR --}}
 <div class="filter-bar">
   <div class="filter-search">

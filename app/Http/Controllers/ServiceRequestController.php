@@ -884,6 +884,8 @@ class ServiceRequestController extends Controller
             'message' => 'Ticket ' . $ref . ' dispatched to ' . ($tech->name ?? 'technician') . '. Status: Assigned.',
         ]);
     }
+
+    
     /* ============================================================
      |  KANBAN / TICKET SUMMARY
      * ============================================================ */
