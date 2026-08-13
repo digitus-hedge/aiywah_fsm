@@ -22,8 +22,7 @@ use Illuminate\Support\Facades\Storage;
 use App\Support\PortalLink;
 use App\Mail\ServiceRequestReceivedMail;
 use Illuminate\Support\Facades\Mail;
-use App\Jobs\SendSrCreatedNotifications;
-
+use App\Jobs\SendSrNotifications;
 class ServiceRequestController extends Controller
 {
     /* ============================================================
@@ -225,15 +224,14 @@ class ServiceRequestController extends Controller
             return $sr;
         });
 
-        // WhatsApp + email are slow network calls — hand them to the queue.
-        SendSrCreatedNotifications::dispatch($sr->id, $this->buildSrRef($sr));
-
-        return response()->json([
-            'success'      => true,
-            'id'           => $sr->id,
-            'sr_reference' => $this->buildSrRef($sr),
-        ]);
-    }
+    // WhatsApp + email are slow network calls — hand them to the queue.
+    SendSrNotifications::dispatch($sr->id, SendSrNotifications::CREATED, $this->buildSrRef($sr));
+    return response()->json([
+        'success'      => true,
+        'id'           => $sr->id,
+        'sr_reference' => $this->buildSrRef($sr),
+    ]);
+}
 
     /* ============================================================
      |  SR EXPLORER (list + filter + export)
