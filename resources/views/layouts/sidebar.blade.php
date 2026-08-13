@@ -86,13 +86,13 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
         @if ($showCustomer)
             <li class="sidebar-heading">Customer</li>
 
-            @if ($show('client_accounts', ['SE']))
+           {{-- @if ($show('client_accounts', ['SE']))
                 <li>
                     <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.create', 'clients.edit') ? 'active' : '' }}">
                         <i data-feather="user-plus"></i><span>Customer Accounts</span>
                     </a>
                 </li>
-            @endif
+            @endif --}}
 
             @if ($can('client_directory'))
                 <li>
@@ -195,9 +195,6 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
             @endif
         @endif
 
-
-
-
         {{-- ══════════ SYSTEM ══════════ --}}
         @php
             $showSystem = $can('user_directory') || $can('user_provisioning')
@@ -215,13 +212,13 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
                 </li>
             @endif
 
-            @if ($show('user_provisioning', ['SE', 'HP']))
+           {{--   @if ($show('user_provisioning', ['SE', 'HP']))
                 <li>
                     <a href="{{ route('user_provisioning') }}" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
                         <i data-feather="shield"></i><span>User Provisioning</span>
                     </a>
                 </li>
-            @endif
+            @endif --}}
 
             @if ($show('master_data', ['SE', 'HP']))
                 <li>
@@ -364,27 +361,67 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
 }
 
 /* ── Count badge ── */
+/* ── Inquiry Approval Pending Count ── */
 .sidebar-nav a .badge-pill{
-  margin-left:auto;flex-shrink:0;
-  min-width:20px;padding:1px 7px;
-  border-radius:20px;
-  background:rgba(154,128,83,.15);
-  color:var(--sb-brand);
-  font-size:.625rem;font-weight:700;line-height:1.6;
-  text-align:center;
-}
-.sidebar-nav a.active .badge-pill{background:rgba(154,128,83,.22);}
+    margin-left:auto;
+    flex:0 0 auto;
 
-/* ── Dark mode ── */
-[data-theme="dark"] .sidebar,
-[data-bs-theme="dark"] .sidebar{
-  --sb-brand:#b89968;
-  --sb-brand-soft:rgba(184,153,104,.16);
-  --sb-brand-hover:rgba(184,153,104,.09);
+    min-width:24px;
+    height:22px;
+    padding:0 7px;
+
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+
+    border-radius:999px;
+
+    background:#fff1f0;
+    color:#d64545;
+
+    border:1px solid #ffd6d3;
+
+    font-size:.65rem;
+    font-weight:700;
+    line-height:1;
+
+    box-shadow:0 1px 3px rgba(0,0,0,.06);
+
+    transition:
+        background .16s ease,
+        color .16s ease,
+        border-color .16s ease,
+        transform .16s ease;
 }
+
+/* Hover */
+.sidebar-nav a:hover .badge-pill{
+    background:#ffe5e2;
+    color:#c93636;
+    border-color:#ffc2bd;
+}
+
+/* Active Inquiry Approval */
+.sidebar-nav a.active .badge-pill{
+    background:#d64545;
+    color:#fff;
+    border-color:#d64545;
+    box-shadow:0 2px 5px rgba(214,69,69,.25);
+}
+
+/* Dark mode */
 [data-theme="dark"] .sidebar-nav a .badge-pill,
 [data-bs-theme="dark"] .sidebar-nav a .badge-pill{
-  background:rgba(184,153,104,.2);color:#b89968;
+    background:rgba(214,69,69,.16);
+    color:#ff8b87;
+    border-color:rgba(214,69,69,.30);
+}
+
+[data-theme="dark"] .sidebar-nav a.active .badge-pill,
+[data-bs-theme="dark"] .sidebar-nav a.active .badge-pill{
+    background:#d64545;
+    color:#fff;
+    border-color:#d64545;
 }
 
 /* ── Motion preferences ── */
