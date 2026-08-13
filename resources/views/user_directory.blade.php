@@ -212,7 +212,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     <div class="ud-actions">
       <a href="{{ route('user_directory') }}" class="ud-btn ud-btn-ghost"><i class="bi bi-x-circle"></i>Reset</a>
       <button type="submit" class="ud-btn ud-btn-gold"><i class="bi bi-funnel"></i>Apply</button>
-      @if (auth()->user() && auth()->user()->hasAccess('user_provisioning')  && auth()->user()?->role?->code !== 'SE'))
+      @if (auth()->user() && auth()->user()->hasAccess('user_provisioning')  && auth()->user()?->role?->code !== 'SE')
         <a href="{{ route('user_provisioning') }}" class="ud-btn ud-btn-gold"><i class="bi bi-person-plus"></i>New User</a>
       @endif
     </div>
@@ -303,9 +303,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
                           onclick="udOpenEdit({{ $user->id }})">
                     <i class="bi bi-pencil"></i>Edit
                   </button>
-                  {{-- <button type="button" class="ud-xs ud-xs-key"
-                    onclick="udPost('{{ route('user_directory.reset', $user->id) }}','primary','Reset Sent','Password reset email sent to {{ $user->email }}')">
-                    <i class="bi bi-key"></i>  --}}
+               
                   </button>
                   <button type="button" class="ud-xs ud-xs-off"
                     onclick="udPost('{{ route('user_directory.toggle', $user->id) }}','warning','Status Toggled','Account status changed for {{ $user->name }}')">
