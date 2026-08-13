@@ -144,12 +144,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
         @endif
 
 
-         <li>
-            <a href="{{ route('rework_sr') }}" class="{{ request()->routeIs('rework_sr') ? 'active' : '' }}">
-                <i data-feather="check-circle"></i>Rework SR
-            </a>
-        </li>
-        
+      
 
          @if ($can('completed'))
         <li>
