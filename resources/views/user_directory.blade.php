@@ -303,9 +303,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
                           onclick="udOpenEdit({{ $user->id }})">
                     <i class="bi bi-pencil"></i>Edit
                   </button>
-                  {{-- <button type="button" class="ud-xs ud-xs-key"
-                    onclick="udPost('{{ route('user_directory.reset', $user->id) }}','primary','Reset Sent','Password reset email sent to {{ $user->email }}')">
-                    <i class="bi bi-key"></i>  --}}
+               
                   </button>
                   <button type="button" class="ud-xs ud-xs-off"
                     onclick="udPost('{{ route('user_directory.toggle', $user->id) }}','warning','Status Toggled','Account status changed for {{ $user->name }}')">

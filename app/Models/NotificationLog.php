@@ -37,4 +37,19 @@ class NotificationLog extends Model
     {
         return $q->whereNull('read_at');
     }
+
+
+    public function scopeVisibleTo($query, $user)
+    {
+        if (! $user) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        // Super Admin and Admin see every log.
+        if (in_array(optional($user->role)->code, ['SA', 'AD'], true)) {
+            return $query;
+        }
+
+        return $query->where('caused_by', $user->id);
+    }
 }

@@ -154,6 +154,13 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
                 </li>
             @endif
 
+@if ($can('rework_sr'))
+            <li>
+    <a href="{{ route('rework_sr') }}" class="{{ request()->routeIs('rework_sr') ? 'active' : '' }}">
+        <i data-feather="rotate-ccw"></i><span>Rework SR</span>
+    </a>
+</li>
+     @endif
             @if ($can('completed'))
                 <li>
                     <a href="{{ route('completed') }}" class="{{ request()->routeIs('completed') ? 'active' : '' }}">
@@ -165,7 +172,10 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
 
         {{-- ══════════ FINANCE ══════════ --}}
         @php
-            $showFinance = $can('quotation_desk') || $can('invoice_panel') || $can('expense_ledger');
+            // $showFinance = $can('quotation_desk') || $can('invoice_panel') || $can('expense_ledger');
+
+             $showFinance = ($can('quotation_desk') || $can('invoice_panel') || $can('expense_ledger'))
+        && auth()->user()?->role?->code !== 'SE';
         @endphp
         @if ($showFinance)
             <li class="sidebar-heading">Finance</li>

@@ -486,7 +486,7 @@
       <div class="jc-main">
         <div class="jc-top">
           <span class="jc-sr">{{ $r['ref'] }}</span>
-          <span class="pill pill-red">{{ $r['status'] }}</span>
+          <!-- <span class="pill pill-red">Reallocated</span> -->
         </div>
 
         <div class="jc-client">{{ $r['client'] }}</div>
@@ -924,6 +924,10 @@ function buildJobCard(job) {
   const ref        = esc(job.id);
   const shortSite  = String(job.site ?? '').split(',')[0];
 
+const isRealloc = job.source === 'reallocated';
+const statusLbl = isRealloc ? 'Reallocated' : job.status;
+const statusCls = isRealloc ? 'pill-purple' : badgeClass;
+
   const reworkBlock = job.reworkNote
     ? `<div class="jc-exp-section">
          <div class="exp-label">
@@ -1051,7 +1055,7 @@ function buildJobCard(job) {
         <div class="jc-top">
           <span class="jc-sr">${ref}</span>
           <div style="display:flex;gap:6px;align-items:center;">
-            <span class="pill ${badgeClass}">${esc(job.status)}</span>
+            <span class="pill ${statusCls}">${esc(statusLbl)}</span>
             ${isActive ? '<span class="pill pill-green">&#9679; Live</span>' : ''}
             <i class="bi bi-chevron-down jc-chevron${isExpanded ? ' open' : ''}"></i>
           </div>

@@ -40,8 +40,8 @@ class ReworkServiceRequestController extends Controller
         }
 
         if ($request->query('frag') === 'hdr') {
-    return view('rework_sr', compact('assigned'))->fragment('hdr');
-}
+            return view('rework_sr', compact('assigned'))->fragment('hdr');
+        }
 
         $stats = $this->stats($request);
 
@@ -87,12 +87,33 @@ class ReworkServiceRequestController extends Controller
         }
 
         // Search across SR id, client company, and worker name.
+        // $query->when($request->filled('search'), function ($q) use ($request) {
+        //     $s = trim($request->query('search'));
+        //     $q->where(function ($w) use ($s) {
+        //         $w->where('id', 'like', "%{$s}%")
+        //             ->orWhereHas('client', fn($c) => $c->where('company_name', 'like', "%{$s}%"))
+        //             ->orWhereHas('assignedUser', fn($u) => $u->where('name', 'like', "%{$s}%"));
+        //     });
+        // });
+
+
         $query->when($request->filled('search'), function ($q) use ($request) {
             $s = trim($request->query('search'));
-            $q->where(function ($w) use ($s) {
-                $w->where('id', 'like', "%{$s}%")
-                    ->orWhereHas('client', fn($c) => $c->where('company_name', 'like', "%{$s}%"))
-                    ->orWhereHas('assignedUser', fn($u) => $u->where('name', 'like', "%{$s}%"));
+
+            // Pull the numeric id out of anything shaped like SR-2026-00080 / 00080 / 80
+            $idTerm = null;
+            if (preg_match('/(\d+)\s*$/', $s, $m)) {
+                $idTerm = ltrim($m[1], '0');   // "00080" → "80"
+                $idTerm = $idTerm === '' ? '0' : $idTerm;
+            }
+
+            $q->where(function ($w) use ($s, $idTerm) {
+                if ($idTerm !== null) {
+                    $w->where('id', $idTerm);
+                }
+                $w->orWhereHas('client', fn($c) => $c->where('company_name', 'like', "%{$s}%"))
+                    ->orWhereHas('assignedUser', fn($u) => $u->where('name', 'like', "%{$s}%"))
+                    ->orWhereHas('reallocateUser', fn($u) => $u->where('name', 'like', "%{$s}%"));
             });
         });
 
@@ -135,38 +156,38 @@ class ReworkServiceRequestController extends Controller
        PAYLOAD (shared by show() and export())
     ───────────────────────────────────────────────────────── */
 
-  private function payload(ServiceRequest $sr): array
-{
-    $srCode = 'SR-' . Carbon::parse($sr->created_at)->format('Y')
-        . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
+    private function payload(ServiceRequest $sr): array
+    {
+        $srCode = 'SR-' . Carbon::parse($sr->created_at)->format('Y')
+            . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
 
-    $assignedAt = $sr->updated_at;
+        $assignedAt = $sr->updated_at;
 
-    $eta = $sr->eta_at ? Carbon::parse($sr->eta_at) : null;
-    $isOverdue = $eta && $eta->isPast();
+        $eta = $sr->eta_at ? Carbon::parse($sr->eta_at) : null;
+        $isOverdue = $eta && $eta->isPast();
 
-    $isOow = ($sr->warranty_scope ?? '') === 'Out of Warranty';
+        $isOow = ($sr->warranty_scope ?? '') === 'Out of Warranty';
 
-    return [
-        'id'          => $sr->id,
-        'code'        => $srCode,
-        'client'      => optional($sr->client)->company_name ?? '—',
-        'site'        => optional($sr->project)->site_name ?? '—',
-        'worker'      => optional($sr->assignedUser)->name ?? 'Unassigned',
-        'issue'       => $sr->issue_description ?? '—',
-        'status'      => Str::headline($sr->status ?? '—'),
-        'priority'    => $sr->priority_level ?? '—',
-        'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
-        'contact'     => optional($sr->client)->primary_mobile
-            ?? optional($sr->client)->contact_number ?? '—',
-        'scheduled'   => $assignedAt->format('d M Y · h:i A'),
-        'assigned'    => $assignedAt->format('d M Y · h:i A'),
-        'assigned_h'  => $assignedAt->diffForHumans(),
-        'sla_due'     => $eta ? $eta->format('d M Y · h:i A') : '—',
-        'sla_due_h'   => $eta ? $eta->diffForHumans() : '—',
-        'is_overdue'  => $isOverdue,
-    ];
-}
+        return [
+            'id'          => $sr->id,
+            'code'        => $srCode,
+            'client'      => optional($sr->client)->company_name ?? '—',
+            'site'        => optional($sr->project)->site_name ?? '—',
+            'worker'      => optional($sr->assignedUser)->name ?? 'Unassigned',
+            'issue'       => $sr->issue_description ?? '—',
+            'status'      => Str::headline($sr->status ?? '—'),
+            'priority'    => $sr->priority_level ?? '—',
+            'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
+            'contact'     => optional($sr->client)->primary_mobile
+                ?? optional($sr->client)->contact_number ?? '—',
+            'scheduled'   => $assignedAt->format('d M Y · h:i A'),
+            'assigned'    => $assignedAt->format('d M Y · h:i A'),
+            'assigned_h'  => $assignedAt->diffForHumans(),
+            'sla_due'     => $eta ? $eta->format('d M Y · h:i A') : '—',
+            'sla_due_h'   => $eta ? $eta->diffForHumans() : '—',
+            'is_overdue'  => $isOverdue,
+        ];
+    }
 
     /* ─────────────────────────────────────────────────────────
        CSV EXPORT

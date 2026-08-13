@@ -789,6 +789,10 @@
         color: #fff;
         border-color: transparent;
     }
+
+    span.sbadge.sb-realloc {
+        background: rgba(37, 99, 235, .12);
+    }
 </style>
 @endpush
 
@@ -897,33 +901,37 @@
                     <th>Customer</th>
                     <th>Site / Location</th>
                     <th>Worker</th>
-                   <th class="owner-column"
-    style="{{ request('tab') === 'realloc' ? '' : 'display:none;' }}">
-    Owner
-</th>
+                    <th class="owner-column"
+                        style="{{ request('tab') === 'realloc' ? '' : 'display:none;' }}">
+                        Owner
+                    </th>
                     <th>Priority</th>
                     <th>Status</th>
-                    <th>SLA Due</th>
+                    <th>Updated On</th>
                     <th style="width:70px;">Action</th>
                 </tr>
             </thead>
             <tbody id="sr-tbody">
+
                 @fragment('rows')
+
+                @php
+                $isReallocated = request('tab') === 'realloc';
+                @endphp
+
                 @forelse($assigned as $sr)
                 @php
                 $srCode = 'SR-'.\Carbon\Carbon::parse($sr->created_at)->format('Y').'-'.str_pad($sr->id,5,'0',STR_PAD_LEFT);
 
-            $assignedAt = $sr->updated_at;
-            $isReallocated = request('tab') === 'realloc';
+                $assignedAt = $sr->updated_at;
+                // $isReallocated = request('tab') === 'realloc';
 
 
-    $isReallocated = request('tab') === 'realloc';
+                $worker = $isReallocated
+                ? (optional($sr->reallocateUser)->name ?? 'Unassigned')
+                : (optional($sr->assignedUser)->name ?? 'Unassigned');
 
-    $worker = $isReallocated
-        ? (optional($sr->reallocateUser)->name ?? 'Unassigned')
-        : (optional($sr->assignedUser)->name ?? 'Unassigned');
-
-    $owner = optional($sr->assignedUser)->name ?? 'Unassigned';
+                $owner = optional($sr->assignedUser)->name ?? 'Unassigned';
 
 
                 $eta = $sr->eta_at ? \Carbon\Carbon::parse($sr->eta_at) : null;
@@ -942,6 +950,12 @@
                 'on_hold' => 'sb-hold',
                 default => 'sb-assigned',
                 };
+
+                if ($isReallocated) {
+                $statusLbl = 'Reallocated';
+                $statusClass = 'sb-realloc';
+                }
+
                 $priClass = match($priKey){
                 'high' => 'pri-high',
                 'medium' => 'pri-medium',
@@ -957,6 +971,7 @@
                 'issue' => $sr->issue_description ?? '—',
                 'status' => $statusLbl,
                 'priority' => $priority,
+                'realloc_remarks' => $sr->relocation_remarks ?? null,
                 // 'warranty' => $isOow ? 'Out of Warranty' : 'In Warranty',
                 'warranty' => ($sr->project
                 && $sr->project->warranty_end_date
@@ -973,7 +988,7 @@
                 return trim(($c->primary_country ?? '') . ' ' . $num);
                 })(),
 
-               'scheduled' => $assignedAt->format('d M Y · h:i A'),
+                'scheduled' => $assignedAt->format('d M Y · h:i A'),
                 'assigned' => $assignedAt->format('d M Y · h:i A'),
                 'assigned_h' => $assignedAt->diffForHumans(),
                 'sla_due' => $eta ? $eta->format('d M Y · h:i A') : '—',
@@ -986,37 +1001,45 @@
                     <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name ?? '—' }}</strong></td>
                     <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
                     <td>
-        <div class="worker-cell">
-            <span class="w-av {{ $worker === 'Unassigned' ? 'unassigned' : '' }}">
-                {{ strtoupper(\Illuminate\Support\Str::substr($worker, 0, 2)) }}
-            </span>
+                        <div class="worker-cell">
+                            <span class="w-av {{ $worker === 'Unassigned' ? 'unassigned' : '' }}">
+                                {{ strtoupper(\Illuminate\Support\Str::substr($worker, 0, 2)) }}
+                            </span>
 
-            <span style="font-size:.8rem;">
-                {{ $worker }}
-            </span>
-        </div>
-    </td>
+                            <span style="font-size:.8rem;">
+                                {{ $worker }}
+                            </span>
+                        </div>
+                    </td>
 
-    {{-- Owner --}}
-    <td class="owner-column"
-        style="{{ $isReallocated ? '' : 'display:none;' }}">
-        <div class="worker-cell">
-            <span class="w-av {{ $owner === 'Unassigned' ? 'unassigned' : '' }}">
-                {{ strtoupper(\Illuminate\Support\Str::substr($owner, 0, 2)) }}
-            </span>
+                    {{-- Owner --}}
+                    <td class="owner-column"
+                        style="{{ $isReallocated ? '' : 'display:none;' }}">
+                        <div class="worker-cell">
+                            <span class="w-av {{ $owner === 'Unassigned' ? 'unassigned' : '' }}">
+                                {{ strtoupper(\Illuminate\Support\Str::substr($owner, 0, 2)) }}
+                            </span>
 
-            <span style="font-size:.8rem;">
-                {{ $owner }}
-            </span>
-        </div>
-    </td>
+                            <span style="font-size:.8rem;">
+                                {{ $owner }}
+                            </span>
+                        </div>
+                    </td>
+
                     <td><span class="pri {{ $priClass }}"><i class="bi bi-flag-fill" style="font-size:.6rem;"></i>{{ $priority }}</span></td>
                     <td><span class="sbadge {{ $statusClass }}"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $statusLbl }}</span></td>
-                    <td>
+                    <!-- <td>
                         <span class="cell-sla {{ $isOverdue ? 'overdue' : '' }}">
                             <i class="bi {{ $isOverdue ? 'bi-exclamation-triangle-fill' : 'bi-hourglass-split' }}"></i>{{ $eta ? $eta->diffForHumans() : '—' }}
                         </span>
+                    </td> -->
+
+                    {{-- Updated On --}}
+                    <td class="muted" style="font-size:.8rem;" title="{{ $assignedAt->format('d M Y · h:i A') }}">
+                        {{ $assignedAt->format('d M Y') }}
+                        <div style="font-size:.72rem;opacity:.7;">{{ $assignedAt->format('h:i A') }}</div>
                     </td>
+
                     <td onclick="event.stopPropagation()">
                         <div style="display:flex;gap:5px;">
                             <button class="btn-xs btn-xs-view" onclick="openSrModal(this.closest('tr'))">
@@ -1027,7 +1050,7 @@
                 </tr>
                 @empty
                 <tr class="empty-row">
-                 <td colspan="{{ $isReallocated ? 9 : 8 }}"><i class="bi bi-inbox"></i>No assigned service requests found.</td>
+                    <td colspan="{{ $isReallocated ? 9 : 8 }}"><i class="bi bi-inbox"></i>No assigned service requests found.</td>
                 </tr>
                 @endforelse
                 @endfragment
@@ -1099,6 +1122,14 @@
                     <span class="sr-detail-value muted" id="sr-m-issue">—</span>
                 </div>
 
+
+
+                <div class="sr-detail-item full" id="sr-m-remarks-wrap" style="display:none;">
+                    <span class="sr-detail-label"><i class="bi bi-arrow-left-right"></i>Reallocation Remarks</span>
+                    <span class="sr-detail-value muted" id="sr-m-remarks">—</span>
+                </div>
+
+
                 <div class="sr-detail-divider"></div>
 
                 <div class="sr-detail-item">
@@ -1109,10 +1140,14 @@
                     <span class="sr-detail-label"><i class="bi bi-person-check"></i>Assigned On</span>
                     <span class="sr-detail-value muted" id="sr-m-assigned">—</span>
                 </div> -->
-                <div class="sr-detail-item full">
+
+
+                <!-- <div class="sr-detail-item full">
                     <span class="sr-detail-label"><i class="bi bi-hourglass-split"></i>SLA Due</span>
                     <span class="sr-detail-value" id="sr-m-sla" style="font-size:1.05rem;font-weight:700;">—</span>
-                </div>
+                </div> -->
+
+
             </div>
         </div>
         <div class="sr-modal-foot">
@@ -1187,6 +1222,19 @@
         if (sla) {
             sla.textContent = (data.sla_due || '—') + (data.sla_due_h && data.sla_due_h !== '—' ? '  ·  ' + data.sla_due_h : '');
             sla.style.color = data.is_overdue ? '#ef4444' : 'var(--text-heading)';
+        }
+
+
+        // Reallocation remarks — only render when the SR actually has them
+        var rmWrap = document.getElementById('sr-m-remarks-wrap');
+        if (rmWrap) {
+            var rm = (data.realloc_remarks || '').trim();
+            if (rm !== '') {
+                _set('sr-m-remarks', rm);
+                rmWrap.style.display = '';
+            } else {
+                rmWrap.style.display = 'none';
+            }
         }
 
         document.getElementById('srModal').classList.add('show');
@@ -1288,22 +1336,22 @@
         }
     }
 
- function setReworkTab(tab) {
+    function setReworkTab(tab) {
 
-    document.getElementById('rwTab').value = tab;
+        document.getElementById('rwTab').value = tab;
 
-    document.querySelectorAll('.rw-tab').forEach(b => {
-        b.classList.toggle('active', b.dataset.tab === tab);
-    });
+        document.querySelectorAll('.rw-tab').forEach(b => {
+            b.classList.toggle('active', b.dataset.tab === tab);
+        });
 
-    // Show/hide Owner column
-    document.querySelectorAll('.owner-column').forEach(el => {
-        el.style.display = tab === 'realloc' ? '' : 'none';
-    });
+        // Show/hide Owner column
+        document.querySelectorAll('.owner-column').forEach(el => {
+            el.style.display = tab === 'realloc' ? '' : 'none';
+        });
 
-    currentPage = 1;
+        currentPage = 1;
 
-    applyFilters();
-}
+        applyFilters();
+    }
 </script>
 @endpush
