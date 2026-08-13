@@ -212,7 +212,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     <div class="ud-actions">
       <a href="{{ route('user_directory') }}" class="ud-btn ud-btn-ghost"><i class="bi bi-x-circle"></i>Reset</a>
       <button type="submit" class="ud-btn ud-btn-gold"><i class="bi bi-funnel"></i>Apply</button>
-      @if (auth()->user() && auth()->user()->hasAccess('user_provisioning'))
+      @if (auth()->user() && auth()->user()->hasAccess('user_provisioning')  && auth()->user()?->role?->code !== 'SE'))
         <a href="{{ route('user_provisioning') }}" class="ud-btn ud-btn-gold"><i class="bi bi-person-plus"></i>New User</a>
       @endif
     </div>

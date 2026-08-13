@@ -1697,13 +1697,17 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
           <div style="display:flex;gap:16px;flex-wrap:wrap;">
 
             <div class="form-group" style="margin-bottom:0;flex:1;min-width:300px;">
-              <label class="form-label">Project Code <span class="auto-tag">AUTO</span></label>
+              <label class="form-label">Project Code <span class="req">*</span>
+                <!-- <span class="auto-tag">AUTO</span> -->
+              </label>
+
               <div class="auto-code-row">
-                <input type="text" class="form-control auto-code-field" id="proj-code" placeholder="PRJ-XXXXXX" style="max-width:200px;" oninput="this.value=this.value.toUpperCase()">
-                <button class="btn-ghost" style="padding:6px 11px;font-size:.78rem;" onclick="regenCode()">
+                <input type="text" class="form-control auto-code-field" id="proj-code" placeholder="PRJ-XXXXXX"  oninput="this.value=this.value.toUpperCase()">
+                <!-- <button class="btn-ghost" style="padding:6px 11px;font-size:.78rem;" onclick="regenCode()">
                   <i class="bi bi-arrow-repeat"></i>Regenerate
-                </button>
+                </button> -->
               </div>
+              
               <div class="field-hint">Auto-generated from customer token. You can edit it.</div>
             </div>
 
@@ -1996,8 +2000,7 @@ $clientsJs = $clients->map(fn($c) => [
     document.getElementById('sel-cust-token').textContent = client.token;
     document.getElementById('step1-label').classList.add('done');
     document.getElementById('proj-form-body').classList.add('revealed');
-    if (!document.getElementById('proj-code').value) regenCode();
-    setTimeout(() => document.getElementById('proj-name').focus(), 100);
+   
     enableSaveBtn();
   }
 
@@ -2094,6 +2097,11 @@ $clientsJs = $clients->map(fn($c) => [
   }
   if (!payload.site_address) {
     showToast('err', 'Missing', 'Please enter the site address.');
+    return;
+  }
+
+   if (!payload.project_code) {
+    showToast('err', 'Missing', 'Please enter the Project code');
     return;
   }
   

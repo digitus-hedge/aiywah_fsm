@@ -40,34 +40,34 @@ class CompletedService extends Controller
         //     return view('completed_sr', compact('completed'))->fragment('rows');
         // }
 
-         $slaMatrix = $this->slaMatrix();
+        $slaMatrix = $this->slaMatrix();
 
-    // AJAX fragment responses for live filtering (matches the blade's fetch calls).
-    if ($request->query('frag') === 'rows') {
-        return view('completed_sr', compact('completed', 'slaMatrix'))->fragment('rows');
-    }
-    if ($request->query('frag') === 'pager') {
-        return view('completed_sr', compact('completed', 'slaMatrix'))->fragment('pager');
-    }
+        // AJAX fragment responses for live filtering (matches the blade's fetch calls).
+        if ($request->query('frag') === 'rows') {
+            return view('completed_sr', compact('completed', 'slaMatrix'))->fragment('rows');
+        }
+        if ($request->query('frag') === 'pager') {
+            return view('completed_sr', compact('completed', 'slaMatrix'))->fragment('pager');
+        }
 
-    $stats = $this->stats();
+        $stats = $this->stats();
 
         return view('completed_sr', compact('completed', 'stats', 'slaMatrix'));
     }
 
 
     private function slaMatrix()
-{
-    return SlaMatrix::with('priority')->get()->map(fn ($r) => [
-        'prioId'   => (int) $r->priority_id,
-        'name'     => optional($r->priority)->name,
-        'prioKey'  => strtolower(trim((string) optional($r->priority)->name)),
-        'color'    => optional($r->priority)->color ?? '#8a8a8a',
-        'approve'  => (int) $r->response_time,
-        'dispatch' => (int) $r->assignment_time,
-        'qc'       => (int) $r->resolution_time,
-    ])->values();
-}
+    {
+        return SlaMatrix::with('priority')->get()->map(fn($r) => [
+            'prioId'   => (int) $r->priority_id,
+            'name'     => optional($r->priority)->name,
+            'prioKey'  => strtolower(trim((string) optional($r->priority)->name)),
+            'color'    => optional($r->priority)->color ?? '#8a8a8a',
+            'approve'  => (int) $r->response_time,
+            'dispatch' => (int) $r->assignment_time,
+            'qc'       => (int) $r->resolution_time,
+        ])->values();
+    }
 
     /**
      * JSON detail for the popup. The blade currently reads the row's data-sr
@@ -159,13 +159,13 @@ class CompletedService extends Controller
     {
         // $completedIds = ServiceRequest::whereIn('status', $this->completedStatuses)->pluck('id');
 
-          $user = auth()->user();
-    $isSe = $user?->role?->code === 'SE';
+        $user = auth()->user();
+        $isSe = $user?->role?->code === 'SE';
 
-    $scoped = fn() => ServiceRequest::whereIn('status', $this->completedStatuses)
-        ->when($isSe, fn($q) => $q->where('assigned_se', $user->id));
+        $scoped = fn() => ServiceRequest::whereIn('status', $this->completedStatuses)
+            ->when($isSe, fn($q) => $q->where('assigned_se', $user->id));
 
-    $completedIds = $scoped()->pluck('id');
+        $completedIds = $scoped()->pluck('id');
 
         return [
             'total'     => $completedIds->count(),
@@ -303,5 +303,4 @@ class CompletedService extends Controller
             'Pragma'              => 'no-cache',
         ]);
     }
-    
 }

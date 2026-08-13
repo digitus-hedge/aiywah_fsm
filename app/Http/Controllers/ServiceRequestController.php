@@ -131,25 +131,25 @@ class ServiceRequestController extends Controller
 
 
 
- public function mlsByCategory($categoryId)
-{
-    $openStatuses = ['Accepted', 'In Progress', 'Reschedule', 'On Hold'];
+    public function mlsByCategory($categoryId)
+    {
+        $openStatuses = ['Accepted', 'In Progress', 'Reschedule', 'On Hold'];
 
-    $mls = DB::table('user_service_domain as usd')
-        ->join('users as u', 'u.id', '=', 'usd.user_id')
-        ->leftJoin('service_requests as sr', function ($j) use ($openStatuses) {
-            $j->on('sr.assigned_user_id', '=', 'u.id')
-              ->whereIn('sr.status', $openStatuses);
-        })
-        ->where('usd.service_category_id', $categoryId)
-        ->groupBy('u.id', 'u.name')
-        ->select('u.id', 'u.name', DB::raw('COUNT(DISTINCT sr.id) as active_count'))
-        ->orderBy('active_count')
-        ->orderBy('u.name')
-        ->get();
+        $mls = DB::table('user_service_domain as usd')
+            ->join('users as u', 'u.id', '=', 'usd.user_id')
+            ->leftJoin('service_requests as sr', function ($j) use ($openStatuses) {
+                $j->on('sr.assigned_user_id', '=', 'u.id')
+                    ->whereIn('sr.status', $openStatuses);
+            })
+            ->where('usd.service_category_id', $categoryId)
+            ->groupBy('u.id', 'u.name')
+            ->select('u.id', 'u.name', DB::raw('COUNT(DISTINCT sr.id) as active_count'))
+            ->orderBy('active_count')
+            ->orderBy('u.name')
+            ->get();
 
-    return response()->json($mls);
-}
+        return response()->json($mls);
+    }
     public function reallocate(Request $request)
     {
         $data = $request->validate([
@@ -160,14 +160,17 @@ class ServiceRequestController extends Controller
         ]);
 
         $sr = ServiceRequest::findOrFail($data['sr_id']);
+        
         $sr->update([
             // 'assigned_user_id' => $data['ml_id'],
             // 'service_type_id'       => $data['category_id'],
             'reallocate_user_id'    =>  $data['ml_id'],
             'reallocate'            => true,
-             'status'            => 'Rework',
+            'reallocated_submit_at' => now(),
+            'relocation_remarks'    =>  $data['remark'],
+            'status'                => 'Rework',
             // 'reallocate'           => 'Re',
-          
+
 
         ]);
 
@@ -176,52 +179,52 @@ class ServiceRequestController extends Controller
 
 
     public function store(Request $request)
-{
-    $data = $request->validate([
-        'client_id'         => ['required', 'exists:clients,id'],
-        'project_id'        => ['required', 'exists:projects,id'],
-        'service_type_id'   => ['required', 'exists:service_categories,id'],
-        'reported_by'       => ['required', 'string', 'max:255'],
-        'priority_level'    => ['required', 'exists:priorities,name'],
-        'issue_description' => ['required', 'string', 'min:20'],
-        'internal_remark'   => ['nullable', 'string'],
-        'attachments.*'     => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
-    ]);
+    {
+        $data = $request->validate([
+            'client_id'         => ['required', 'exists:clients,id'],
+            'project_id'        => ['required', 'exists:projects,id'],
+            'service_type_id'   => ['required', 'exists:service_categories,id'],
+            'reported_by'       => ['required', 'string', 'max:255'],
+            'priority_level'    => ['required', 'exists:priorities,name'],
+            'issue_description' => ['required', 'string', 'min:20'],
+            'internal_remark'   => ['nullable', 'string'],
+            'attachments.*'     => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
+        ]);
 
-    // Store files OUTSIDE the transaction — disk writes shouldn't hold a DB lock.
-    $paths = [];
-    if ($request->hasFile('attachments')) {
-        foreach ($request->file('attachments') as $file) {
-            $paths[] = $file->store('service-requests', 'public');
+        // Store files OUTSIDE the transaction — disk writes shouldn't hold a DB lock.
+        $paths = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                $paths[] = $file->store('service-requests', 'public');
+            }
         }
-    }
 
-    $sr = DB::transaction(function () use ($data, $paths) {
-        $sr = ServiceRequest::create([
-            'client_id'         => $data['client_id'],
-            'project_id'        => $data['project_id'],
-            'service_type_id'   => $data['service_type_id'],
-            'reported_by'       => $data['reported_by'],
-            'priority_level'    => $data['priority_level'],
-            'issue_description' => $data['issue_description'],
-            'internal_remark'   => $data['internal_remark'] ?? null,
-            'status'            => 'Pending',
-            'created_by'        => auth()->id(),
-            'attachments'       => $paths ?: null,
-        ]);
+        $sr = DB::transaction(function () use ($data, $paths) {
+            $sr = ServiceRequest::create([
+                'client_id'         => $data['client_id'],
+                'project_id'        => $data['project_id'],
+                'service_type_id'   => $data['service_type_id'],
+                'reported_by'       => $data['reported_by'],
+                'priority_level'    => $data['priority_level'],
+                'issue_description' => $data['issue_description'],
+                'internal_remark'   => $data['internal_remark'] ?? null,
+                'status'            => 'Pending',
+                'created_by'        => auth()->id(),
+                'attachments'       => $paths ?: null,
+            ]);
 
-        NotificationLog::create([
-            'service_request_id' => $sr->id,
-            'event'     => 'sr_created',
-            'title'     => 'New Service Request',
-            'message'   => 'SR-' . ($sr->created_at?->year ?? now()->year)
-                           . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT) . ' created',
-            'to_status' => 'Pending',
-            'caused_by' => auth()->id(),
-        ]);
+            NotificationLog::create([
+                'service_request_id' => $sr->id,
+                'event'     => 'sr_created',
+                'title'     => 'New Service Request',
+                'message'   => 'SR-' . ($sr->created_at?->year ?? now()->year)
+                    . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT) . ' created',
+                'to_status' => 'Pending',
+                'caused_by' => auth()->id(),
+            ]);
 
-        return $sr;
-    });
+            return $sr;
+        });
 
     // WhatsApp + email are slow network calls — hand them to the queue.
     SendSrNotifications::dispatch($sr->id, SendSrNotifications::CREATED, $this->buildSrRef($sr));
@@ -1089,6 +1092,8 @@ class ServiceRequestController extends Controller
     public function qcReview(Request $request)
     {
         $user = auth()->user();
+        $isSe = $this->isServiceEngineer($user);
+
         $filters = [
             'range'   => $request->input('range'),
             'from'    => $request->input('from'),
@@ -1105,16 +1110,13 @@ class ServiceRequestController extends Controller
             'punches' => fn($q) => $q->latest('punch_out_at')->latest('id')->with(['items', 'photos']),
         ])->where('status', 'Qc Review');
 
-        /* QC ownership — engineers only ever see tickets they personally hold */
-        if ($this->isServiceEngineer($user)) {
-            if (!$user->can_qc_review) {
-                $query->whereRaw('1 = 0');           // no QC grant → empty queue
-            } else {
-                $query->where('assigned_se', $user->id);
-            }
+        /* QC ownership — engineers only ever see tickets they personally hold.
+       The can_qc_review grant controls the Pass/Fail buttons (via canQc),
+       not whether the ticket is visible. */
+        if ($isSe) {
+            $query->where('assigned_se', $user->id);
         }
-        // Only window the results when the dashboard actually sent a range —
-        // visiting this page directly should show the whole queue.
+
         if (!empty($filters['range'])) {
             [$start, $end] = $this->resolveRange($filters);
             $query->whereBetween('updated_at', [$start, $end]);
@@ -1131,8 +1133,9 @@ class ServiceRequestController extends Controller
         $requests = $query->latest('updated_at')->get();
 
         $queue = $requests->map(function ($sr) use ($user) {
-            $punch = $sr->punches->first();
+            $punch     = $sr->punches->first();
             $qcOwnerId = $this->qcOwnerId($sr);
+
             $sla = $punch ? $this->srSla($sr, $punch)
                 : ['label' => '—', 'cls' => '', 'fill' => 0, 'color' => '#9ca3af'];
             $exp = $punch ? $this->srExpenses($punch)
@@ -1155,7 +1158,7 @@ class ServiceRequestController extends Controller
                 'warranty'   => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
 
                 'categoryId'   => $sr->service_type_id,
-               'categoryName' => optional($sr->category)->category_name ?? '',
+                'categoryName' => optional($sr->category)->category_name ?? '',
 
                 'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
                 'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
@@ -1168,7 +1171,6 @@ class ServiceRequestController extends Controller
                     'icon'    => $r['icon'] ?? 'bi-receipt',
                     'amt'     => $r['amt']  ?? $r['amount']   ?? 0,
                     'receipt' => (bool) ($r['receipt'] ?? $r['receipt_path'] ?? false),
-
                 ])->values(),
 
                 'totalExpense' => 'AED ' . number_format($exp['total'], 0),
@@ -1185,6 +1187,7 @@ class ServiceRequestController extends Controller
                 ],
                 'completionSummary' => $punch?->completion_summary ?? '',
                 'customerName'      => $punch?->customer_name ?? '',
+
                 'canAct'      => $this->canQc($user, $sr),
                 'qcOwner'     => $qcOwnerId
                     ? (optional($sr->assignedSe)->name ?? 'Assigned Engineer')
@@ -1193,20 +1196,29 @@ class ServiceRequestController extends Controller
             ];
         })->values();
 
-
-        $categories = ServiceCategory::where('status', 1)->orderBy('category_name')->get(['id', 'category_name']);
-
+        $categories = ServiceCategory::where('status', 1)
+            ->orderBy('category_name')
+            ->get(['id', 'category_name']);
 
         $today = today();
 
-        $passedToday = ServiceRequest::whereIn('status', ['Completed', 'Pending Invoice'])
-            ->whereDate('qc_reviewed_at', $today)->count();
+        // fresh builder per call so conditions don't leak between the three queries
+        $scoped = fn() => ServiceRequest::query()
+            ->when($isSe, fn($q) => $q->where('assigned_se', $user->id));
 
-        $returnedRework = ServiceRequest::where('status', 'Rework')
-            ->whereDate('qc_reviewed_at', $today)->count();
+        $passedToday = $scoped()
+            ->whereIn('status', ['Completed', 'Pending Invoice'])
+            ->whereDate('qc_reviewed_at', $today)
+            ->count();
+
+        $returnedRework = $scoped()
+            ->where('status', 'Rework')
+            ->whereDate('qc_reviewed_at', $today)
+            ->count();
 
         $avgReviewTime = (int) round(
-            ServiceRequest::whereDate('qc_reviewed_at', $today)
+            $scoped()
+                ->whereDate('qc_reviewed_at', $today)
                 ->whereNotNull('qc_reviewed_at')
                 ->with(['punches' => fn($q) => $q->whereNotNull('punch_out_at')->latest('punch_out_at')])
                 ->get()
@@ -1229,6 +1241,8 @@ class ServiceRequestController extends Controller
             'categories'
         ));
     }
+
+
 
 
     private function resolveRange(array $filters): array
@@ -1368,24 +1382,33 @@ class ServiceRequestController extends Controller
 
     public function quotationDesk()
     {
-        $forwarded = ServiceRequest::with(['client', 'project'])
+
+
+        $user = auth()->user();
+        $isSe = $user?->role?->code === 'SE';
+
+        // one reusable base builder — call it fresh each time
+        $scoped = fn() => ServiceRequest::with(['client', 'project'])
+            ->when($isSe, fn($q) => $q->where('assigned_se', $user->id));
+
+        $forwarded = $scoped()
             ->whereIn('status', ['Forwarded', 'Additional'])
             ->latest('updated_at')
             ->get();
 
         $qQueue = $forwarded->map(function ($sr) {
             return [
-                'id'     => $this->buildSrRef($sr),
-                'dbId'   => $sr->id,
-                'client' => optional($sr->client)->company_name ?? '—',
-                'site'   => optional($sr->project)->site_name ?? '—',
-                'logged' => $sr->updated_at?->diffForHumans() ?? '—',
-                'createdAt' => $sr->created_at?->format('Y-m-d'),   // <-- for filtering
-                'issue'  => $sr->issue_description ?? '—',
+                'id'        => $this->buildSrRef($sr),
+                'dbId'      => $sr->id,
+                'client'    => optional($sr->client)->company_name ?? '—',
+                'site'      => optional($sr->project)->site_name ?? '—',
+                'logged'    => $sr->updated_at?->diffForHumans() ?? '—',
+                'createdAt' => $sr->created_at?->format('Y-m-d'),
+                'issue'     => $sr->issue_description ?? '—',
             ];
         })->values();
 
-        $quoted = ServiceRequest::with(['client', 'project'])
+        $quoted = $scoped()
             ->where('status', 'Quoted')
             ->latest('updated_at')
             ->get();
@@ -1400,11 +1423,11 @@ class ServiceRequestController extends Controller
                 'ref'       => $sr->erp_quote_ref ?? '—',
                 'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '—',
                 'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '—',
-                'createdAt' => $sr->created_at?->format('Y-m-d'),   // <-- missing
-
+                'createdAt' => $sr->created_at?->format('Y-m-d'),
             ];
         })->values();
-        $rejected = ServiceRequest::with(['client', 'project'])
+
+        $rejected = $scoped()
             ->where('status', 'Quote Rejected')
             ->latest('updated_at')
             ->get();
@@ -1423,9 +1446,15 @@ class ServiceRequestController extends Controller
             ];
         })->values();
 
-        $clientApproved = ServiceRequest::whereNotNull('client_approved_at')
-            ->where('warranty_scope', 'oow')->count();
-        $quoteRejected  = ServiceRequest::where('status', 'Quote Rejected')->count();
+        // stat counters must be scoped too, or an SE sees company-wide totals
+        $clientApproved = $scoped()
+            ->whereNotNull('client_approved_at')
+            ->where('warranty_scope', 'oow')
+            ->count();
+
+        $quoteRejected = $scoped()
+            ->where('status', 'Quote Rejected')
+            ->count();
 
         return view('quotation_desk', compact(
             'qQueue',

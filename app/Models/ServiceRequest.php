@@ -51,7 +51,9 @@ class ServiceRequest extends Model
         'portal_link_sent_at',
         'assigned_se',
         'reallocate',
-        'reallocate_user_id'
+        'reallocate_user_id',
+        'reallocated_submit_at',
+        'relocation_remarks'
     ];
 
     protected $casts = [
@@ -72,6 +74,7 @@ class ServiceRequest extends Model
         'performance_score'     => 'integer',
         'feedback_submitted_at' => 'datetime',
         'portal_link_sent_at' => 'datetime',
+        'reallocated_submit_at' => 'datetime',
     ];
 
 

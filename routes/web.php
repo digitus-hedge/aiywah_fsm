@@ -24,6 +24,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MlDashboardController;
 use App\Http\Controllers\FrontDashboardController;
 use App\Http\Controllers\SEDashboardController;
+use App\Http\Controllers\ReworkServiceRequestController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -209,6 +210,10 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/assigned-sr',      [AssignedServiceRequestController::class, 'index'])->name('assigned');
         Route::get('/assigned-sr/{id}', [AssignedServiceRequestController::class, 'show'])->name('assigned.show');
+
+    
+        Route::get('/rework-sr',      [ReworkServiceRequestController::class, 'index'])->name('rework_sr');
+        Route::get('/rework-sr/{id}', [ReworkServiceRequestController::class, 'show'])->name('rework_sr.show');
 
         // Activity Logs
         Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log');

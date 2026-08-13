@@ -652,10 +652,13 @@ span#cds
 @endif
 
 @if(filled($project->engineer_contact))
-  <div class="info-row"><span class="info-key">Engineer Contact</span><span class="info-val mono">{{ $project->engineer_contact }}</span></div>
+  <div class="info-row"><span class="info-key">Engineer Contact</span>
+      <span class="info-val mono">{{ trim(($project->engineer_country ?? '') . ' ' . $project->engineer_contact) }}</span>
+</div>
 @endif
   <div class="info-row"><span class="info-key">Project Date</span><span class="info-val">{{ $project->updated_at?->format('d M Y') ?? '—' }}</span></div>
 
+  <div class="info-row"><span class="info-key">Completion Date</span><span class="info-val">{{ $project->completion_date?->format('d M Y') ?? '—' }}</span></div>
 
   <div class="info-row">
     <span class="info-key">Status</span>
