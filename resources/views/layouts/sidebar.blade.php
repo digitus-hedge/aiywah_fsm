@@ -3,25 +3,31 @@
 
 @php
 /**
-* Each sidebar link is gated by its permission KEY (matches permissions.key).
-* A link renders only if $u->hasAccess($key) is true — role access 'yes'
-* OR the key is in the user's fd_grants. 'rls' and 'no' hide the link.
-* Section headings show only when at least one child link is visible.
-*/
-$u = auth()->user();
+ * Every link is gated by its permission KEY (matches permissions.key).
+ * A link renders only when $u->hasAccess($key) is true — role access 'yes'
+ * OR the key sits in the user's fd_grants / ac_grants. 'rls' and 'no' hide it.
+ *
+ * Section headings appear only when at least one child link is visible.
+ */
+$u        = auth()->user();
+$roleCode = $u?->role?->code;
+
 $can = fn ($key) => $u && $u->hasAccess($key);
+
+/** Permission granted AND the role isn't on the exclusion list. */
+$show = fn ($key, array $except = []) => $can($key) && ! in_array($roleCode, $except, true);
 
 // Live pending count for the Inquiry Approval badge.
 $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
-$srExplorer = \App\Models\ServiceRequest::count();
 @endphp
 
 <aside class="sidebar" id="sidebar">
-    <a href="#" class="sidebar-brand">
+
+    <a href="{{ route('dashboard') }}" class="sidebar-brand">
         <div class="brand-mark">
             <img src="{{ asset('assets/images/logo-icon.webp') }}"
-                alt="MatterMind Logo"
-                style="width:35px; height:40px; object-fit:contain; padding:3px">
+                 alt="Matter Mind"
+                 style="width:35px;height:40px;object-fit:contain;padding:3px">
         </div>
         <div class="brand-text">
             MATTER MIND
@@ -31,234 +37,364 @@ $srExplorer = \App\Models\ServiceRequest::count();
 
     <ul class="sidebar-nav">
 
-        {{-- ══ MAIN ══ --}}
-        @php $showMain = $can('dashboard') || $can('kanban_view') || $can('sr_registration'); @endphp
+        {{-- ══════════ MAIN ══════════ --}}
+        @php
+            $showMain = $can('dashboard') || $can('sr_registration')
+                     || $can('sr_explorer') || $can('kanban_view');
+        @endphp
         @if ($showMain)
-        <li class="sidebar-heading">Main</li>
-        @if ($can('dashboard'))
-        <li>
-            <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                <i data-feather="file-plus"></i>Dashboard
-            </a>
-        </li>
-        @endif
-       @if ($can('sr_registration') && auth()->user()->role?->code !== 'SE')
+            <li class="sidebar-heading">Main</li>
 
-        <li>
-            <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">
-                <i data-feather="file-plus"></i>SR Registration
-            </a>
-        </li>
-        @endif
-         @if ($can('sr_explorer'))
-        <li>
-<a href="{{ route('sr_explorer') }}" class="{{ request()->routeIs('sr_explorer') ? 'active' : '' }}">
-    <i data-feather="tag"></i>SR Explorer
-                    <!-- @if ($srExplorer > 0)
-                <span class="badge-pill">{{ $srExplorer }}</span>
-                @endif -->
-            </a>
-        </li>
-        @endif
-        @if ($can('kanban_view'))
-        <li>
-            <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
-                <i data-feather="clipboard"></i>Ticket Summary
-            </a>
-        </li>
-        @endif
-        @endif
+            @if ($can('dashboard'))
+                <li>
+                    <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                        <i data-feather="grid"></i><span>Dashboard</span>
+                    </a>
+                </li>
+            @endif
 
-        {{-- ══ Client management ══ --}}
-        @php $showClientManagement = $can('client_accounts') || $can('client_directory'); @endphp
+            @if ($show('sr_registration', ['SE']))
+                <li>
+                    <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">
+                        <i data-feather="file-plus"></i><span>SR Registration</span>
+                    </a>
+                </li>
+            @endif
 
-        
+            @if ($can('sr_explorer'))
+                <li>
+                    <a href="{{ route('sr_explorer') }}" class="{{ request()->routeIs('sr_explorer') ? 'active' : '' }}">
+                        <i data-feather="search"></i><span>SR Explorer</span>
+                    </a>
+                </li>
+            @endif
 
-        @if ($showClientManagement)
-        <li class="sidebar-heading">Customer </li>
-        @if ($can('client_accounts') && auth()->user()?->role?->code !== 'SE')
-
-        <li>
-            <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.create', 'clients.edit') ? 'active' : '' }}">
-                <i data-feather="users"></i>Customer Accounts
-            </a>
-        </li>
+            @if ($can('kanban_view'))
+                <li>
+                    <a href="{{ route('kanban_view') }}" class="{{ request()->routeIs('kanban_view') ? 'active' : '' }}">
+                        <i data-feather="trello"></i><span>Ticket Summary</span>
+                    </a>
+                </li>
+            @endif
         @endif
 
-        @if ($can('client_directory'))
-        <li>
-            <a href="{{ route('clients.directory') }}" class="{{ request()->routeIs('clients.directory') ? 'active' : '' }}">
-                <i data-feather="book-open"></i>Customer Directory
-            </a>
-        </li>
+        {{-- ══════════ CUSTOMER ══════════ --}}
+        @php
+            $showCustomer = $can('client_accounts') || $can('client_directory')
+                         || $can('project_site_directory');
+        @endphp
+        @if ($showCustomer)
+            <li class="sidebar-heading">Customer</li>
+
+            @if ($show('client_accounts', ['SE']))
+                <li>
+                    <a href="{{ route('clients.create') }}" class="{{ request()->routeIs('clients.create', 'clients.edit') ? 'active' : '' }}">
+                        <i data-feather="user-plus"></i><span>Customer Accounts</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('client_directory'))
+                <li>
+                    <a href="{{ route('clients.directory') }}" class="{{ request()->routeIs('clients.directory') ? 'active' : '' }}">
+                        <i data-feather="book-open"></i><span>Customer Directory</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('project_site_directory'))
+                <li>
+                    <a href="{{ route('project_site_directory') }}" class="{{ request()->routeIs('project_site_directory') ? 'active' : '' }}">
+                        <i data-feather="map-pin"></i><span>Projects &amp; Sites</span>
+                    </a>
+                </li>
+            @endif
         @endif
-        
-        <li>
-           <a href="{{ route('project_site_directory') }}" class="{{ request()->routeIs('project_site_directory') ? 'active' : '' }}">
-    <i data-feather="briefcase"></i>Projects and Site
-</a>
-        </li>
-        
 
-        
-
-        @endif
-
-        {{-- ══ WORKFLOW ══ --}}
-        @php $showWorkflow = $can('inquiry_approval') || $can('dispatch_engine') || $can('assigned') ||$can('qc_review') || $can('completed'); @endphp
+        {{-- ══════════ WORKFLOW ══════════ --}}
+        @php
+            $showWorkflow = $can('inquiry_approval') || $can('dispatch_engine')
+                         || $can('assigned') || $can('qc_review') || $can('completed');
+        @endphp
         @if ($showWorkflow)
-        <li class="sidebar-heading">Workflow</li>
-        @if ($can('inquiry_approval') && !in_array(auth()->user()?->role?->code, ['SE', 'HP']))
-        <li>
-            <a href="{{ route('inquiry-approval.index') }}"
-                class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
-                <i data-feather="clipboard"></i> Inquiry Approval
-                @if ($pendingCount > 0)
-                <span class="badge-pill">{{ $pendingCount }}</span>
-                @endif
-            </a>
-        </li>
+            <li class="sidebar-heading">Workflow</li>
+
+            @if ($show('inquiry_approval', ['SE', 'HP']))
+                <li>
+                    <a href="{{ route('inquiry-approval.index') }}" class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
+                        <i data-feather="inbox"></i><span>Inquiry Approval</span>
+                        @if ($pendingCount > 0)
+                            <span class="badge-pill">{{ $pendingCount }}</span>
+                        @endif
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('dispatch_engine'))
+                <li>
+                    <a href="{{ route('dispatch_engine') }}" class="{{ request()->routeIs('dispatch_engine') ? 'active' : '' }}">
+                        <i data-feather="send"></i><span>Dispatch Engine</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('assigned'))
+                <li>
+                    <a href="{{ route('assigned') }}" class="{{ request()->routeIs('assigned') ? 'active' : '' }}">
+                        <i data-feather="user-check"></i><span>Approved SR</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('qc_review'))
+                <li>
+                    <a href="{{ route('qc_review') }}" class="{{ request()->routeIs('qc_review') ? 'active' : '' }}">
+                        <i data-feather="check-circle"></i><span>QC Review</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('completed'))
+                <li>
+                    <a href="{{ route('completed') }}" class="{{ request()->routeIs('completed') ? 'active' : '' }}">
+                        <i data-feather="award"></i><span>Completed SR</span>
+                    </a>
+                </li>
+            @endif
         @endif
 
-        @if ($can('dispatch_engine'))
-        <li>
-            <a href="{{ route('dispatch_engine') }}" class="{{ request()->routeIs('dispatch_engine') ? 'active' : '' }}">
-                <i data-feather="user-check"></i>Dispatch Engine
-            </a>
-        </li>
-        @endif
-
-        @if ($can('assigned'))
-        <li>
-            <a href="{{ route('assigned') }}" class="{{ request()->routeIs('assigned') ? 'active' : '' }}">
-                <i data-feather="user-check"></i>Approved SR
-            </a>
-        </li>
-        @endif
-        @if ($can('qc_review'))
-        <li>
-            <a href="{{ route('qc_review') }}" class="{{ request()->routeIs('qc_review') ? 'active' : '' }}">
-                <i data-feather="check-circle"></i>QC Review
-            </a>
-        </li>
-        @endif
-         @if ($can('completed'))
-        <li>
-            <a href="{{ route('completed') }}" class="{{ request()->routeIs('completed') ? 'active' : '' }}">
-                <i data-feather="check-circle"></i>Completed SR
-            </a>
-        </li>
-        @endif
-        @endif
-
-        {{-- ══ FINANCE ══ --}}
-        @php $showFinance = $can('quotation_desk') || $can('invoice_panel') || $can('expense_ledger'); @endphp
+        {{-- ══════════ FINANCE ══════════ --}}
+        @php
+            $showFinance = $can('quotation_desk') || $can('invoice_panel') || $can('expense_ledger');
+        @endphp
         @if ($showFinance)
-        <li class="sidebar-heading">Finance</li>
-        @if ($can('quotation_desk'))
-        <li>
-            <a href="{{ route('quotation_desk') }}" class="{{ request()->routeIs('quotation_desk') ? 'active' : '' }}">
-                <i data-feather="file-text"></i>Quotation Desk
-            </a>
-        </li>
-        @endif
-        @if ($can('invoice_panel'))
-        <li>
-            <a href="{{ route('invoice_panel') }}" class="{{ request()->routeIs('invoice_panel') ? 'active' : '' }}">
-                <i data-feather="file"></i>Invoice Panel
-            </a>
-        </li>
-        @endif
-        @if ($can('expense_ledger'))
-        <li>
-            <a href="{{ route('expense_ledger') }}" class="{{ request()->routeIs('expense_ledger') ? 'active' : '' }}">
-                <i data-feather="check-square"></i>Expense Ledger
-            </a>
-        </li>
-        @endif
+            <li class="sidebar-heading">Finance</li>
+
+            @if ($can('quotation_desk'))
+                <li>
+                    <a href="{{ route('quotation_desk') }}" class="{{ request()->routeIs('quotation_desk') ? 'active' : '' }}">
+                        <i data-feather="file-text"></i><span>Quotation Desk</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('invoice_panel'))
+                <li>
+                    <a href="{{ route('invoice_panel') }}" class="{{ request()->routeIs('invoice_panel') ? 'active' : '' }}">
+                        <i data-feather="credit-card"></i><span>Invoice Panel</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('expense_ledger'))
+                <li>
+                    <a href="{{ route('expense_ledger') }}" class="{{ request()->routeIs('expense_ledger') ? 'active' : '' }}">
+                        <i data-feather="dollar-sign"></i><span>Expense Ledger</span>
+                    </a>
+                </li>
+            @endif
         @endif
 
-        {{-- ══ SYSTEM ══ --}}
-        @php $showSystem = $can('analytics') || $can('user_provisioning') || $can('master_data') || $can('activity_logs'); @endphp
+        {{-- ══════════ SYSTEM ══════════ --}}
+        @php
+            $showSystem = $can('user_directory') || $can('user_provisioning')
+                       || $can('master_data') || $can('wa_notification_log')
+                       || $can('activity-log');
+        @endphp
         @if ($showSystem)
-        <li class="sidebar-heading">System</li>
-        @if ($can('analytics'))
-        <!-- <li>
-            <a href="{{ route('analytics') }}" class="{{ request()->routeIs('analytics') ? 'active' : '' }}">
-                <i data-feather="bar-chart-2"></i>Analytics
-            </a>
-        </li> -->
-        @endif
-        @if ($can('user_directory'))
-        <li>
-            <a href="{{ route('user_directory') }}" class="{{ request()->routeIs('user_directory') ? 'active' : '' }}">
-                <i data-feather="user"></i>User Directory
-            </a>
-        </li>
-        @endif
-@if ($can('client_accounts') && !in_array(auth()->user()?->role?->code, ['SE', 'HP']))
-        <li>
-            <a href="{{ route('user_provisioning') }}" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
-                <i data-feather="shield"></i>User Provisioning
-            </a>
-        </li>
-        @endif
-        @if ($can('master_data') && !in_array(auth()->user()?->role?->code, ['SE', 'HOP']))
-        <li>
-            <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}">
-                <i data-feather="database"></i>Master Data
-            </a>
-        </li>
-        @endif
-         @if ($can('wa_notification_log'))
-        <li>
-            <a href="{{ route('wa_notification_log') }}" class="{{ request()->routeIs('wa_notification_log') ? 'active' : '' }}">
-                <i data-feather="settings"></i>WhatsApp Notifications
-            </a>
-        </li>
-        @endif
-       @if ($can('activity_log'))
-        <li>
-            <a href="{{ route('activity-log') }}" class="{{ request()->routeIs('activity-log') ? 'active' : '' }}">
-                <i data-feather="activity"></i>Activity Log
-            </a>
-        </li>
-        @endif
+            <li class="sidebar-heading">System</li>
+
+            @if ($can('user_directory'))
+                <li>
+                    <a href="{{ route('user_directory') }}" class="{{ request()->routeIs('user_directory') ? 'active' : '' }}">
+                        <i data-feather="users"></i><span>User Directory</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($show('user_provisioning', ['SE', 'HP']))
+                <li>
+                    <a href="{{ route('user_provisioning') }}" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
+                        <i data-feather="shield"></i><span>User Provisioning</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($show('master_data', ['SE', 'HP']))
+                <li>
+                    <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}">
+                        <i data-feather="database"></i><span>Master Data</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('wa_notification_log'))
+                <li>
+                    <a href="{{ route('wa_notification_log') }}" class="{{ request()->routeIs('wa_notification_log') ? 'active' : '' }}">
+                        <i data-feather="message-circle"></i><span>WhatsApp Notifications</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('activity-log'))
+                <li>
+                    <a href="{{ route('activity-log') }}" class="{{ request()->routeIs('activity-log') ? 'active' : '' }}">
+                        <i data-feather="activity"></i><span>Activity Log</span>
+                    </a>
+                </li>
+            @endif
         @endif
 
     </ul>
 </aside>
 
 <style>
-    /* Reserve icon space BEFORE feather swaps <i> for <svg> */
-    .sidebar-nav a {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .sidebar-nav a > i[data-feather],
-    .sidebar-nav a > svg {
-        flex: 0 0 18px;
-        width: 18px;
-        height: 18px;
-        stroke-width: 2;
-    }
-    .sidebar-nav a > .badge-pill {
-        margin-left: auto;
-    }
-    /* Section headings — fixed height so they don't reflow */
-    .sidebar-heading {
-        min-height: 28px;
-        line-height: 28px;
-    }
-    /* Kill transitions until the page has settled */
-    .sidebar.preload,
-    .sidebar.preload * {
-        transition: none !important;
-        animation: none !important;
-    }
-</style>
+/* ═══════════════════════════════════════════════
+   SIDEBAR — scoped so nothing leaks into the page
+═══════════════════════════════════════════════ */
+.sidebar{
+  --sb-brand:#9a8053;
+  --sb-brand-soft:rgba(154,128,83,.12);
+  --sb-brand-hover:rgba(154,128,83,.07);
+  scrollbar-width:thin;
+  scrollbar-color:none;
+}
+.sidebar::-webkit-scrollbar{width:5px;}
+.sidebar::-webkit-scrollbar-track{background:transparent;}
+.sidebar::-webkit-scrollbar-thumb{background:var(--border-color,#e4e8f0);border-radius:3px;}
+.sidebar:hover::-webkit-scrollbar-thumb{background:rgba(154,128,83,.35);}
 
+/* ── Brand ── */
+.sidebar-brand{
+  display:flex;align-items:center;gap:11px;
+  text-decoration:none;
+  border-bottom:1px solid var(--border-color,#e4e8f0);
+}
+.sidebar-brand .brand-mark{
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  border-radius:9px;
+  transition:transform .25s cubic-bezier(.34,1.56,.64,1);
+}
+.sidebar-brand:hover .brand-mark{transform:scale(1.06) rotate(-3deg);}
+.sidebar-brand .brand-text{
+  font-size:.9375rem;font-weight:700;letter-spacing:.04em;
+  color:var(--text-heading,#0d1626);line-height:1.2;
+}
+.sidebar-brand .brand-text small{
+  display:block;
+  font-size:.625rem;font-weight:400;letter-spacing:.01em;
+  color:var(--text-muted,#7987a1);margin-top:2px;
+}
+
+/* ── Nav list ── */
+.sidebar-nav{list-style:none;margin:0;padding:8px 0 24px;}
+
+/* Section headings — fixed height so nothing reflows on load */
+.sidebar-heading{
+  font-size:.625rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.13em;
+  color:var(--text-light,#b0bac9);
+  padding:16px 22px 5px;
+  min-height:28px;line-height:28px;
+  user-select:none;
+}
+.sidebar-nav li:first-child .sidebar-heading,
+.sidebar-heading:first-child{padding-top:10px;}
+
+/* ── Links ── */
+.sidebar-nav a{
+  position:relative;
+  display:flex;align-items:center;gap:11px;
+  margin:2px 10px;padding:9px 12px;
+  border-radius:8px;
+  font-size:.8125rem;font-weight:450;
+  color:var(--nav-link,#4a5568);
+  text-decoration:none;
+  transition:background .16s ease,color .16s ease,transform .16s ease;
+}
+
+/* Reserve icon space BEFORE feather swaps <i> for <svg> — stops the shift */
+.sidebar-nav a > i[data-feather],
+.sidebar-nav a > svg{
+  flex:0 0 18px;width:18px;height:18px;
+  stroke-width:1.9;
+  color:var(--text-muted,#7987a1);
+  transition:color .16s ease;
+}
+.sidebar-nav a > span{
+  flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+
+.sidebar-nav a:hover{
+  background:var(--sb-brand-hover);
+  color:var(--sb-brand);
+  transform:translateX(2px);
+}
+.sidebar-nav a:hover > svg,
+.sidebar-nav a:hover > i[data-feather]{color:var(--sb-brand);}
+
+/* Active — tinted pill plus a flush accent bar on the rail */
+.sidebar-nav a.active{
+  background:var(--sb-brand-soft);
+  color:var(--sb-brand);
+  font-weight:600;
+}
+.sidebar-nav a.active > svg,
+.sidebar-nav a.active > i[data-feather]{
+  color:var(--sb-brand);
+  stroke-width:2.2;
+}
+.sidebar-nav a.active::before{
+  content:'';
+  position:absolute;left:-10px;top:50%;
+  transform:translateY(-50%);
+  width:3px;height:20px;
+  border-radius:0 3px 3px 0;
+  background:var(--sb-brand);
+}
+
+/* Keyboard focus — visible without being loud */
+.sidebar-nav a:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 2px rgba(154,128,83,.35);
+}
+
+/* ── Count badge ── */
+.sidebar-nav a .badge-pill{
+  margin-left:auto;flex-shrink:0;
+  min-width:20px;padding:1px 7px;
+  border-radius:20px;
+  background:rgba(154,128,83,.15);
+  color:var(--sb-brand);
+  font-size:.625rem;font-weight:700;line-height:1.6;
+  text-align:center;
+}
+.sidebar-nav a.active .badge-pill{background:rgba(154,128,83,.22);}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .sidebar,
+[data-bs-theme="dark"] .sidebar{
+  --sb-brand:#b89968;
+  --sb-brand-soft:rgba(184,153,104,.16);
+  --sb-brand-hover:rgba(184,153,104,.09);
+}
+[data-theme="dark"] .sidebar-nav a .badge-pill,
+[data-bs-theme="dark"] .sidebar-nav a .badge-pill{
+  background:rgba(184,153,104,.2);color:#b89968;
+}
+
+/* ── Motion preferences ── */
+@media (prefers-reduced-motion:reduce){
+  .sidebar-nav a,
+  .sidebar-brand .brand-mark{transition:none;}
+  .sidebar-nav a:hover{transform:none;}
+}
+
+/* Kill transitions until the page has settled */
+.sidebar.preload,
+.sidebar.preload *{transition:none !important;animation:none !important;}
+</style>
 
 <script>
 (function () {
@@ -271,7 +407,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
     // 1. Draw icons immediately so nothing shifts after paint
     if (window.feather) feather.replace();
 
-    // 2. Restore scroll position of the sidebar (per section, survives reload)
+    // 2. Restore scroll position (survives reload)
     var KEY = 'mm_sidebar_scroll';
     var saved = sessionStorage.getItem(KEY);
     if (saved) sidebar.scrollTop = parseInt(saved, 10) || 0;
@@ -292,9 +428,7 @@ $srExplorer = \App\Models\ServiceRequest::count();
 
     // 4. Scroll the active link into view without animating
     var active = sidebar.querySelector('.sidebar-nav a.active');
-    if (active && !saved) {
-        active.scrollIntoView({ block: 'nearest' });
-    }
+    if (active && !saved) active.scrollIntoView({ block: 'nearest' });
 
     // 5. Mobile drawer close
     if (overlay) {

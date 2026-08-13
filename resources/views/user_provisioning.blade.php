@@ -17,6 +17,7 @@
             'roleId'   => $u['roleId']   ?? ($u['role_id'] ?? ''),
             'domains'  => array_values((array) ($u['domains']  ?? [])),
             'fdGrants' => array_values((array) ($u['fdGrants'] ?? ($u['fd_grants'] ?? []))),
+            'acGrants' => array_values((array) ($u['acGrants'] ?? ($u['ac_grants'] ?? []))),
             'created'  => $u['created']  ?? '',
             'status'   => $u['status']   ?? 'active',
             
@@ -722,6 +723,7 @@ const PFI=6;
 function onRoleChange(val){
   selectedRole=val||null;
   fdGrants=new Set();
+  accountPermissions=new Set();  
   const box=document.getElementById('roleDescBox');
   const pill=document.getElementById('rolePillPreview');
   if(!val){
@@ -1351,6 +1353,7 @@ const countryCode = document.getElementById('empCountryCode').value;
     categories:Array.from(selectedCats),
     qcReview:qcReview,
     fdGrants:grants,
+    acGrants:Array.from(accountPermissions),
   };
   if(password) payload.password = password;
 
@@ -1396,6 +1399,7 @@ function commitSavedUser(saved,m,email){
     roleId:saved.roleId||selectedRole,
     domains:domainIds,
     fdGrants:saved.fdGrants||[],
+    acGrants:saved.acGrants||[],
     created:saved.created||new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),
     status:saved.status||'pending',
   });
@@ -1442,7 +1446,7 @@ function resetForm(){
   document.getElementById('empPassword').value='';
   document.getElementById('roleSelect').value='';
   emailValid=false;hideEmailFB();
-  selectedRole=null;selectedDomains=new Set();fdGrants=new Set();
+  selectedRole=null;selectedDomains=new Set();fdGrants=new Set();accountPermissions=new Set();
   document.getElementById('roleDescBox').className='role-desc-box';
   document.getElementById('rolePillPreview').style.display='none';
   const dcw=document.getElementById('domainCardWrap');if(dcw)dcw.classList.remove('show');
@@ -1491,7 +1495,7 @@ function loadUser(u){
   selectedRole=u.roleId;
   onRoleChange(u.roleId);
   fdGrants=new Set(u.fdGrants||[]);
-
+  accountPermissions=new Set(u.acGrants||[]);
   selectedDomains = new Set(
     (u.domains||[])
       .map(id => Number(id))
