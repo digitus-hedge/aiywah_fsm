@@ -990,7 +990,10 @@ class DashboardController extends Controller
         $turnaround     = $this->avgTurnaround($current);
         $prevTurnaround = $this->avgTurnaround($previous);
 
-        $breaches  = $current->filter(fn($sr) => $this->metSla($sr) === false)->count();
+        // $breaches  = $current->filter(fn($sr) => $this->metSla($sr) === false)->count();
+
+        $breaches  = $current->filter(fn($sr) => $this->slaOutcome($sr) === false)->count();   // ← CHANGED: metSla → slaOutcome
+
         $oowClosed = $current->where('status', 'Completed')
             ->reject(fn($sr) => $this->isInWarranty($sr))
             ->count();
@@ -1012,10 +1015,13 @@ class DashboardController extends Controller
             ],
             'sla' => [
                 'value'      => $sla ? $sla . '%' : '—',
+                    'breach_count' => $breaches,                              // ← ADD THIS
+
                 'sub'        => $breaches . ' ' . Str::plural('breach', $breaches) . ' over ' . self::SLA_TARGET_HOURS . 'h',
                 'delta'      => $prevSla ? $this->pointLabel($sla, $prevSla) : null,
                 'delta_tone' => $this->tone($sla, $prevSla),
-                'spark'      => $this->spark($filters, fn(Collection $srs) => $this->slaCompliance($srs) ?? 0),
+                    'spark'        => $this->spark($filters, fn(Collection $srs) => $this->slaCompliance2($srs) ?? 0),
+
             ],
             'invoiced' => [
                 'value'      => $this->money($invoiced),
@@ -1034,6 +1040,53 @@ class DashboardController extends Controller
             ],
         ];
     }
+
+
+    /** When an SR actually landed in a resolved state, for SLA_HOURS purposes. */
+    private function resolvedAt(ServiceRequest $sr): ?Carbon
+    {
+        return match ($sr->status) {
+            'Completed', 'Pending Invoice', 'Invoice Submitted' => $sr->invoice_submitted_at ?? $sr->updated_at,
+            'Rejected' => $sr->updated_at,
+            default => null,
+        };
+    }
+
+    /**
+     * SLA outcome measured from created_at (inquiry time) against SLA_HOURS.
+     * true  = resolved within SLA_HOURS
+     * false = breached — either resolved late, or still open past SLA_HOURS
+     * null  = still open and still inside the window, not yet judged
+     */
+    private function slaOutcome(ServiceRequest $sr): ?bool
+    {
+        if (! $sr->created_at) {
+            return null;
+        }
+
+        if (in_array($sr->status, self::SLA_RESOLVED, true)) {
+            $resolvedAt = $this->resolvedAt($sr);
+            if (! $resolvedAt) {
+                return null;
+            }
+
+            $hours = abs($sr->created_at->diffInMinutes($resolvedAt)) / 60;
+            return $hours <= self::SLA_HOURS;
+        }
+
+        // Not resolved yet — only a breach once it has overrun the window.
+        $elapsed = abs($sr->created_at->diffInMinutes(now())) / 60;
+
+        return $elapsed > self::SLA_HOURS ? false : null;
+    }
+
+    private function slaCompliance2(Collection $srs): ?float
+    {
+        $judged = $srs->map(fn($sr) => $this->slaOutcome($sr))->filter(fn($v) => ! is_null($v));
+
+        return $judged->isEmpty() ? null : round($judged->filter()->count() / $judged->count() * 100, 1);
+    }
+
 
     private function avgTurnaround(Collection $srs): ?float
     {
