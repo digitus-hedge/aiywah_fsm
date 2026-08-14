@@ -219,7 +219,11 @@ function statusChip(s) {
 }
 
 function loadNotif() {
-  fetch('/notifications')
+  fetch('/notifications', {
+    headers: {
+      'Accept': 'application/json',
+    },
+  })
     .then(r => r.json())
     .then(d => {
       const badge = document.getElementById('notifBadge');
@@ -250,6 +254,7 @@ function loadNotif() {
     });
 }
 
+
 function toggleNotif(force) {
   const p = document.getElementById('notifPanel');
   const b = document.getElementById('notifBackdrop');
@@ -269,6 +274,7 @@ function markAllRead() {
   fetch('/notifications/read', {
     method: 'POST',
     headers: {
+      'Accept': 'application/json',
       'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
       'Content-Type': 'application/json',
     },
