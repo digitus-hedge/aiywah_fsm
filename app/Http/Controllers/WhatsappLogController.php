@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\WhatsappLog;
 use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class WhatsappLogController extends Controller
@@ -13,53 +14,40 @@ class WhatsappLogController extends Controller
 
     public function index(Request $request)
     {
+        $user   = auth()->user();
+        $access = $this->waAccessLevel($user);
 
-     $user = auth()->user();
-    $isSe = $user?->role?->code === 'SE';
+        // 'no' → the permission matrix hasn't granted this role the page at all
+        abort_unless(in_array($access, ['yes', 'rls'], true), 403);
 
-    $scope = fn($q) => $q->when($isSe, fn($x) =>
-        $x->whereHas('serviceRequest', fn($sr) => $sr->where('assigned_user_id', $user->id))
-    );
+        $scope = fn($q) => $q->when($access === 'rls', fn($x) =>
+            $x->whereHas('serviceRequest', function ($sr) use ($user) {
+                $sr->where('assigned_user_id', $user->id)   // technician on the job
+                    ->orWhere('assigned_se', $user->id)      // SE who owns the ticket
+                    ->orWhere('created_by', $user->id);      // FD who logged it
+            })
+        );
 
-        // $logs = WhatsappLog::query()
-        //     ->search($request->input('sr'))
-        //     ->event($request->input('event'))
-        //     ->status($request->input('status'))
-        //     ->dateFrom($request->input('date_from'))
-        //     ->latest()
-        //     ->paginate(25)
-        //     ->withQueryString();
+        $logs = WhatsappLog::query()
+            ->tap($scope)
+            ->search($request->input('sr'))
+            ->event($request->input('event'))
+            ->status($request->input('status'))
+            ->dateFrom($request->input('date_from'))
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
 
-        // $stats = [
-        //     'delivered' => WhatsappLog::whereIn('status', [WhatsappLog::STATUS_DELIVERED, WhatsappLog::STATUS_SENT])
-        //         ->whereDate('created_at', today())->count(),
-        //     'pending'   => WhatsappLog::where('status', WhatsappLog::STATUS_PENDING)->count(),
-        //     'failed'    => WhatsappLog::where('status', WhatsappLog::STATUS_FAILED)->count(),
-        //     'total'     => WhatsappLog::whereMonth('created_at', now()->month)
-        //         ->whereYear('created_at', now()->year)->count(),
-        // ];
-
-
-         $logs = WhatsappLog::query()
-        ->tap($scope)
-        ->search($request->input('sr'))
-        ->event($request->input('event'))
-        ->status($request->input('status'))
-        ->dateFrom($request->input('date_from'))
-        ->latest()
-        ->paginate(25)
-        ->withQueryString();
-
-    $stats = [
-        'delivered' => WhatsappLog::tap($scope)
-            ->whereIn('status', [WhatsappLog::STATUS_DELIVERED, WhatsappLog::STATUS_SENT])
-            ->whereDate('created_at', today())->count(),
-        'pending'   => WhatsappLog::tap($scope)->where('status', WhatsappLog::STATUS_PENDING)->count(),
-        'failed'    => WhatsappLog::tap($scope)->where('status', WhatsappLog::STATUS_FAILED)->count(),
-        'total'     => WhatsappLog::tap($scope)
-            ->whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)->count(),
-    ];
+        $stats = [
+            'delivered' => WhatsappLog::tap($scope)
+                ->whereIn('status', [WhatsappLog::STATUS_DELIVERED, WhatsappLog::STATUS_SENT])
+                ->whereDate('created_at', today())->count(),
+            'pending'   => WhatsappLog::tap($scope)->where('status', WhatsappLog::STATUS_PENDING)->count(),
+            'failed'    => WhatsappLog::tap($scope)->where('status', WhatsappLog::STATUS_FAILED)->count(),
+            'total'     => WhatsappLog::tap($scope)
+                ->whereMonth('created_at', now()->month)
+                ->whereYear('created_at', now()->year)->count(),
+        ];
 
         $rows = $logs->getCollection()->map->toRowArray()->values();
 
@@ -79,12 +67,31 @@ class WhatsappLogController extends Controller
         }
 
         return view('wa_notification_log', [
-            'logs'          => $rows,
-            'paginator'     => $logs,
-            'stats'         => $stats,
-            'events'        => $events,
-            'totalThisMonth'=> $stats['total'],
+            'logs'           => $rows,
+            'paginator'      => $logs,
+            'stats'          => $stats,
+            'events'         => $events,
+            'totalThisMonth' => $stats['total'],
         ]);
+    }
+
+    /**
+     * Reads the seeded access level for the wa_notification_log permission
+     * on this user's role: 'yes' (full), 'rls' (own only), or 'no' (denied).
+     * Keeps this controller in sync with PermissionSeeder without duplicating
+     * the role-code checks it encodes.
+     */
+    private function waAccessLevel($user): string
+    {
+        if (!$user || !$user->role_id) {
+            return 'no';
+        }
+
+        return DB::table('permission_role as pr')
+            ->join('permissions as p', 'p.id', '=', 'pr.permission_id')
+            ->where('pr.role_id', $user->role_id)
+            ->where('p.key', 'wa_notification_log')
+            ->value('pr.access') ?? 'no';
     }
 
     public function show(WhatsappLog $log)

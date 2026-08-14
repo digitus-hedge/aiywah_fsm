@@ -588,22 +588,23 @@ public function notifyOutsideScope(
      * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
      * {{6}} technician, {{7}} completion date, {{8}} completion time, {{9}} photos link
      */
-    public function notifyMaintenanceCompleted(
-        \App\Models\ServiceRequest $sr,
-        ?\App\Models\Punch $punch = null,
-        ?string $photosLink = null,
-        string $event = 'Maintenance Completed'
-    ): void {
-        $punch ??= $sr->punches()->whereNotNull('punch_out_at')->latest('punch_out_at')->first();
+   public function notifyMaintenanceCompleted(
+    \App\Models\ServiceRequest $sr,
+    ?\App\Models\Punch $punch = null,
+    ?string $photosLink = null,
+    string $event = 'Maintenance Completed'
+): void {
+    $punch ??= $sr->punches()->whereNotNull('punch_out_at')->latest('punch_out_at')->first();
 
-        $c    = $this->srContext($sr);
-        $tech = $this->techContext($sr);
+    $c    = $this->srContext($sr);
+    $tech = $this->techContext($sr);
 
-        $out  = $punch?->punch_out_at ? Carbon::parse($punch->punch_out_at) : now();
-        $link = $photosLink ?: url("/sr/{$sr->id}/photos");
+    $out  = $punch?->punch_out_at ? Carbon::parse($punch->punch_out_at) : now();
+    $link = $photosLink ?: url("/sr/{$sr->id}/photos");
 
-        $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
-            fn ($name) => [[
+    $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
+        fn ($name) => [
+            [
                 "type" => "body",
                 "parameters" => [
                     $this->txt($this->cleanParam($name) ?: 'Customer'),
@@ -614,15 +615,23 @@ public function notifyOutsideScope(
                     $this->txt($tech['name']),
                     $this->txt($out->format('d M Y')),
                     $this->txt($out->format('h:i A')),
-                    $this->txt($link),
                 ],
-            ]],
-            fn ($name) =>
-                "Hi {$name}, your maintenance request {$c['ref']} has been successfully completed. "
-                . "Technician: {$tech['name']} — completed {$out->format('d M Y')} at {$out->format('h:i A')}. "
-                . "Photos: {$link}"
-        );
-    }
+            ],
+            [
+                "type"     => "button",
+                "sub_type" => "url",
+                "index"    => "0",
+                "parameters" => [
+                    ["type" => "text", "text" => $link],
+                ],
+            ],
+        ],
+        fn ($name) =>
+            "Hi {$name}, your maintenance request {$c['ref']} has been successfully completed. "
+            . "Technician: {$tech['name']} — completed {$out->format('d M Y')} at {$out->format('h:i A')}. "
+            . "Photos: {$link}"
+    );
+}
 
     /**
      * Post-completion survey → satisfaction_survey
@@ -1072,50 +1081,45 @@ public function notifyInternalMaintenanceCompleted(
 
     $punch ??= $sr->punches()->whereNotNull('punch_out_at')->latest('punch_out_at')->first();
 
-    if (!$punch?->customer_signature_path) {
-        Log::warning('Internal completed alert skipped — no signed certificate', ['sr_id' => $sr->id]);
-        return;
-    }
-
     $sr->loadMissing('client');
     $c    = $this->srContext($sr);
     $tech = $this->techContext($sr);
 
-    $out  = Carbon::parse($punch->punch_out_at ?? now());
+    $out  = Carbon::parse($punch?->punch_out_at ?? now());
     $link = $photosLink ?: \Illuminate\Support\Facades\URL::signedRoute(
         'sr.photos', ['serviceRequest' => $sr->id]
     );
 
-    $components = [
-        [
-            "type" => "header",
-            "parameters" => [[
-                "type"     => "document",
-                "document" => [
-                    "link"     => asset('storage/' . $punch->customer_signature_path),
-                    "filename" => 'Work-Completion-Certificate-' . $c['ref'] . '.pdf',
-                ],
-            ]],
-        ],
-        [
-            "type" => "body",
-            "parameters" => [
-                $this->txt($c['project']),
-                $this->txt($c['location']),
-                $this->txt($c['ref']),
-                $this->txt($tech['name']),
-                $this->txt($out->format('d M Y, h:i A')),
-                $this->txt($link),
-            ],
-        ],
-    ];
-
-    $preview = "Completed — {$c['ref']} | {$tech['name']} | {$out->format('d M Y, h:i A')}";
-
     foreach ($recipients as $r) {
+        $components = [
+            [
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($r['name']) ?: 'Team'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['ref']),
+                    $this->txt($c['issue']),
+                    $this->txt($tech['name']),
+                    $this->txt($out->format('d M Y')),
+                    $this->txt($out->format('h:i A')),
+                ],
+            ],
+            [
+                "type"     => "button",
+                "sub_type" => "url",
+                "index"    => "0",
+                "parameters" => [
+                    ["type" => "text", "text" => $link],
+                ],
+            ],
+        ];
+
+        $preview = "Completed — {$c['ref']} | {$tech['name']} | {$out->format('d M Y, h:i A')}";
+
         $this->sendLogged(
             $sr, $sr->client, $r['phone'], $event,
-            'internal_maintenance_completed', $components, $preview
+            'maintenance_completed', $components, $preview
         );
     }
 }

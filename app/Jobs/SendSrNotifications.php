@@ -38,6 +38,7 @@ class SendSrNotifications implements ShouldQueue
     public const ADDITIONAL   = 'additional';     // accepted as additional work
     public const REJECTED     = 'rejected';       // request declined
     public const DISPATCHED   = 'dispatched';  
+    public const COMPLETED    = 'completed';
 
     public $tries   = 3;
     public $backoff = [10, 60, 180];   // don't hammer a provider that's down
@@ -71,10 +72,8 @@ class SendSrNotifications implements ShouldQueue
             self::ADDITIONAL   => $this->additional($wa, $sr),
             self::REJECTED     => $this->rejected($wa, $sr),
             self::DISPATCHED   => $this->dispatched($wa, $sr, $ref),
-            default => Log::warning('Unknown SR notification event', [
-                'sr_id' => $this->srId,
-                'event' => $this->event,
-            ]),
+            self::COMPLETED    => $this->completed($wa, $sr, $ref),   // ← add this
+            default => Log::warning(/* ... */),
         };
     }
 
@@ -192,4 +191,33 @@ class SendSrNotifications implements ShouldQueue
             $wa->notifyInternalTechnicianAssigned($sr);  // SA/HP/SE/PE → internal_technician_assigned
         });
     }
+
+    private function completed(WhatsAppService $wa, ServiceRequest $sr, string $ref): void
+{
+    $customerLink = $sr->project
+        ? \App\Support\PortalLink::project($sr->project, $sr)
+        : \Illuminate\Support\Facades\URL::signedRoute(
+            'sr.photos',
+            ['serviceRequest' => $sr->id]
+        );
+
+    if ($to = $sr->client?->email) {
+        $this->safely('mail.completed', fn() =>
+            Mail::to($to)->send(new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink))
+        );
+    } else {
+        Log::warning('Completion mail skipped — client has no email', ['sr_id' => $this->srId]);
+    }
+
+    $this->safely('wa.completed.customer', fn() =>
+        $wa->notifyMaintenanceCompleted($sr, null, $customerLink)
+    );
+
+    $this->safely('wa.completed.internal', fn() =>
+        $wa->notifyInternalMaintenanceCompleted($sr, null, $customerLink)
+    );
+
+    \App\Jobs\SendSatisfactionSurvey::dispatch($sr)
+        ->delay(now()->addMinutes(2));   // ← restore addDay() before go-live
+}
 }
