@@ -584,11 +584,14 @@ public function notifyOutsideScope(
     }
 
     /**
-     * Work completed & QC passed → maintenance_completed
-     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
-     * {{6}} technician, {{7}} completion date, {{8}} completion time, {{9}} photos link
-     */
-   public function notifyMaintenanceCompleted(
+ * Work completed & QC passed → maintenance_completed
+ * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
+ * {{6}} technician, {{7}} completion date, {{8}} completion time
+ * Button (index 0, url): dynamic suffix appended to the template's static
+ * base URL — Meta requires ONLY the suffix here, not the full link, or the
+ * built URL doubles up and 404s.
+ */
+public function notifyMaintenanceCompleted(
     \App\Models\ServiceRequest $sr,
     ?\App\Models\Punch $punch = null,
     ?string $photosLink = null,
@@ -601,6 +604,10 @@ public function notifyOutsideScope(
 
     $out  = $punch?->punch_out_at ? Carbon::parse($punch->punch_out_at) : now();
     $link = $photosLink ?: url("/sr/{$sr->id}/photos");
+
+    // Only the trailing path segment goes in the button param — Meta appends
+    // it to the static base URL already saved on the template.
+    $buttonValue = basename(parse_url($link, PHP_URL_PATH));
 
     $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
         fn ($name) => [
@@ -622,7 +629,7 @@ public function notifyOutsideScope(
                 "sub_type" => "url",
                 "index"    => "0",
                 "parameters" => [
-                    ["type" => "text", "text" => $link],
+                    ["type" => "text", "text" => $buttonValue],
                 ],
             ],
         ],
@@ -1061,10 +1068,11 @@ public function notifyInternalMaintenanceOnHold(
 }
 
 /**
- * QC passed → internal_maintenance_completed
- * Header: document (signed completion certificate)
- * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} technician,
- * {{5}} completed on, {{6}} photos link
+ * QC passed → sent to internal staff using the customer-facing
+ * maintenance_completed template (no internal-specific template exists).
+ * {{1}} recipient name, {{2}} project, {{3}} location, {{4}} SR ref,
+ * {{5}} issue, {{6}} technician, {{7}} completed date, {{8}} completed time
+ * Button (index 0, url): dynamic suffix only — same rule as above.
  */
 public function notifyInternalMaintenanceCompleted(
     \App\Models\ServiceRequest $sr,
@@ -1090,6 +1098,8 @@ public function notifyInternalMaintenanceCompleted(
         'sr.photos', ['serviceRequest' => $sr->id]
     );
 
+    $buttonValue = basename(parse_url($link, PHP_URL_PATH));
+
     foreach ($recipients as $r) {
         $components = [
             [
@@ -1110,7 +1120,7 @@ public function notifyInternalMaintenanceCompleted(
                 "sub_type" => "url",
                 "index"    => "0",
                 "parameters" => [
-                    ["type" => "text", "text" => $link],
+                    ["type" => "text", "text" => $buttonValue],
                 ],
             ],
         ];
