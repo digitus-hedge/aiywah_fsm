@@ -607,8 +607,9 @@ public function notifyMaintenanceCompleted(
     $out  = $punch?->punch_out_at ? Carbon::parse($punch->punch_out_at) : now();
     $link = $photosLink ?: url("/sr/{$sr->id}/photos");
 
-    $buttonValue = $this->buttonSuffix($link);
-
+    // in notifyMaintenanceCompleted()
+    $buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/portal/project/');
+    
     $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
         fn ($name) => [
             [
@@ -640,26 +641,26 @@ public function notifyMaintenanceCompleted(
     );
 }
 
-/**
- * Strip the template's static base (https://taskflow.aiywah.com/portal/project/)
- * from a full link, leaving exactly what Meta needs for the {{1}} button
- * parameter — code, query string, signature all preserved.
- * Falls back to the full link if the prefix doesn't match, so a differently
- * shaped URL (e.g. the signed sr.photos fallback) still sends something usable.
- */
-private function buttonSuffix(string $link): string
-{
-    $prefix = 'https://taskflow.aiywah.com/portal/project/';
-
-    return str_starts_with($link, $prefix)
-        ? substr($link, strlen($prefix))
-        : $link;
-}
+    /**
+     * Strip a template's static base URL from a full link, leaving exactly
+     * what Meta needs for a dynamic {{1}} button parameter — code, query
+     * string, signature all preserved. Falls back to the full link if the
+     * prefix doesn't match, so a differently-shaped fallback URL still sends
+     * something usable rather than nothing.
+     */
+    private function buttonSuffix(string $link, string $prefix): string
+    {
+        return str_starts_with($link, $prefix)
+            ? substr($link, strlen($prefix))
+            : $link;
+    }
 
     /**
      * Post-completion survey → satisfaction_survey
-     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref,
-     * {{5}} completion date, {{6}} survey link
+     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} completion date
+     * Button (index 0, url): dynamic suffix appended to the template's static
+     * base (https://portal.mattermind.ae/client_feedback/) — send ONLY the
+     * feedback id, not the full link, or the button URL doubles up and 404s.
      */
     public function notifySatisfactionSurvey(
         \App\Models\ServiceRequest $sr,
@@ -677,18 +678,30 @@ private function buttonSuffix(string $link): string
             ['id' => $sr->id]
         );
 
+        // Template's registered base: https://portal.mattermind.ae/client_feedback/
+        $buttonValue = $this->buttonSuffix($link, 'https://portal.mattermind.ae/client_feedback/');
+
         $this->fanOut($sr, $sr->client, $event, 'satisfaction_survey',
-            fn ($name) => [[
-                "type" => "body",
-                "parameters" => [
-                    $this->txt($this->cleanParam($name) ?: 'Customer'),
-                    $this->txt($c['project']),
-                    $this->txt($c['location']),
-                    $this->txt($c['ref']),
-                    $this->txt($completed),
-                    $this->txt($link),
+            fn ($name) => [
+                [
+                    "type" => "body",
+                    "parameters" => [
+                        $this->txt($this->cleanParam($name) ?: 'Customer'),
+                        $this->txt($c['project']),
+                        $this->txt($c['location']),
+                        $this->txt($c['ref']),
+                        $this->txt($completed),
+                    ],
                 ],
-            ]],
+                [
+                    "type"     => "button",
+                    "sub_type" => "url",
+                    "index"    => "0",
+                    "parameters" => [
+                        ["type" => "text", "text" => $buttonValue],
+                    ],
+                ],
+            ],
             fn ($name) =>
                 "Hi {$name}, we hope everything is working well after the maintenance visit. "
                 . "Request: {$c['ref']} | Completed: {$completed}. "
@@ -1115,7 +1128,8 @@ public function notifyInternalMaintenanceCompleted(
 );
 
 $buttonValue = $this->buttonSuffix($link);
-
+// in notifyMaintenanceCompleted()
+$buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/portal/project/');
     foreach ($recipients as $r) {
         $components = [
             [
