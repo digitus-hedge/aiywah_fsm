@@ -354,110 +354,157 @@ class WorkerPipelineController extends Controller
             'eta_at' => $sr->eta_at->format('Y-m-d H:i'),
         ]);
     }
+    
     public function reschedule(Request $request)
-    {
-        $data = $request->validate([
-            'sr_id'    => ['required', 'integer'],
-            'eta_date' => ['required', 'date_format:Y-m-d'],
-            'eta_time' => ['required', 'date_format:H:i'],
-            'remark'   => ['required', 'string', 'max:1000'],
+{
+    $data = $request->validate([
+        'sr_id'    => ['required', 'integer'],
+        'eta_date' => ['required', 'date_format:Y-m-d'],
+        'eta_time' => ['required', 'date_format:H:i'],
+        'remark'   => ['required', 'string', 'max:1000'],
+    ]);
+
+    $sr     = $this->ownedRequest($request, $data['sr_id']);
+    $worker = $this->worker($request);
+
+    $newEta = \Carbon\Carbon::createFromFormat(
+        'Y-m-d H:i',
+        $data['eta_date'] . ' ' . $data['eta_time']
+    );
+
+    abort_if($newEta->isPast(), 422, 'The new ETA must be in the future.');
+
+    $oldStatus = $sr->status;
+
+    DB::transaction(function () use ($sr, $worker, $data, $newEta, $oldStatus) {
+        ServiceRequestReschedule::create([
+            'service_request_id' => $sr->id,
+            'user_id'            => $worker->id,
+            'previous_eta_at'    => $sr->eta_at,
+            'new_eta_at'         => $newEta,
+            'reason'             => $data['remark'],
+            'from_status'        => $sr->status,
         ]);
 
-        $sr     = $this->ownedRequest($request, $data['sr_id']);
-        $worker = $this->worker($request);
+        $this->pauseOpenPunch($sr);
 
-        $newEta = \Carbon\Carbon::createFromFormat(
-            'Y-m-d H:i',
-            $data['eta_date'] . ' ' . $data['eta_time']
+        $sr->update([
+            'eta_at'          => $newEta,
+            'status'          => 'Reschedule',
+            'rescheduled_at'  => now(),
+            'sla_started_at'  => now(),
+            'paused_seconds'  => 0,
+            'held_at'         => null,
+            'hold_reason'     => null,
+            'internal_remark' => $this->appendRemark($sr->internal_remark, 'Rescheduled', $data['remark']),
+        ]);
+
+        NotificationLog::create([
+            'service_request_id' => $sr->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($sr) . ' Rescheduled to '
+                . $newEta->format('d M Y, h:i A')
+                . (optional($worker)->name ? ' by ' . $worker->name : ''),
+            'from_status' => $oldStatus,
+            'to_status'   => 'Reschedule',
+            'caused_by'   => $worker->id ?? auth()->id(),
+        ]);
+    });
+
+    $sr->refresh();
+
+    $wa = app(\App\Services\WhatsAppService::class);
+
+    try {
+        $wa->notifyMaintenanceOnHold(
+            $sr,
+            'Rescheduled',
+            $data['remark']
         );
-
-        abort_if($newEta->isPast(), 422, 'The new ETA must be in the future.');
-
-        $oldStatus = $sr->status;          // capture BEFORE the transaction updates it
-
-        DB::transaction(function () use ($sr, $worker, $data, $newEta, $oldStatus) {
-            // Log before mutating — previous_eta_at must capture the old value.
-            ServiceRequestReschedule::create([
-                'service_request_id' => $sr->id,
-                'user_id'            => $worker->id,
-                'previous_eta_at'    => $sr->eta_at,
-                'new_eta_at'         => $newEta,
-                'reason'             => $data['remark'],
-                'from_status'        => $sr->status,
-            ]);
-
-            $this->pauseOpenPunch($sr);
-
-            $sr->update([
-                'eta_at'          => $newEta,
-                'status'          => 'Reschedule',
-                'rescheduled_at'  => now(),
-                'sla_started_at'  => now(),
-                'paused_seconds'  => 0,
-                'held_at'         => null,
-                'hold_reason'     => null,
-                'internal_remark' => $this->appendRemark($sr->internal_remark, 'Rescheduled', $data['remark']),
-            ]);
-
-            NotificationLog::create([
-                'service_request_id' => $sr->id,
-                'event'       => 'status_updated',
-                'title'       => 'Status Updated',
-                'message'     => $this->buildSrRef($sr) . ' Rescheduled to '
-                    . $newEta->format('d M Y, h:i A')
-                    . (optional($worker)->name ? ' by ' . $worker->name : ''),
-                'from_status' => $oldStatus,   // e.g. 'In Progress' or 'On Hold'
-                'to_status'   => 'Reschedule',
-                'caused_by'   => $worker->id ?? auth()->id(),
-            ]);
-        });
-
-        $sr->refresh();
-
-        return response()->json([
-            'ok'         => true,
-            'eta_at'     => $sr->eta_at->format('Y-m-d H:i'),
-            'reason'     => $data['remark'],
-            'count'      => $sr->reschedules()->count(),
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('Reschedule customer WhatsApp failed', [
+            'sr_id' => $sr->id,
+            'error' => $e->getMessage(),
         ]);
     }
+
+    try {
+        $wa->notifyInternalMaintenanceOnHold(
+            $sr,
+            'Rescheduled',
+            $data['remark']
+        );
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('Reschedule internal WhatsApp failed', [
+            'sr_id' => $sr->id,
+            'error' => $e->getMessage(),
+        ]);
+    }
+
+    return response()->json([
+        'ok'         => true,
+        'eta_at'     => $sr->eta_at->format('Y-m-d H:i'),
+        'reason'     => $data['remark'],
+        'count'      => $sr->reschedules()->count(),
+    ]);
+}
 
     public function hold(Request $request)
-    {
-        $data = $request->validate([
-            'sr_id'  => ['required', 'integer'],
-            'remark' => ['required', 'string', 'max:1000'],
+{
+    $data = $request->validate([
+        'sr_id'  => ['required', 'integer'],
+        'remark' => ['required', 'string', 'max:1000'],
+    ]);
+
+    $sr = $this->ownedRequest($request, $data['sr_id']);
+    $oldStatus = $sr->status;
+
+    DB::transaction(function () use ($sr, $data, $oldStatus) {
+        $sr->update([
+            'status'      => 'On Hold',
+            'hold_reason' => $data['remark'],
+            'held_at'     => now(),
+            'internal_remark' => $this->appendRemark($sr->internal_remark, 'On Hold', $data['remark']),
         ]);
 
-        $sr = $this->ownedRequest($request, $data['sr_id']);
-        $oldStatus = $sr->status;          // capture BEFORE the transaction updates it
+        Punch::where('service_request_id', $sr->id)
+            ->whereIn('status', ['draft', 'punched_in'])
+            ->update(['status' => 'cancelled']);
 
-        DB::transaction(function () use ($sr, $data, $oldStatus) {
-            $sr->update([
-                'status'      => 'On Hold',
-                'hold_reason' => $data['remark'],
-                'held_at'     => now(),
-                'internal_remark' => $this->appendRemark($sr->internal_remark, 'On Hold', $data['remark']),
-            ]);
+        NotificationLog::create([
+            'service_request_id' => $sr->id,
+            'event'       => 'status_updated',
+            'title'       => 'Status Updated',
+            'message'     => $this->buildSrRef($sr) . ' put on hold — ' . $data['remark'],
+            'from_status' => $oldStatus,
+            'to_status'   => 'On Hold',
+            'caused_by'   => auth()->id(),
+        ]);
+    });
 
-            // An in-progress punch is abandoned when the job goes on hold.
-            Punch::where('service_request_id', $sr->id)
-                ->whereIn('status', ['draft', 'punched_in'])
-                ->update(['status' => 'cancelled']);
+    $wa = app(\App\Services\WhatsAppService::class);
 
-            NotificationLog::create([
-                'service_request_id' => $sr->id,
-                'event'       => 'status_updated',
-                'title'       => 'Status Updated',
-                'message'     => $this->buildSrRef($sr) . ' put on hold — ' . $data['remark'],
-                'from_status' => $oldStatus,   // e.g. 'In Progress'
-                'to_status'   => 'On Hold',
-                'caused_by'   => auth()->id(),
-            ]);
-        });
-
-        return response()->json(['ok' => true]);
+    try {
+        $wa->notifyMaintenanceOnHold($sr, 'On Hold', $data['remark']);
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('On-hold customer WhatsApp failed', [
+            'sr_id' => $sr->id,
+            'error' => $e->getMessage(),
+        ]);
     }
+
+    try {
+        $wa->notifyInternalMaintenanceOnHold($sr, 'On Hold', $data['remark']);
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::error('On-hold internal WhatsApp failed', [
+            'sr_id' => $sr->id,
+            'error' => $e->getMessage(),
+        ]);
+    }
+
+    return response()->json(['ok' => true]);
+}
 
     private function pauseOpenPunch(ServiceRequest $sr): void
     {

@@ -1310,16 +1310,7 @@ class ServiceRequestController extends Controller
         // In-warranty work ends here, so this is the moment to tell the customer.
         // Out-of-warranty still has to clear invoicing — hopApprove() notifies instead.
         if ($scope === 'iw') {
-            $serviceRequest->loadMissing(['client', 'project']);
-
-            $customerLink = $serviceRequest->project
-                ? \App\Support\PortalLink::project($serviceRequest->project, $serviceRequest)
-                : \Illuminate\Support\Facades\URL::signedRoute(
-                    'sr.photos',
-                    ['serviceRequest' => $serviceRequest->id]
-                );
-
-            $this->sendCompletionNotifications($serviceRequest, $ref, $customerLink);
+            SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::COMPLETED, $ref);
         }
 
         return response()->json([
@@ -1688,45 +1679,35 @@ class ServiceRequestController extends Controller
     }
 
     public function hopApprove(ServiceRequest $serviceRequest)
-    {
-        $oldStatus = $serviceRequest->status;          // 'Invoice Submitted'
+{
+    $oldStatus = $serviceRequest->status;
 
-        $serviceRequest->update([
-            'status'          => 'Completed',
-            'hop_approved_at' => now(),
-            'hop_approved_by' => Auth::id(),
-        ]);
+    $serviceRequest->update([
+        'status'          => 'Completed',
+        'hop_approved_at' => now(),
+        'hop_approved_by' => Auth::id(),
+    ]);
 
-        $ref = $this->buildSrRef($serviceRequest);
+    $ref = $this->buildSrRef($serviceRequest);
 
-        NotificationLog::create([
-            'service_request_id' => $serviceRequest->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            'message'     => $ref . ' — HoP approved invoice, service request completed',
-            'from_status' => $oldStatus,
-            'to_status'   => 'Completed',
-            'caused_by'   => Auth::id(),
-        ]);
+    NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => $ref . ' — HoP approved invoice, service request completed',
+        'from_status' => $oldStatus,
+        'to_status'   => 'Completed',
+        'caused_by'   => Auth::id(),
+    ]);
 
-        // Out-of-warranty work finishes here, so this is the moment to tell the customer.
-        $serviceRequest->loadMissing(['client', 'project']);
+    SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::COMPLETED, $ref);
 
-        $customerLink = $serviceRequest->project
-            ? \App\Support\PortalLink::project($serviceRequest->project, $serviceRequest)
-            : \Illuminate\Support\Facades\URL::signedRoute(
-                'sr.photos',
-                ['serviceRequest' => $serviceRequest->id]
-            );
-
-        $this->sendCompletionNotifications($serviceRequest, $ref, $customerLink);
-
-        return response()->json([
-            'ok'      => true,
-            'success' => true,
-            'message' => 'HoP approved — service request completed. Client notified.',
-        ]);
-    }
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => 'HoP approved — service request completed. Client notified.',
+    ]);
+}
 
     /* ============================================================
      |  EXPENSE LEDGER

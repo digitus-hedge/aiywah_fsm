@@ -2000,10 +2000,9 @@ $('holdConfirmBtn').addEventListener('click', async () => {
   try {
     await apiPost(ROUTES.hold, { sr_id: activeSrId, remark });
 
-    closeDrawer('hold');
+    closeDrawer('rs');   // ← was 'hold', drawer's actual id is 'rs'
     showToast('warning', 'Job on hold', 'Placed on hold. Reason logged.');
 
-    // Holding cancels the open punch server-side, so clear the terminal too.
     const index = JOBS.findIndex((j) => j.id === activeRef);
     if (index > -1) {
       JOBS[index].status = 'On Hold';
@@ -2018,7 +2017,6 @@ $('holdConfirmBtn').addEventListener('click', async () => {
     restore();
   }
 });
-
 
 
 /* ══════════════════════════════════════════════════════
