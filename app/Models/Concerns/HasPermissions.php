@@ -7,30 +7,31 @@ namespace App\Models\Concerns;
  *
  * Usage: add `use HasPermissions;` inside the User class.
  *
- * Two independent axes per permission key:
+ * Three independent axes per permission key:
  *
- *   access      → WHICH ROWS     'yes' = all, 'rls' = filtered, 'no' = none
- *   is_readonly → MAY THEY EDIT  true = page visible, mutations blocked
+ *   access         → WHICH ROWS may they read: 'yes' all, 'rls' own, 'no' none
+ *   is_readonly    → MAY THEY EDIT at all: true = page visible but frozen
+ *   write_own_only → writes narrowed to rows they own, reads unrestricted
  *
  * Access resolution:
  *   1. Super Admin (role code 'SA') → always allowed, always writable.
  *   2. Role pivot access === 'yes'  → allowed.
  *   3. Role pivot access 'rls'/'no' → denied by hasAccess() (rls links are
  *      hidden per spec); use hasAnyAccess() where filtered views are shown.
- *   4. Key present in fd_grants     → allowed (Admin-granted extension).
+ *   4. Key present in fd_grants / ac_grants → allowed (Admin-granted extension).
  *
- * fd_grants is expected to be a JSON/array column of permission KEYS.
+ * Grant columns are JSON/array columns of permission KEYS.
  * Granted keys are writable — a grant is an extension of capability, not a
  * peek. If you ever need read-only grants, store them in a separate column
  * and add the check to isReadonly().
  *
- * REQUIRES on Role: ->withPivot('access', 'can_grant', 'is_readonly')
+ * REQUIRES on Role:
+ *   ->withPivot('access', 'can_grant', 'is_readonly', 'write_own_only')
  */
 trait HasPermissions
 {
     /**
-     * In-request cache of the role's pivot rows, keyed by permission key:
-     * ['dashboard' => ['access' => 'yes', 'can_grant' => false, 'is_readonly' => false], ...]
+     * In-request cache of the role's pivot rows, keyed by permission key.
      */
     protected ?array $permissionAccessCache = null;
 
@@ -59,7 +60,6 @@ trait HasPermissions
 
     /**
      * Does the user have any access at all — including filtered ('rls')?
-     * Useful if you ever want to show filtered links elsewhere.
      */
     public function hasAnyAccess(?string $key): bool
     {
@@ -87,7 +87,7 @@ trait HasPermissions
     }
 
     /**
-     * Must results on this page be scoped to the user's own rows?
+     * Must the row list on this page be scoped to the user's own records?
      */
     public function isFiltered(?string $key): bool
     {
@@ -100,10 +100,6 @@ trait HasPermissions
 
     /**
      * Can see the page but must not mutate anything on it.
-     *
-     * Only meaningful when the user actually has access — a denied key is
-     * not "read-only", it is absent. Callers should pair this with
-     * hasAccess()/hasAnyAccess(), or just use canWrite().
      */
     public function isReadonly(?string $key): bool
     {
@@ -120,12 +116,59 @@ trait HasPermissions
     }
 
     /**
-     * May the user create / update / delete on this page?
-     * This is the one to use for buttons, forms and write routes.
+     * Are writes limited to rows the user owns, even though they read
+     * everything? (The 'edit_own' token.)
+     */
+    public function writesOwnOnly(?string $key): bool
+    {
+        if (!$key || $this->isSuperAdmin()) {
+            return false;
+        }
+
+        if ($this->hasGrant($key)) {
+            return false;
+        }
+
+        return (bool) ($this->permissionAccessMap()[$key]['write_own_only'] ?? false);
+    }
+
+    /**
+     * Does write capability here depend on who owns the record?
+     *
+     * True for 'rls' — the read scope already limits them, but a crafted
+     * request could still target someone else's id — and for 'edit_own',
+     * where the read scope does not limit them at all and this check is
+     * the only guard.
+     */
+    public function writeNeedsOwnership(?string $key): bool
+    {
+        return $this->isFiltered($key) || $this->writesOwnOnly($key);
+    }
+
+    /**
+     * May the user create / update / delete on this page at all?
+     * Page-level only — use canWriteRecord() once you have the record.
      */
     public function canWrite(?string $key): bool
     {
         return $this->hasAnyAccess($key) && !$this->isReadonly($key);
+    }
+
+    /**
+     * May the user mutate this specific record?
+     * Page-level write capability, narrowed by ownership where required.
+     */
+    public function canWriteRecord(?string $key, $record): bool
+    {
+        if (! $this->canWrite($key)) {
+            return false;
+        }
+
+        if (! $this->writeNeedsOwnership($key)) {
+            return true;
+        }
+
+        return method_exists($record, 'isOwnedBy') && $record->isOwnedBy($this);
     }
 
     /**
@@ -173,33 +216,17 @@ trait HasPermissions
         }
 
         // Expects Role::permissions() belongsToMany with
-        // ->withPivot('access', 'can_grant', 'is_readonly')
+        // ->withPivot('access', 'can_grant', 'is_readonly', 'write_own_only')
         return $this->permissionAccessCache = $role->permissions
             ->mapWithKeys(fn ($permission) => [
                 $permission->key => [
-                    'access'      => $permission->pivot->access ?? 'no',
-                    'can_grant'   => (bool) ($permission->pivot->can_grant ?? false),
-                    'is_readonly' => (bool) ($permission->pivot->is_readonly ?? false),
+                    'access'         => $permission->pivot->access ?? 'no',
+                    'can_grant'      => (bool) ($permission->pivot->can_grant ?? false),
+                    'is_readonly'    => (bool) ($permission->pivot->is_readonly ?? false),
+                    'write_own_only' => (bool) ($permission->pivot->write_own_only ?? false),
                 ],
             ])
             ->toArray();
-    }
-
-    /**
-     * May the user mutate this specific record?
-     * Page-level write capability, narrowed by ownership when access is 'rls'.
-     */
-    public function canWriteRecord(?string $key, $record): bool
-    {
-        if (! $this->canWrite($key)) {
-            return false;
-        }
-
-        if (! $this->isFiltered($key)) {
-            return true;
-        }
-
-        return method_exists($record, 'isOwnedBy') && $record->isOwnedBy($this);
     }
 
     /**

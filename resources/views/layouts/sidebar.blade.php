@@ -4,15 +4,23 @@
 @php
 /**
  * Every link is gated by its permission KEY (matches permissions.key).
- * A link renders only when $u->hasAccess($key) is true — role access 'yes'
- * OR the key sits in the user's fd_grants / ac_grants. 'rls' and 'no' hide it.
+ * A link renders when the user has ANY access ('yes' or 'rls') to that key,
+ * or the key is in their fd_grants/ac_grants. Only 'no' hides it.
  *
  * Section headings appear only when at least one child link is visible.
  */
+
 $u        = auth()->user();
 $roleCode = $u?->role?->code;
 
-$can = fn ($key) => $u && $u->hasAccess($key);
+/**
+ * Sidebar visibility: show the link if the user has ANY access to the
+ * page — including 'rls' (own-record-only) — not just full 'yes' access.
+ * Whether they can actually WRITE anything on that page is enforced
+ * separately, per-page via isReadonly()/canWrite() and per-record via
+ * the Policy — this flag only controls whether the link renders.
+ */
+$can = fn ($key) => $u && $u->hasAnyAccess($key);
 
 /** Permission granted AND the role isn't on the exclusion list. */
 $show = fn ($key, array $except = []) => $can($key) && ! in_array($roleCode, $except, true);
