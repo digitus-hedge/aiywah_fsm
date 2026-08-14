@@ -1652,8 +1652,11 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
               <div class="row-actions">
                     <button class="btn-xs btn-xs-view" onclick="window.location='{{ url('projects') }}/{{ $p->id }}'"><i class="bi bi-eye"></i>View</button>
 
+                  @if (auth()->user()?->role?->code !== 'SE')
                 <button class="btn-xs btn-xs-edit" onclick="editProject(this)"><i class="bi bi-pencil"></i>Edit</button>
                 <button class="btn-xs btn-xs-del" onclick='openDelModal({{ $p->id }}, @json($p->project_name))'><i class="bi bi-trash3"></i></button>
+                 @endif
+             
               </div>
             </td>
           </tr>

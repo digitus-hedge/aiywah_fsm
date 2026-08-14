@@ -935,12 +935,16 @@
              <a href="{{ route('clients.show', $client->id) }}" class="cd-btn-xs cd-btn-xs-view">
     <i class="bi bi-eye"></i>View
 </a>
+
+            @if(auth()->user()?->role?->code !== 'SE')
               <a href="{{ route('clients.edit', $client) }}" class="cd-btn-xs cd-btn-xs-edit"><i class="bi bi-pencil"></i>Edit</a>
 
               <button type="button" class="btn-xs btn-xs-off"
                 onclick="udPost('{{ route('clients.toggle', $client->id) }}','warning','Status Toggled','Account status changed for {{ $client->contact_name }}')">
                 <i class="bi bi-slash-circle"></i>
               </button>
+
+              @endif
 
             </div>
           </td>

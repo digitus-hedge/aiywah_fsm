@@ -381,6 +381,40 @@ span#cds
    justify-content: center;
 }
 .fc-x:hover { color: #fff; }
+
+
+/* Laravel pagination links restyle */
+  .cd-pagination-bar .pagination {
+    margin: 0;
+    gap: 4px;
+  }
+
+  .cd-pagination-bar .page-link {
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-muted);
+    font-size: .78rem;
+    padding: 4px 10px;
+  }
+
+  .cd-pagination-bar .page-link:hover {
+    border-color: #9A7B4F;
+    color: #9A7B4F;
+    background: var(--card-bg);
+  }
+
+  .cd-pagination-bar .page-item.active .page-link {
+    background: #9A7B4F;
+    color: #fff;
+    border-color: #9A7B4F;
+  }
+
+  .cd-pagination-bar .page-item.disabled .page-link {
+    color: var(--text-light);
+    background: var(--card-bg);
+  }
+
 </style>
 @endpush
 
@@ -477,7 +511,10 @@ span#cds
           </div>
           <div style="display:flex;gap:7px;">
             <a class="btn-ghost" href=""><i class="bi bi-download"></i>Export</a>
+
+                  @if (auth()->user()?->role?->code !== 'SE')
             <button class="btn-gold" onclick="openInquiry()"><i class="bi bi-plus-lg"></i>New Inquiry</button>
+            @endif
           </div>
         </div>
 
@@ -528,7 +565,7 @@ span#cds
     </tr>
   </thead>
   <tbody id="sr-tbody">
-    @forelse($srs as $sr)
+    @forelse($srsPaginated  as $sr)
       @php
         $cfg = $statusCfg[$sr->status] ?? ['cls' => 'sb-pending'];
         $catName = $sr->category?->category_name ?? '—';
@@ -584,17 +621,7 @@ span#cds
   @endif
 </td>
 
-        <!-- <td>
-          @if($closed)
-            <span class="sla-ok"><i class="bi bi-check-lg"></i> Closed</span>
-          @elseif($elapsed < $target)
-            <span class="sla-ok"><i class="bi bi-check-circle"></i> {{ $target - $elapsed }}h left</span>
-          @elseif($elapsed < $target * 1.5)
-            <span class="sla-warn"><i class="bi bi-exclamation-circle"></i> {{ $elapsed }}h elapsed</span>
-          @else
-            <span class="sla-breach"><i class="bi bi-x-circle"></i> +{{ $elapsed - $target }}h breach</span>
-          @endif
-        </td> -->
+      
 
         <td>
  <span class="sbadge {{ $cfg['cls'] }}">
@@ -623,11 +650,27 @@ span#cds
 
         </div>
 
-        <div class="pagination-bar">
+        <!-- <div class="pagination-bar">
           <div class="page-info" id="sr-page-info">{{ $srs->count() }} records</div>
-        </div>
+        </div> -->
+
+        
+        <div class="cd-pagination-bar">
+    <div class="cd-page-info">
+      @if($srsPaginated->total() > 0)
+      @else
+   
+      @endif
+    </div>
+    <div>
+      {{ $srsPaginated->onEachSide(1)->links('pagination::bootstrap-5') }}
+    </div>
+  </div>
+
+
       </div>
     </div>
+    
 
     {{-- RIGHT PANEL --}}
     <div style="min-width:0;overflow:hidden;">
