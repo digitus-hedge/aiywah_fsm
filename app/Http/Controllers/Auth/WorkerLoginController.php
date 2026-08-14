@@ -11,10 +11,17 @@ use Illuminate\Validation\Rules\Password;
 
 class WorkerLoginController extends Controller
 {
-    public function showLoginForm()
+    public function showLoginForm(Request $request)
     {
         if (Auth::guard('worker')->check()) {
             return redirect()->route('worker.pipeline');
+        }
+
+        // Stash the WhatsApp "Open My Jobs" destination (or any other
+        // ?redirect= target) so login() can send the ML straight back
+        // there once they're authenticated, instead of the default dashboard.
+        if ($request->filled('redirect')) {
+            $request->session()->put('worker.redirect_after_login', $request->query('redirect'));
         }
 
         return view('auth.worker_login');
@@ -59,6 +66,14 @@ class WorkerLoginController extends Controller
         }
 
         $request->session()->regenerate();
+
+        // Honor a stashed redirect (e.g. from the WhatsApp "Open My Jobs"
+        // button) — only if it's a same-app path, never an external URL.
+        $redirect = $request->session()->pull('worker.redirect_after_login');
+
+        if ($redirect && $this->isSafeRedirect($redirect)) {
+            return redirect()->to($redirect);
+        }
 
         return redirect()->route('worker.pipeline');
     }
@@ -120,5 +135,23 @@ class WorkerLoginController extends Controller
     private function isWorker($user): bool
     {
         return optional($user->role)->code === 'ML';
+    }
+
+    /**
+     * Only allow redirecting to a path within this app — an open redirect
+     * (sending the user to an attacker-controlled external URL right after
+     * login) is a real vulnerability if we trust the ?redirect= param blindly.
+     */
+    private function isSafeRedirect(string $url): bool
+    {
+        // Relative path ("/worker/pipeline?filter=Pending") — always safe.
+        if (!str_contains($url, '://')) {
+            return true;
+        }
+
+        // Absolute URL — only allow it if it points at this same app's host.
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return $host !== null && $host === parse_url(config('app.url'), PHP_URL_HOST);
     }
 }

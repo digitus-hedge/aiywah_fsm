@@ -285,6 +285,18 @@ Route::prefix('worker')->name('worker.')->group(function () {
     Route::get('/login',  [WorkerLoginController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [WorkerLoginController::class, 'login'])->name('login.attempt');
 
+    // WhatsApp "Open My Jobs" button lands here — routes to the pipeline if
+    // already logged in, otherwise to login with a redirect back to it.
+    Route::get('/go', function () {
+        if (Auth::guard('worker')->check()) {
+            return redirect()->route('worker.pipeline', ['filter' => 'Pending']);
+        }
+
+        return redirect()->route('worker.login', [
+            'redirect' => route('worker.pipeline', ['filter' => 'Pending']),
+        ]);
+    })->name('go');
+
     Route::get('/forgot-password',  [WorkerPasswordController::class, 'showLinkRequestForm'])->name('password.request');
     Route::post('/forgot-password', [WorkerPasswordController::class, 'sendOtp'])
         ->middleware('throttle:5,10')->name('password.email');
