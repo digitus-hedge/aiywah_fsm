@@ -312,9 +312,12 @@ textarea.form-control{resize:vertical;min-height:72px;}
             <i class="bi bi-folder2-open"></i>
             <span>Service Categories</span>
           </div>
+          @if (auth()->user()?->role?->code !== 'HP')
+
           <button class="btn-primary-gold" style="padding:5px 11px;font-size:.75rem;" onclick="openModal('modal-cat','add')">
             <i class="bi bi-plus-lg"></i>Add
           </button>
+          @endif
         </div>
         <div class="md-list" id="cat-list"><!-- rendered by JS --></div>
       </div>
@@ -331,9 +334,12 @@ textarea.form-control{resize:vertical;min-height:72px;}
               <span style="font-size:.8rem;color:var(--text-muted);">Domains in</span>
               <div id="selected-cat-pill" class="cat-label-pill"></div>
             </div>
+            @if (auth()->user()?->role?->code !== 'HP')
+
             <button class="btn-primary-gold" style="padding:5px 13px;font-size:.75rem;" onclick="openModal('modal-domain','add')">
               <i class="bi bi-plus-lg"></i>Add Domain
             </button>
+            @endif
           </div>
           <div class="md-right-body">
             <div class="domain-grid" id="domain-grid"><!-- rendered by JS --></div>
@@ -360,7 +366,10 @@ textarea.form-control{resize:vertical;min-height:72px;}
           <div class="csub" style="font-size:.72rem;color:var(--text-muted);">Options available to Maintenance Leads on the Field Expenditure module</div>
         </div>
         <div class="card-hdr-actions">
+          @if (auth()->user()?->role?->code !== 'HP')
+
           <button class="btn-primary-gold" onclick="openModal('modal-expense','add')"><i class="bi bi-plus-lg"></i>Add Category</button>
+         @endif
         </div>
       </div>
       <div style="overflow-x:auto;">
@@ -371,7 +380,10 @@ textarea.form-control{resize:vertical;min-height:72px;}
               <th>Category Name</th>
               <th>Description</th>
               <th>Status</th>
-              <th style="width:110px;text-align:center;">Actions</th>
+              <!-- <th style="width:110px;text-align:center;">Actions</th> -->
+                @if (auth()->user()?->role?->code !== 'HP')
+      <th style="width:110px;text-align:center;">Actions</th>
+      @endif
             </tr>
           </thead>
           <tbody id="tbody-expense">
@@ -385,6 +397,9 @@ textarea.form-control{resize:vertical;min-height:72px;}
                     <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $exp->status ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
+
+                        @if (auth()->user()?->role?->code !== 'HP')
+
                 <td style="text-align:center;">
                   <div class="row-actions" style="justify-content:center;">
                     <!-- <button class="btn-icon-status" title="Toggle status"
@@ -399,6 +414,9 @@ textarea.form-control{resize:vertical;min-height:72px;}
                       onclick="confirmDel('expense',{{ $exp->id }},'{{ addslashes($exp->name) }}')"><i class="bi bi-trash3"></i></button>
                   </div>
                 </td>
+
+                        @endif
+
               </tr>
             @empty
               <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No expense categories yet.</td></tr>
@@ -891,8 +909,13 @@ window.M_ROUTES = {
  
 /* ─── DATA (from DB) ─── */
 const CATS      = @json($catsSeed);
+
+const USER_ROLE = "{{ auth()->user()?->role?->code }}";
+const CAN_MANAGE_CATS = USER_ROLE !== 'HP';   // adjust roles as needed
  
 let selectedCatId = null;
+
+
 /* edit-mode trackers: null = create, otherwise the id being edited */
 let editMode = { cat:null, domain:null, expense:null, priority:null };
  
@@ -926,10 +949,11 @@ function renderCats(){
       </div>
       <span class="cat-count-badge">${c.domains.length}</span>
       <span class="cat-status-dot" style="background:${c.active?'#10b981':'#9ca3af'};"></span>
+      ${CAN_MANAGE_CATS ? `
       <div class="cat-actions">
         <button class="btn-icon-edit" onclick="event.stopPropagation();editCat(${c.id})" title="Edit"><i class="bi bi-pencil"></i></button>
         <button class="btn-icon-del" onclick="event.stopPropagation();confirmDel('cat',${c.id},'${esc(c.name)}')" title="Delete"><i class="bi bi-trash3"></i></button>
-      </div>
+      </div>` : ''}
     </div>
   `).join('');
   const el = document.getElementById('cnt-service'); if(el) el.textContent = CATS.length;
@@ -967,10 +991,11 @@ function renderDomains(cat){
           <span class="spill ${d.active?'spill-on':'spill-off'}" style="font-size:.65rem;padding:2px 8px;">
             <i class="bi bi-circle-fill" style="font-size:.35rem;"></i>${d.active?'Active':'Inactive'}
           </span>
+          ${CAN_MANAGE_CATS ? `
           <div class="domain-card-actions">
             <button class="btn-icon-edit" title="Edit" onclick="editDomain(${d.id})"><i class="bi bi-pencil"></i></button>
             <button class="btn-icon-del" title="Delete" onclick="confirmDel('domain',${d.id},'${esc(d.name)}')"><i class="bi bi-trash3"></i></button>
-          </div>
+          </div>` : ''}
         </div>
       </div>
     </div>
