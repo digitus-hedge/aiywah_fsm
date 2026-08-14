@@ -669,18 +669,32 @@ class DashboardController extends Controller
             ->get();
     }
 
+    // private function slaBreachItems(array $filters, $start, $end): array
+    // {
+    //     $rows = $this->scoped($filters, $start, $end)
+    //         ->get()
+    //         ->filter(fn($sr) => $this->metSla($sr) === false)
+    //         ->sortByDesc('id');
+
+    //     return collect($this->srItems($rows))
+    //         ->map(fn($item) => $item + ['badge' => 'Breached', 'bc' => '#dc2626'])
+    //         ->all();
+    // }
+
+
     private function slaBreachItems(array $filters, $start, $end): array
     {
         $rows = $this->scoped($filters, $start, $end)
             ->get()
-            ->filter(fn($sr) => $this->metSla($sr) === false)
+            ->filter(fn($sr) => $this->slaOutcome($sr) === false)   // was metSla
             ->sortByDesc('id');
 
         return collect($this->srItems($rows))
             ->map(fn($item) => $item + ['badge' => 'Breached', 'bc' => '#dc2626'])
             ->all();
     }
-
+    
+    
     private function srQuery()
     {
         return ServiceRequest::query()
@@ -1015,12 +1029,12 @@ class DashboardController extends Controller
             ],
             'sla' => [
                 'value'      => $sla ? $sla . '%' : '—',
-                    'breach_count' => $breaches,                              // ← ADD THIS
+                'breach_count' => $breaches,                              // ← ADD THIS
 
                 'sub'        => $breaches . ' ' . Str::plural('breach', $breaches) . ' over ' . self::SLA_TARGET_HOURS . 'h',
                 'delta'      => $prevSla ? $this->pointLabel($sla, $prevSla) : null,
                 'delta_tone' => $this->tone($sla, $prevSla),
-                    'spark'        => $this->spark($filters, fn(Collection $srs) => $this->slaCompliance2($srs) ?? 0),
+                'spark'        => $this->spark($filters, fn(Collection $srs) => $this->slaCompliance2($srs) ?? 0),
 
             ],
             'invoiced' => [
@@ -1732,7 +1746,11 @@ class DashboardController extends Controller
 
         $srs = match ($type) {
             'active-srs'      => $all->filter(fn($sr) => $this->isOpen($sr)),
-            'sla-breach'      => $all->filter(fn($sr) => $this->metSla($sr) === false),
+            // 'sla-breach'      => $all->filter(fn($sr) => $this->metSla($sr) === false),
+
+            // panel()
+            'sla-breach' => $all->filter(fn($sr) => $this->slaOutcome($sr) === false),
+
             'pending-actions' => $all->whereIn('status', self::AWAITING_ACTION),
             'slow-srs'        => $all->filter(fn($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay())),
             'pending-qc'      => $all->where('status', 'Qc Review'),
