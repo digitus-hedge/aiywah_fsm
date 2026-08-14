@@ -14,17 +14,25 @@ class PermissionSeeder extends Seeder
      *
      * Matrix tokens
      * ─────────────
-     *   'yes'      → access=yes,  can_grant=false, is_readonly=false
-     *   'no'       → access=no,   can_grant=false, is_readonly=false
-     *   'rls'      → access=rls,  can_grant=false, is_readonly=false
-     *   'grant'    → access=no,   can_grant=true,  is_readonly=false
-     *   'view'     → access=yes,  can_grant=false, is_readonly=true
-     *   'view_rls' → access=rls,  can_grant=false, is_readonly=true
+     *              access   can_grant  is_readonly  write_own_only
+     *   'yes'      yes      false      false        false   see all,  edit all
+     *   'no'       no       false      false        false   no access
+     *   'rls'      rls      false      false        false   see own,  edit own
+     *   'grant'    no       true       false        false   Admin may extend
+     *   'view'     yes      false      true         false   see all,  edit none
+     *   'view_rls' rls      false      true         false   see own,  edit none
+     *   'edit_own' yes      false      false        true    see all,  edit own
      *
-     * `access` answers "which rows?", `is_readonly` answers "may they change
-     * them?". The two are independent, which is why 'view_rls' exists.
+     * Three independent axes:
+     *   access         → which rows may they READ
+     *   is_readonly    → may they write at all
+     *   write_own_only → writes narrowed to rows they own
+     *
+     * 'edit_own' is the one that needs per-record enforcement: the page and
+     * the row list are fully visible, so only a policy check on the specific
+     * record can stop the write. Middleware cannot catch it.
      */
-    private const TOKENS = ['yes', 'no', 'rls', 'grant', 'view', 'view_rls'];
+    private const TOKENS = ['yes', 'no', 'rls', 'grant', 'view', 'view_rls', 'edit_own'];
 
     public function run(): void
     {
@@ -109,31 +117,31 @@ class PermissionSeeder extends Seeder
                 'inquiry_approval'       => 'yes',
                 'dispatch_engine'        => 'yes',
                 'assigned'               => 'yes',
-                'quotation_desk'         => 'view',
+                'quotation_desk'         => 'view',   // finance owns pricing
                 'invoice_panel'          => 'yes',
                 'qc_review'              => 'yes',
-                'completed'              => 'view',
+                'completed'              => 'view',   // closed work is a record
                 'expense_ledger'         => 'view',
                 'analytics'              => 'rls',
-                'wa_notification_log'    => 'view',
+                'wa_notification_log'    => 'view',   // log, never edited
                 'rework_sr'              => 'yes',
-                'master_data'            => 'view',
+                'master_data'            => 'view',   // admin owns config
                 'user_directory'         => 'view',
                 'user_provisioning'      => 'view',
             ]),
 
             // Service Engineer — own tickets only.
             'SE' => array_merge($deny, [
-                'dashboard'        => 'yes',
-                'sr_explorer'      => 'view_rls',
-                'kanban_view'      => 'view_rls',
-                'project_site_directory' => 'view',
-                'client_directory' => 'view',
-                'dispatch_engine'  => 'rls',
-                'assigned'         => 'rls',
-                'qc_review'        => 'rls',
-                'completed'        => 'rls',
-                'wa_notification_log'    => 'view_rls',
+                'dashboard'              => 'yes',
+                'sr_explorer'            => 'view_rls',  // own SRs, lookup only
+                'kanban_view'            => 'view_rls',  // own board, read only
+                'client_directory'       => 'view',      // reference data
+                'project_site_directory' => 'view',      // reference data
+                'dispatch_engine'        => 'rls',       // accepts own jobs
+                'assigned'               => 'rls',       // works own tickets
+                'qc_review'              => 'rls',
+                'completed'              => 'rls',
+                'wa_notification_log'    => 'view_rls',  // own message history
             ]),
 
             // Maintenance Lead — own pipeline only.
@@ -147,18 +155,18 @@ class PermissionSeeder extends Seeder
             'FD' => array_merge($deny, [
                 'dashboard'         => 'yes',
                 'sr_registration'   => 'yes',
-                'sr_explorer'       => 'view_rls',
-                'kanban_view'       => 'view_rls',
-                'client_accounts'   => 'yes',
-                'client_directory'  => 'yes',
+                'sr_explorer'            => 'view_rls',
+                'kanban_view'            => 'view_rls',
+                'client_accounts'        => 'yes',       // onboarding is their job
+                'client_directory'       => 'yes',
                 'project_site_directory' => 'yes',
-                'inquiry_approval'  => 'grant',
-                'dispatch_engine'   => 'grant',
-                'qc_review'         => 'grant',
-                'assigned'          => 'rls',
-                'expense_ledger'    => 'grant',
-                'analytics'         => 'grant',
-                'user_provisioning' => 'grant',
+                'assigned'               => 'rls',
+                'inquiry_approval'       => 'grant',
+                'dispatch_engine'        => 'grant',
+                'qc_review'              => 'grant',
+                'expense_ledger'         => 'grant',
+                'analytics'              => 'grant',
+                'user_provisioning'      => 'grant',
                 'wa_notification_log'    => 'view_rls',
             ]),
 
@@ -195,27 +203,30 @@ class PermissionSeeder extends Seeder
                     );
                 }
 
-                $canGrant   = $token === 'grant';
-                $isReadonly = str_starts_with($token, 'view');
+                $canGrant     = $token === 'grant';
+                $isReadonly   = str_starts_with($token, 'view');
+                $writeOwnOnly = $token === 'edit_own';
 
                 $access = match ($token) {
                     'grant'    => 'no',
                     'view'     => 'yes',
                     'view_rls' => 'rls',
+                    'edit_own' => 'yes',
                     default    => $token,   // yes | no | rls
                 };
 
                 DB::table('permission_role')->updateOrInsert(
                     ['role_id' => $roleId, 'permission_id' => $permId],
                     [
-                        'access'      => $access,
-                        'can_grant'   => $canGrant,
-                        'is_readonly' => $isReadonly,
-                        'created_at'  => now(),
-                        'updated_at'  => now(),
+                        'access'         => $access,
+                        'can_grant'      => $canGrant,
+                        'is_readonly'    => $isReadonly,
+                        'write_own_only' => $writeOwnOnly,
+                        'created_at'     => now(),
+                        'updated_at'     => now(),
                     ]
                 );
             }
         }
     }
-}  
+}
