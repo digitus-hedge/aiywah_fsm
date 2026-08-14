@@ -15,21 +15,46 @@ use Illuminate\Support\Str;
 
 class ProjectController extends Controller
 {
-    public function index()
+    // public function index()
+    // {
+    //     $projects = Project::with('client')->latest()->get();
+    //     $clients  = Client::orderBy('company_name')->get();
+    //     $warranties = Warranty::where('status', 1)->orderBy('name')->get();
+
+    //     $stats = [
+    //         'total'    => $projects->count(),
+    //         'active'   => $projects->where('status', 'Active')->count(),
+    //         'inactive' => $projects->where('status', 'Inactive')->count(),
+    //         'clients'  => $projects->pluck('client_id')->unique()->count(),
+    //     ];
+
+    //     return view('project_site', compact('projects', 'clients', 'stats', 'warranties'));
+    // }
+
+
+    public function index(Request $request)
     {
-        $projects = Project::with('client')->latest()->get();
-        $clients  = Client::orderBy('company_name')->get();
-        $warranties = Warranty::where('status', 1)->orderBy('name')->get();
+        $allProjects = Project::select('status', 'client_id')->get();
 
         $stats = [
-            'total'    => $projects->count(),
-            'active'   => $projects->where('status', 'Active')->count(),
-            'inactive' => $projects->where('status', 'Inactive')->count(),
-            'clients'  => $projects->pluck('client_id')->unique()->count(),
+            'total'    => $allProjects->count(),
+            'active'   => $allProjects->where('status', 'Active')->count(),
+            'inactive' => $allProjects->where('status', 'Inactive')->count(),
+            'clients'  => $allProjects->pluck('client_id')->unique()->count(),
         ];
+
+        $projects = Project::with('client')
+            ->latest()
+            ->paginate(10);
+
+        $clients    = Client::orderBy('company_name')->get();
+        $warranties = Warranty::where('status', 1)->orderBy('name')->get();
 
         return view('project_site', compact('projects', 'clients', 'stats', 'warranties'));
     }
+
+
+
 
     public function store(Request $request)
     {
@@ -47,55 +72,55 @@ class ProjectController extends Controller
         return response()->json(['ok' => true, 'message' => 'Project created.']);
     }
     private function generateProjectCode(): string
-{
-    do {
-        $code = 'PRJ-' . now()->year . '-' . strtoupper(Str::random(6));
-    } while (Project::withTrashed()->where('project_code', $code)->exists());
+    {
+        do {
+            $code = 'PRJ-' . now()->year . '-' . strtoupper(Str::random(6));
+        } while (Project::withTrashed()->where('project_code', $code)->exists());
 
-    return $code;
-}
-
-private function notifyProjectAdded(Project $project): void
-{
-    $client = $project->client;
-
-    if (! $client) {
-        \Log::warning('Project-added notify skipped — no client', ['project_id' => $project->id]);
-        return;
+        return $code;
     }
 
-    // First project on this account gets the welcome instead
-    $isFirst = $client->projects()->count() === 1;
+    private function notifyProjectAdded(Project $project): void
+    {
+        $client = $project->client;
 
-    $portalUrl = route('portal.client', ['code' => $client->unique_code]);
-    $wa        = app(\App\Services\WhatsAppService::class);
-
-    try {
-        $isFirst
-            ? $wa->notifyClientWelcome($client, $project)
-            : $wa->notifyProjectAdded($client, $project);
-    } catch (\Throwable $e) {
-        \Log::error('Project-added WhatsApp failed', [
-            'project_id' => $project->id,
-            'error'      => $e->getMessage(),
-        ]);
-    }
-
-    try {
-        if ($client->email) {
-            \Mail::to($client->email)->send(
-                $isFirst
-                    ? new \App\Mail\ClientWelcomeMail($client, $project, $portalUrl)
-                    : new \App\Mail\ProjectAddedMail($client, $project, $portalUrl)
-            );
+        if (! $client) {
+            \Log::warning('Project-added notify skipped — no client', ['project_id' => $project->id]);
+            return;
         }
-    } catch (\Throwable $e) {
-        \Log::error('Project-added mail failed', [
-            'project_id' => $project->id,
-            'error'      => $e->getMessage(),
-        ]);
+
+        // First project on this account gets the welcome instead
+        $isFirst = $client->projects()->count() === 1;
+
+        $portalUrl = route('portal.client', ['code' => $client->unique_code]);
+        $wa        = app(\App\Services\WhatsAppService::class);
+
+        try {
+            $isFirst
+                ? $wa->notifyClientWelcome($client, $project)
+                : $wa->notifyProjectAdded($client, $project);
+        } catch (\Throwable $e) {
+            \Log::error('Project-added WhatsApp failed', [
+                'project_id' => $project->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
+
+        try {
+            if ($client->email) {
+                \Mail::to($client->email)->send(
+                    $isFirst
+                        ? new \App\Mail\ClientWelcomeMail($client, $project, $portalUrl)
+                        : new \App\Mail\ProjectAddedMail($client, $project, $portalUrl)
+                );
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Project-added mail failed', [
+                'project_id' => $project->id,
+                'error'      => $e->getMessage(),
+            ]);
+        }
     }
-}
     public function update(Request $request, Project $project)
     {
         $data = $this->validated($request);
@@ -171,8 +196,8 @@ private function notifyProjectAdded(Project $project): void
                 'remark'      => $s->internal_remark,
                 'date'        => $s->created_at?->format('d M Y'),
                 'status'      => $s->status,
-               'iw' => (bool) (optional($s->project)->warranty_end_date
-    && \Carbon\Carbon::parse($s->project->warranty_end_date)->endOfDay()->isFuture()),
+                'iw' => (bool) (optional($s->project)->warranty_end_date
+                    && \Carbon\Carbon::parse($s->project->warranty_end_date)->endOfDay()->isFuture()),
                 'priority'    => $s->priority_level,
                 'reported_by' => $s->reported_by,
                 'site'        => $p?->site_location ?? $s->project_site,
@@ -303,8 +328,8 @@ private function notifyProjectAdded(Project $project): void
 
             'project_engineer' => 'nullable|string|max:255',
             'engineer_contact' => 'nullable',
-               'engineer_country' => 'nullable',
-            
+            'engineer_country' => 'nullable',
+
         ], [
             'completion_date.required' => 'Please select a completion date.',
             'warranty_id.required'     => 'Please select a warranty.',

@@ -681,6 +681,41 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
     opacity: 1;
   }
 
+
+
+    /* Laravel pagination links restyle */
+  .cd-pagination-bar .pagination {
+    margin: 0;
+    gap: 4px;
+  }
+
+  .cd-pagination-bar .page-link {
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-muted);
+    font-size: .78rem;
+    padding: 4px 10px;
+  }
+
+  .cd-pagination-bar .page-link:hover {
+    border-color: #9A7B4F;
+    color: #9A7B4F;
+    background: var(--card-bg);
+  }
+
+  .cd-pagination-bar .page-item.active .page-link {
+    background: #9A7B4F;
+    color: #fff;
+    border-color: #9A7B4F;
+  }
+
+  .cd-pagination-bar .page-item.disabled .page-link {
+    color: var(--text-light);
+    background: var(--card-bg);
+  }
+
+
   /* ═══ BADGES ═══ */
   .sbadge {
     display: inline-flex;
@@ -1552,7 +1587,8 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
   <div class="tbl-card-hdr">
     <div class="tbl-card-hdr-left">
       <span class="tbl-card-title">Projects & Sites</span>
-      <span class="result-count" id="result-count">{{ $projects->count() }} projects</span>
+      <!-- <span class="result-count" id="result-count">{{ $projects->count() }} projects</span> -->
+       <span class="result-count" id="result-count">{{ $projects->total() }} projects</span>
     </div>
   </div>
   <div class="tbl-wrap">
@@ -1591,7 +1627,8 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
           ];
           @endphp
           <tr data-client="{{ optional($cl)->company_name }}" data-status="{{ $p->status }}" data-json='@json($rowData)'>
-            <td class="muted">{{ $i + 1 }}</td>
+            <!-- <td class="muted">{{ $i + 1 }}</td> -->
+             <td class="muted">{{ $projects->firstItem() + $i }}</td>
             <td class="mono">{{ $p->project_code }}</td>
             <td><strong style="font-size:.8125rem;">{{ $p->project_name }}</strong></td>
             <td>
@@ -1628,6 +1665,22 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
       </tbody>
     </table>
   </div>
+
+
+   <div class="cd-pagination-bar">
+    <div class="cd-page-info">
+       @if($projects->total() > 0)
+      <!-- Showing {{ $projects->firstItem() }}–{{ $projects->lastItem() }} of {{ $projects->total() }} projects -->
+      @else
+      <!-- 0 projects -->
+      @endif
+    </div>
+    <div>
+      {{ $projects->onEachSide(1)->links('pagination::bootstrap-5') }}
+    </div>
+  </div>
+ </div>
+
 </div>
 
 
