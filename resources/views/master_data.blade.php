@@ -438,7 +438,9 @@ textarea.form-control{resize:vertical;min-height:72px;}
           <div class="csub" style="font-size:.72rem;color:var(--text-muted);">Options available to Maintenance Leads on the Field Expenditure module</div>
         </div>
         <div class="card-hdr-actions">
+                @if (auth()->user()?->role?->code !== 'HP')
           <button class="btn-primary-gold" onclick="openModal('modal-warranty','add')"><i class="bi bi-plus-lg"></i>Add Warranty</button>
+          @endif
         </div>
       </div>
       <div style="overflow-x:auto;">
@@ -449,7 +451,10 @@ textarea.form-control{resize:vertical;min-height:72px;}
               <th>Warranty Name</th>
               <th>Value</th>
               <th>Status</th>
+               @if (auth()->user()?->role?->code !== 'HP')
               <th style="width:110px;text-align:center;">Actions</th>
+              @endif
+
             </tr>
           </thead>
           <tbody id="tbody-warranty">
@@ -463,6 +468,9 @@ textarea.form-control{resize:vertical;min-height:72px;}
                     <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $war->status ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
+
+                @if (auth()->user()?->role?->code !== 'HP')
+
                 <td style="text-align:center;">
                   <div class="row-actions" style="justify-content:center;">
                     <!-- <button class="btn-icon-status" title="Toggle status"
@@ -477,6 +485,8 @@ textarea.form-control{resize:vertical;min-height:72px;}
                       onclick="confirmDel('warranty',{{ $war->id }},'{{ addslashes($war->name) }}')"><i class="bi bi-trash3"></i></button>
                   </div>
                 </td>
+                @endif
+
               </tr>
             @empty
               <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No warranties categories yet.</td></tr>
@@ -500,7 +510,9 @@ textarea.form-control{resize:vertical;min-height:72px;}
           <div class="csub" style="font-size:.72rem;color:var(--text-muted);">Drives SLA row colouring on SR Explorer and unattended pipeline alerts</div>
         </div>
         <div class="card-hdr-actions">
+   @if (auth()->user()?->role?->code !== 'HP')
           <button class="btn-primary-gold" onclick="openModal('modal-priority','add')"><i class="bi bi-plus-lg"></i>Add Priority</button>
+        @endif
         </div>
       </div>
       <div style="overflow-x:auto;">
@@ -511,7 +523,9 @@ textarea.form-control{resize:vertical;min-height:72px;}
               <th>Priority Level</th>
               <th>Colour</th>
               <th>Status</th>
+              @if (auth()->user()?->role?->code !== 'HP')
               <th style="width:110px;text-align:center;">Actions</th>
+              @endif
             </tr>
           </thead>
           <tbody id="tbody-priority">
@@ -525,6 +539,9 @@ textarea.form-control{resize:vertical;min-height:72px;}
                     <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $p->status ? 'Active' : 'Inactive' }}
                   </span>
                 </td>
+
+                                @if (auth()->user()?->role?->code !== 'HP')
+
                 <td style="text-align:center;">
                   <div class="row-actions" style="justify-content:center;">
                     <!-- <button class="btn-icon-status" title="Toggle status"
@@ -540,6 +557,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
                       onclick="confirmDel('priority',{{$p->id }},'{{ addslashes($p->name) }}')"><i class="bi bi-trash3"></i></button>
                   </div>
                 </td>
+                @endif
               </tr>
             @empty
               <tr><td colspan="5" class="muted" style="text-align:center;padding:20px;">No priority levels yet.</td></tr>
@@ -562,7 +580,10 @@ textarea.form-control{resize:vertical;min-height:72px;}
         <div class="csub" style="font-size:.72rem;color:var(--text-muted);">Approve, dispatch and QC targets per criticality. All values in <strong>hours</strong>.</div>
       </div>
       <div class="card-hdr-actions">
+          @if (auth()->user()?->role?->code !== 'HP')
+        
         <button class="btn-primary-gold" onclick="saveSLA()"><i class="bi bi-floppy"></i>Save Changes</button>
+          @endif
       </div>
     </div>
 

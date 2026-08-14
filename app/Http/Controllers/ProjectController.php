@@ -248,6 +248,13 @@ class ProjectController extends Controller
             ];
         });
 
+        // Paginated slice — only for the table
+        $srsPaginated = $project->serviceRequests()
+            ->with(['assignedUser', 'category', 'project'])
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         $categories = ServiceCategory::orderBy('sort_order')->get();
         $activities = collect();
 
@@ -301,6 +308,7 @@ class ProjectController extends Controller
         return view('project_view', compact(
             'project',
             'srs',
+            'srsPaginated',    // paginated — used by the table
             'stats',
             'breakdown',
             'srMap',

@@ -1599,9 +1599,13 @@
       <button class="btn-hero-out" onclick="window.location='{{ url('clients/directory') }}'">
         <i class="bi bi-arrow-left"></i>Back to Directory
       </button>
+
+      @if (auth()->user()?->role?->code !== 'SE')
       <a class="btn-hero-out" href="{{ url('clients/'.$client->id.'/edit') }}">
         <i class="bi bi-pencil"></i>Edit Client
       </a>
+      @endif
+
     </div>
 
   </div>
@@ -1676,7 +1680,11 @@
           <!-- <button class="btn-ghost" onclick="showToast('ok','Export','Generating projects CSV…')"><i class="bi bi-download"></i>Export</button> -->
          
           <button class="btn-ghost" onclick="exportProjects()"><i class="bi bi-download"></i>Export</button>
+
+          @if (auth()->user()?->role?->code !== 'SE')
           <button class="btn-gold" onclick="openProjectModalNew()"><i class="bi bi-plus-lg"></i>Create Project</button>
+          @endif
+
         </div>
       </div>
 
@@ -2031,8 +2039,11 @@
   var filteredProjects = PROJECTS.slice();
   var editingProjectId = null;
 
+  var USER_ROLE = @json(auth()->user()?->role?->code);
+  var CAN_MANAGE_PROJECTS = USER_ROLE !== 'SE';
+
   /* ── RENDER ── */
-  function renderProjects(list) {
+ function renderProjects(list) {
     var tbody = document.getElementById('pf-tbody');
     if (!list.length) {
       tbody.innerHTML = '<tr><td colspan="8"><div class="empty-st"><i class="bi bi-inbox"></i><h6>No Projects Yet</h6><p>No projects match your filters, or this customer has none registered.</p></div></td></tr>';
@@ -2046,6 +2057,14 @@
       var badge = p.active ?
         '<span class="sbadge sb-active-g"><i class="bi bi-circle-fill" style="font-size:.32rem;"></i>Active</span>' :
         '<span class="sbadge sb-inactive"><i class="bi bi-circle-fill" style="font-size:.32rem;"></i>Inactive</span>';
+
+      var actionBtns = '<button class="btn-xs btn-xs-view" onclick="window.location=\'{{ url('projects') }}/' + p.id + '\'"><i class="bi bi-eye"></i>View</button>';
+      if (CAN_MANAGE_PROJECTS) {
+        actionBtns +=
+          '<button class="btn-xs btn-xs-edit" onclick="editProject(' + p.id + ')"><i class="bi bi-pencil"></i></button>' +
+          '<button class="btn-xs btn-xs-danger" onclick="confirmDelete(' + p.id + ')"><i class="bi bi-trash3"></i></button>';
+      }
+
       rows += '<tr>' +
         '<td class="muted">' + (i + 1) + '</td>' +
         '<td class="mono">' + p.code + '</td>' +
@@ -2054,19 +2073,13 @@
         '<td class="muted" style="font-size:.75rem;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + p.siteAddress + '">' + p.siteAddress + '</td>' +
         '<td style="text-align:center;"><strong>' + p.srCount + '</strong></td>' +
         '<td>' + badge + '</td>' +
-        '<td>' +
-        '<div class="row-actions">' +
-        '<button class="btn-xs btn-xs-view" onclick="window.location=\'{{ url('projects') }}/' + p.id + '\'"><i class="bi bi-eye"></i>View</button>' +
-        '<button class="btn-xs btn-xs-edit" onclick="editProject(' + p.id + ')"><i class="bi bi-pencil"></i></button>' +
-        '<button class="btn-xs btn-xs-danger" onclick="confirmDelete(' + p.id + ')"><i class="bi bi-trash3"></i></button>' +
-        '</div>' +
-        '</td>' +
+        '<td><div class="row-actions">' + actionBtns + '</div></td>' +
         '</tr>';
     }
     tbody.innerHTML = rows;
     document.getElementById('pf-count').textContent = list.length + ' project' + (list.length !== 1 ? 's' : '');
     document.getElementById('pf-page-info').textContent = 'Page 1 of 1 · ' + list.length + ' project' + (list.length !== 1 ? 's' : '');
-  }
+}
 
 
 
