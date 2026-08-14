@@ -18,11 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'role'         => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
 
-        //   $middleware->redirectGuestsTo(fn ($request) =>
-        //     $request->expectsJson() ? null : route('login')
-        // );
+        $middleware->redirectGuestsTo(function ($request) {
+            return $request->expectsJson() ? null : route('login');
+        });
 
-
+       
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

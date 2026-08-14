@@ -876,6 +876,7 @@ function switchMode(m){
   selectedId = null;
   resetDetailPanel();
   cancelRejection();
+  document.getElementById('btnReject').disabled = true;
   applyFilter();
 }
 
@@ -950,10 +951,13 @@ function selectRow(id){
   loadContractPanel(t);
   loadDescPanel(t);
   renderEngineerOptions(t);
-    expandCard('contractBody');
+  expandCard('contractBody');
   expandCard('descBody');
   enableActionButtons();
   cancelRejection();
+
+  document.getElementById('btnReject').disabled = false;
+
   if(window.innerWidth<992){
     setTimeout(()=>document.getElementById('detailPanel').scrollIntoView({behavior:'smooth',block:'start'}),100);
   }

@@ -173,7 +173,6 @@ class PermissionSeeder extends Seeder
             // Accounts / AR — out-of-warranty financial flows only.
             'AC' => array_merge($deny, [
                 'dashboard'      => 'yes',
-                'kanban_view'    => 'rls',
                 'quotation_desk' => 'grant',
                 'invoice_panel'  => 'grant',
                 'expense_ledger' => 'yes',
