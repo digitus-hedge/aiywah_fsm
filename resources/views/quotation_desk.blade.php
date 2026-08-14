@@ -211,6 +211,9 @@
 .qd-toast-wrap .t-title{font-size:.8rem;font-weight:600;color:var(--text-heading);margin:0 0 2px;}
 .qd-toast-wrap .t-body{font-size:.75rem;color:var(--text-muted);margin:0;}
 @media(max-width:575.98px){.qd-toast-wrap{left:12px;right:12px;bottom:12px;}.qd-toast-wrap .toast-item{max-width:none;}}
+
+
+
 </style>
 @endpush
 
@@ -276,6 +279,9 @@
           </div>
           <div class="meta-chips" id="q-chips"></div>
         </div>
+
+        @if (auth()->user()?->role?->code !== 'HP')
+
         <div class="ws-card">
           <div class="ws-card-hdr">
             <div class="ws-card-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-tag" style="color:#9a8053;"></i></div>
@@ -304,12 +310,16 @@
                 <div class="dz-err-msg" id="q-dz-err">Only PDF files are accepted.</div>
               </div>
             </div>
+
+            
             <div id="q-val-msg" style="display:none;padding:8px 12px;border-radius:7px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:.78rem;margin-bottom:10px;"></div>
+           
             <button class="btn-submit btn-amber" id="q-btn" onclick="submitQuote()" disabled>
               <i class="bi bi-send-check-fill"></i>Upload Quote &amp; Forward to Customer
             </button>
           </div>
         </div>
+        @endif
       </div>
     </div>
   </div>
@@ -414,7 +424,7 @@
 var Q_QUEUE          = @json($qQueue ?? []);
 var PENDING_APPROVAL = @json($pendingApproval ?? []);
 var CSRF             = '{{ csrf_token() }}';
-
+var USER_ROLE        = '{{ auth()->user()?->role?->code }}';   // ← add this
 /* filtered views — what actually gets rendered */
 var Q_FILTERED  = Q_QUEUE.slice();
 var PA_FILTERED = PENDING_APPROVAL.slice();
@@ -466,9 +476,10 @@ function dz_process(file,dzId,prefix){
   window[prefix+'_fileOk'] = true;
   if(typeof window[prefix+'_validate']==='function')window[prefix+'_validate']();
 }
+
 function dz_remove(dzId,inputId,prefix,placeholder){
   var dz = document.getElementById(dzId);
-  dz.className = 'dropzone';
+  if(!dz) return;
   document.getElementById(prefix+'-dz-icon').className = 'bi bi-cloud-upload dz-icon';
   document.getElementById(prefix+'-dz-title').textContent = placeholder||'Drag & Drop PDF here or click to browse';
   document.getElementById(prefix+'-dz-sub').textContent = 'Accepted format: PDF only · Max 25MB';
@@ -480,8 +491,10 @@ function dz_remove(dzId,inputId,prefix,placeholder){
 
 /* ---------- VALIDATION ---------- */
 function q_validate(){
-  var ref = document.getElementById('q-ref').value.trim();
-  var btn = document.getElementById('q-btn');
+  var refEl = document.getElementById('q-ref');
+  var btn   = document.getElementById('q-btn');
+  if(!refEl || !btn) return;
+  var ref = refEl.value.trim();
   var ok  = ref.length >= 3 && q_fileOk;
   btn.disabled = !ok; btn.style.opacity = ok ? '1' : '.38';
 }
@@ -515,7 +528,10 @@ function selectQ(id){
   if(!selQ) return;
   q_fileOk = false;
   dz_remove('q-dz','q-fi','q','Drag & Drop PDF here or click to browse');
-  document.getElementById('q-ref').value = '';
+
+  var refEl = document.getElementById('q-ref');
+  if (refEl) refEl.value = '';   // ← guard, q-ref doesn't exist for HP
+
   q_validate();
   renderQQueue();
   document.getElementById('q-empty').style.display   = 'none';
@@ -540,7 +556,11 @@ function renderPA(list){
     tbody.innerHTML = '<tr><td colspan="7"><div class="pa-empty"><i class="bi bi-inbox"></i><p>No quotes awaiting client approval</p></div></td></tr>';
     return;
   }
+  var canDecide = USER_ROLE !== 'HP';   // ← guard
   tbody.innerHTML = list.map(function(item){
+    var actionCell = canDecide
+      ? '<button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Record Decision</button>'
+      : '<span class="muted" style="font-size:.75rem;">—</span>';
     return '<tr>'+
       '<td class="mono">'+item.sr+'</td>'+
       '<td style="font-weight:500;">'+item.client+'</td>'+
@@ -548,7 +568,7 @@ function renderPA(list){
       '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.ref+'</span></td>'+
       '<td class="muted">'+item.submitted+'</td>'+
       '<td><span style="font-size:.75rem;color:#d97706;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
-      '<td style="text-align:center;"><button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Record Decision</button></td>'+
+      '<td style="text-align:center;">'+actionCell+'</td>'+
     '</tr>';
   }).join('');
 }

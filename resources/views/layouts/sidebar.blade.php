@@ -127,7 +127,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
         @if ($showWorkflow)
             <li class="sidebar-heading">Workflow</li>
 
-            @if ($show('inquiry_approval', ['SE', 'HP']))
+            @if ($show('inquiry_approval'))
                 <li>
                     <a href="{{ route('inquiry-approval.index') }}" class="{{ request()->routeIs('inquiry-approval.index') ? 'active' : '' }}">
                         <i data-feather="inbox"></i><span>Inquiry Approval</span>
@@ -238,7 +238,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
                 </li>
             @endif 
 
-            @if ($show('master_data', ['SE', 'HP']))
+            @if ($show('master_data', ['SE']))
                 <li>
                     <a href="{{ route('masters.index') }}" class="{{ request()->routeIs('masters.*') ? 'active' : '' }}">
                         <i data-feather="database"></i><span>Master Data</span>

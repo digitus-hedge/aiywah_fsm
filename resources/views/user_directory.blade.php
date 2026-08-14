@@ -212,7 +212,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     <div class="ud-actions">
       <a href="{{ route('user_directory') }}" class="ud-btn ud-btn-ghost"><i class="bi bi-x-circle"></i>Reset</a>
       <button type="submit" class="ud-btn ud-btn-gold"><i class="bi bi-funnel"></i>Apply</button>
-      @if (auth()->user() && auth()->user()->hasAccess('user_provisioning')  && auth()->user()?->role?->code !== 'SE')
+     @if (auth()->user() && auth()->user()->hasAccess('user_provisioning') && auth()->user()?->role?->code !== 'SE' && auth()->user()?->role?->code !== 'HP')
         <a href="{{ route('user_provisioning') }}" class="ud-btn ud-btn-gold"><i class="bi bi-person-plus"></i>New User</a>
       @endif
     </div>
@@ -239,7 +239,9 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
             <th>Domain Expertise</th>
             <th>Status</th>
             <th>Created</th>
-            <th style="width:150px;">Actions</th>
+            @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
+    <th style="width:150px;">Actions</th>
+    @endif
           </tr>
         </thead>
         <tbody>
@@ -296,6 +298,8 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
                 <span class="ud-badge {{ $sClass }}"><i class="bi bi-circle-fill"></i>{{ ucfirst($status) }}</span>
               </td>
               <td data-label="Created" class="ud-muted">{{ optional($user->created_at)->format('d M Y') ?? '—' }}</td>
+             
+               @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
               <td data-label="Actions">
                 <div class="ud-row-actions">
                   {{-- <a href="{{ route('user_provisioning') }}?edit={{ $user->id }}" class="ud-xs ud-xs-edit"><i class="bi bi-pencil"></i>Edit</a>--}} 
@@ -311,6 +315,9 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
                   </button>
                 </div>
               </td>
+                 @endif
+
+
             </tr>
           @empty
             <tr>
