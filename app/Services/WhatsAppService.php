@@ -587,9 +587,11 @@ public function notifyOutsideScope(
  * Work completed & QC passed → maintenance_completed
  * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
  * {{6}} technician, {{7}} completion date, {{8}} completion time
- * Button (index 0, url): dynamic suffix appended to the template's static
- * base URL — Meta requires ONLY the suffix here, not the full link, or the
- * built URL doubles up and 404s.
+ * Button (index 0, url): the template's registered URL is a static base
+ * (https://taskflow.aiywah.com/portal/project/) plus {{1}}. Meta appends
+ * whatever we send here directly onto that base, so we must send the FULL
+ * remainder — code, query string, signature — not just the trailing segment,
+ * or the signed portal link loses its signature and 404s / fails validation.
  */
 public function notifyMaintenanceCompleted(
     \App\Models\ServiceRequest $sr,
@@ -605,9 +607,7 @@ public function notifyMaintenanceCompleted(
     $out  = $punch?->punch_out_at ? Carbon::parse($punch->punch_out_at) : now();
     $link = $photosLink ?: url("/sr/{$sr->id}/photos");
 
-    // Only the trailing path segment goes in the button param — Meta appends
-    // it to the static base URL already saved on the template.
-    $buttonValue = basename(parse_url($link, PHP_URL_PATH));
+    $buttonValue = $this->buttonSuffix($link);
 
     $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
         fn ($name) => [
@@ -638,6 +638,22 @@ public function notifyMaintenanceCompleted(
             . "Technician: {$tech['name']} — completed {$out->format('d M Y')} at {$out->format('h:i A')}. "
             . "Photos: {$link}"
     );
+}
+
+/**
+ * Strip the template's static base (https://taskflow.aiywah.com/portal/project/)
+ * from a full link, leaving exactly what Meta needs for the {{1}} button
+ * parameter — code, query string, signature all preserved.
+ * Falls back to the full link if the prefix doesn't match, so a differently
+ * shaped URL (e.g. the signed sr.photos fallback) still sends something usable.
+ */
+private function buttonSuffix(string $link): string
+{
+    $prefix = 'https://taskflow.aiywah.com/portal/project/';
+
+    return str_starts_with($link, $prefix)
+        ? substr($link, strlen($prefix))
+        : $link;
 }
 
     /**
@@ -1095,10 +1111,10 @@ public function notifyInternalMaintenanceCompleted(
 
     $out  = Carbon::parse($punch?->punch_out_at ?? now());
     $link = $photosLink ?: \Illuminate\Support\Facades\URL::signedRoute(
-        'sr.photos', ['serviceRequest' => $sr->id]
-    );
+    'sr.photos', ['serviceRequest' => $sr->id]
+);
 
-    $buttonValue = basename(parse_url($link, PHP_URL_PATH));
+$buttonValue = $this->buttonSuffix($link);
 
     foreach ($recipients as $r) {
         $components = [
