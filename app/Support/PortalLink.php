@@ -8,12 +8,16 @@ use Illuminate\Support\Facades\URL;
 
 class PortalLink
 {
-    public static function project(Project $project, ?ServiceRequest $focus = null): string
+        public static function project(Project $project, ?ServiceRequest $focus = null): string
     {
-        return URL::signedRoute('portal.project', array_filter([
+        $link = URL::signedRoute('portal.project', array_filter([
             'code' => $project->project_code,
             'sr'   => $focus?->id,
         ]));
+
+        dd($link); // ← TEMP DEBUG
+
+        return $link;
     }
 
     public static function feedback(ServiceRequest $sr): string
