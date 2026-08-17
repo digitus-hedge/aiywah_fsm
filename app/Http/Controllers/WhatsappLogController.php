@@ -29,15 +29,15 @@ class WhatsappLogController extends Controller
         );
 
         $logs = WhatsappLog::query()
-            ->tap($scope)
-            ->search($request->input('sr'))
-            ->event($request->input('event'))
-            ->status($request->input('status'))
-            ->dateFrom($request->input('date_from'))
-            ->latest()
-            ->paginate(25)
-            ->withQueryString();
-
+                ->tap($scope)
+                ->search($request->input('sr'))
+                ->event($request->input('event'))
+                ->status($request->input('status'))
+                ->dateFrom($request->input('date_from'))
+                ->dateTo($request->input('date_to'))
+                ->latest()
+                ->paginate(25)
+                ->withQueryString();
         $stats = [
             'delivered' => WhatsappLog::tap($scope)
                 ->whereIn('status', [WhatsappLog::STATUS_DELIVERED, WhatsappLog::STATUS_SENT])
@@ -142,11 +142,12 @@ class WhatsappLogController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $query = WhatsappLog::query()
+            $query = WhatsappLog::query()
             ->search($request->input('sr'))
             ->event($request->input('event'))
             ->status($request->input('status'))
             ->dateFrom($request->input('date_from'))
+            ->dateTo($request->input('date_to'))
             ->latest();
 
         $filename = 'whatsapp-log-' . now()->format('Ymd-His') . '.csv';

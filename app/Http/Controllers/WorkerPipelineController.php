@@ -316,45 +316,39 @@ class WorkerPipelineController extends Controller
 
         $oldStatus = $sr->status;          // capture BEFORE update
 
-
         $sr->update([
-            'eta_at'      => $data['eta_date'] . ' ' . $data['eta_time'] . ':00',
-            'accepted_at' => now(),
-            'status'      => 'Accepted',
-            'hold_reason' => null,
-            'held_at'     => null,
-        ]);
+        'eta_at'      => $data['eta_date'] . ' ' . $data['eta_time'] . ':00',
+        'accepted_at' => now(),
+        'status'      => 'Accepted',
+        'hold_reason' => null,
+        'held_at'     => null,
+    ]);
 
-        NotificationLog::create([
-            'service_request_id' => $sr->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            // 'message'     => $this->buildSrRef($sr) . ' accepted — ETA '
-            //                  . $sr->eta_at->format('d M Y, h:i A')
-            //                  . ($worker->name ?? '' ? ' by ' . $worker->name : ''),
+    NotificationLog::create([
+        'service_request_id' => $sr->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message' => $this->buildSrRef($sr) . ' accepted'
+            . (optional($worker)->name ? ' by ' . $worker->name : ''),
+        'from_status' => $oldStatus,
+        'to_status'   => 'Accepted',
+        'caused_by'   => auth()->id(),
+    ]);
 
-            'message' => $this->buildSrRef($sr) . ' accepted'
-                . (optional($worker)->name ? ' by ' . $worker->name : ''),
-            'from_status' => $oldStatus,   // e.g. 'Assigned' or 'Rework'
-            'to_status'   => 'Accepted',
-            'caused_by'   => auth()->id(),
-        ]);
+    \App\Jobs\SendSrNotifications::dispatch(
+        $sr->id,
+        \App\Jobs\SendSrNotifications::VISIT_SCHEDULED
+    );
 
-        try {
-            app(\App\Services\WhatsAppService::class)->notifyTechnicianAssigned($sr);
-        } catch (\Throwable $e) {
-            Log::error('Technician-assigned WhatsApp failed', [
-                'sr_id' => $sr->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-        return response()->json([
-            'ok'     => true,
-            'sr_id'  => $sr->id,
-            'eta_at' => $sr->eta_at->format('Y-m-d H:i'),
-        ]);
-    }
-    
+    return response()->json([
+        'ok'     => true,
+        'sr_id'  => $sr->id,
+        'eta_at' => $sr->eta_at->format('Y-m-d H:i'),
+    ]);
+ }
+
+
+        
     public function reschedule(Request $request)
 {
     $data = $request->validate([

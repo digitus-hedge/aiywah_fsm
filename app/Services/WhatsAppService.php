@@ -656,58 +656,58 @@ public function notifyMaintenanceCompleted(
     }
 
     /**
-     * Post-completion survey → satisfaction_survey
-     * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} completion date
-     * Button (index 0, url): dynamic suffix appended to the template's static
-     * base (https://portal.mattermind.ae/client_feedback/) — send ONLY the
-     * feedback id, not the full link, or the button URL doubles up and 404s.
-     */
+ * Post-completion survey → satisfaction_survey
+ * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} completion date
+ * Button (index 0, url): dynamic suffix appended to the template's static
+ * base (https://portal.mattermind.ae/client_feedback/) — send ONLY the
+ * feedback id, not the full link, or the button URL doubles up and 404s.
+ */
     public function notifySatisfactionSurvey(
-        \App\Models\ServiceRequest $sr,
-        ?string $surveyLink = null,
-        string $event = 'Satisfaction Survey'
-    ): void {
-        $c = $this->srContext($sr);
+    \App\Models\ServiceRequest $sr,
+    ?string $surveyLink = null,
+    string $event = 'Satisfaction Survey'
+): void {
+    $c = $this->srContext($sr);
 
-        $punch = $sr->punches()->whereNotNull('punch_out_at')->latest('punch_out_at')->first();
-        $completed = $this->fmtDate($punch?->punch_out_at ?? $sr->qc_reviewed_at);
+    $punch = $sr->punches()->whereNotNull('punch_out_at')->latest('punch_out_at')->first();
+    $completed = $this->fmtDate($punch?->punch_out_at ?? $sr->qc_reviewed_at);
 
-        $link = $surveyLink ?: \Illuminate\Support\Facades\URL::temporarySignedRoute(
-            'clients.feedback.show',
-            now()->addDays(30),
-            ['id' => $sr->id]
-        );
+    $link = $surveyLink ?: \Illuminate\Support\Facades\URL::temporarySignedRoute(
+        'clients.feedback.show',
+        now()->addDays(30),
+        ['id' => $sr->id]
+    );
 
-        // Template's registered base: https://portal.mattermind.ae/client_feedback/
-        $buttonValue = $this->buttonSuffix($link, 'https://portal.mattermind.ae/client_feedback/');
+    // Template's registered base: https://taskflow.aiywah.com/client_feedback/
+    $buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/client_feedback/');
 
-        $this->fanOut($sr, $sr->client, $event, 'satisfaction_survey',
-            fn ($name) => [
-                [
-                    "type" => "body",
-                    "parameters" => [
-                        $this->txt($this->cleanParam($name) ?: 'Customer'),
-                        $this->txt($c['project']),
-                        $this->txt($c['location']),
-                        $this->txt($c['ref']),
-                        $this->txt($completed),
-                    ],
-                ],
-                [
-                    "type"     => "button",
-                    "sub_type" => "url",
-                    "index"    => "0",
-                    "parameters" => [
-                        ["type" => "text", "text" => $buttonValue],
-                    ],
+    $this->fanOut($sr, $sr->client, $event, 'satisfaction_survey',
+        fn ($name) => [
+            [
+                "type" => "body",
+                "parameters" => [
+                    $this->txt($this->cleanParam($name) ?: 'Customer'),
+                    $this->txt($c['project']),
+                    $this->txt($c['location']),
+                    $this->txt($c['ref']),
+                    $this->txt($completed),
                 ],
             ],
-            fn ($name) =>
-                "Hi {$name}, we hope everything is working well after the maintenance visit. "
-                . "Request: {$c['ref']} | Completed: {$completed}. "
-                . "Please rate your experience: {$link}"
-        );
-    }
+            [
+                "type"     => "button",
+                "sub_type" => "url",
+                "index"    => "0",
+                "parameters" => [
+                    ["type" => "text", "text" => $buttonValue],
+                ],
+            ],
+        ],
+        fn ($name) =>
+            "Hi {$name}, we hope everything is working well after the maintenance visit. "
+            . "Request: {$c['ref']} | Completed: {$completed}. "
+            . "Please rate your experience: {$link}"
+    );
+}
 
     /* =========================================================
        Client / project templates (no ServiceRequest)
@@ -1124,12 +1124,13 @@ public function notifyInternalMaintenanceCompleted(
 
     $out  = Carbon::parse($punch?->punch_out_at ?? now());
     $link = $photosLink ?: \Illuminate\Support\Facades\URL::signedRoute(
-    'sr.photos', ['serviceRequest' => $sr->id]
-);
+        'sr.photos', ['serviceRequest' => $sr->id]
+    );
 
-$buttonValue = $this->buttonSuffix($link);
-// in notifyMaintenanceCompleted()
-$buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/portal/project/');
+    $buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/portal/project/');
+    // (removed the stray one-arg buttonSuffix() call that was here — it would
+    // have thrown a TypeError, since buttonSuffix() now requires a prefix)
+
     foreach ($recipients as $r) {
         $components = [
             [
@@ -1164,11 +1165,67 @@ $buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/portal/pr
     }
 }
 
+
+/**
+ * Job assigned to the Maintenance Lead → ml_job_assigned
+ * Dedicated ML-facing template — separate from internal_technician_assigned
+ * (which goes to SA/HP/PE/SE staff). Sent to the ML alone via sendToOne().
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer, {{5}} issue,
+ * {{6}} priority, {{7}} assigned on, {{8}} technician name, {{9}} technician phone
+ */
+public function notifyMlJobAssigned(
+    \App\Models\ServiceRequest $sr,
+    string $event = 'ML - Job Assigned'
+): void {
+    $sr->loadMissing(['client', 'creator', 'assignedUser']);
+
+    $ml = $sr->assignedUser;
+
+    if (!$ml) {
+        Log::warning('ML job alert skipped — no technician assigned', ['sr_id' => $sr->id]);
+        return;
+    }
+
+    $c    = $this->srContext($sr);
+    $tech = $this->techContext($sr);
+
+    $customer = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
+    $priority = $this->cleanParam($sr->priority_level) ?: 'Normal';
+    $when     = ($sr->created_at ?? now())->format('d M Y, h:i A');
+
+    $components = [[
+        "type" => "body",
+        "parameters" => [
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($customer),
+            $this->txt($c['issue']),
+            $this->txt($priority),
+            $this->txt($when),
+            $this->txt($tech['name']),
+            $this->txt($tech['phone']),
+        ],
+    ]];
+
+    $preview = "Job assigned — {$c['ref']} | {$customer} | {$c['location']} | "
+        . "Priority: {$priority}";
+
+    $this->sendToOne(
+        $sr, 'wa.ml_job',
+        $ml->name, $ml->country_code, $ml->phone,
+        $event, 'ml_job_assigned', $components, $preview
+    );
+}
+
 /**
  * Survey dispatched to customer → internal_survey_sent
  * {{1}} created by, {{2}} customer, {{3}} project, {{4}} location,
  * {{5}} handover, {{6}} warranty expiry, {{7}} SR ref, {{8}} issue,
- * {{9}} priority, {{10}} sent date, {{11}} sent time, {{12}} survey link
+ * {{9}} priority, {{10}} sent date, {{11}} sent time
+ * No survey link in this template — it's purely an internal FYI, not a
+ * click-through. (Previously sent a 12th param for the link with nowhere
+ * for Meta to put it — that's what caused every send to fail.)
  */
 public function notifyInternalSurveySent(
     \App\Models\ServiceRequest $sr,
@@ -1211,11 +1268,13 @@ public function notifyInternalSurveySent(
             $this->txt($priority),
             $this->txt($now->format('d M Y')),
             $this->txt($now->format('h:i A')),
-            $this->txt($link),
         ],
     ]];
 
-    $preview = "Survey sent — {$c['ref']} | {$customer} | {$now->format('d M Y, h:i A')}";
+    // $link is kept only for the preview text (visible in the WhatsApp
+    // Notification Log), not sent to Meta — the approved template has no
+    // slot for it.
+    $preview = "Survey sent — {$c['ref']} | {$customer} | {$now->format('d M Y, h:i A')} | Link: {$link}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -1224,7 +1283,6 @@ public function notifyInternalSurveySent(
         );
     }
 }
-
 
 public function notifyServiceCompleted(ServiceRequest $sr): void
 {
@@ -1258,6 +1316,51 @@ public function notifyServiceCompleted(ServiceRequest $sr): void
     // If you send approved templates instead of free text, the link is the
     // only dynamic part that matters — pass $link as the button URL suffix or
     // as a body variable, depending on how the template is registered.
+}
+
+/**
+ * Technician accepted the job and set their visit ETA → internal_visit_scheduled
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} technician, {{5}} date, {{6}} time
+ */
+public function notifyInternalVisitScheduled(
+    \App\Models\ServiceRequest $sr,
+    string $event = 'Internal - Visit Scheduled'
+): void {
+    $recipients = $this->internalRecipients($sr);
+
+    if (!$recipients) {
+        Log::warning('Visit-scheduled alert skipped — no recipients', ['sr_id' => $sr->id]);
+        return;
+    }
+
+    $sr->loadMissing('client');
+    $c    = $this->srContext($sr);
+    $tech = $this->techContext($sr);
+
+    $eta       = $sr->eta_at ? Carbon::parse($sr->eta_at) : now();
+    $visitDate = $eta->format('d M Y');
+    $visitTime = $eta->format('h:i A');
+
+    $components = [[
+        "type" => "body",
+        "parameters" => [
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($tech['name']),
+            $this->txt($visitDate),
+            $this->txt($visitTime),
+        ],
+    ]];
+
+    $preview = "Visit scheduled — {$c['ref']} | {$tech['name']} | {$visitDate} {$visitTime}";
+
+    foreach ($recipients as $r) {
+        $this->sendLogged(
+            $sr, $sr->client, $r['phone'], $event,
+            'internal_visit_scheduled', $components, $preview
+        );
+    }
 }
 
 /**
@@ -1295,60 +1398,6 @@ public function notifyServiceCompleted(ServiceRequest $sr): void
             $template,
             $components,
             $preview
-        );
-    }
-
-    /**
-     * Job assigned to the Maintenance Lead.
-     *
-     * Reuses the approved `internal_technician_assigned` template — same ten
-     * variables as the staff alert, but sent to the ML's number alone rather
-     * than through the internal recipient list.
-     */
-    public function notifyMlJobAssigned(
-        \App\Models\ServiceRequest $sr,
-        string $event = 'ML - Job Assigned'
-    ): void {
-        $sr->loadMissing(['client', 'creator', 'assignedUser']);
-
-        $ml = $sr->assignedUser;
-
-        if (!$ml) {
-            Log::warning('ML job alert skipped — no technician assigned', ['sr_id' => $sr->id]);
-            return;
-        }
-
-        $c    = $this->srContext($sr);
-        $tech = $this->techContext($sr);
-
-        $customer  = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
-        $createdBy = $this->cleanParam(optional($sr->creator)->name ?: $sr->reported_by) ?: 'N/A';
-        $priority  = $this->cleanParam($sr->priority_level) ?: 'Normal';
-        $when      = ($sr->created_at ?? now())->format('d M Y, h:i A');
-
-        $components = [[
-            "type" => "body",
-            "parameters" => [
-                $this->txt($c['project']),
-                $this->txt($c['location']),
-                $this->txt($c['ref']),
-                $this->txt($customer),
-                $this->txt($createdBy),
-                $this->txt($c['issue']),
-                $this->txt($priority),
-                $this->txt($when),
-                $this->txt($tech['name']),
-                $this->txt($tech['phone']),
-            ],
-        ]];
-
-        $preview = "Job assigned — {$c['ref']} | {$customer} | {$c['location']} | "
-            . "Priority: {$priority}";
-
-        $this->sendToOne(
-            $sr, 'wa.ml_job',
-            $ml->name, $ml->country_code, $ml->phone,
-            $event, 'internal_technician_assigned', $components, $preview
         );
     }
 }
