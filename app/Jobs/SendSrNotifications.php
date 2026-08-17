@@ -39,6 +39,7 @@ class SendSrNotifications implements ShouldQueue
     public const REJECTED     = 'rejected';       // request declined
     public const DISPATCHED   = 'dispatched';  
     public const COMPLETED    = 'completed';
+    public const VISIT_SCHEDULED = 'visit_scheduled'; 
 
     public $tries   = 3;
     public $backoff = [10, 60, 180];   // don't hammer a provider that's down
@@ -72,7 +73,8 @@ class SendSrNotifications implements ShouldQueue
             self::ADDITIONAL   => $this->additional($wa, $sr),
             self::REJECTED     => $this->rejected($wa, $sr),
             self::DISPATCHED   => $this->dispatched($wa, $sr, $ref),
-            self::COMPLETED    => $this->completed($wa, $sr, $ref),   // ← add this
+            self::COMPLETED    => $this->completed($wa, $sr, $ref),  
+            self::VISIT_SCHEDULED   => $this->visitScheduled($wa, $sr),
             default => Log::warning(/* ... */),
         };
     }
@@ -219,5 +221,13 @@ class SendSrNotifications implements ShouldQueue
 
     \App\Jobs\SendSatisfactionSurvey::dispatch($sr)
         ->delay(now()->addMinutes(2));   // ← restore addDay() before go-live
+}
+
+private function visitScheduled(WhatsAppService $wa, ServiceRequest $sr): void
+{
+    $this->safely('wa.visit_scheduled', function () use ($wa, $sr) {
+        $wa->notifyTechnicianAssigned($sr);        // customer  → technician_assigned
+        $wa->notifyInternalVisitScheduled($sr);    // SA/HP/SE/PE → internal_visit_scheduled
+    });
 }
 }

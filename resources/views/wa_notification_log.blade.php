@@ -89,10 +89,10 @@
 .wa-wrap .pagination-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border-color);flex-wrap:wrap;gap:8px;}
 .wa-wrap .page-info{font-size:.78rem;color:var(--text-muted);}
 .wa-wrap .page-btns{display:flex;gap:4px;flex-wrap:wrap;}
-.wa-wrap .page-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border-color);background:var(--card-bg);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.78rem;transition:all .12s;}
+.wa-wrap .page-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border-color);background:var(--card-bg);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.78rem;transition:all .12s;flex-shrink:0;}
+.wa-wrap .page-btn.page-btn-nav{width:auto;min-width:30px;padding:0 10px;gap:4px;}
 .wa-wrap .page-btn:hover{border-color:var(--gold);color:var(--gold);}
 .wa-wrap .page-btn.active{background:var(--gold);color:#fff;border-color:var(--gold);}
-
 /* EMPTY STATE */
 .wa-wrap .empty-row td{text-align:center;padding:40px 20px;color:var(--text-muted);font-size:.82rem;}
 .wa-wrap .empty-row td i{display:block;font-size:2rem;color:var(--text-light);margin-bottom:8px;}
@@ -146,12 +146,13 @@
   <div class="filter-bar">
     <div class="filter-group">
       <div class="filter-label">SR ID</div>
-      <input class="filter-control" type="text" id="wa-sr" placeholder="SR-2025-…" oninput="waFilter()"/>
+      <input class="filter-control" type="text" id="wa-sr" placeholder="SR-2025-…" oninput="waFilter(true)"/>
+
     </div>
     <div class="filter-group">
       <div class="filter-label">Trigger Event</div>
       {{-- Trigger Event select: make options dynamic --}}
-      <select class="filter-control" id="wa-event" onchange="waFilter()">
+      <select class="filter-control" id="wa-event" onchange="waFilter(true)">
         <option value="">All Events</option>
         @foreach($events as $ev)
           <option value="{{ $ev }}">{{ $ev }}</option>
@@ -160,7 +161,7 @@
     </div>
     <div class="filter-group">
       <div class="filter-label">Delivery Status</div>
-      <select class="filter-control" id="wa-status" onchange="waFilter()">
+      <select class="filter-control" id="wa-status" onchange="waFilter(true)">
         <option value="">All</option>
         <option>Delivered</option>
         <option>Sent</option>
@@ -171,6 +172,10 @@
     <div class="filter-group">
       <div class="filter-label">Date From</div>
       <input class="filter-control" type="date" id="wa-date"/>
+    </div>
+    <div class="filter-group">
+      <div class="filter-label">Date To</div>
+      <input class="filter-control" type="date" id="wa-date-to"/>
     </div>
     {{-- Filter actions --}}
     <div class="filter-actions">
@@ -208,18 +213,35 @@
         <tbody id="wa-tbody"></tbody>
       </table>
     </div>
-    <div class="pagination-bar">
-      <div class="page-info">Page {{ $paginator->currentPage() }} of {{ $paginator->lastPage() }} · {{ $paginator->total() }} total</div>
-      <div class="page-btns">
-        @foreach($paginator->linkCollection() as $link)
-          <a class="page-btn {{ $link['active'] ? 'active' : '' }}"
-            href="{{ $link['url'] ?? '#' }}"
-            style="{{ $link['url'] ? '' : 'opacity:.4;pointer-events:none;' }}text-decoration:none;">
-            {!! $link['label'] !!}
-          </a>
-        @endforeach
-      </div>
-    </div>
+    <div class="pagination-bar" id="wa-pagination-bar">
+  <div class="page-info" id="wa-page-info">Page {{ $paginator->currentPage() }} of {{ $paginator->lastPage() }} · {{ $paginator->total() }} total</div>
+  <div class="page-btns" id="wa-page-btns">
+    @foreach($paginator->linkCollection() as $link)
+      @php
+        $isPrev = str_contains($link['label'], 'Previous');
+        $isNext = str_contains($link['label'], 'Next');
+        $page = null;
+        if ($link['url']) {
+          parse_str(parse_url($link['url'], PHP_URL_QUERY) ?? '', $q);
+          $page = $q['page'] ?? 1;
+        }
+      @endphp
+      <a class="page-btn {{ $link['active'] ? 'active' : '' }} {{ $isPrev || $isNext ? 'page-btn-nav' : '' }}"
+        href="#"
+        data-page="{{ $page }}"
+        onclick="event.preventDefault(); if({{ $link['url'] ? 'true' : 'false' }}) waGoToPage({{ $page ?? 'null' }});"
+        style="{{ $link['url'] ? '' : 'opacity:.4;pointer-events:none;' }}text-decoration:none;">
+        @if($isPrev)
+          <i class="bi bi-chevron-left"></i>
+        @elseif($isNext)
+          <i class="bi bi-chevron-right"></i>
+        @else
+          {!! $link['label'] !!}
+        @endif
+      </a>
+    @endforeach
+  </div>
+</div>
 
   </div>
 
@@ -230,7 +252,6 @@
 @push('scripts')
 <script>
 var LOGS      = @json($logs);
-var WA_TOTAL  = {{ $totalThisMonth }};
 var WA_ROUTES = {
   retry:    "{{ url('wa_notification_log') }}",
   retryAll: "{{ route('wa_notification_log.retryAll') }}",
@@ -245,11 +266,16 @@ var WA_STATUS_CLS = {
   'Failed':'wa-status-failed','Pending':'wa-status-pending'
 };
 
+var WA_TOTAL_MONTH    = {{ $totalThisMonth }};   // stat card only
+var WA_FILTERED_TOTAL = {{ $paginator->total() }}; // drives the top count
+
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
-function waRenderRows(list){
+function waRenderRows(list, filteredTotal){
   var tbody = document.getElementById('wa-tbody');
-  document.getElementById('wa-count').textContent = list.length + ' of ' + (WA_TOTAL || list.length) + ' this month';
+  var total = (filteredTotal !== undefined && filteredTotal !== null) ? filteredTotal : list.length;
+  document.getElementById('wa-count').textContent = total + (total === 1 ? ' message' : ' messages');
+
   if(!list.length){
     tbody.innerHTML = '<tr class="empty-row"><td colspan="8"><i class="bi bi-inbox"></i>No notifications found</td></tr>';
     return;
@@ -276,35 +302,42 @@ function waRenderRows(list){
 
 function waParams(){
   var p = new URLSearchParams();
-  var sr = document.getElementById('wa-sr').value;
-  var ev = document.getElementById('wa-event').value;
-  var st = document.getElementById('wa-status').value;
-  var dt = document.getElementById('wa-date').value;
+  var sr   = document.getElementById('wa-sr').value;
+  var ev   = document.getElementById('wa-event').value;
+  var st   = document.getElementById('wa-status').value;
+  var dt   = document.getElementById('wa-date').value;
+  var dtTo = document.getElementById('wa-date-to').value;
   if(sr) p.set('sr', sr);
   if(ev) p.set('event', ev);
   if(st) p.set('status', st);
   if(dt) p.set('date_from', dt);
+  if(dtTo) p.set('date_to', dtTo);
+  if(WA_CURRENT_PAGE && WA_CURRENT_PAGE > 1) p.set('page', WA_CURRENT_PAGE);
   return p;
 }
 
 var waTimer = null;
-function waFilter(){
+function waFilter(resetPage){
   clearTimeout(waTimer);
   waTimer = setTimeout(function(){
+    if(resetPage) WA_CURRENT_PAGE = 1;
     var p = waParams();
     document.getElementById('wa-export').href = WA_ROUTES.export + '?' + p.toString();
     fetch(WA_ROUTES.index + '?' + p.toString(), {headers:{'X-Requested-With':'XMLHttpRequest'}})
       .then(function(r){return r.json();})
       .then(function(d){
-        LOGS = d.logs; WA_TOTAL = d.stats.total;
-        waRenderRows(LOGS);
+        LOGS = d.logs;
+        WA_FILTERED_TOTAL = d.meta.total;
+        waRenderRows(LOGS, WA_FILTERED_TOTAL);
+        waRenderPagination(d.meta);
       })
       .catch(function(){ showToast('err','Error','Could not load logs.'); });
   }, 250);
 }
 
 function waReset(){
-  ['wa-sr','wa-event','wa-status','wa-date'].forEach(function(id){document.getElementById(id).value='';});
+  ['wa-sr','wa-event','wa-status','wa-date','wa-date-to'].forEach(function(id){document.getElementById(id).value='';});
+  WA_CURRENT_PAGE = 1;
   waFilter();
 }
 
@@ -345,9 +378,46 @@ function showToast(type,title,body){
   setTimeout(function(){t.style.transition='opacity .3s';t.style.opacity='0';setTimeout(function(){t.remove();},300);},3500);
 }
 
-document.getElementById('wa-date').addEventListener('change', waFilter);
+var WA_CURRENT_PAGE = {{ $paginator->currentPage() }};
+
+function waGoToPage(page){
+  if(!page) return;
+  WA_CURRENT_PAGE = page;
+  waFilter(); // will pick up WA_CURRENT_PAGE via waParams()
+}
+
+function waRenderPagination(meta){
+  WA_CURRENT_PAGE = meta.current_page;
+  document.getElementById('wa-page-info').textContent =
+    'Page ' + meta.current_page + ' of ' + meta.last_page + ' · ' + meta.total + ' total';
+
+  var btns = document.getElementById('wa-page-btns');
+  btns.innerHTML = meta.links.map(function(link){
+    var isPrev = link.label.indexOf('Previous') !== -1;
+    var isNext = link.label.indexOf('Next') !== -1;
+    var page = null;
+    if (link.url) {
+      try {
+        var u = new URL(link.url, window.location.origin);
+        page = u.searchParams.get('page') || 1;
+      } catch(e){}
+    }
+    var cls = 'page-btn' + (link.active ? ' active' : '') + ((isPrev || isNext) ? ' page-btn-nav' : '');
+    var style = link.url ? '' : 'opacity:.4;pointer-events:none;';
+    var label = isPrev
+      ? '<i class="bi bi-chevron-left"></i>'
+      : isNext
+        ? '<i class="bi bi-chevron-right"></i>'
+        : link.label;
+    var onclick = link.url ? 'waGoToPage(' + (page || 1) + ')' : '';
+    return '<a class="'+cls+'" href="#" style="'+style+'text-decoration:none;" onclick="event.preventDefault();'+onclick+'">'+label+'</a>';
+  }).join('');
+}
+
+document.getElementById('wa-date').addEventListener('change', function(){ waFilter(true); });
+document.getElementById('wa-date-to').addEventListener('change', function(){ waFilter(true); });
 document.addEventListener('DOMContentLoaded', function(){
-  waRenderRows(LOGS);
+  waRenderRows(LOGS, WA_FILTERED_TOTAL);
   setInterval(waFilter, 60000);
 });
 </script>

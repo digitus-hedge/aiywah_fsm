@@ -59,9 +59,13 @@ class WhatsappLog extends Model
         return $status ? $q->where('status', $status) : $q;
     }
 
-    public function scopeDateFrom($q, ?string $date)
+    public function scopeDateFrom($query, $date)
     {
-        return $date ? $q->whereDate('created_at', '>=', $date) : $q;
+        return $query->when($date, fn($q) => $q->whereDate('created_at', '>=', $date));
+    }
+    public function scopeDateTo($query, $date)
+    {
+        return $query->when($date, fn($q) => $q->whereDate('created_at', '<=', $date));
     }
 
     /* ---------- Presentation ---------- */
