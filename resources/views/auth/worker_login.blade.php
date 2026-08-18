@@ -4,6 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>Technician Login | Matter Mind</title>
+
+  {{-- Favicon --}}
+  <link rel="icon" type="image/png" href="{{ asset('favicon-96x96.png') }}" sizes="96x96">
+  <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+  <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+  <meta name="apple-mobile-web-app-title" content="MatterMind">
+  <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}

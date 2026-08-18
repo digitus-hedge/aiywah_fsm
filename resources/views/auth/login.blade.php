@@ -6,30 +6,37 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Sign In · MatterMind Portal</title>
 
+    {{-- Favicon --}}
+    <link rel="icon" type="image/png" href="{{ asset('favicon-96x96.png') }}" sizes="96x96">
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
+    <meta name="apple-mobile-web-app-title" content="MatterMind">
+    <link rel="manifest" href="{{ asset('site.webmanifest') }}">
+
     {{-- Self-hosted brand fonts: Cormorant Garamond (display) + SF Pro Display (body) --}}
     <link rel="stylesheet" href="{{ asset('assets/fonts/fonts.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.1/dist/feather.min.js"></script>
 
     <style>
         :root{
-            /* ── MatterMind brand palette ── */
-            --brand-700:#82693f;   /* darker gold (gradient partner) */
-            --brand-600:#8c7147;   /* mid gold */
-            --brand-500:#9a8053;   /* PRIMARY gold */
-            --brand-300:#c4a882;   /* light gold accent */
-            --ink:#393837;         /* TERTIARY charcoal — headings & body ink */
+            /* ── MatterMind brand palette (unchanged) ── */
+            --brand-700:#82693f;
+            --brand-600:#8c7147;
+            --brand-500:#9a8053;
+            --brand-300:#c4a882;
+            --ink:#393837;
             --ink-soft:#5f5d5a;
             --muted:#9b988f;
             --line:#e9e4dc;
             --field-bg:#faf8f5;
-            --card:#ffffff;        /* SECONDARY white */
+            --card:#ffffff;
             --danger:#c8455f;
             --danger-bg:rgba(200,69,95,.08);
             --success:#0f8f6a;
             --success-bg:rgba(15,143,106,.08);
             --page:#f2ede6;
 
-            /* ── Type stacks (mirrors theme.css) ── */
             --font-head:'Cormorant Garamond',Georgia,'Times New Roman',serif;
             --font-body:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
         }
@@ -40,299 +47,315 @@
             font-family:var(--font-body);
             min-height:100vh;
             display:grid;
-            grid-template-columns:1.05fr .95fr;
+            grid-template-columns:46fr 54fr;
             background:var(--page);
             color:var(--ink);
             -webkit-font-smoothing:antialiased;
             text-rendering:optimizeLegibility;
         }
 
-        /* ═══ LEFT: brand panel ═══
-           3-row grid: mark / centred story / footer.
-           The story row takes all free space and centres its own
-           content, so it stays optically middle regardless of
-           viewport height while mark + footer stay pinned. */
+        @media (prefers-reduced-motion: reduce){
+            *{animation-duration:.01ms !important; transition-duration:.01ms !important;}
+        }
+
+        /* ═══════════════════════════════════════════════════════════
+           LEFT — brand panel, original gold gradient
+           ═══════════════════════════════════════════════════════════ */
         .brand-panel{
             position:relative;
             overflow:hidden;
-            isolation:isolate;
-            background:
-                radial-gradient(120% 130% at 12% 6%, #b1936180 0%, transparent 58%),
-                radial-gradient(140% 140% at 92% 92%, #5e4c2e99 0%, transparent 62%),
-                linear-gradient(155deg, var(--brand-700) 0%, var(--brand-500) 62%, #a5885a 100%);
+            background:linear-gradient(155deg, var(--brand-700) 0%, var(--brand-500) 62%, #a5885a 100%);
             color:#fff;
-            padding:52px 64px;
-            display:grid;
-            grid-template-rows:auto 1fr auto;
-            gap:32px;
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+            padding:56px 54px;
         }
 
-        /* Fine grain — keeps the large gold field from banding */
+        /* fine grain, keeps the gold field from banding */
         .brand-panel::before{
             content:'';
-            position:absolute;inset:0;z-index:-1;
+            position:absolute;inset:0;z-index:0;
             background-image:radial-gradient(rgba(255,255,255,.5) .5px, transparent .5px);
             background-size:3px 3px;
             opacity:.05;
         }
 
-        /* Concentric rings — recentred, softer falloff */
-        .bp-rings{
+        /* ── signature: concentric rings + chevron diamond, echoing
+               the mark's own linework, bled off the corner ── */
+        .ring-field{
             position:absolute;
-            right:-260px; bottom:-260px;
-            width:720px; height:720px;
-            border-radius:50%;
-            border:1px solid rgba(255,255,255,.14);
-            box-shadow:
-                0 0 0 1px rgba(255,255,255,.05) inset,
-                0 0 0 70px rgba(255,255,255,.035),
-                0 0 0 150px rgba(255,255,255,.025),
-                0 0 0 240px rgba(255,255,255,.015);
-            z-index:-1;
+            top:-190px; right:-230px;
+            width:640px; height:640px;
             pointer-events:none;
+            opacity:0;
+            animation:ringIn 1.1s .15s cubic-bezier(.16,1,.3,1) forwards;
         }
-        .bp-glow{
-            position:absolute;
-            left:-160px; top:-160px;
-            width:420px; height:420px;
+        @keyframes ringIn{
+            from{opacity:0; transform:scale(.92);}
+            to{opacity:1; transform:scale(1);}
+        }
+        .ring{
+            position:absolute; top:50%; left:50%;
+            border:1px solid rgba(255,255,255,.16);
             border-radius:50%;
-            background:radial-gradient(circle, rgba(255,255,255,.10), transparent 70%);
-            z-index:-1;
-            pointer-events:none;
+            transform:translate(-50%,-50%);
+        }
+        .ring.r1{ width:640px; height:640px; border-color:rgba(255,255,255,.10); }
+        .ring.r2{ width:498px; height:498px; border-color:rgba(255,255,255,.14); }
+        .ring.r3{ width:360px; height:360px; border-color:rgba(255,255,255,.20); }
+        .ring.r4{ width:226px; height:226px; border-color:rgba(255,255,255,.30); }
+        .ring-diamond{
+            position:absolute; top:50%; left:50%;
+            width:300px; height:300px;
+            border:1px solid rgba(255,255,255,.16);
+            transform:translate(-50%,-50%) rotate(45deg);
         }
 
-        .bp-top{
-            display:flex;
-            align-items:center;
-            gap:14px;
-        }
-        .bp-mark{
-            width:52px;height:52px;flex-shrink:0;
-            display:flex;align-items:center;justify-content:center;
-        }
-        .bp-mark img{
-            width:52px;
-            height:52px;
-            object-fit:contain;
-            display:block;
-            filter:brightness(0) invert(1);
-            opacity:.96;
-        }
+        /* logo lockup is the only element up here now — no side text,
+           so it just needs to sit clean and scale down gracefully */
+        .bp-top{ position:relative; z-index:1; margin-bottom:44px; }
+        .bp-mark{ width:200px; }
+        .bp-mark img{ width:100%; height:auto; display:block; }
 
-        /* Centred story block */
-        .bp-mid{
-            align-self:center;
-            max-width:430px;
-        }
+        .bp-mid{ position:relative; z-index:1; max-width:410px; }
         .bp-eyebrow{
-            font-family:var(--font-body);
-            font-size:.68rem;font-weight:600;letter-spacing:.24em;text-transform:uppercase;
-            opacity:.72;margin-bottom:22px;
-            display:flex;align-items:center;gap:12px;
-        }
-        .bp-eyebrow::before{
-            content:'';
-            width:30px;height:1px;
-            background:linear-gradient(90deg, rgba(255,255,255,.7), rgba(255,255,255,.15));
+            font-size:.68rem; font-weight:600; letter-spacing:.24em; text-transform:uppercase;
+            color:rgba(255,255,255,.78); margin-bottom:20px;
         }
         .bp-head{
             font-family:var(--font-head);
             font-weight:600;
-            font-size:3.5rem;
-            line-height:1.06;
-            letter-spacing:.005em;
-            margin-bottom:20px;
+            font-size:2.9rem;
+            line-height:1.16;
+            letter-spacing:.003em;
+            margin-bottom:18px;
             text-wrap:balance;
         }
         .bp-head em{
-            font-style:italic;
-            font-weight:500;
+            font-style:italic; font-weight:500;
             color:#f3e4cb;
         }
         .bp-rule{
-            width:52px;height:2px;
+            width:44px; height:2px;
             background:linear-gradient(90deg, rgba(255,255,255,.85), rgba(255,255,255,.1));
             border-radius:2px;
-            margin-bottom:20px;
+            margin-bottom:18px;
         }
         .bp-sub{
-            font-size:.93rem;
-            line-height:1.68;
-            opacity:.84;
-            font-weight:400;
-            max-width:390px;
+            font-size:.9rem; line-height:1.75;
+            color:rgba(255,255,255,.82);
+            max-width:340px;
         }
 
         .bp-foot{
-            font-size:.71rem;
-            opacity:.55;
-            letter-spacing:.03em;
+            position:relative; z-index:1;
+            display:flex; align-items:baseline; justify-content:space-between;
+            font-size:.68rem; letter-spacing:.04em;
+            color:rgba(255,255,255,.55);
+            border-top:1px solid rgba(255,255,255,.16);
+            padding-top:18px;
         }
 
-        /* ═══ RIGHT: form ═══ */
+        /* ═══════════════════════════════════════════════════════════
+           RIGHT — sign-in form, original card white
+           ═══════════════════════════════════════════════════════════ */
         .form-panel{
+            position:relative;
             display:flex;
             align-items:center;
             justify-content:center;
             padding:48px 40px;
             background:var(--card);
         }
-        .form-inner{width:100%;max-width:376px;}
+
+        /* hallmark watermark — small, quiet, bottom corner */
+        .fp-hallmark{
+            position:absolute;
+            width:150px;
+            right:44px; bottom:36px;
+            opacity:.06;
+            pointer-events:none;
+        }
+        .fp-hallmark img{ width:100%; height:auto; display:block; }
+
+        .form-inner{
+            width:100%; max-width:352px;
+            position:relative; z-index:1;
+            opacity:0;
+            animation:riseIn .7s .3s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        @keyframes riseIn{
+            from{opacity:0; transform:translateY(10px);}
+            to{opacity:1; transform:translateY(0);}
+        }
 
         .fp-kicker{
-            font-size:.7rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
-            color:var(--brand-500);margin-bottom:12px;
+            font-size:.7rem; font-weight:600; letter-spacing:.18em; text-transform:uppercase;
+            color:var(--brand-500); margin-bottom:12px;
         }
         .fp-title{
             font-family:var(--font-head);
-            font-size:2.6rem;font-weight:600;letter-spacing:.01em;
+            font-size:2.5rem; font-weight:600; letter-spacing:.01em;
             line-height:1.1;
-            margin-bottom:8px;color:var(--ink);
+            margin-bottom:8px; color:var(--ink);
         }
-        .fp-lead{font-size:.86rem;color:var(--ink-soft);margin-bottom:30px;}
+        .fp-lead{ font-size:.86rem; color:var(--ink-soft); margin-bottom:38px; }
 
-        .field{margin-bottom:18px;}
+        .field{ margin-bottom:28px; }
         .field-label{
-            display:block;font-size:.76rem;font-weight:500;
-            color:var(--ink-soft);margin-bottom:7px;letter-spacing:.01em;
+            display:block;
+            font-size:.7rem; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+            color:var(--ink-soft); margin-bottom:10px;
         }
-        .field-head{
-            display:flex;align-items:baseline;justify-content:space-between;
-            margin-bottom:7px;
-        }
-        .field-head .field-label{margin-bottom:0;}
-        .field-link{
-            font-size:.74rem;font-weight:500;
-            color:var(--brand-500);text-decoration:none;
-            transition:color .18s;
-        }
-        .field-link:hover{color:var(--brand-700);text-decoration:underline;}
 
-        .field-box{position:relative;}
-        .field-box .fi{
-            position:absolute;top:50%;left:14px;transform:translateY(-50%);
-            width:17px;height:17px;color:var(--muted);pointer-events:none;
-            transition:color .18s;
-        }
+        .field-box{ position:relative; }
+
+        /* underline-style inputs — now with real breathing room instead
+           of text sitting flush against the hairline and each edge */
         .field-input{
             width:100%;
-            font-family:var(--font-body);font-size:.9rem;
+            font-family:var(--font-body); font-size:.95rem;
             color:var(--ink);
             background:var(--field-bg);
-            border:1.5px solid var(--line);
-            border-radius:9px;
-            padding:.72rem .9rem .72rem 2.6rem;
-            transition:border-color .18s, box-shadow .18s, background .18s;
+            border:none;
+            border-bottom:1.5px solid var(--line);
+            border-radius:6px 6px 0 0;
+            padding:.9rem 1rem;
+            transition:border-color .2s, background .2s;
         }
-        .field-input::placeholder{color:var(--muted);}
+        .field-input::placeholder{ color:var(--muted); }
         .field-input:focus{
             outline:none;
             background:#fff;
-            border-color:var(--brand-500);
-            box-shadow:0 0 0 3.5px rgba(154,128,83,.14);
+            border-bottom-color:var(--brand-500);
         }
-        .field-box:focus-within .fi{color:var(--brand-500);}
+        .field-box::after{
+            content:'';
+            position:absolute; left:0; right:0; bottom:-1.5px;
+            height:1.5px; background:var(--brand-500);
+            transform:scaleX(0); transform-origin:left;
+            transition:transform .28s cubic-bezier(.16,1,.3,1);
+            pointer-events:none;
+        }
+        .field-box:focus-within::after{ transform:scaleX(1); }
 
-        .field-input.pw{padding-right:2.7rem;}
+        .field-input.pw{ padding-right:2.7rem; }
         .pw-toggle{
-            position:absolute;top:50%;right:12px;transform:translateY(-50%);
-            background:none;border:none;cursor:pointer;color:var(--muted);
-            display:flex;align-items:center;padding:4px;border-radius:5px;
+            position:absolute; right:.6rem; top:50%; transform:translateY(-50%);
+            background:none; border:none; cursor:pointer; color:var(--muted);
+            display:flex; align-items:center; padding:4px;
             transition:color .18s;
         }
-        .pw-toggle:hover{color:var(--brand-500);}
-        .pw-toggle svg{width:16px;height:16px;}
+        .pw-toggle:hover{ color:var(--brand-500); }
+        .pw-toggle svg{ width:15px; height:15px; }
 
-        .field-input.is-invalid{border-color:var(--danger);background:#fff;}
-        .field-input.is-invalid:focus{box-shadow:0 0 0 3.5px rgba(200,69,95,.13);}
-        .field-error{color:var(--danger);font-size:.74rem;margin-top:6px;}
+        .field-input.is-invalid{ border-bottom-color:var(--danger); }
+        .field-error{ color:var(--danger); font-size:.73rem; margin-top:8px; }
 
         .btn-signin{
             width:100%;
-            font-family:var(--font-body);font-size:.9rem;font-weight:600;letter-spacing:.01em;
+            font-family:var(--font-body);
+            font-size:.87rem; font-weight:600; letter-spacing:.01em;
             color:#fff;
             background:linear-gradient(135deg, var(--brand-600), var(--brand-500));
-            border:none;border-radius:9px;
-            padding:.8rem;
-            margin-top:6px;
+            border:none; border-radius:9px;
+            padding:.85rem;
+            margin-top:12px;
             cursor:pointer;
-            display:flex;align-items:center;justify-content:center;gap:9px;
-            transition:box-shadow .2s, transform .1s, opacity .2s;
+            display:flex; align-items:center; justify-content:center; gap:9px;
+            transition:box-shadow .22s, transform .12s, opacity .2s;
         }
-        .btn-signin:hover{box-shadow:0 6px 20px rgba(130,105,63,.32);}
-        .btn-signin:active{transform:translateY(1px);}
-        .btn-signin:disabled{opacity:.6;cursor:not-allowed;box-shadow:none;}
-        .btn-signin svg{width:16px;height:16px;}
+        .btn-signin:hover{ box-shadow:0 10px 26px rgba(130,105,63,.32); }
+        .btn-signin:active{ transform:translateY(1px); }
+        .btn-signin:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
+        .btn-signin svg{ width:16px; height:16px; }
 
         .alert{
-            padding:.7rem .85rem;border-radius:8px;font-size:.79rem;
-            margin-bottom:20px;display:flex;align-items:flex-start;gap:9px;line-height:1.45;
+            padding:.7rem .85rem; border-radius:8px; font-size:.79rem;
+            margin-bottom:26px; display:flex; align-items:flex-start; gap:9px; line-height:1.45;
         }
-        .alert svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;}
-        .alert-danger{background:var(--danger-bg);color:var(--danger);border:1px solid rgba(200,69,95,.18);}
-        .alert-success{background:var(--success-bg);color:var(--success);border:1px solid rgba(15,143,106,.18);}
+        .alert svg{ width:16px; height:16px; flex-shrink:0; margin-top:1px; }
+        .alert-danger{ background:var(--danger-bg); color:var(--danger); border:1px solid rgba(200,69,95,.18); }
+        .alert-success{ background:var(--success-bg); color:var(--success); border:1px solid rgba(15,143,106,.18); }
 
         .fp-foot{
-            text-align:center;margin-top:26px;padding-top:20px;
+            text-align:center; margin-top:32px; padding-top:20px;
             border-top:1px solid var(--line);
-            font-size:.72rem;color:var(--muted);
+            font-size:.72rem; color:var(--muted);
         }
 
         /* ═══ Responsive ═══ */
         @media (max-width:900px){
-            body{grid-template-columns:1fr;}
-            .brand-panel{
-                padding:40px 40px 34px;
-                grid-template-rows:auto auto auto;
-                gap:26px;
-            }
-            .bp-rings{width:460px;height:460px;right:-200px;bottom:-200px;}
-            .bp-mid{max-width:none;align-self:start;}
-            .bp-head{font-size:2.5rem;}
-            .bp-foot{display:none;}
+            body{ grid-template-columns:1fr; }
+            .brand-panel{ padding:40px 32px 28px; min-height:auto; }
+            .ring-field{ width:420px; height:420px; top:-140px; right:-160px; }
+            .ring.r1{ width:420px; height:420px; }
+            .ring.r2{ width:328px; height:328px; }
+            .ring.r3{ width:238px; height:238px; }
+            .ring.r4{ width:150px; height:150px; }
+            .ring-diamond{ width:198px; height:198px; }
+            .bp-top{ margin-bottom:28px; }
+            .bp-mark{ width:150px; }
+            .bp-head{ font-size:2.1rem; }
+            .bp-sub{ display:none; }
+            .bp-foot{ display:none; }
+            .fp-hallmark{ width:110px; right:24px; bottom:22px; }
         }
         @media (max-width:520px){
-            .brand-panel{padding:30px 26px 26px;}
-            .form-panel{padding:34px 26px;}
-            .bp-head{font-size:2.1rem;}
-            .fp-title{font-size:2.1rem;}
+            .brand-panel{ padding:34px 24px 24px; }
+            .form-panel{ padding:34px 24px; }
+            .bp-top{ margin-bottom:22px; }
+            .bp-mark{ width:120px; }
+            .bp-head{ font-size:1.85rem; }
+            .fp-title{ font-size:2.1rem; }
         }
     </style>
 </head>
 <body>
 
-    {{-- ═══ LEFT: brand story ═══ --}}
+    {{-- ═══ LEFT — brand geometry ═══ --}}
     <aside class="brand-panel">
-        <span class="bp-rings" aria-hidden="true"></span>
-        <span class="bp-glow" aria-hidden="true"></span>
+
+        <span class="ring-field" aria-hidden="true">
+            <span class="ring r1"></span>
+            <span class="ring r2"></span>
+            <span class="ring r3"></span>
+            <span class="ring r4"></span>
+            <span class="ring-diamond"></span>
+        </span>
 
         <div class="bp-top">
             <div class="bp-mark">
-                <img src="{{ asset('assets/images/logo-main.webp') }}" alt="MatterMind">
+                <img src="{{ asset('assets/images/mmwhite.png') }}" alt="MatterMind">
             </div>
         </div>
 
         <div class="bp-mid">
-            <div class="bp-eyebrow">MATTER MIND</div>
-            <h1 class="bp-head">Service that <em>matters</em>. Always.</h1>
+            <div class="bp-eyebrow">Operations Portal</div>
+            <h1 class="bp-head"><em>Perfection</em> is a state of mind.</h1>
             <div class="bp-rule"></div>
-            <p class="bp-sub">Provision users, route service requests, and keep every operation moving — all from one considered workspace.</p>
+            <p class="bp-sub">Provision users, route service requests, and keep every operation moving — from one considered workspace.</p>
         </div>
 
         <div class="bp-foot">
-            &copy; {{ date('Y') }} Matter Mind. All rights reserved.
+            <span>&copy; {{ date('Y') }} Matter Mind</span>
+            <span>All rights reserved</span>
         </div>
     </aside>
 
-    {{-- ═══ RIGHT: sign in ═══ --}}
+    {{-- ═══ RIGHT — sign in ═══ --}}
     <main class="form-panel">
+        <span class="fp-hallmark" aria-hidden="true">
+            <img src="{{ asset('assets/images/mattermind-mark-gold.png') }}" alt="">
+        </span>
+
         <div class="form-inner">
 
             <div class="fp-kicker">Welcome back</div>
             <h2 class="fp-title">Sign in</h2>
             <p class="fp-lead">Enter your credentials to access the portal.</p>
 
-            {{-- Flash / non-field errors --}}
             @if (session('success'))
                 <div class="alert alert-success">
                     <i data-feather="check-circle"></i>
@@ -354,7 +377,6 @@
                 <div class="field">
                     <label for="email" class="field-label">Email address</label>
                     <div class="field-box">
-                        <i data-feather="mail" class="fi"></i>
                         <input
                             type="email"
                             class="field-input @error('email') is-invalid @enderror"
@@ -370,11 +392,8 @@
 
                 {{-- Password --}}
                 <div class="field">
-                    <div class="field-head">
-                        <label for="password" class="field-label">Password</label>
-                    </div>
+                    <label for="password" class="field-label">Password</label>
                     <div class="field-box">
-                        <i data-feather="lock" class="fi"></i>
                         <input
                             type="password"
                             class="field-input pw @error('password') is-invalid @enderror"
@@ -396,9 +415,7 @@
                 </button>
             </form>
 
-            <div class="fp-foot">
-                Protected access · authorised personnel only
-            </div>
+            <div class="fp-foot">Protected access · authorised personnel only</div>
 
         </div>
     </main>
@@ -417,15 +434,13 @@
             feather.replace();
         });
 
-        const form    = document.querySelector('form');
+        const form     = document.querySelector('form');
         const btn      = document.getElementById('loginBtn');
         const btnText  = document.getElementById('btnText');
         form.addEventListener('submit', () => {
             btn.disabled = true;
             btnText.textContent = 'Signing in…';
         });
-
-       
     </script>
 </body>
 </html>
