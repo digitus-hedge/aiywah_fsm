@@ -652,7 +652,20 @@ footer.footer { display: none; }
   gap:16px;
   align-items:stretch;          /* both cards get the tallest one's height */
 }
-
+.g3-cfs .ch-180 {
+  height: 150px;          /* was inheriting 175px from the generic .ch-180 rule */
+}
+.g3-cfs .card .client-list {
+  max-height: 168px;      /* ~4 rows before scroll kicks in */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+}
+.g3-cfs .card .client-list::-webkit-scrollbar { width: 4px; }
+.g3-cfs .card .client-list::-webkit-scrollbar-thumb {
+  background: rgba(154,128,83,.35);
+  border-radius: 3px;
+}
 /* identical shells */
 .card,
 .main-chart-card{
@@ -2140,65 +2153,74 @@ const clientRows = DATA.clients || [];
 if (clientEl && clientRows.length) {
     if (charts.mmClient) charts.mmClient.destroy();
 
-    const shorten = (s, max = 10) => {
-        s = String(s || '—');
-        return s.length > max ? s.slice(0, max) + '…' : s;
-    };
-
+    const shorten = (s, max = 14) => {
+    s = String(s || '—');
+    return s.length > max ? s.slice(0, max) + '…' : s;
+};
     charts.mmClient = new Chart(clientEl, {
-        type: 'bar',
-        data: {
-            labels: clientRows.map(c => shorten(c.n ?? c.name)),
-            datasets: [
-                {
-                    label: 'In-warranty',
-                    data: clientRows.map(c => Number(c.iw) || 0),
-                    backgroundColor: 'rgba(154,128,83,.75)',
-                    borderRadius: 4, borderSkipped: false,
+    type: 'bar',
+    data: {
+        labels: clientRows.map(c => shorten(c.n ?? c.name)),
+        datasets: [
+            {
+                label: 'In-warranty',
+                data: clientRows.map(c => Number(c.iw) || 0),
+                backgroundColor: (ctx) => {
+                    const g = ctx.chart.ctx.createLinearGradient(0, 0, ctx.chart.width, 0);
+                    g.addColorStop(0, '#b8975e');
+                    g.addColorStop(1, '#9a8053');
+                    return g;
                 },
-                {
-                    label: 'Out-of-warranty',
-                    data: clientRows.map(c => Number(c.oow) || 0),
-                    backgroundColor: 'rgba(57,56,55,.45)',
-                    borderRadius: 4, borderSkipped: false,
-                },
-            ],
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            indexAxis: 'y',
-            barPercentage: 0.72,
-            categoryPercentage: 0.78,
-            layout: { padding: { right: 6 } },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    ...tooltipStyle,
-                    callbacks: {
-                        // show the full, untruncated name in the tooltip
-                        title: (items) => {
-                            const row = clientRows[items[0].dataIndex];
-                            return String(row?.n ?? row?.name ?? '—');
-                        },
+                borderRadius: { topLeft: 5, bottomLeft: 5, topRight: 5, bottomRight: 5 },
+                borderSkipped: false,
+                maxBarThickness: 14,
+            },
+            {
+                label: 'Out-of-warranty',
+                data: clientRows.map(c => Number(c.oow) || 0),
+                backgroundColor: 'rgba(57,56,55,.4)',
+                borderRadius: { topLeft: 5, bottomLeft: 5, topRight: 5, bottomRight: 5 },
+                borderSkipped: false,
+                maxBarThickness: 14,
+            },
+        ],
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        barPercentage: 0.6,
+        categoryPercentage: 0.55,
+        layout: { padding: { right: 10, top: 4, bottom: 4 } },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                ...tooltipStyle,
+                callbacks: {
+                    title: (items) => {
+                        const row = clientRows[items[0].dataIndex];
+                        return String(row?.n ?? row?.name ?? '—');
                     },
                 },
             },
-            scales: {
-                x: {
-                    stacked: true,
-                    beginAtZero: true,
-                    grid: { color: C.grid },
-                    ticks: { color: C.muted, font: { size: 10 }, precision: 0 },
-                },
-                y: {
-                    stacked: true,
-                    grid: { display: false },
-                    ticks: { color: C.text, font: { size: 10 }, crossAlign: 'far' },
-                },
+        },
+        scales: {
+            x: {
+                stacked: true,
+                beginAtZero: true,
+                grid: { color: C.grid },
+                border: { display: false },
+                ticks: { color: C.muted, font: { size: 10 }, precision: 0, maxTicksLimit: 5 },
+            },
+            y: {
+                stacked: true,
+                grid: { display: false },
+                border: { display: false },
+                ticks: { color: C.text, font: { size: 11, weight: '500' }, crossAlign: 'far' },
             },
         },
-    });
+    },
+});
 }
 
 
@@ -2439,14 +2461,6 @@ if (fdEl && (DATA.frontDesk || []).length) {
                 panelBody.innerHTML = '<p class="empty"><i class="bi bi-wifi-off"></i>The request failed. Close the panel and try again.</p>';
             });
     }
-
-
-    // ← ADD THIS
-document.addEventListener('click', function (e) {
-    var el = e.target.closest('[data-panel]');
-    if (!el) return;
-    openPanel(el.dataset.panel, el.dataset.id || null);
-});
 
     function closePanel() {
         overlay.classList.remove('open');
