@@ -14,11 +14,11 @@ class DemoUserSeeder extends Seeder
     public function run(): void
     {
         User::updateOrCreate(
-            ['email' => 'admin@gmail.com'],
+            ['email' => 'admin@mattermind.ae'],
             [
                 'name' => 'Super Admin',
-                'email' => 'admin@gmail.com',
-                'password' => Hash::make('password'),
+                'email' => 'admin@mattermind.ae',
+                'password' => Hash::make('service@mattermind'),
                 'role_id'   => '1',
             ]
         );

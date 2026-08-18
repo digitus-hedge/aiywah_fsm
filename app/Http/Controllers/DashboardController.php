@@ -62,7 +62,7 @@ class DashboardController extends Controller
 
 
     private const SLA_HOURS     = 48;
-    private const SLA_RESOLVED  = ['Completed', 'Rejected', 'Pending Invoice', 'Invoice Submitted'];
+    private const SLA_RESOLVED  = ['Completed', 'Rejected', 'Quote Rejected', 'Pending Invoice', 'Invoice Submitted'];
 
 
     /**
@@ -1058,13 +1058,13 @@ class DashboardController extends Controller
 
     /** When an SR actually landed in a resolved state, for SLA_HOURS purposes. */
     private function resolvedAt(ServiceRequest $sr): ?Carbon
-    {
-        return match ($sr->status) {
-            'Completed', 'Pending Invoice', 'Invoice Submitted' => $sr->invoice_submitted_at ?? $sr->updated_at,
-            'Rejected' => $sr->updated_at,
-            default => null,
-        };
-    }
+{
+    return match ($sr->status) {
+        'Completed', 'Pending Invoice', 'Invoice Submitted' => $sr->invoice_submitted_at ?? $sr->updated_at,
+        'Rejected', 'Quote Rejected' => $sr->updated_at,
+        default => null,
+    };
+}
 
     /**
      * SLA outcome measured from created_at (inquiry time) against SLA_HOURS.
@@ -1139,8 +1139,7 @@ class DashboardController extends Controller
         $breached = $srs->filter(fn($sr) => $this->hasBreach($sr));
 
         return [
-            'breaches' => $srs->filter(fn($sr) => $this->metSla($sr) === false)->count(),
-
+            'breaches' => $srs->filter(fn($sr) => $this->slaOutcome($sr) === false)->count(),
             'pending' => $srs->whereIn('status', self::AWAITING_ACTION)->count(),
 
             'stalled'  => $srs
@@ -1342,8 +1341,7 @@ class DashboardController extends Controller
             ->sortBy(fn($sr) => $this->completedAt($sr) ?? $sr->updated_at)
             ->first();
 
-        $breached = $srs->filter(fn($sr) => $this->metSla($sr) === false);
-
+        $breached = $srs->filter(fn($sr) => $this->slaOutcome($sr) === false);
         return [
             // Gauge
             'qc_rate'     => $reachedQc > 0 ? round($reviewed->count() / $reachedQc * 100, 1) : null,
