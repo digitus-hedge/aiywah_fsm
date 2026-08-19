@@ -1359,7 +1359,7 @@ class ServiceRequestController extends Controller
             ]);
         });
 
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, 'Rework');
+        // app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, 'Rework');
         $ref = $this->buildSrRef($serviceRequest);
 
         return response()->json([
@@ -1511,8 +1511,8 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        app(\App\Services\WhatsAppService::class)
-            ->notifyServiceStatus($serviceRequest, 'Quote Approved');
+        // app(\App\Services\WhatsAppService::class)
+        //     ->notifyServiceStatus($serviceRequest, 'Quote Approved');
 
         return response()->json([
             'ok'      => true,
@@ -1549,8 +1549,8 @@ class ServiceRequestController extends Controller
             'caused_by'   => auth()->id(),
         ]);
 
-        app(\App\Services\WhatsAppService::class)
-            ->notifyServiceStatus($serviceRequest, 'Quote Rejected');
+        // app(\App\Services\WhatsAppService::class)
+        //     ->notifyServiceStatus($serviceRequest, 'Quote Rejected');
 
         return response()->json([
             'ok'      => true,
@@ -1673,8 +1673,9 @@ class ServiceRequestController extends Controller
         ]);
 
 
-        app(\App\Services\WhatsAppService::class)
-            ->notifyServiceStatus($serviceRequest, 'Invoice Submitted');
+        // app(\App\Services\WhatsAppService::class)
+        //     ->notifyServiceStatus($serviceRequest, 'Invoice Submitted');
+
         return response()->json(['ok' => true, 'message' => 'Invoice committed. HoP notified.']);
     }
 

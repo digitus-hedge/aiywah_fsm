@@ -513,7 +513,7 @@ span#cds
             <a class="btn-ghost" href=""><i class="bi bi-download"></i>Export</a>
 
                   @if (auth()->user()?->role?->code !== 'SE')
-            <button class="btn-gold" onclick="openInquiry()"><i class="bi bi-plus-lg"></i>New Inquiry</button>
+            <!-- <button class="btn-gold" onclick="openInquiry()"><i class="bi bi-plus-lg"></i>New Inquiry</button> -->
             @endif
           </div>
         </div>

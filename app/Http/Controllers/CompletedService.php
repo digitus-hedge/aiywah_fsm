@@ -212,7 +212,16 @@ class CompletedService extends Controller
         $completedAt = $punch && $punch->punch_out_at
             ? Carbon::parse($punch->punch_out_at)
             : Carbon::parse($sr->updated_at);
-        $isOow = ($sr->warranty_scope ?? 'iw') === 'oow';
+                $isOow = ($sr->warranty_scope ?? 'iw') === 'oow';
+
+        $materials = $punch->materials_subtotal ?? 0;
+        $labour    = $punch->labour_charge ?? 0;
+
+        // Invoice total should only appear when it's actually been recorded
+        // on the service_requests table — no fallback to punch grand_total.
+        $hasInvoiceTotal = $sr->invoice_total !== null;
+        $invoiceTotal    = $hasInvoiceTotal ? $sr->invoice_total : 0;
+
         return [
             'id'          => $sr->id,
             'code'        => $srCode,
@@ -229,10 +238,12 @@ class CompletedService extends Controller
                 ? Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A') : '—',
             'punch_out'   => $punch && $punch->punch_out_at
                 ? Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '—',
-            'duration'    => $punch->duration_label ?? '—',
-            'materials'   => number_format($punch->materials_subtotal ?? 0, 2),
-            'labour'      => number_format($punch->labour_charge ?? 0, 2),
-            'total'       => number_format($punch->grand_total ?? 0, 2),
+            'duration'         => $this->computeDuration($punch),
+            'materials'        => number_format($materials, 2),
+            'labour'           => number_format($labour, 2),
+            'has_invoice_total' => $hasInvoiceTotal,
+            'invoice_total'    => $hasInvoiceTotal ? number_format($invoiceTotal, 2) : null,
+            'total'            => $hasInvoiceTotal ? number_format($invoiceTotal, 2) : number_format($materials, 2),
             'completed'   => $completedAt->format('d M Y · h:i A'),
             'completed_h' => $completedAt->diffForHumans(),
             'before'      => $punch && $punch->start_photo_path
@@ -303,4 +314,31 @@ class CompletedService extends Controller
             'Pragma'              => 'no-cache',
         ]);
     }
+    /**
+ * Human readable duration computed directly from punch in/out timestamps,
+ * e.g. "1d 2h 15m" / "3h 05m" / "42m". Returns '—' if either timestamp is
+ * missing.
+ */
+private function computeDuration(?Punch $punch): string
+{
+    if (! $punch || ! $punch->punch_in_at || ! $punch->punch_out_at) {
+        return '—';
+    }
+
+    $in  = Carbon::parse($punch->punch_in_at);
+    $out = Carbon::parse($punch->punch_out_at);
+
+    if ($out->lessThan($in)) {
+        [$in, $out] = [$out, $in]; // guard against bad data
+    }
+
+    $diff = $in->diff($out);
+
+    $parts = [];
+    if ($diff->d > 0) $parts[] = $diff->d . 'd';
+    if ($diff->h > 0) $parts[] = $diff->h . 'h';
+    $parts[] = str_pad((string) $diff->i, 2, '0', STR_PAD_LEFT) . 'm';
+
+    return implode(' ', $parts);
+}
 }

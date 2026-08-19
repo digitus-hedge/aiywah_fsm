@@ -253,9 +253,25 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
               ? \Carbon\Carbon::parse($punch->punch_out_at)
               : \Carbon\Carbon::parse($sr->updated_at);
 
-            $grandTotal = $punch->grand_total ?? 0;
-            $duration   = $punch->duration_label ?? '—';
-            $worker     = optional($punch?->user)->name ?? 'Unassigned';
+            // Invoice total lives on service_requests.invoice_total — only show it
+            // when it's actually been recorded, no fallback to punch grand_total.
+            $hasInvoiceTotal = $sr->invoice_total !== null;
+            $grandTotal      = $hasInvoiceTotal ? $sr->invoice_total : ($punch->materials_subtotal ?? 0);
+            $worker          = optional($punch?->user)->name ?? 'Unassigned';
+
+            // Duration computed directly from punch in/out timestamps.
+            $duration = '—';
+            if ($punch && $punch->punch_in_at && $punch->punch_out_at) {
+                $pin  = \Carbon\Carbon::parse($punch->punch_in_at);
+                $pout = \Carbon\Carbon::parse($punch->punch_out_at);
+                if ($pout->lessThan($pin)) { [$pin, $pout] = [$pout, $pin]; }
+                $diff = $pin->diff($pout);
+                $parts = [];
+                if ($diff->d > 0) $parts[] = $diff->d . 'd';
+                if ($diff->h > 0) $parts[] = $diff->h . 'h';
+                $parts[] = str_pad((string) $diff->i, 2, '0', STR_PAD_LEFT) . 'm';
+                $duration = implode(' ', $parts);
+            }
 
             $warrantyEnd = optional($sr->project)->warranty_end_date;
 
@@ -303,22 +319,25 @@ $qc        = $qcFor($qcHrs);
               'summary'     => $punch->completion_summary ?? '—',
               'punch_in'    => $punch && $punch->punch_in_at  ? \Carbon\Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A')  : '—',
               'punch_out'   => $punch && $punch->punch_out_at ? \Carbon\Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '—',
-              // 'duration'    => $duration,
+              'duration'    => $duration,
 
             
 
 
             'qc_from'  => optional($qcFrom)->format('d M Y · h:i A') ?? '—',
-'qc_to'    => optional($qcTo)->format('d M Y · h:i A') ?? '—',
-'qc_hrs'   => $qcHrs,
-'qc_band'  => $qc['name'],
-'qc_color' => $qc['color'],
-'qc_next'  => $qc['next']['name'] ?? null,
+            'qc_to'    => optional($qcTo)->format('d M Y · h:i A') ?? '—',
+            'qc_hrs'   => $qcHrs,
+            'qc_band'  => $qc['name'],
+            'qc_color' => $qc['color'],
+            'qc_next'  => $qc['next']['name'] ?? null,
 
 
-              'materials'   => number_format($punch->materials_subtotal ?? 0, 2),
-              'labour'      => number_format($punch->labour_charge ?? 0, 2),
-              'total'       => number_format($grandTotal, 2),
+              'materials'          => number_format($punch->materials_subtotal ?? 0, 2),
+              'labour'             => number_format($punch->labour_charge ?? 0, 2),
+              'has_invoice_total'  => $hasInvoiceTotal,
+              'invoice_total'      => $hasInvoiceTotal ? number_format($sr->invoice_total, 2) : null,
+              'total'              => number_format($grandTotal, 2),
+              'total'       => number_format($grandTotal, 2), // = invoice_total from service_requests
               'completed'   => $completedAt->format('d M Y · h:i A'),
               'completed_h' => $completedAt->diffForHumans(),
               'before'      => $beforeUrl,
@@ -357,7 +376,7 @@ $qc        = $qcFor($qcHrs);
   @endif
 </td>
 
-            <td class="cell-total">{{ number_format($grandTotal, 2) }}</td>
+            <td class="cell-total">{{ number_format($grandTotal, 2) }}</td> {{-- invoice_total --}}
             <td class="muted">{{ $completedAt->diffForHumans() }}</td>
             <td onclick="event.stopPropagation()">
               <div style="display:flex;gap:5px;">
@@ -465,15 +484,11 @@ $qc        = $qcFor($qcHrs);
         <div class="sr-detail-divider"></div>
 
         <div class="sr-detail-item">
-          <span class="sr-detail-label"><i class="bi bi-boxes"></i>Materials</span>
+          <span class="sr-detail-label"><i class="bi bi-boxes"></i>Materials Amount</span>
           <span class="sr-detail-value" id="sr-m-materials">—</span>
         </div>
-        <div class="sr-detail-item">
-          <span class="sr-detail-label"><i class="bi bi-tools"></i>Labour</span>
-          <span class="sr-detail-value" id="sr-m-labour">—</span>
-        </div>
-        <div class="sr-detail-item full">
-          <span class="sr-detail-label"><i class="bi bi-cash-coin"></i>Grand Total</span>
+        <div class="sr-detail-item" id="sr-m-total-wrap">
+          <span class="sr-detail-label"><i class="bi bi-cash-coin"></i>Invoice Total</span>
           <span class="sr-detail-value" id="sr-m-total" style="font-size:1.05rem;font-weight:700;color:#059669;">—</span>
         </div>
 
@@ -577,9 +592,15 @@ function openSrModal(row){
   _set('sr-m-out', data.punch_out);
   _set('sr-m-dur', data.duration);
   _set('sr-m-completed', data.completed);
-  _set('sr-m-materials', data.materials);
-  _set('sr-m-labour', data.labour);
-  _set('sr-m-total', data.total);
+    _set('sr-m-materials', data.materials);
+
+  var totalWrap = document.getElementById('sr-m-total-wrap');
+  if (data.has_invoice_total && data.invoice_total) {
+    totalWrap.style.display = '';
+    _set('sr-m-total', data.invoice_total);
+  } else {
+    totalWrap.style.display = 'none';
+  }
 
   // Proof tiles: before/after are images, signature is a PDF.
   paintPhotoTile('thumb-before', 'cap-before', data.before);

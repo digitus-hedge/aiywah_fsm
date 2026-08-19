@@ -1696,19 +1696,22 @@ function setRange(el, val){
   f.submit();
 }
 
+let customRangeTimer = null;
 function applyCustomRange(el){
-  var f    = el.form;
-  var from = f.querySelector('[name=from]').value;
-  var to   = f.querySelector('[name=to]').value;
-  if (!from || !to) return;
+  var f = el.form;
+  clearTimeout(customRangeTimer);
+  customRangeTimer = setTimeout(function(){
+    var from = f.querySelector('[name=from]').value;
+    var to   = f.querySelector('[name=to]').value;
+    if (!from || !to) return;
 
-  if (from > to) {                                  // user picked them backwards
-    f.querySelector('[name=from]').value = to;
-    f.querySelector('[name=to]').value   = from;
-  }
-
-  document.getElementById('rangeField').value = 'custom';
-  f.submit();
+    if (from > to) {
+      f.querySelector('[name=from]').value = to;
+      f.querySelector('[name=to]').value   = from;
+    }
+    document.getElementById('rangeField').value = 'custom';
+    f.submit();
+  }, 400);
 }
 
 function renderTechTable(){
