@@ -15,8 +15,6 @@ class PortalLink
             'sr'   => $focus?->id,
         ]));
 
-        dd($link); // ← TEMP DEBUG
-
         return $link;
     }
 

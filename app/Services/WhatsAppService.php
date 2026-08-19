@@ -588,7 +588,7 @@ public function notifyOutsideScope(
  * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} issue,
  * {{6}} technician, {{7}} completion date, {{8}} completion time
  * Button (index 0, url): the template's registered URL is a static base
- * (https://taskflow.aiywah.com/portal/project/) plus {{1}}. Meta appends
+ * (https://maintenance.mattermind.ae/portal/project/) plus {{1}}. Meta appends
  * whatever we send here directly onto that base, so we must send the FULL
  * remainder — code, query string, signature — not just the trailing segment,
  * or the signed portal link loses its signature and 404s / fails validation.
@@ -608,7 +608,7 @@ public function notifyMaintenanceCompleted(
     $link = $photosLink ?: url("/sr/{$sr->id}/photos");
 
     // in notifyMaintenanceCompleted()
-    $buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/portal/project/');
+    $buttonValue = $this->buttonSuffix($link, 'https://maintenance.mattermind.ae/portal/project/');
     
     $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
         fn ($name) => [
@@ -678,8 +678,8 @@ public function notifyMaintenanceCompleted(
         ['id' => $sr->id]
     );
 
-    // Template's registered base: https://taskflow.aiywah.com/client_feedback/
-    $buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/client_feedback/');
+    // Template's registered base: https://maintenance.mattermind.ae/client_feedback/
+    $buttonValue = $this->buttonSuffix($link, 'https://maintenance.mattermind.ae/client_feedback/');
 
     $this->fanOut($sr, $sr->client, $event, 'satisfaction_survey',
         fn ($name) => [
@@ -1126,8 +1126,8 @@ public function notifyInternalMaintenanceCompleted(
     $link = $photosLink ?: \Illuminate\Support\Facades\URL::signedRoute(
         'sr.photos', ['serviceRequest' => $sr->id]
     );
-
-    $buttonValue = $this->buttonSuffix($link, 'https://taskflow.aiywah.com/portal/project/');
+    
+    $buttonValue = $this->buttonSuffix($link, 'https://maintenance.mattermind.ae/portal/project/');
     // (removed the stray one-arg buttonSuffix() call that was here — it would
     // have thrown a TypeError, since buttonSuffix() now requires a prefix)
 
