@@ -136,11 +136,11 @@ class SendSrNotifications implements ShouldQueue
         $this->safely('wa.additional', fn() => $wa->notifyOutsideScope($sr));
     }
 
+    // SendSrNotifications::rejected()
     private function rejected(WhatsAppService $wa, ServiceRequest $sr): void
     {
-        // notifyServiceStatus() fans out via the client's contacts and logs its
-        // own warning when there is no client or no usable number.
         $this->safely('wa.rejected', fn() => $wa->notifyServiceStatus($sr, 'Rejected'));
+        $this->safely('wa.rejected.internal', fn() => $wa->notifyInternalStatusChange($sr, 'Rejected'));
     }
 
     /* ════════════════════════════════════════════
@@ -168,32 +168,31 @@ class SendSrNotifications implements ShouldQueue
     }
 
     private function dispatched(WhatsAppService $wa, ServiceRequest $sr, string $ref): void
-    {
-        // Customer
-        if ($to = $sr->client?->email) {
-            $this->safely('mail.dispatched.client', fn() =>
-                Mail::to($to)->send(new \App\Mail\TechnicianAssignedMail($sr, $ref))
-            );
-        } else {
-            Log::warning('Tech-assigned mail skipped — client has no email', ['sr_id' => $this->srId]);
-        }
-
-        // The Maintenance Lead doing the work
-        if ($techEmail = $sr->assignedUser?->email) {
-            $this->safely('mail.dispatched.ml', fn() =>
-                Mail::to($techEmail)->send(new \App\Mail\TechnicianAssignedMail($sr, $ref, true))
-            );
-        } else {
-            Log::warning('Tech-assigned mail skipped — ML has no email', ['sr_id' => $this->srId]);
-        }
-
-        $this->safely('wa.dispatched', function () use ($wa, $sr) {
-            $wa->notifyTechnicianAssigned($sr);          // customer  → technician_assigned
-            $wa->notifyMlJobAssigned($sr);               // ML        → ml_job_assigned
-            $wa->notifyInternalTechnicianAssigned($sr);  // SA/HP/SE/PE → internal_technician_assigned
-        });
+{
+    // Customer
+    if ($to = $sr->client?->email) {
+        $this->safely('mail.dispatched.client', fn() =>
+            Mail::to($to)->send(new \App\Mail\TechnicianAssignedMail($sr, $ref))
+        );
+    } else {
+        Log::warning('Tech-assigned mail skipped — client has no email', ['sr_id' => $this->srId]);
     }
 
+    // The Maintenance Lead doing the work
+    if ($techEmail = $sr->assignedUser?->email) {
+        $this->safely('mail.dispatched.ml', fn() =>
+            Mail::to($techEmail)->send(new \App\Mail\TechnicianAssignedMail($sr, $ref, true))
+        );
+    } else {
+        Log::warning('Tech-assigned mail skipped — ML has no email', ['sr_id' => $this->srId]);
+    }
+
+    $this->safely('wa.dispatched', function () use ($wa, $sr) {
+        $wa->notifyServiceStatus($sr, 'Technician Assigned — awaiting confirmation'); // customer  → status_change
+        $wa->notifyMlJobAssigned($sr);               // ML        → ml_job_assigned
+        $wa->notifyInternalTechnicianAssigned($sr);  // SA/HP/SE/PE → internal_technician_assigned
+    });
+}
     private function completed(WhatsAppService $wa, ServiceRequest $sr, string $ref): void
 {
     $customerLink = $sr->project

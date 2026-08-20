@@ -19,76 +19,80 @@ class UserProvisioningController extends Controller
     /**
      * Render the provisioning studio.
      */
-    public function index()
-    {
-        $roles       = Role::orderBy('sort_order')->get();
-        $permissions = Permission::with('roles')->orderBy('sort_order')->get();
+    public function index(Request $request)
+{
+    $roles       = Role::orderBy('sort_order')->get();
+    $permissions = Permission::with('roles')->orderBy('sort_order')->get();
 
-        $sections = $permissions->groupBy('section')->map(function ($perms, $section) {
-            return [
-                'label' => $section,
-                'items' => $perms->map(function ($p) {
-                    $access = [];
-                    $grant  = [];
-                    foreach ($p->roles as $role) {
-                        $access[$role->code] = $role->pivot->access;
-                        $grant[$role->code]  = (bool) $role->pivot->can_grant;
-                    }
-                    return [
-                        'key'    => $p->key,
-                        'name'   => $p->name,
-                        'icon'   => $p->icon,
-                        'access' => $access,
-                        'grant'  => $grant,
-                    ];
-                })->values(),
-            ];
-        })->values();
+    $sections = $permissions->groupBy('section')->map(function ($perms, $section) {
+        return [
+            'label' => $section,
+            'items' => $perms->map(function ($p) {
+                $access = [];
+                $grant  = [];
+                foreach ($p->roles as $role) {
+                    $access[$role->code] = $role->pivot->access;
+                    $grant[$role->code]  = (bool) $role->pivot->can_grant;
+                }
+                return [
+                    'key'    => $p->key,
+                    'name'   => $p->name,
+                    'icon'   => $p->icon,
+                    'access' => $access,
+                    'grant'  => $grant,
+                ];
+            })->values(),
+        ];
+    })->values();
 
-        $domainCats = ServiceCategory::with(['domains' => function ($q) {
-            $q->where('status', true)->orderBy('sort_order');
-        }])
-            ->where('status', true)
-            ->orderBy('sort_order')
-            ->get()
-            ->map(fn($cat) => [
-                'id'     => $cat->id,
-                'label'  => $cat->category_name,
-                'icon'   => $cat->icon,
-                'color'  => $cat->color_code,
-                'skills' => $cat->domains->map(fn($d) => [
-                    'id'       => $d->id,
-                    'label'    => $d->domain_name,
-                    'catId'    => $cat->id,
-                    'catLabel' => $cat->category_name,
-                ])->values(),
-            ]);
-        return view('user_provisioning', [
-            'roles'          => $roles,
-            'permSections'   => $sections,
-            'domainCats'     => $domainCats,
-            'users'          => User::with(['role', 'serviceDomains', 'serviceCategories'])->latest()->get()->map(fn($u) => [
-                'id'       => $u->id,
-                'name'     => $u->name,
-                'email'    => $u->email,
-                'phone'    => $u->phone ?? '',
-                'country_code' => $u->country_code ?? '',
-                'role'     => optional($u->role)->name ?? '',
-                'roleId'   => optional($u->role)->code ?? '',
-                'domains'  => $u->serviceDomains->pluck('id')->values()->all(),
-                'fdGrants' => $u->fd_grants ?? [],
-                'acGrants' => $u->ac_grants ?? [],
-                'categories' => $u->serviceCategories->pluck('id')->values()->all(),
-                'qcReview'   => (bool) $u->can_qc_review,
-
-                'created'  => $u->created_at?->format('d M Y'),
-                'status'   => $u->status ?? 'active',
-            ]),
-            'existingEmails' => User::pluck('email'),
-            'saveUrl'        => route('user_provisioning.store'),
-            'updateUrlBase'  => url('/user-provisioning'),
+    $domainCats = ServiceCategory::with(['domains' => function ($q) {
+        $q->where('status', true)->orderBy('sort_order');
+    }])
+        ->where('status', true)
+        ->orderBy('sort_order')
+        ->get()
+        ->map(fn($cat) => [
+            'id'     => $cat->id,
+            'label'  => $cat->category_name,
+            'icon'   => $cat->icon,
+            'color'  => $cat->color_code,
+            'skills' => $cat->domains->map(fn($d) => [
+                'id'       => $d->id,
+                'label'    => $d->domain_name,
+                'catId'    => $cat->id,
+                'catLabel' => $cat->category_name,
+            ])->values(),
         ]);
-    }
+
+    // ← add: which user (if any) should open pre-loaded in edit mode
+    $editUserId = $request->integer('edit') ?: null;
+
+    return view('user_provisioning', [
+        'roles'          => $roles,
+        'permSections'   => $sections,
+        'domainCats'     => $domainCats,
+        'editUserId'     => $editUserId,   // ← add
+        'users'          => User::with(['role', 'serviceDomains', 'serviceCategories'])->latest()->get()->map(fn($u) => [
+            'id'       => $u->id,
+            'name'     => $u->name,
+            'email'    => $u->email,
+            'phone'    => $u->phone ?? '',
+            'country_code' => $u->country_code ?? '',
+            'role'     => optional($u->role)->name ?? '',
+            'roleId'   => optional($u->role)->code ?? '',
+            'domains'  => $u->serviceDomains->pluck('id')->values()->all(),
+            'fdGrants' => $u->fd_grants ?? [],
+            'acGrants' => $u->ac_grants ?? [],
+            'categories' => $u->serviceCategories->pluck('id')->values()->all(),
+            'qcReview'   => (bool) $u->can_qc_review,
+            'created'  => $u->created_at?->format('d M Y'),
+            'status'   => $u->status ?? 'active',
+        ]),
+        'existingEmails' => User::pluck('email'),
+        'saveUrl'        => route('user_provisioning.store'),
+        'updateUrlBase'  => url('/user-provisioning'),
+    ]);
+}
     /**
      * Create a new user.
      */
@@ -129,7 +133,7 @@ class UserProvisioningController extends Controller
             'fd_grants'         => $isFD ? ($data['fdGrants'] ?? []) : [],   
             'ac_grants'         => $isAC ? ($data['acGrants'] ?? []) : [],   
             'can_qc_review'     => $isSE && ($data['qcReview'] ?? false),
-            'status'            => 'pending',
+            'status'            => 'active',
             'email_verified_at' => now(),
         ]);
 
@@ -157,7 +161,7 @@ class UserProvisioningController extends Controller
                 'fdGrants' => $user->fd_grants ?? [],
                 'acGrants' => $user->ac_grants ?? [], 
                 'created'  => $user->created_at->format('d M Y'),
-                'status'   => $user->status ?? 'pending',
+                'status'   => $user->status ?? 'active',
             ],
         ]);
     }

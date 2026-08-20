@@ -61,16 +61,25 @@ footer.footer { display: none; }
 
 /* ── FILTER BAR ── */
 #adminDash .filter-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-#adminDash .fq-pill{padding:6px 13px;border-radius:20px;font-size:.78rem;font-weight:500;
-  cursor:pointer;border:1px solid var(--border);background:var(--card);
-  color:var(--muted);transition:all .15s;white-space:nowrap;}
+#adminDash .fq-pill{
+  border:1px solid var(--border); background:var(--card); color:var(--muted);
+  font-size:.76rem; font-weight:500;
+}
 #adminDash .fq-pill:hover{border-color:var(--gold);color:var(--gold);}
 #adminDash .fq-pill.active{background:var(--gold);color:#fff;border-color:var(--gold);}
 #adminDash .f-sel{height:32px;padding:0 10px;border:1px solid var(--border);border-radius:20px;
   background:var(--card);color:var(--text);font-size:.78rem;cursor:pointer;
   max-width:190px;transition:border-color .15s;}
-#adminDash .f-sel:focus{outline:none;border-color:var(--gold);}
-
+#adminDash .f-sel:focus{
+  outline:none;
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px var(--gold-bg);
+  color:var(--gold);
+}
+#adminDash .f-sel,
+.f-sel{
+  color:var(--text) !important;
+}
 /* ── ALERT STRIP ── */
 #adminDash .alert-row{display:flex;gap:9px;margin-bottom:20px;flex-wrap:wrap;}
 #adminDash .a-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;
@@ -398,7 +407,8 @@ footer.footer { display: none; }
 }
 .filter-bar{
   display:flex; align-items:center; gap:9px;
-  flex-wrap:wrap; width:100%; min-width:0;
+  flex-wrap:wrap; width:auto; min-width:0;
+  margin-left:auto;
 }
 
 /* ── PILLS ── */
@@ -407,7 +417,7 @@ footer.footer { display: none; }
   height:32px; padding:0 14px; box-sizing:border-box;
   border:1px solid var(--border); border-radius:20px;
   background:var(--card); color:var(--muted);
-  font-family:inherit; font-size:.76rem; font-weight:500;
+  font-size:.76rem; font-weight:500;
   white-space:nowrap; cursor:pointer;
   transition:background .15s, border-color .15s, color .15s;
 }
@@ -418,42 +428,73 @@ footer.footer { display: none; }
 }
 
 /* ── SELECTS ── */
-.f-sel{
-  height:32px; padding:0 30px 0 12px; box-sizing:border-box;
-  border:1px solid var(--border); border-radius:20px;
-  background:var(--card); color:var(--muted);
-  font-family:inherit; font-size:.76rem;
-  cursor:pointer; min-width:0;
-  -webkit-appearance:none; appearance:none;
-  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23999'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5z'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;
-  background-position:right 10px center;
-  background-size:14px;
+#adminDash .f-sel{
+  height:32px !important; padding:0 30px 0 14px !important; box-sizing:border-box !important;
+  border-radius:20px !important;
+  border:none !important;
+  outline:none !important;
+  background:var(--card) !important; color:var(--muted) !important;
+  font-size:.76rem !important; font-weight:500 !important;
+  cursor:pointer !important; min-width:0;
+  -webkit-appearance:none !important; appearance:none !important;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%239a8053'%3E%3Cpath d='M4.5 6.5 8 10l3.5-3.5z'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important;
+  background-position:right 12px center !important;
+  background-size:14px !important;
   text-overflow:ellipsis;
+  transition:background .15s, color .15s;
 }
-.f-sel:focus{ outline:none; border-color:var(--gold); }
 
+#adminDash .f-sel:hover{
+  background:var(--gold-bg) !important;
+  color:var(--gold) !important;
+}
+
+#adminDash .f-sel:focus{
+  outline:none !important;
+  box-shadow:0 0 0 3px var(--gold-bg) !important;
+  color:var(--gold) !important;
+}
+#adminDash .f-sel option{
+  background:var(--card);
+  color:var(--text);
+ 
+  font-size:.85rem;
+  padding:8px 12px;
+  border:none;
+}
+
+#adminDash .f-sel option:hover,
+#adminDash .f-sel option:focus{
+  background:var(--gold-bg) !important;
+  color:var(--gold) !important;
+}
+
+.f-sel option:checked,
+
+
+/* Firefox needs this to size the option rows at all */
+.f-sel{
+  color-scheme: light dark;
+}
 /* ── DATE RANGE PILL ── */
 .f-daterange{
   display:inline-flex; align-items:center; gap:8px;
   height:32px; padding:0 14px; box-sizing:border-box; min-width:0;
   border:1px solid var(--border); border-radius:20px;
-  background:var(--card);
+  background:var(--card); color:var(--muted);
   transition:border-color .15s, background .15s;
 }
-.f-daterange.active{ border-color:var(--gold); background:var(--gold-bg); }
+.f-daterange.active{ border-color:var(--gold); background:var(--gold-bg); color:var(--gold); }
 .f-daterange:focus-within{ border-color:var(--gold); }
-.f-daterange > i.bi-calendar-range{
-  font-size:.82rem; color:var(--gold); flex-shrink:0; line-height:1;
-}
 
 .f-daterange input[type="date"]{
   -webkit-appearance:none; appearance:none;
   border:0 !important; outline:0;
   background:transparent !important; box-shadow:none !important;
-  color:var(--text); font-family:inherit;
-  font-size:.75rem; line-height:1;
-  padding:0; margin:0; width:88px; min-width:0; height:100%;
+  color:inherit; 
+  font-size:.76rem; font-weight:500; line-height:1;
+  padding:0; margin:0; width:auto; min-width:0; height:100%;
   cursor:pointer;
 }
 .f-daterange input[type="date"]:focus{ outline:none; box-shadow:none; }
@@ -484,7 +525,7 @@ footer.footer { display: none; }
 /* ══════════ TABLET ══════════ */
 @media (max-width:820px){
   .f-sel{ flex:1 1 150px; }
-  .f-daterange{ flex:1 1 220px; }
+  .f-daterange{ flex:1 1 140px; }
   .f-daterange input[type="date"]{ width:auto; flex:1 1 auto; }
 }
 
@@ -498,14 +539,14 @@ footer.footer { display: none; }
     font-size:.72rem; height:34px;
   }
 
-  /* date pill spans the full width, below the pills */
+   /* date buttons: two per row, same pattern as the selects */
   .f-daterange{
-    flex:1 1 100%; width:100%;
-    justify-content:space-between;
-    height:36px; border-radius:12px;
+    flex:1 1 calc(50% - 4px); width:auto;
+    justify-content:center;
+    height:34px; border-radius:20px;
   }
   .f-daterange input[type="date"]{
-    flex:1 1 0; width:auto; font-size:.74rem;
+    flex:1 1 auto; width:auto; font-size:.72rem;
     text-align:center;
   }
 
@@ -604,7 +645,7 @@ footer.footer { display: none; }
 .mc-num-label span{width:9px;height:9px;border-radius:3px;flex:0 0 auto;}
 
 .mc-num-big{
-  font-family:var(--font-display,inherit);
+  font-family:var(--font-display);
   font-size:2.6rem;font-weight:400;line-height:1;margin-bottom:5px;
 }
 
@@ -1054,13 +1095,73 @@ button.kpi.k5
     overscroll-behavior: contain;
     padding-right: 4px;
 }
-
+.f-date-lbl{
+  font-size:.76rem; font-weight:500; color:inherit;
+  flex-shrink:0; line-height:1;
+}
 .rev-list::-webkit-scrollbar { width: 5px; }
 .rev-list::-webkit-scrollbar-thumb {
     background: rgba(154,128,83,.35);
     border-radius: 3px;
 }
 .rev-list { scrollbar-width: thin; }
+
+.f-custom{ position:relative; display:inline-flex; }
+
+/* native select stays in the DOM for form submission, invisible to everyone */
+.f-custom-native{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+}
+
+.f-custom-btn{
+  text-align:left;
+}
+
+.f-custom-panel{
+  position:absolute; top:calc(100% + 6px); left:0; z-index:1200;
+  min-width:180px; max-width:min(260px, 90vw); max-height:260px;
+  overflow-y:auto; list-style:none; margin:0; padding:6px;
+  background:var(--card);
+  border:1px solid var(--gold);
+  border-radius:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.14);
+}
+
+.f-custom-opt{
+  padding:8px 12px; border-radius:9px;
+  font-size:.8rem; font-weight:500;
+  color:var(--text); cursor:pointer;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  transition:background .12s, color .12s;
+}
+
+.f-custom-opt:hover,
+.f-custom-opt.is-active{
+  background:var(--gold-bg);
+  color:var(--gold);
+}
+
+.f-custom-opt.is-selected{
+  background:var(--gold);
+  color:#fff;
+  font-weight:600;
+}
+
+.f-custom-opt:focus{
+  outline:2px solid var(--gold);
+  outline-offset:-2px;
+}
+
+.f-custom-panel::-webkit-scrollbar{ width:5px; }
+.f-custom-panel::-webkit-scrollbar-thumb{ background:rgba(154,128,83,.35); border-radius:3px; }
+.f-custom-panel{ scrollbar-width:thin; }
+
+@media (max-width:600px){
+  .f-custom{ flex:1 1 calc(50% - 4px); min-width:0; }
+  .f-custom-btn{ width:100%; }
+  .f-custom-panel{ left:0; right:auto; min-width:0; width:max(180px, 100%); }
+}
 </style>
 @endpush
 
@@ -1111,34 +1212,79 @@ button.kpi.k5
             class="fq-pill {{ ($filters['range'] ?? null) === 'quarter' ? 'active' : '' }}">This Quarter</button>
 
     <div class="f-daterange {{ ($filters['range'] ?? null) === 'custom' ? 'active' : '' }}">
-        <i class="bi bi-calendar-range"></i>
+        <span class="f-date-lbl">From</span>
         <input type="date" name="from" value="{{ $filters['from'] ?? '' }}"
-               max="{{ now()->toDateString() }}" onchange="applyCustomRange(this)" aria-label="From date">
-        <span class="f-date-sep">→</span>
-        <input type="date" name="to" value="{{ $filters['to'] ?? '' }}"
-               max="{{ now()->toDateString() }}" onchange="applyCustomRange(this)" aria-label="To date">
+            max="{{ now()->toDateString() }}" onchange="applyCustomRange(this)" aria-label="From date">
     </div>
 
-    <select class="f-sel" name="status" onchange="this.form.submit()" aria-label="Filter by status">
+    <div class="f-daterange {{ ($filters['range'] ?? null) === 'custom' ? 'active' : '' }}">
+        <span class="f-date-lbl">To</span>
+        <input type="date" name="to" value="{{ $filters['to'] ?? '' }}"
+            max="{{ now()->toDateString() }}" onchange="applyCustomRange(this)" aria-label="To date">
+    </div>
+
+    @php
+    $statusCurrent  = (string) ($filters['status']  ?? '');
+    $clientCurrent  = (string) ($filters['client']  ?? '');
+    $serviceCurrent = (string) ($filters['service'] ?? '');
+@endphp
+
+{{-- STATUS --}}
+<div class="f-custom" data-filter="status">
+    <button type="button" class="f-sel f-custom-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by status">
+        <span class="f-custom-label">{{ $statusCurrent !== '' ? ($statusOptions[$statusCurrent] ?? 'All Statuses') : 'All Statuses' }}</span>
+    </button>
+    <ul class="f-custom-panel" role="listbox" hidden>
+        <li class="f-custom-opt {{ $statusCurrent === '' ? 'is-selected' : '' }}" data-value="" role="option" tabindex="-1" aria-selected="{{ $statusCurrent === '' ? 'true' : 'false' }}">All Statuses</li>
+        @foreach (($statusOptions ?? []) as $value => $label)
+            <li class="f-custom-opt {{ $statusCurrent === (string) $value ? 'is-selected' : '' }}" data-value="{{ $value }}" role="option" tabindex="-1" aria-selected="{{ $statusCurrent === (string) $value ? 'true' : 'false' }}">{{ $label }}</li>
+        @endforeach
+    </ul>
+    <select class="f-custom-native" name="status" aria-hidden="true" tabindex="-1">
         <option value="">All Statuses</option>
         @foreach (($statusOptions ?? []) as $value => $label)
-            <option value="{{ $value }}" @selected(($filters['status'] ?? null) == $value)>{{ $label }}</option>
+            <option value="{{ $value }}" @selected($statusCurrent === (string) $value)>{{ $label }}</option>
         @endforeach
     </select>
+</div>
 
-    <select class="f-sel" name="client" onchange="this.form.submit()" aria-label="Filter by client">
+{{-- CLIENT --}}
+<div class="f-custom" data-filter="client">
+    <button type="button" class="f-sel f-custom-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by client">
+        <span class="f-custom-label">{{ $clientCurrent !== '' ? ($clientOptions[$clientCurrent] ?? 'All Clients') : 'All Clients' }}</span>
+    </button>
+    <ul class="f-custom-panel" role="listbox" hidden>
+        <li class="f-custom-opt {{ $clientCurrent === '' ? 'is-selected' : '' }}" data-value="" role="option" tabindex="-1" aria-selected="{{ $clientCurrent === '' ? 'true' : 'false' }}">All Clients</li>
+        @foreach (($clientOptions ?? []) as $value => $label)
+            <li class="f-custom-opt {{ $clientCurrent === (string) $value ? 'is-selected' : '' }}" data-value="{{ $value }}" role="option" tabindex="-1" aria-selected="{{ $clientCurrent === (string) $value ? 'true' : 'false' }}">{{ $label }}</li>
+        @endforeach
+    </ul>
+    <select class="f-custom-native" name="client" aria-hidden="true" tabindex="-1">
         <option value="">All Clients</option>
         @foreach (($clientOptions ?? []) as $value => $label)
-            <option value="{{ $value }}" @selected(($filters['client'] ?? null) == $value)>{{ $label }}</option>
+            <option value="{{ $value }}" @selected($clientCurrent === (string) $value)>{{ $label }}</option>
         @endforeach
     </select>
+</div>
 
-    <select class="f-sel" name="service" onchange="this.form.submit()" aria-label="Filter by service">
+{{-- SERVICE --}}
+<div class="f-custom" data-filter="service">
+    <button type="button" class="f-sel f-custom-btn" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by service">
+        <span class="f-custom-label">{{ $serviceCurrent !== '' ? ($serviceOptions[$serviceCurrent] ?? 'All Services') : 'All Services' }}</span>
+    </button>
+    <ul class="f-custom-panel" role="listbox" hidden>
+        <li class="f-custom-opt {{ $serviceCurrent === '' ? 'is-selected' : '' }}" data-value="" role="option" tabindex="-1" aria-selected="{{ $serviceCurrent === '' ? 'true' : 'false' }}">All Services</li>
+        @foreach (($serviceOptions ?? []) as $value => $label)
+            <li class="f-custom-opt {{ $serviceCurrent === (string) $value ? 'is-selected' : '' }}" data-value="{{ $value }}" role="option" tabindex="-1" aria-selected="{{ $serviceCurrent === (string) $value ? 'true' : 'false' }}">{{ $label }}</li>
+        @endforeach
+    </ul>
+    <select class="f-custom-native" name="service" aria-hidden="true" tabindex="-1">
         <option value="">All Services</option>
         @foreach (($serviceOptions ?? []) as $value => $label)
-            <option value="{{ $value }}" @selected(($filters['service'] ?? null) == $value)>{{ $label }}</option>
+            <option value="{{ $value }}" @selected($serviceCurrent === (string) $value)>{{ $label }}</option>
         @endforeach
     </select>
+</div>
 
     @php
     $hasFilters = ($filters['range'] ?? 'today') !== 'today' || array_filter([
@@ -1177,10 +1323,10 @@ button.kpi.k5
             {{ $alertCounts['wa_failures'] ?? 0 }} WA delivery failures this period
         </button>
 
-        <span class="a-chip a-blu">
+        <button type="button" class="a-chip a-blu" data-panel="on-site">
             <i class="bi bi-people-fill"></i>
             {{ $alertCounts['on_site'] ?? 0 }} technicians currently on-site
-        </span>
+        </button>
     </div>
 
     {{-- ── KPI ROW · 5 cards ──────────────────────────────────────────── --}}
@@ -2030,6 +2176,96 @@ function applyCustomRange(el) {
 window.MM_DASH = @json($mmChartData);
 </script>
 <script>
+
+(function () {
+    'use strict';
+
+    function closeAllPanels() {
+        document.querySelectorAll('.f-custom-panel').forEach(function (p) { p.hidden = true; });
+        document.querySelectorAll('.f-custom-btn').forEach(function (b) { b.setAttribute('aria-expanded', 'false'); });
+    }
+
+    document.querySelectorAll('.f-custom').forEach(function (root) {
+        const btn     = root.querySelector('.f-custom-btn');
+        const label   = root.querySelector('.f-custom-label');
+        const panel   = root.querySelector('.f-custom-panel');
+        const native  = root.querySelector('.f-custom-native');
+        const options = Array.from(root.querySelectorAll('.f-custom-opt'));
+
+        let activeIndex = options.findIndex(function (o) { return o.classList.contains('is-selected'); });
+        if (activeIndex < 0) activeIndex = 0;
+
+        function open() {
+            closeAllPanels();
+            panel.hidden = false;
+            btn.setAttribute('aria-expanded', 'true');
+            const target = options[activeIndex];
+            if (target) target.focus();
+        }
+
+        function close() {
+            panel.hidden = true;
+            btn.setAttribute('aria-expanded', 'false');
+        }
+
+        function selectOption(idx) {
+            const opt = options[idx];
+            if (!opt) return;
+
+            options.forEach(function (o) {
+                o.classList.remove('is-selected');
+                o.setAttribute('aria-selected', 'false');
+            });
+            opt.classList.add('is-selected');
+            opt.setAttribute('aria-selected', 'true');
+
+            label.textContent = opt.textContent.trim();
+            native.value = opt.dataset.value;
+            activeIndex = idx;
+
+            close();
+            native.form.submit();
+        }
+
+        btn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            panel.hidden ? open() : close();
+        });
+
+        btn.addEventListener('keydown', function (e) {
+            if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) {
+                e.preventDefault();
+                if (panel.hidden) open();
+            } else if (e.key === 'Escape') {
+                close();
+            }
+        });
+
+        options.forEach(function (opt, idx) {
+            opt.addEventListener('click', function () { selectOption(idx); });
+
+            opt.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectOption(idx);
+                } else if (e.key === 'Escape') {
+                    close();
+                    btn.focus();
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const next = options[idx + 1];
+                    if (next) { activeIndex = idx + 1; next.focus(); }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (idx === 0) { btn.focus(); }
+                    else { activeIndex = idx - 1; options[idx - 1].focus(); }
+                }
+            });
+        });
+    });
+
+    document.addEventListener('click', closeAllPanels);
+})();
 (function () {
     'use strict';
 

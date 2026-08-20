@@ -170,6 +170,15 @@ public function sendTemplate($phone, $template, $lang = 'en_US', $components = [
         return $d ? Carbon::parse($d)->format('d M Y') : $fallback;
     }
 
+    /** Human-readable warranty scope for the quote_pending_accounts template. */
+    private function warrantyScopeLabel(\App\Models\ServiceRequest $sr): string
+    {
+        if (!empty($sr->warranty_scope)) {
+            return $sr->warranty_scope === 'oow' ? 'Warranty Expired' : 'Additional Work';
+        }
+
+        return 'N/A';
+    }
     /* =========================================================
        Core logged sender
        ========================================================= */
@@ -330,6 +339,54 @@ public function sendTemplate($phone, $template, $lang = 'en_US', $components = [
         );
     }
 
+    /**
+ * Internal status-change alert → internal_status_change
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer,
+ * {{5}} status, {{6}} updated by, {{7}} date & time
+ */
+public function notifyInternalStatusChange(
+    \App\Models\ServiceRequest $sr,
+    string $status,
+    ?string $updatedBy = null,
+    string $event = 'Internal - Status Update'
+): void {
+    $recipients = $this->internalRecipients($sr);
+
+    if (!$recipients) {
+        Log::warning('Internal status-change alert skipped — no recipients', ['sr_id' => $sr->id]);
+        return;
+    }
+
+    $sr->loadMissing('client');
+    $c = $this->srContext($sr);
+
+    $customer  = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
+    $statusLbl = $this->cleanParam($status) ?: 'Updated';
+    $by        = $this->cleanParam($updatedBy) ?: 'System';
+    $when      = now()->format('d M Y, h:i A');
+
+    $components = [[
+        "type" => "body",
+        "parameters" => [
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($customer),
+            $this->txt($statusLbl),
+            $this->txt($by),
+            $this->txt($when),
+        ],
+    ]];
+
+    $preview = "Status update — {$c['ref']} | {$customer} | {$statusLbl} | by {$by}";
+
+    foreach ($recipients as $r) {
+        $this->sendLogged(
+            $sr, $sr->client, $r['phone'], $event,
+            'internal_status_change', $components, $preview
+        );
+    }
+}
     /**
      * Shared builder for the 7-var warranty-scope templates.
      * {{1}} name, {{2}} project, {{3}} location, {{4}} handover,
@@ -608,7 +665,7 @@ public function notifyMaintenanceCompleted(
     $link = $photosLink ?: url("/sr/{$sr->id}/photos");
 
     // in notifyMaintenanceCompleted()
-    $buttonValue = $this->buttonSuffix($link, 'https://maintenance.mattermind.ae/portal/project/');
+    $buttonValue = $this->buttonSuffix($link, config('app.url') . '/portal/project/');
     
     $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
         fn ($name) => [
@@ -862,6 +919,32 @@ private function internalRecipients(\App\Models\ServiceRequest $sr): array
     // 5. Service Engineer allocated at approval
     if ($sr->assignedSe) {
         $add($sr->assignedSe->name, $sr->assignedSe->country_code, $sr->assignedSe->phone);
+    }
+
+    return $out;
+}
+
+/**
+ * Accounts / quotation-handling recipients — distinct from internalRecipients
+ * (SA/HP/PE/SE), since quote prep is a separate role, not a general FYI list.
+ */
+private function accountsRecipients(): array
+{
+    $out  = [];
+    $seen = [];
+
+    $codes = config('services.whatsapp.accounts_role_codes', ['AC']);
+
+    $staff = \App\Models\User::whereHas('role', fn ($q) => $q->whereIn('code', $codes))
+        ->get(['id', 'name', 'country_code', 'phone']);
+
+    foreach ($staff as $u) {
+        $phone = $this->formatWhatsAppNumber($u->country_code, $u->phone);
+        if (!$phone || in_array($phone, $seen, true)) {
+            continue;
+        }
+        $seen[] = $phone;
+        $out[]  = ['name' => $this->cleanParam($u->name) ?: 'Accounts', 'phone' => $phone];
     }
 
     return $out;
@@ -1127,7 +1210,7 @@ public function notifyInternalMaintenanceCompleted(
         'sr.photos', ['serviceRequest' => $sr->id]
     );
     
-    $buttonValue = $this->buttonSuffix($link, 'https://maintenance.mattermind.ae/portal/project/');
+    $buttonValue = $this->buttonSuffix($link, config('app.url') . '/portal/project/');
     // (removed the stray one-arg buttonSuffix() call that was here — it would
     // have thrown a TypeError, since buttonSuffix() now requires a prefix)
 
@@ -1363,6 +1446,131 @@ public function notifyInternalVisitScheduled(
     }
 }
 
+/**
+ * SR routed to Accounts for quotation → quote_pending_accounts
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer,
+ * {{5}} SR created by, {{6}} issue, {{7}} priority, {{8}} date & time,
+ * {{9}} warranty scope, {{10}} approved by, {{11}} routed on
+ */
+public function notifyQuotePendingAccounts(
+    \App\Models\ServiceRequest $sr,
+    ?string $approvedBy = null,
+    string $event = 'Quote Pending - Accounts'
+): void {
+    $recipients = $this->accountsRecipients();
+
+    if (!$recipients) {
+        Log::warning('Quote-pending alert skipped — no Accounts recipients resolved', [
+            'sr_id' => $sr->id,
+        ]);
+        return;
+    }
+
+    $sr->loadMissing('client', 'creator');
+    $c = $this->srContext($sr);
+
+    $customer  = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
+    $createdBy = $this->cleanParam(optional($sr->creator)->name ?: $sr->reported_by) ?: 'N/A';
+    $priority  = $this->cleanParam($sr->priority_level) ?: 'Normal';
+    $when      = ($sr->created_at ?? now())->format('d M Y, h:i A');
+    $scope     = $this->warrantyScopeLabel($sr);
+    $approver  = $this->cleanParam($approvedBy) ?: 'N/A';
+    $routedOn  = now()->format('d M Y, h:i A');
+
+    $components = [[
+        "type" => "body",
+        "parameters" => [
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($customer),
+            $this->txt($createdBy),
+            $this->txt($c['issue']),
+            $this->txt($priority),
+            $this->txt($when),
+            $this->txt($scope),
+            $this->txt($approver),
+            $this->txt($routedOn),
+        ],
+    ]];
+
+    $preview = "Quote pending — {$c['ref']} | {$customer} | {$c['project']} | Scope: {$scope}";
+
+    foreach ($recipients as $r) {
+        $this->sendLogged(
+            $sr, $sr->client, $r['phone'], $event,
+            'quote_pending_accounts', $components, $preview
+        );
+    }
+}
+
+/**
+ * QC-approved SR routed to Accounts for invoicing → invoice_required_accounts
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer,
+ * {{5}} SR created by, {{6}} issue, {{7}} priority, {{8}} date & time,
+ * {{9}} ERP quote ref, {{10}} quote value, {{11}} QC approved by,
+ * {{12}} QC approved on, {{13}} technician
+ */
+public function notifyInvoiceRequiredAccounts(
+    \App\Models\ServiceRequest $sr,
+    ?string $quoteReference = null,
+    ?string $qcApprovedBy = null,
+    ?\Carbon\Carbon $qcApprovedAt = null,
+    string $event = 'Invoice Required - Accounts'
+): void {
+    $recipients = $this->accountsRecipients();
+
+    if (!$recipients) {
+        Log::warning('Invoice-required alert skipped — no Accounts recipients resolved', [
+            'sr_id' => $sr->id,
+        ]);
+        return;
+    }
+
+    $sr->loadMissing('client', 'creator');
+    $c    = $this->srContext($sr);
+    $tech = $this->techContext($sr);
+
+    $customer   = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
+    $createdBy  = $this->cleanParam(optional($sr->creator)->name ?: $sr->reported_by) ?: 'N/A';
+    $priority   = $this->cleanParam($sr->priority_level) ?: 'Normal';
+    $when       = ($sr->created_at ?? now())->format('d M Y, h:i A');
+
+    $quoteRef   = $this->cleanParam($quoteReference ?? $sr->quote_reference) ?: 'N/A';
+    $quoteText  = $quoteVal !== null ? 'AED ' . number_format((float) $quoteVal, 2) : 'N/A';
+
+    $qcBy       = $this->cleanParam($qcApprovedBy ?? optional($sr->qcApprovedBy)->name) ?: 'N/A';
+    $qcAt       = ($qcApprovedAt ?? ($sr->qc_reviewed_at ? Carbon::parse($sr->qc_reviewed_at) : now()))
+                    ->format('d M Y, h:i A');
+
+    $components = [[
+        "type" => "body",
+        "parameters" => [
+            $this->txt($c['project']),
+            $this->txt($c['location']),
+            $this->txt($c['ref']),
+            $this->txt($customer),
+            $this->txt($createdBy),
+            $this->txt($c['issue']),
+            $this->txt($priority),
+            $this->txt($when),
+            $this->txt($quoteRef),
+            $this->txt($quoteText),
+            $this->txt($qcBy),
+            $this->txt($qcAt),
+            $this->txt($tech['name']),
+        ],
+    ]];
+
+    $preview = "Invoice required — {$c['ref']} | {$customer} | Quote: {$quoteRef} ({$quoteText})";
+
+    foreach ($recipients as $r) {
+        $this->sendLogged(
+            $sr, $sr->client, $r['phone'], $event,
+            'invoice_required_accounts', $components, $preview
+        );
+    }
+}
 /**
      * Send one template to a single named person, bypassing the client fan-out
      * and the internal staff list. Use for recipients who need their own

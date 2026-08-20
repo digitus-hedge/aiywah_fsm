@@ -308,7 +308,7 @@ Route::prefix('worker')->name('worker.')->group(function () {
         ->middleware('throttle:3,10')->name('otp.resend');
 
     // Authenticated worker only
-    Route::middleware('worker')->group(function () {
+    Route::middleware(['worker', 'worker.active'])->group(function () {
         Route::post('/logout', [WorkerLoginController::class, 'logout'])->name('logout');
 
         Route::post('/password', [WorkerLoginController::class, 'changePassword'])->name('password.change');

@@ -22,14 +22,13 @@
 /* ═══════════════════════════════════════
    STATS STRIP
 ═══════════════════════════════════════ */
-.ud-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+.ud-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
 .ud-stat{background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:var(--card-shadow);}
 .ud-stat-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
 .ud-stat-num{font-size:1.5rem;font-weight:700;line-height:1;}
 .ud-stat-lbl{font-size:.72rem;color:var(--text-muted);margin-top:2px;}
-@media(max-width:767.98px){.ud-stats{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:399px){.ud-stats{grid-template-columns:1fr 1fr;gap:8px;}}
-
+@media(max-width:767.98px){.ud-stats{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:399px){.ud-stats{grid-template-columns:1fr;gap:8px;}}
 /* ═══════════════════════════════════════
    FILTER BAR
 ═══════════════════════════════════════ */
@@ -96,6 +95,37 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 .ud-xs-off{background:rgba(255,51,102,.08);color:#ff3366;}
 .ud-xs-off:hover{background:rgba(255,51,102,.16);}
 
+/* Toggle switch (replaces ud-xs-off button) */
+.ud-toggle{
+  position:relative;
+  width:36px;
+  height:18px;
+  border-radius:20px;
+  background:var(--border-color);
+  border:none;
+  padding:0;
+  cursor:pointer;
+  flex-shrink:0;
+  transition:background .2s ease;
+}
+.ud-toggle.on{ background:linear-gradient(135deg,#9A7B4F,#7A6140); }
+.ud-toggle.off{ background:#aeb7c5; }
+.ud-toggle-thumb{
+  position:absolute;
+  top:2px;
+  left:2px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
+  transition:left .2s ease;
+}
+.ud-toggle.on .ud-toggle-thumb{ left:20px; }
+.ud-toggle:disabled{ opacity:.5; cursor:not-allowed; }
+.ud-toggle-wrap{ display:flex; align-items:center; gap:8px; }
+.ud-toggle-lbl{ font-size:.68rem; font-weight:600; color:var(--text-muted); }
+
 /* Empty state */
 .ud-empty{text-align:center;padding:40px 20px;color:var(--text-muted);}
 .ud-empty i{font-size:2.2rem;display:block;margin-bottom:8px;opacity:.3;}
@@ -126,6 +156,11 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 .ud-dom-chip{font-size:.72rem;padding:5px 10px;border-radius:16px;border:1px solid var(--border-color);background:var(--surface-2);color:var(--text-muted);cursor:pointer;user-select:none;}
 .ud-dom-chip.on{background:rgba(154,123,79,.14);border-color:#9A7B4F;color:#9A7B4F;font-weight:600;}
 .ud-modal-ftr{display:flex;justify-content:flex-end;gap:8px;padding:13px 18px;border-top:1px solid var(--card-border);}
+
+.ud-btn-danger{background:linear-gradient(135deg,#ff3366,#cc1f4d);color:#fff;}
+.ud-btn-danger:hover{box-shadow:0 4px 16px rgba(255,51,102,.35);color:#fff;}
+
+
 /* ═══════════════════════════════════════
    TOAST (matches Inquiry Approval)
 ═══════════════════════════════════════ */
@@ -171,24 +206,20 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
   </div>
 
   {{-- Stats --}}
-  <div class="ud-stats">
-    <div class="ud-stat">
-      <div class="ud-stat-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-people-fill" style="color:#6571ff;"></i></div>
-      <div><div class="ud-stat-num" style="color:#6571ff;">{{ $stats['total'] }}</div><div class="ud-stat-lbl">Total Users</div></div>
-    </div>
-    <div class="ud-stat">
-      <div class="ud-stat-icon" style="background:rgba(5,163,74,.1);"><i class="bi bi-check2-circle" style="color:#05a34a;"></i></div>
-      <div><div class="ud-stat-num" style="color:#05a34a;">{{ $stats['active'] }}</div><div class="ud-stat-lbl">Active Accounts</div></div>
-    </div>
-    <div class="ud-stat">
-      <div class="ud-stat-icon" style="background:rgba(251,188,6,.1);"><i class="bi bi-hourglass-split" style="color:#fbbc06;"></i></div>
-      <div><div class="ud-stat-num" style="color:#a8802a;">{{ $stats['pending'] }}</div><div class="ud-stat-lbl">Pending</div></div>
-    </div>
-    <div class="ud-stat">
-      <div class="ud-stat-icon" style="background:rgba(255,51,102,.1);"><i class="bi bi-slash-circle" style="color:#ff3366;"></i></div>
-      <div><div class="ud-stat-num" style="color:#ff3366;">{{ $stats['inactive'] }}</div><div class="ud-stat-lbl">Inactive Accounts</div></div>
-    </div>
+  <div class="ud-stats" style="grid-template-columns:repeat(3,1fr);">
+  <div class="ud-stat">
+    <div class="ud-stat-icon" style="background:rgba(101,113,255,.1);"><i class="bi bi-people-fill" style="color:#6571ff;"></i></div>
+    <div><div class="ud-stat-num" style="color:#6571ff;">{{ $stats['total'] }}</div><div class="ud-stat-lbl">Total Users</div></div>
   </div>
+  <div class="ud-stat">
+    <div class="ud-stat-icon" style="background:rgba(5,163,74,.1);"><i class="bi bi-check2-circle" style="color:#05a34a;"></i></div>
+    <div><div class="ud-stat-num" style="color:#05a34a;">{{ $stats['active'] }}</div><div class="ud-stat-lbl">Active Accounts</div></div>
+  </div>
+  <div class="ud-stat">
+    <div class="ud-stat-icon" style="background:rgba(255,51,102,.1);"><i class="bi bi-slash-circle" style="color:#ff3366;"></i></div>
+    <div><div class="ud-stat-num" style="color:#ff3366;">{{ $stats['inactive'] }}</div><div class="ud-stat-lbl">Inactive Accounts</div></div>
+  </div>
+</div>
 
   {{-- Filter Bar --}}
   <form method="GET" action="{{ route('user_directory') }}" class="ud-filter">
@@ -206,8 +237,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     <select class="form-select-sm" name="status" style="width:130px;">
       <option value="">All Status</option>
       <option value="active" @selected(request('status')==='active')>Active</option>
-      <option value="pending" @selected(request('status')==='pending')>Pending</option>
-      <option value="inactive" @selected(request('status')==='inactive')>Inactive</option>
+      <option value="inactive" @selected(request('status')==='inactive')>Not Active</option>
     </select>
     <div class="ud-actions">
       <a href="{{ route('user_directory') }}" class="ud-btn ud-btn-ghost"><i class="bi bi-x-circle"></i>Reset</a>
@@ -231,19 +261,19 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 @endphp
       <table class="ud-table">
         <thead>
-          <tr>
-            <th>User</th>
-            <th>Role</th>
-            @if($showCategory)<th>Category</th>@endif
-
-            <th>Domain Expertise</th>
-            <th>Status</th>
-            <th>Created</th>
-            @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
-    <th style="width:150px;">Actions</th>
+  <tr>
+    <th>User</th>
+    <th>Role</th>
+    @if($showCategory)<th>Category</th>@endif
+    <th>Domain Expertise</th>
+    <th>Status</th>
+    <th>Created</th>
+    @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
+      <th style="width:80px;">Actions</th>
+      <th style="width:80px;">Status</th>
     @endif
-          </tr>
-        </thead>
+  </tr>
+</thead>
         <tbody>
           @forelse ($users as $user)
             @php
@@ -261,7 +291,9 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 
   $domains   = $user->serviceDomains->pluck('domain_name')->filter()->take(3)->implode(', ');
   $status    = $user->status ?? 'active';
-  $sClass    = match($status){ 'active'=>'ud-active','pending'=>'ud-pending', default=>'ud-inactive' };
+  $sClass    = $status === 'active' ? 'ud-active' : 'ud-inactive';
+  $sLabel    = $status === 'active' ? 'Active' : 'Not Active';
+
 @endphp
             <tr>
               <td class="cell-user" data-label="User">
@@ -295,27 +327,30 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 
               <td data-label="Domain" class="ud-muted">{{ $domains !== '' ? $domains : '—' }}</td>
               <td data-label="Status">
-                <span class="ud-badge {{ $sClass }}"><i class="bi bi-circle-fill"></i>{{ ucfirst($status) }}</span>
+                <span class="ud-badge {{ $sClass }}"><i class="bi bi-circle-fill"></i>{{ $sLabel }}</span>
               </td>
               <td data-label="Created" class="ud-muted">{{ optional($user->created_at)->format('d M Y') ?? '—' }}</td>
              
-               @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
-              <td data-label="Actions">
-                <div class="ud-row-actions">
-                  {{-- <a href="{{ route('user_provisioning') }}?edit={{ $user->id }}" class="ud-xs ud-xs-edit"><i class="bi bi-pencil"></i>Edit</a>--}} 
-                  <button type="button" class="ud-xs ud-xs-edit"
-                          onclick="udOpenEdit({{ $user->id }})">
-                    <i class="bi bi-pencil"></i>Edit
-                  </button>
-               
-                  </button>
-                  <button type="button" class="ud-xs ud-xs-off"
-                    onclick="udPost('{{ route('user_directory.toggle', $user->id) }}','warning','Status Toggled','Account status changed for {{ $user->name }}')">
-                    <i class="bi bi-slash-circle"></i>
-                  </button>
-                </div>
-              </td>
-                 @endif
+              @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
+                <td data-label="Actions">
+                  <div class="ud-row-actions">
+                    <a href="{{ route('user_provisioning') }}?edit={{ $user->id }}" class="ud-xs ud-xs-edit">
+                      <i class="bi bi-pencil"></i>Edit
+                    </a>
+                  </div>
+                </td>
+
+                <td data-label="Status">
+                  <div class="ud-toggle-wrap">
+                    <button type="button"
+                            class="ud-toggle {{ $status === 'active' ? 'on' : 'off' }}"
+                            id="toggle-{{ $user->id }}"
+                            onclick="udConfirmToggle('{{ route('user_directory.toggle', $user->id) }}', '{{ $status }}', '{{ addslashes($user->name) }}', this)">
+                      <span class="ud-toggle-thumb"></span>
+                    </button>
+                  </div>
+                </td>
+              @endif
 
 
             </tr>
@@ -387,6 +422,25 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
   </div>
 @endsection
 
+{{-- Confirm Toggle Modal --}}
+<div class="ud-modal-overlay" id="udConfirmOverlay">
+  <div class="ud-modal" style="max-width:380px;">
+    <div class="ud-modal-hdr">
+      <h6><i class="bi bi-exclamation-triangle" style="color:#ff3366;" id="udConfirmIcon"></i>
+        <span id="udConfirmTitle">Confirm Action</span>
+      </h6>
+      <button type="button" class="ud-modal-x" onclick="udCloseConfirm()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="ud-modal-body">
+      <p style="font-size:.85rem;color:var(--text-primary);margin:0;" id="udConfirmMsg"></p>
+    </div>
+    <div class="ud-modal-ftr">
+      <button type="button" class="ud-btn ud-btn-ghost" onclick="udCloseConfirm()">Cancel</button>
+      <button type="button" class="ud-btn ud-btn-gold" id="udConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
 @push('scripts')
 <script>
 function udToast(type, title, body){
@@ -400,10 +454,6 @@ function udToast(type, title, body){
   setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(function(){ t.remove(); }, 300); }, 4000);
 }
 
-
-
-
-
 async function udPost(url, type, title, body){
   try{
     const res = await fetch(url, {
@@ -415,9 +465,69 @@ async function udPost(url, type, title, body){
       }
     });
     if (res.ok){ udToast(type, title, body); setTimeout(function(){ location.reload(); }, 1000); }
-    else { udToast('error','Failed','Something went wrong (' + res.status + ').'); }
-  } catch(e){ udToast('error','Network Error','Could not reach the server.'); }
+    else {
+      udToast('error','Failed','Something went wrong (' + res.status + ').');
+      document.querySelectorAll('.ud-toggle').forEach(t => t.disabled = false); // re-enable on failure
+    }
+  } catch(e){
+    udToast('error','Network Error','Could not reach the server.');
+    document.querySelectorAll('.ud-toggle').forEach(t => t.disabled = false);
+  }
 }
+
+let udPendingToggle = null; // holds { url, el }
+
+function udConfirmToggle(url, currentStatus, name, el){
+  udPendingToggle = { url, el };
+
+  const icon  = document.getElementById('udConfirmIcon');
+  const title = document.getElementById('udConfirmTitle');
+  const msg   = document.getElementById('udConfirmMsg');
+  const btn   = document.getElementById('udConfirmBtn');
+
+  if (currentStatus === 'active') {
+    icon.className = 'bi bi-exclamation-triangle';
+    icon.style.color = '#ff3366';
+    title.textContent = 'Deactivate User';
+    msg.textContent = `Deactivate ${name}? They will immediately lose access to the portal.`;
+    btn.className = 'ud-btn ud-btn-danger';
+    btn.textContent = 'Deactivate';
+  } else {
+    icon.className = 'bi bi-check-circle';
+    icon.style.color = '#05a34a';
+    title.textContent = 'Activate User';
+    msg.textContent = `Activate ${name}? They will regain access to the portal.`;
+    btn.className = 'ud-btn ud-btn-gold';
+    btn.textContent = 'Activate';
+  }
+
+  document.getElementById('udConfirmOverlay').classList.add('show');
+}
+
+function udCloseConfirm(){
+  document.getElementById('udConfirmOverlay').classList.remove('show');
+  udPendingToggle = null;
+}
+
+document.getElementById('udConfirmBtn').addEventListener('click', function(){
+  if (!udPendingToggle) return;
+  const { url, el } = udPendingToggle;
+  const wasActive = el.classList.contains('on');
+
+  el.disabled = true;
+  udCloseConfirm();
+
+  udPost(
+    url,
+    wasActive ? 'warning' : 'success',
+    wasActive ? 'User Deactivated' : 'User Activated',
+    wasActive ? 'The user is now marked Not Active.' : 'The user has been set to Active.'
+  );
+});
+
+document.getElementById('udConfirmOverlay').addEventListener('click', function(e){
+  if (e.target === this) udCloseConfirm();
+});
 
 let udRoute = "{{ url('/user-directory') }}";
 let udUpdateBase = "{{ url('/user-provisioning') }}";

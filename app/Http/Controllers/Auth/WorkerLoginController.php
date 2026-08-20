@@ -56,13 +56,11 @@ class WorkerLoginController extends Controller
         }
 
         // Block disabled accounts.
-        if (property_exists($user, 'status') || isset($user->status)) {
-            if (!$user->status) {
-                Auth::guard('worker')->logout();
-                throw ValidationException::withMessages([
-                    'email' => 'Your account is inactive. Please contact your supervisor.',
-                ]);
-            }
+        if (isset($user->status) && $user->status === 'inactive') {
+            Auth::guard('worker')->logout();
+            throw ValidationException::withMessages([
+                'email' => 'Your account is inactive. Please contact your supervisor.',
+            ]);
         }
 
         $request->session()->regenerate();
