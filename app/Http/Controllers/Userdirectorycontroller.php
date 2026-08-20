@@ -21,11 +21,10 @@ class Userdirectorycontroller extends Controller
             ->pluck('c', 'status');
 
         $stats = [
-            'total'    => (int) $counts->sum(),
-            'active'   => (int) ($counts['active']   ?? 0),
-            'pending'  => (int) ($counts['pending']  ?? 0),
-            'inactive' => (int) ($counts['inactive'] ?? 0),
-        ];
+                    'total'    => (int) $counts->sum(),
+                    'active'   => (int) ($counts['active']   ?? 0),
+                    'inactive' => (int) ($counts['inactive'] ?? 0) + (int) ($counts['pending'] ?? 0), // ← fold legacy pending in
+                ];
 
         // Filtered, eager-loaded, paginated listing
         $users = User::with(['role', 'serviceDomains'])

@@ -661,6 +661,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
 const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 const SAVE_URL   = @json($saveUrl ?? null);
 const UPDATE_URL_BASE = @json($updateUrlBase ?? null);
+const USER_DIRECTORY_URL = @json(route('user_directory'));   
 let editingUserId     = null;
 
 /* Permission matrix from the DB (permissions + permission_role).
@@ -716,7 +717,7 @@ const EXISTING_EMAILS = @json($existingEmailsData);
 let USERS = @json($usersData);
 let fFull=[...USERS],pgF=1;
 const PFI=6;
-
+const EDIT_USER_ID = @json($editUserId ?? null);
 /* ════════════════════════════════
    ROLE CHANGE
 ════════════════════════════════ */
@@ -1367,25 +1368,32 @@ const countryCode = document.getElementById('empCountryCode').value;
   }
 
   fetch(url,{
-    method,
-    headers:{
-      'Content-Type':'application/json',
-      'Accept':'application/json',
-      'X-CSRF-TOKEN':CSRF_TOKEN,
-      'X-Requested-With':'XMLHttpRequest',
-    },
-    body:JSON.stringify(payload),
-  })
-  .then(async r=>{
-    const data=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error(data.message||'Save failed');
-    if(!data.user)throw new Error('Server did not return the saved user.');
+  method,
+  headers:{
+    'Content-Type':'application/json',
+    'Accept':'application/json',
+    'X-CSRF-TOKEN':CSRF_TOKEN,
+    'X-Requested-With':'XMLHttpRequest',
+  },
+  body:JSON.stringify(payload),
+})
+.then(async r=>{
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(data.message||'Save failed');
+  if(!data.user)throw new Error('Server did not return the saved user.');
+
+  if(isEditing){
+    commitUpdatedUser(data.user);
+  } else {
     commitSavedUser(data.user,m,email);
-  })
-  .catch(err=>{
-    showToast('error','Save Failed',err.message||'Could not provision user.');
-    btn.disabled=false;btn.innerHTML='<i class="bi bi-floppy-fill"></i>Save User Profile';
-  });
+  }
+})
+.catch(err=>{
+  showToast('error','Save Failed',err.message||'Could not provision user.');
+  btn.disabled=false;btn.innerHTML= isEditing
+    ? '<i class="bi bi-pencil-fill"></i>Update User Profile'
+    : '<i class="bi bi-floppy-fill"></i>Save User Profile';
+});
 }
 
 function commitSavedUser(saved,m,email){
@@ -1418,7 +1426,12 @@ function commitSavedUser(saved,m,email){
 
 function closeModal(){document.getElementById('successModal').classList.remove('show');window.location.reload();}
 
-
+function commitUpdatedUser(saved){
+  showToast('success', 'User Updated', `${saved.name}'s profile has been updated.`);
+  setTimeout(() => {
+    window.location.href = USER_DIRECTORY_URL;
+  }, 900);
+}
 
 
 function onPhoneInput(el) {
@@ -1544,6 +1557,16 @@ function showToast(type,title,body){
 renderDomains();syncAll();
 fFull=[...USERS];
 renderFull();
+
+/* Deep-link editing — arrived via ?edit={id} from User Directory */
+if (EDIT_USER_ID) {
+  const targetUser = USERS.find(u => Number(u.id) === Number(EDIT_USER_ID));
+  if (targetUser) {
+    loadUser(targetUser);
+  } else {
+    showToast('error', 'Not Found', 'Could not find that user to edit.');
+  }
+}
 
 /* Ensure the create form always starts empty — clears any browser-restored
    values (e.g. admin@demo.com / password) after a refresh or bfcache restore. */

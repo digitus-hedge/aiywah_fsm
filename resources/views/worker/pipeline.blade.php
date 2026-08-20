@@ -738,7 +738,6 @@ let profileLoaded  = false;
 let signatureUploaded = false;
 let activeEtaAt    = null;
 let etaGateTimer   = null;
-const EARLY_START_GRACE_MS = 15 * 60 * 1000;
 
 /* Block sign-out while a punch is open — the layout checks this. */
 window.beforeSignOut = () => {
@@ -1497,17 +1496,10 @@ async function punchIn() {
     showToast('success', 'Punched in', 'Job started.');
     applyEtaGate();     // punch is open now — hides the notice, stops the ticker
     refreshLock();
-  } catch (err) {
+    } catch (err) {
     btn.disabled = false;
     btn.innerHTML = '<i class="bi bi-play-fill"></i>Start job';
-
-    if (/too early/i.test(err.message)) {
-      showToast('warning', 'Too early to start', err.message);
-      openRescheduleDrawer();
-      $('rsRemark').value = 'Attending earlier than the scheduled ETA.';
-    } else {
-      showToast('error', 'Punch-in failed', err.message);
-    }
+    showToast('error', 'Punch-in failed', err.message);
   }
 }
 
@@ -2421,38 +2413,9 @@ function parseEta(dateStr, timeStr) {
 
 function applyEtaGate() {
   clearInterval(etaGateTimer);
-  const notice = $('etaNotice');
-  const btn    = $('punchInBtn');
-
-  if (punchInTime || !activeEtaAt) { notice.classList.add('hidden'); return; }
-
-  const tick = () => {
-    const waitMs = activeEtaAt.getTime() - Date.now() - EARLY_START_GRACE_MS;
-
-    if (waitMs <= 0) {
-      notice.classList.add('hidden');
-      btn.disabled = false;
-      clearInterval(etaGateTimer);
-      return;
-    }
-
-    const mins  = Math.ceil(waitMs / 60000);
-    const label = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
-
-    $('etaNoticeText').innerHTML =
-      `Scheduled for <strong>${esc(activeEtaAt.toLocaleString('en-GB', {
-        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-      }))}</strong> — can start in ${esc(label)}. ` +
-      `Tap <strong>Reschedule / hold job</strong> if you need to start now.`;
-
-    notice.classList.remove('hidden');
-    btn.disabled = true;
-  };
-
-  tick();
-  etaGateTimer = setInterval(tick, 30000);
+  $('etaNotice').classList.add('hidden');
+  if (!punchInTime) $('punchInBtn').disabled = false;
 }
-
 
 
 

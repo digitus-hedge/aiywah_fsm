@@ -42,7 +42,7 @@ return [
 
     // Role codes that receive internal SR alerts (see roles.code)
     'internal_role_codes' => ['SA', 'HP'],
-
+    'accounts_role_codes'  => ['AC'],
     // Optional extras not tied to a user account — "Name:Phone" pairs,
     // comma-separated. e.g. WHATSAPP_INTERNAL_NUMBERS="Ops Desk:971501112233"
     'internal_recipients' => array_values(array_filter(array_map(

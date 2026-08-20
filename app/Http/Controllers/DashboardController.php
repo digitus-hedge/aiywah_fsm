@@ -278,7 +278,9 @@ class DashboardController extends Controller
             return redirect()->route('sedashboard');
         }
 
-
+        if (strtoupper((string) optional($request->user()->role)->code) === 'AC') {
+            return redirect()->route('kanban_view');
+        }
         $filters = [
             'range'   => $request->input('range', 'today'),
             'from'    => $request->input('from'),
@@ -343,12 +345,12 @@ class DashboardController extends Controller
             'serviceOptions' => ServiceCategory::orderBy('category_name')->pluck('category_name', 'id'),
 
             'kpis'            => $this->kpis($current, $previous, $filters, $start, $end, $prevStart, $prevEnd),
-            'alertCounts'     => $this->alertCounts($current, $start, $end),
+            'alertCounts'     => $this->alertCounts($current, $filters, $start, $end),
             'statusBreakdown' => $this->statusBreakdown($current),
             'srTrend'         => $this->srTrend($filters),
             'srTrend2'        => $this->srTrend2($filters),
             'finance'         => $this->finance($current, $filters, $start, $end),
-            'qc'              => $this->qc($current),
+            'qc'              => $this->qc($current, $filters, $start, $end),
             'whatsapp'        => $this->whatsapp($start, $end),
             'waTriggers'      => $this->waTriggers($start, $end),
             'technicians'     => $this->technicians($current),
@@ -1134,25 +1136,33 @@ class DashboardController extends Controller
      | Alerts
      ===================================================================== */
 
-    private function alertCounts(Collection $srs, Carbon $start, Carbon $end): array
-    {
-        $breached = $srs->filter(fn($sr) => $this->hasBreach($sr));
+    private function alertCounts(Collection $srs, array $filters, Carbon $start, Carbon $end): array
+{
+    $breached = $srs->filter(fn($sr) => $this->hasBreach($sr));
 
-        return [
-            'breaches' => $srs->filter(fn($sr) => $this->slaOutcome($sr) === false)->count(),
-            'pending' => $srs->whereIn('status', self::AWAITING_ACTION)->count(),
+    // Live technician state — NOT windowed by created_at. A tech can be on-site
+    // right now on a ticket that was raised days ago; "on-site" describes what's
+    // happening this second, not when the SR was logged.
+    $onSite = ServiceRequest::query()
+        ->where('status', 'In Progress')
+        ->when($filters['client']  ?? null, fn($q, $v) => $q->where('client_id', $v))
+        ->when($filters['service'] ?? null, fn($q, $v) => $q->where('service_type_id', $v))
+        ->whereHas('punches', fn($q) => $q->whereNotNull('punch_in_at')->whereNull('punch_out_at'))
+        ->count();
 
-            'stalled'  => $srs
-                ->filter(fn($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay()))
-                ->count(),
+    return [
+        'breaches' => $srs->filter(fn($sr) => $this->slaOutcome($sr) === false)->count(),
+        'pending' => $srs->whereIn('status', self::AWAITING_ACTION)->count(),
 
-            'wa_failures' => $this->whatsapp($start, $end)['failed'] ?? 0,
+        'stalled'  => $srs
+            ->filter(fn($sr) => $this->isOpen($sr) && $sr->updated_at?->lt(now()->subDay()))
+            ->count(),
 
-            'on_site' => $srs->where('status', 'In Progress')
-                ->filter(fn($sr) => $sr->punches->contains(fn($p) => $p->punch_in_at && ! $p->punch_out_at))
-                ->count(),
-        ];
-    }
+        'wa_failures' => $this->whatsapp($start, $end)['failed'] ?? 0,
+
+        'on_site' => $onSite,
+    ];
+}
 
     /* =====================================================================
      | Cards
@@ -1269,8 +1279,7 @@ class DashboardController extends Controller
     private function finance(Collection $srs, array $filters, Carbon $start, Carbon $end): array
     {
         $invoiced = $this->invoicedTotal($filters, $start, $end);
-        $expense  = $srs->sum(fn($sr) => $this->expenseFor($sr));
-
+        $expense  = $this->expenseTotal($filters, $start, $end);
         $buckets = $this->buckets($filters['period'] ?? '6M');
         $from    = $buckets[0]['start'];
         $to      = end($buckets)['end'];
@@ -1323,56 +1332,74 @@ class DashboardController extends Controller
      * has reached QC — instead of SLA compliance, which moved to the KPI row.
      * First-pass rate is replaced by the pending queue.
      */
-    private function qc(Collection $srs): array
-    {
-        $reviewed  = $srs->filter(fn($sr) => $sr->qc_reviewed_at);
-        $firstPass = $reviewed->filter(fn($sr) => empty($sr->rework_notes));
+    private function qc(Collection $srs, array $filters, Carbon $start, Carbon $end): array
+{
+    // Live queue snapshot — deliberately NOT windowed by created_at, same pattern as
+    // the "technicians currently on-site" alert chip: these are current-state counts.
+    // A ticket created last week that's sitting in QC review right now still belongs
+    // in "Pending QC" today.
+    $pending = ServiceRequest::query()
+        ->where('status', 'Qc Review')
+        ->when($filters['client']  ?? null, fn($q, $v) => $q->where('client_id', $v))
+        ->when($filters['service'] ?? null, fn($q, $v) => $q->where('service_type_id', $v))
+        ->get();
 
-        $rework     = $srs->filter(fn($sr) => !empty($sr->rework_notes))->count();
-        $reworkOpen = $srs->where('status', 'Rework')->count();
+    $reworkOpen = ServiceRequest::query()
+        ->where('status', 'Rework')
+        ->when($filters['client']  ?? null, fn($q, $v) => $q->where('client_id', $v))
+        ->when($filters['service'] ?? null, fn($q, $v) => $q->where('service_type_id', $v))
+        ->count();
 
-        // SRs sitting in the QC queue
-        $pending = $srs->where('status', 'Qc Review');
+    // Throughput — reviewed WITHIN the selected date window, keyed on qc_reviewed_at
+    // (when the review happened), not created_at (when the SR was raised).
+    $reviewed = ServiceRequest::query()
+        ->whereNotNull('qc_reviewed_at')
+        ->whereBetween('qc_reviewed_at', [$start, $end])
+        ->when($filters['client']  ?? null, fn($q, $v) => $q->where('client_id', $v))
+        ->when($filters['service'] ?? null, fn($q, $v) => $q->where('service_type_id', $v))
+        ->get();
 
-        // SRs that have reached QC at all (queued or already reviewed)
-        $reachedQc = $pending->count() + $reviewed->count();
+    $firstPass = $reviewed->filter(fn($sr) => empty($sr->rework_notes));
+    $rework    = $reviewed->filter(fn($sr) => !empty($sr->rework_notes))->count();
 
-        $oldest = $pending
-            ->sortBy(fn($sr) => $this->completedAt($sr) ?? $sr->updated_at)
-            ->first();
+    $reachedQc = $pending->count() + $reviewed->count();
 
-        $breached = $srs->filter(fn($sr) => $this->slaOutcome($sr) === false);
-        return [
-            // Gauge
-            'qc_rate'     => $reachedQc > 0 ? round($reviewed->count() / $reachedQc * 100, 1) : null,
-            'qc_reviewed' => $reviewed->count(),
-            'qc_reached'  => $reachedQc,
+    $oldest = $pending->sortBy(fn($sr) => $sr->updated_at)->first();
 
-            // Used by the KPI card and the QC card header
-            'pending_review' => $pending->count(),
-            'pending_qc'     => $pending->count(),
-            'pending_qc_sub' => $oldest
-                ? 'Oldest ' . optional($this->completedAt($oldest) ?? $oldest->updated_at)->diffForHumans()
-                : 'Queue clear',
+    // SLA breach count intentionally stays scoped to $srs (the selected-period
+    // collection) so it matches the "X SLA breaches this period" KPI card and the
+    // alert strip above — same definition of "this period" everywhere on the page.
+    $breached = $srs->filter(fn($sr) => $this->slaOutcome($sr) === false);
 
-            'sla_compliance'  => $this->slaCompliance($srs),
+    return [
+        'qc_rate'     => $reachedQc > 0 ? round($reviewed->count() / $reachedQc * 100, 1) : null,
+        'qc_reviewed' => $reviewed->count(),
+        'qc_reached'  => $reachedQc,
 
-            'first_pass_rate' => $reviewed->isEmpty()
-                ? null
-                : round($firstPass->count() / $reviewed->count() * 100),
-            'first_pass_sub'  => $firstPass->count() . ' of ' . $reviewed->count() . ' reviewed',
+        'pending_review' => $pending->count(),
+        'pending_qc'     => $pending->count(),
+        'pending_qc_sub' => $oldest
+            ? 'Oldest ' . optional($oldest->updated_at)->diffForHumans()
+            : 'Queue clear',
 
-            'rework_count' => $rework,
-            'rework_sub'   => $reworkOpen . '',
+        'sla_compliance'  => $this->slaCompliance($srs),
 
-            'sla_breaches'   => $breached->count(),
-            'sla_breach_sub' => $breached->isEmpty()
-                ? 'All within target'
-                : $breached->pluck('priority_level')->filter()->unique()->take(2)->implode(', ') . ' priority',
+        'first_pass_rate' => $reviewed->isEmpty()
+            ? null
+            : round($firstPass->count() / $reviewed->count() * 100),
+        'first_pass_sub'  => $firstPass->count() . ' of ' . $reviewed->count() . ' reviewed',
 
-            'stage_breaches' => $this->breachesByStage($srs),
-        ];
-    }
+        'rework_count' => $rework,
+        'rework_sub'   => $reworkOpen . '',
+
+        'sla_breaches'   => $breached->count(),
+        'sla_breach_sub' => $breached->isEmpty()
+            ? 'All within target'
+            : $breached->pluck('priority_level')->filter()->unique()->take(2)->implode(', ') . ' priority',
+
+        'stage_breaches' => $this->breachesByStage($srs),
+    ];
+}
     /**
      * Technician scorecard.
      *
@@ -1736,6 +1763,7 @@ class DashboardController extends Controller
             'month-srs'       => ['All SRs this period', 'bi-ticket-detailed', 'Every request logged'],
             'technician'      => ['Technician detail', 'bi-person-badge', 'Recent assignments'],
             'client'          => ['Client detail', 'bi-buildings', 'Service request history'],
+            'on-site'         => ['Technicians on-site', 'bi-people-fill', 'Currently working in the field'],
             'wa-failures'     => ['WhatsApp failures', 'bi-whatsapp', 'Undelivered messages'],
             default           => ['All SR Details', 'bi-list', null],
         };
@@ -1758,7 +1786,21 @@ class DashboardController extends Controller
             'technician'      => $all->where('assigned_user_id', $id),
             'client'          => $all->filter(fn($sr) => optional($sr->project)->client_id == $id),
             'wa-failures' => $this->waFailures($start, $end),
-
+            'on-site' => ServiceRequest::query()
+                ->where('status', 'In Progress')
+                ->when($filters['client']  ?? null, fn($q, $v) => $q->where('client_id', $v))
+                ->when($filters['service'] ?? null, fn($q, $v) => $q->where('service_type_id', $v))
+                ->whereHas('punches', fn($q) => $q->whereNotNull('punch_in_at')->whereNull('punch_out_at'))
+                ->with([
+                    'client:id,company_name',
+                    'project:id,project_name,site_name,warranty_end_date',
+                    'assignedUser:id,name',
+                    'creator:id,name',
+                    'category:id,category_name',
+                    'punches.items',
+                    'punches.user:id,name',
+                ])
+                ->get(),
             default           => $all,
         };
 
@@ -1895,6 +1937,22 @@ class DashboardController extends Controller
             ->sum('invoice_total');
     }
 
+    /** Field expense actually incurred in the window — scoped by punch_out_at, not SR created_at. */
+private function expenseTotal(array $filters, Carbon $start, Carbon $end): float
+{
+    return (float) Punch::query()
+        ->whereBetween('punch_out_at', [$start, $end])
+        ->when(
+            ($filters['client'] ?? null) || ($filters['service'] ?? null) || ($filters['status'] ?? null),
+            fn($q) => $q->whereHas('serviceRequest', fn($sr) => $sr
+                ->when($filters['client']  ?? null, fn($s, $v) => $s->where('client_id', $v))
+                ->when($filters['service'] ?? null, fn($s, $v) => $s->where('service_type_id', $v))
+                ->when($filters['status']  ?? null, fn($s, $v) => $s->where('status', $v)))
+        )
+        ->with('items')
+        ->get()
+        ->sum(fn($p) => $this->punchExpense($p));
+}
     /** Trend buckets: weeks for 1M, months otherwise. */
     private function buckets(string $period): array
     {

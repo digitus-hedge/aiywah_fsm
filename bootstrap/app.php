@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'worker'       => \App\Http\Middleware\EnsureWorker::class,
             'worker.reset' => \App\Http\Middleware\EnsurePasswordIsReset::class,
+            'worker.active' => \App\Http\Middleware\EnsureWorkerIsActive::class, 
             'role'         => \App\Http\Middleware\EnsureUserHasRole::class,
         ]);
 
@@ -22,7 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
             return $request->expectsJson() ? null : route('login');
         });
 
-       
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureUserIsActive::class,
+        ]);
+
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
