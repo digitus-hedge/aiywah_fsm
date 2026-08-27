@@ -1537,7 +1537,6 @@ public function notifyInvoiceRequiredAccounts(
     $when       = ($sr->created_at ?? now())->format('d M Y, h:i A');
 
     $quoteRef   = $this->cleanParam($quoteReference ?? $sr->quote_reference) ?: 'N/A';
-    $quoteText  = $quoteVal !== null ? 'AED ' . number_format((float) $quoteVal, 2) : 'N/A';
 
     $qcBy       = $this->cleanParam($qcApprovedBy ?? optional($sr->qcApprovedBy)->name) ?: 'N/A';
     $qcAt       = ($qcApprovedAt ?? ($sr->qc_reviewed_at ? Carbon::parse($sr->qc_reviewed_at) : now()))
@@ -1546,23 +1545,22 @@ public function notifyInvoiceRequiredAccounts(
     $components = [[
         "type" => "body",
         "parameters" => [
-            $this->txt($c['project']),
-            $this->txt($c['location']),
-            $this->txt($c['ref']),
-            $this->txt($customer),
-            $this->txt($createdBy),
-            $this->txt($c['issue']),
-            $this->txt($priority),
-            $this->txt($when),
-            $this->txt($quoteRef),
-            $this->txt($quoteText),
-            $this->txt($qcBy),
-            $this->txt($qcAt),
-            $this->txt($tech['name']),
+            $this->txt($c['project']),   // {{1}}
+            $this->txt($c['location']),  // {{2}}
+            $this->txt($c['ref']),       // {{3}}
+            $this->txt($customer),       // {{4}}
+            $this->txt($createdBy),      // {{5}}
+            $this->txt($c['issue']),     // {{6}}
+            $this->txt($priority),       // {{7}}
+            $this->txt($when),           // {{8}}
+            $this->txt($quoteRef),       // {{9}}
+            $this->txt($qcBy),           // {{10}}
+            $this->txt($qcAt),           // {{11}}
+            $this->txt($tech['name']),   // {{12}}
         ],
     ]];
 
-    $preview = "Invoice required — {$c['ref']} | {$customer} | Quote: {$quoteRef} ({$quoteText})";
+    $preview = "Invoice required — {$c['ref']} | {$customer} | Quote: {$quoteRef}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(

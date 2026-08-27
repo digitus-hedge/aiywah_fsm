@@ -5,7 +5,7 @@
 @section('page_icon', 'building-add')
 
 @php
-    $usersData = collect($users ?? [])->map(function ($u) {
+        $usersData = collect($users ?? [])->map(function ($u) {
         $u = (array) $u;
         return [
             'id'       => $u['id']       ?? null,
@@ -18,12 +18,12 @@
             'domains'  => array_values((array) ($u['domains']  ?? [])),
             'fdGrants' => array_values((array) ($u['fdGrants'] ?? ($u['fd_grants'] ?? []))),
             'acGrants' => array_values((array) ($u['acGrants'] ?? ($u['ac_grants'] ?? []))),
+            'extGrants' => (object) ($u['extGrants'] ?? ($u['ext_grants'] ?? [])),  
             'created'  => $u['created']  ?? '',
             'status'   => $u['status']   ?? 'active',
-            
             'categories' => $u['categories'],
             'qcReview'   => $u['qcReview'],
-  
+            'isSeEnabled' => $u['isSeEnabled'] ?? false,
         ];
     })->values();
 
@@ -42,6 +42,7 @@
 
     // Permission matrix from the DB (grouped sections).
     $permSectionsData = collect($permSections ?? [])->values();
+    $roleExtensionsData = collect($roleExtensions ?? [])->values();
 @endphp
 
 @push('styles')
@@ -143,6 +144,25 @@
 .perm-section-hdr td{background:var(--surface-3)!important;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:5px 10px!important;border-bottom:1px solid var(--card-border);}
 .perm-note{font-size:.7rem;color:var(--text-muted);margin-top:8px;padding:7px 10px;background:rgba(154,128,83,.06);border-radius:6px;border-left:3px solid #9a8053;display:flex;align-items:flex-start;gap:6px;line-height:1.5;}
 .perm-note i{color:#9a8053;flex-shrink:0;margin-top:1px;}
+
+
+.ext-block{margin-top:14px;border:1px solid var(--card-border);border-radius:8px;overflow:hidden;}
+.ext-block-hdr{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--surface-2);border-bottom:1px solid var(--card-border);}
+.ext-block-hdr i{font-size:.85rem;}
+.ext-block-hdr span{font-size:.72rem;font-weight:700;color:var(--text-heading);text-transform:uppercase;letter-spacing:.06em;}
+.ext-block-sub{font-size:.63rem;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);margin-left:4px;}
+.ext-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:14px;padding:9px 12px;background:var(--surface-2);border:1px solid var(--card-border);border-radius:8px;}
+.ext-toggle-label{display:flex;align-items:center;gap:7px;font-size:.76rem;font-weight:600;color:var(--text-heading);}
+.ext-toggle-label i{color:#9a8053;font-size:.9rem;}
+.ext-collapse{display:none;}
+.ext-collapse.open{display:block;}
+.ext-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border-bottom:1px solid var(--card-border);font-size:.77rem;}
+.ext-row:last-child{border-bottom:none;}
+.ext-row-label{display:flex;align-items:center;gap:7px;color:var(--text-primary);}
+.ext-row-label i{font-size:.85rem;color:var(--text-muted);width:16px;flex-shrink:0;}
+.ext-row input[type="checkbox"]{accent-color:#9a8053;width:15px;height:15px;cursor:pointer;flex-shrink:0;}
+.ext-none{padding:10px 12px;font-size:.72rem;color:var(--text-muted);font-style:italic;}
+
 .fd-upgrade-note{background:rgba(249,115,22,.06);border-left-color:#f97316;}
 .fd-upgrade-note i{color:#f97316;}
 .domain-card-wrap{display:none;}
@@ -463,10 +483,10 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
             <div style="display:flex;gap:8px;">
 
               <select class="form-select" id="empCountryCode" style="max-width:130px;" onchange="syncAll()">
+                <option value="+971" selected>🇦🇪 +971</option>
                 <option value="+91">🇮🇳 +91</option>
                 <option value="+1">🇺🇸 +1</option>
                 <option value="+44">🇬🇧 +44</option>
-                <option value="+971">🇦🇪 +971</option>
                 <option value="+61">🇦🇺 +61</option>
               </select>
 
@@ -577,6 +597,37 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
   </div>
 </div>
 
+      {{-- CR-02: HoP dual-role toggle — shown only when role = Head of Projects --}}
+      <div class="domain-card-wrap" id="hopSeCardWrap">
+        <div class="card">
+          <div class="chdr">
+            <div class="chdr-ico" style="background:rgba(124,58,237,.1);"><i class="bi bi-arrow-left-right" style="color:#7c3aed;"></i></div>
+            <div><h6>Dual Role — Service Engineer</h6><span class="csub">Extend this Head of Projects account with SE dispatch authority</span></div>
+          </div>
+          <div class="cbody">
+            <div class="qc-toggle-row" style="padding:14px;border-radius:9px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.18);display:flex;align-items:center;gap:12px;">
+              <div style="flex:1;">
+                <div style="font-weight:600;font-size:.84rem;color:var(--text-heading);">Also acts as Service Engineer</div>
+                <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">
+                  ON — this HoP account gets SE permissions and a dashboard tab switcher. OFF by default. Only Admin can change this.
+                </div>
+              </div>
+              <label class="qc-switch" style="position:relative;display:inline-block;width:46px;height:25px;flex-shrink:0;">
+                <input type="checkbox" id="hopSeToggle" onchange="onHopSeToggle(this.checked)" style="opacity:0;width:0;height:0;">
+                <span class="qc-slider"></span>
+              </label>
+            </div>
+
+            <div id="hopSeCatWrap" style="display:none;margin-top:16px;">
+              <div class="ml-domain-note">
+                <i class="bi bi-info-circle-fill"></i>
+                Select the service categories this HoP will dispatch as an SE. Same category list as a standard SE account.
+              </div>
+              <div id="hopCatGrid" class="skill-tags"></div>
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- Actions -->
       <div class="action-bar">
         <button class="btn-save" id="saveBtn" onclick="saveUser()"><i class="bi bi-floppy-fill"></i>Save User Profile</button>
@@ -682,6 +733,12 @@ let fdGrants = new Set();
 
 let accountPermissions = new Set();
 
+/* Cross-role permission extensions, chosen for the user being created/edited.
+   Map<permission_key, access_token ('yes'|'rls')>. Populated dynamically
+   from PERM_SECTIONS — not from any fixed seeder whitelist. */
+let extGrants = new Map();
+
+const SUPERSET_ROLES = new Set(['SA', 'AD']);
 /* ════════════════════════════════
    DOMAIN MASTER — fully dynamic, sourced from service_categories / service_domains
 ════════════════════════════════ */
@@ -724,7 +781,8 @@ const EDIT_USER_ID = @json($editUserId ?? null);
 function onRoleChange(val){
   selectedRole=val||null;
   fdGrants=new Set();
-  accountPermissions=new Set();  
+  accountPermissions=new Set();
+  extGrants=new Map();                 // ← add
   const box=document.getElementById('roleDescBox');
   const pill=document.getElementById('rolePillPreview');
   if(!val){
@@ -732,8 +790,10 @@ function onRoleChange(val){
     pill.style.display='none';
     const _d=document.getElementById('domainCardWrap');if(_d)_d.classList.remove('show');
     const _c=document.getElementById('catCardWrap');if(_c)_c.classList.remove('show');
+    const _h=document.getElementById('hopSeCardWrap');if(_h)_h.classList.remove('show');
     selectedCats=new Set();
     qcReview=false;
+    hopSeEnabled=false;hopSeCats=new Set();
     syncAll();
     return;
   }
@@ -749,11 +809,23 @@ function onRoleChange(val){
   box.className='role-desc-box show';
   renderDomains();
   renderCategories();
+  renderHopSeSection();
   syncAll();
 }
 
 function renderPermTable(roleId) {
 
+     // ML never shows a permission matrix at all — just role info + note.
+    if (roleId === 'ML') {
+        document.getElementById('permTableWrap').innerHTML = `
+            <div class="perm-note">
+                <i class="bi bi-info-circle-fill"></i>
+                Maintenance Lead sees only their own assigned pipeline,
+                Dashboar and their own works.
+            </div>
+        `;
+        return;
+    }
     const isFD = roleId === 'FD';
     const isAC = roleId === 'AC';
 
@@ -997,13 +1069,14 @@ function renderPermTable(roleId) {
     });
 
 
-    html += `
+        html += `
             </tbody>
         </table>
 
         </div>
     `;
 
+    html += renderExtensionBlocks(roleId);   // ← MOVED HERE — right after the matrix table
 
     /*
      * Role notes
@@ -1057,9 +1130,8 @@ function renderPermTable(roleId) {
         html += `
             <div class="perm-note">
                 <i class="bi bi-info-circle-fill"></i>
-                Maintenance Lead sees only their own assigned pipeline.
-                Domain expertise tags below determine which tickets are
-                routed to this user.
+                Maintenance Lead sees only their own assigned pipeline,
+                Dashboar and their own works.
             </div>
         `;
 
@@ -1075,10 +1147,142 @@ function renderPermTable(roleId) {
         `;
     }
 
+    document.getElementById('permTableWrap').innerHTML = html;   // ← the trailing `html += renderExtensionBlocks(roleId);` line is REMOVED from here
+}
+/*
+ * For the selected role, find every permission it doesn't already have
+ * (access === 'no') that at least one other, non-superset role DOES have
+ * (access 'yes' or 'rls'). Each permission is assigned to exactly ONE
+ * source-role block. Permissions already offered through a role's own
+ * dedicated grant mechanism (FD's "Extend" column, AC's "Allow" column)
+ * are excluded here so they aren't offered twice.
+ */
+function computeExtensionBlocks(roleId){
+  if(!roleId) return [];
 
-    document.getElementById('permTableWrap').innerHTML = html;
+  // ML never gets extension blocks — its access is intentionally locked
+  // to its own base permissions (own pipeline only), regardless of what
+  // other roles have.
+  if(roleId === 'ML') return [];
+
+  const blocks = {};
+  const assignedKeys = new Set();
+
+  const AC_OWN_GRANT_KEYS = new Set(['quotation_desk', 'invoice_panel']);
+
+  (PERM_SECTIONS || []).forEach(sec => {
+    (sec.items || []).forEach(item => {
+      if (assignedKeys.has(item.key)) return;
+
+      if (roleId === 'FD' && item.grant && item.grant['FD']) return;
+      if (roleId === 'AC' && AC_OWN_GRANT_KEYS.has(item.key)) return;
+
+      const ownAccess = (item.access && item.access[roleId]) || 'no';
+      if (ownAccess !== 'no') return;
+
+      let bestCode = null;
+      let bestAccess = null;
+
+      Object.keys(ROLE_META).forEach(otherCode => {
+        if (otherCode === roleId || SUPERSET_ROLES.has(otherCode)) return;
+        const otherAccess = (item.access && item.access[otherCode]) || 'no';
+        if (otherAccess !== 'yes' && otherAccess !== 'rls') return;
+
+        if (otherAccess === 'yes' && bestAccess !== 'yes') {
+          bestAccess = 'yes'; bestCode = otherCode;
+        } else if (otherAccess === 'rls' && !bestAccess) {
+          bestAccess = 'rls'; bestCode = otherCode;
+        }
+      });
+
+      if (!bestCode) return;
+
+      if (!blocks[bestCode]) blocks[bestCode] = [];
+      blocks[bestCode].push({
+        key: item.key, name: item.name, icon: item.icon, access: bestAccess,
+      });
+      assignedKeys.add(item.key);
+    });
+  });
+
+  return Object.keys(blocks)
+    .filter(code => blocks[code].length && ROLE_META[code])
+    .sort((a, b) => ROLE_META[a].name.localeCompare(ROLE_META[b].name))
+    .map(code => ({ roleCode: code, roleMeta: ROLE_META[code], items: blocks[code] }));
 }
 
+function renderExtensionBlocks(roleId){
+  const blocks = computeExtensionBlocks(roleId);
+  if(!blocks.length) return '';
+
+  let inner = `
+    <div class="perm-note">
+      <i class="bi bi-unlock-fill"></i>
+      Additional permissions available from other roles. Check any to extend this account beyond its base access.
+    </div>`;
+
+  blocks.forEach(block => {
+    inner += `
+      <div class="ext-block">
+        <div class="ext-block-hdr">
+          <i class="bi ${block.roleMeta.icon}" style="color:${block.roleMeta.color};"></i>
+          <span>${block.roleMeta.name} permissions<span class="ext-block-sub">(optional)</span></span>
+        </div>`;
+
+    block.items.forEach(item => {
+      const checked = extGrants.has(item.key);
+      inner += `
+        <div class="ext-row">
+          <div class="ext-row-label">
+            <i class="bi ${item.icon || 'bi-dot'}"></i>${item.name}
+          </div>
+          <input type="checkbox" ${checked ? 'checked' : ''}
+                 onchange="toggleExtGrant('${item.key}','${item.access}',this.checked)"
+                 title="Grant this ${block.roleMeta.name} permission" />
+        </div>`;
+    });
+
+    inner += `</div>`;
+  });
+
+  return `
+    <div class="ext-toggle-row">
+        <span class="ext-toggle-label">
+            <i class="bi bi-unlock-fill"></i>
+            Extended Permissions (${blocks.reduce((n, b) => n + b.items.length, 0)})
+        </span>
+
+        <button type="button"
+                class="perm-view-btn"
+                id="extViewBtn"
+                onclick="toggleExtBlock()">
+            <i class="bi bi-eye" id="extViewIcon"></i>
+            <span id="extViewTxt">View</span>
+        </button>
+    </div>
+
+    <div class="ext-collapse" id="extCollapse">
+        ${inner}
+    </div>
+  `;
+}
+
+function toggleExtBlock(){
+  const box=document.getElementById('extCollapse');
+  const btn=document.getElementById('extViewBtn');
+  const txt=document.getElementById('extViewTxt');
+  const ico=document.getElementById('extViewIcon');
+  if(!box)return;
+  const open=box.classList.toggle('open');
+  if(btn)btn.classList.toggle('active',open);
+  if(txt)txt.textContent=open?'Hide':'View';
+  if(ico)ico.className=open?'bi bi-eye-slash':'bi bi-eye';
+}
+
+function toggleExtGrant(key, access, checked){
+  if(checked) extGrants.set(key, access);
+  else extGrants.delete(key);
+}
 
 function toggleAccountPermission(key, checked) {
 
@@ -1276,6 +1480,10 @@ function setChk(id,done){
 let selectedCats = new Set();
 let qcReview     = false;          // default OFF
 
+// CR-02: HoP dual-role state
+let hopSeEnabled = false;
+let hopSeCats    = new Set();
+
 function renderCategories(){
   const wrap = document.getElementById('catCardWrap');
   if(!wrap) return;
@@ -1314,6 +1522,51 @@ function onQcToggle(checked){
   syncAll();
 }
 
+/* ════════════════════════════════
+   CR-02: HoP dual-role (SE toggle)
+════════════════════════════════ */
+function renderHopSeSection(){
+  const wrap = document.getElementById('hopSeCardWrap');
+  if(!wrap) return;
+
+  if(selectedRole === 'HP'){
+    wrap.classList.add('show');
+  } else {
+    wrap.classList.remove('show');
+    hopSeEnabled = false;
+    hopSeCats = new Set();
+  }
+
+  const toggle = document.getElementById('hopSeToggle');
+  if(toggle) toggle.checked = hopSeEnabled;
+
+  const catWrap = document.getElementById('hopSeCatWrap');
+  if(catWrap) catWrap.style.display = hopSeEnabled ? 'block' : 'none';
+
+  const grid = document.getElementById('hopCatGrid');
+  if(grid){
+    grid.innerHTML = DOMAIN_CATS.map(c => `
+      <div class="d-tag${hopSeCats.has(c.id) ? ' picked' : ''}" onclick="toggleHopCategory(${c.id})">
+        <div class="chk"></div>
+        <i class="bi ${c.icon}" style="color:${c.color};margin-right:5px;"></i>${c.label}
+      </div>`).join('');
+  }
+}
+
+function onHopSeToggle(checked){
+  hopSeEnabled = !!checked;
+  if(!hopSeEnabled) hopSeCats = new Set();   // matches CR-02: toggle OFF clears categories
+  renderHopSeSection();
+  syncAll();
+}
+
+function toggleHopCategory(id){
+  id = Number(id);
+  if(hopSeCats.has(id)) hopSeCats.delete(id);
+  else hopSeCats.add(id);
+  renderHopSeSection();
+  syncAll();
+}
 
 // Service Engineer
 
@@ -1343,7 +1596,16 @@ const countryCode = document.getElementById('empCountryCode').value;
   const domainIds = Array.from(selectedDomains).filter(id => VALID_DOMAIN_IDS.has(id));
   const grants=Array.from(fdGrants);
 
-  const payload={
+    // Categories mean different things depending on role: SE's own categories,
+  // or a HoP's SE-dual-role categories. Only one is ever active at a time.
+  let categoriesPayload = [];
+  if (selectedRole === 'SE') {
+    categoriesPayload = Array.from(selectedCats);
+  } else if (selectedRole === 'HP' && hopSeEnabled) {
+    categoriesPayload = Array.from(hopSeCats);
+  }
+
+      const payload={
     name,
     email:email.toLowerCase(),
     country_code:countryCode,
@@ -1351,11 +1613,14 @@ const countryCode = document.getElementById('empCountryCode').value;
     role:m.name,
     roleId:selectedRole,
     domains:domainIds,
-    categories:Array.from(selectedCats),
+    categories:categoriesPayload,
     qcReview:qcReview,
+    isSeEnabled:hopSeEnabled,
     fdGrants:grants,
     acGrants:Array.from(accountPermissions),
+    extGrants:Object.fromEntries(extGrants),   
   };
+
   if(password) payload.password = password;
 
   const url    = isEditing ? `${UPDATE_URL_BASE}/${editingUserId}` : SAVE_URL;
@@ -1454,15 +1719,17 @@ function resetForm(){
   editingUserId=null;
   document.getElementById('empName').value='';
   document.getElementById('empEmail').value='';
-  document.getElementById('empCountryCode').value = '+91';
+  document.getElementById('empCountryCode').value = '+971';
   document.getElementById('empPhone').value = '';
   document.getElementById('empPassword').value='';
   document.getElementById('roleSelect').value='';
   emailValid=false;hideEmailFB();
   selectedRole=null;selectedDomains=new Set();fdGrants=new Set();accountPermissions=new Set();
+  hopSeEnabled=false;hopSeCats=new Set();   // ← ADD
   document.getElementById('roleDescBox').className='role-desc-box';
   document.getElementById('rolePillPreview').style.display='none';
   const dcw=document.getElementById('domainCardWrap');if(dcw)dcw.classList.remove('show');
+  const hsw=document.getElementById('hopSeCardWrap');if(hsw)hsw.classList.remove('show');   // ← ADD
   const btn=document.getElementById('saveBtn');
   btn.innerHTML='<i class="bi bi-floppy-fill"></i>Save User Profile';
   renderDomains();syncAll();
@@ -1499,7 +1766,7 @@ function loadUser(u){
   document.getElementById('empName').value=u.name;
   document.getElementById('empEmail').value=u.email;
   document.getElementById('empPhone').value = u.phone || '';
-  document.getElementById('empCountryCode').value = u.countryCode || '+91';
+  document.getElementById('empCountryCode').value = u.countryCode || '+971';
   emailValid=true;
   document.getElementById('empEmail').className='form-control is-valid';
   document.getElementById('eok').style.display='block';
@@ -1509,17 +1776,29 @@ function loadUser(u){
   onRoleChange(u.roleId);
   fdGrants=new Set(u.fdGrants||[]);
   accountPermissions=new Set(u.acGrants||[]);
+  extGrants=new Map(Object.entries(u.extGrants||{}));
   selectedDomains = new Set(
     (u.domains||[])
       .map(id => Number(id))
       .filter(id => VALID_DOMAIN_IDS.has(id))
   );
 
-  // categories + QC (SE only) — set AFTER onRoleChange, which resets them
-  selectedCats = new Set((u.categories || []).map(id => Number(id)));
-  qcReview     = !!u.qcReview;
+   // categories + QC (SE only) — set AFTER onRoleChange, which resets them
+  selectedCats = new Set();
+  hopSeCats    = new Set();
 
-  renderCategories();          // ← correct name, and re-renders with the loaded state
+  if (u.roleId === 'SE') {
+    selectedCats = new Set((u.categories || []).map(id => Number(id)));
+  } else if (u.roleId === 'HP') {
+    hopSeEnabled = !!u.isSeEnabled;
+    if (hopSeEnabled) {
+      hopSeCats = new Set((u.categories || []).map(id => Number(id)));
+    }
+  }
+  qcReview = !!u.qcReview;
+
+  renderCategories();
+  renderHopSeSection();        // ← ADD
 
   renderPermTable(u.roleId);
   renderDomains();syncAll();
@@ -1574,7 +1853,7 @@ function clearCreateForm(){
   if(editingUserId!==null) return;
   document.getElementById('empName').value='';
   document.getElementById('empEmail').value='';
-  document.getElementById('empCountryCode').value = '+91';
+  document.getElementById('empCountryCode').value = '+971';
   document.getElementById('empPhone').value = '';
   document.getElementById('empPassword').value='';
   emailValid=false;hideEmailFB();syncAll();

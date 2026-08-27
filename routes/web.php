@@ -91,9 +91,8 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:FD')
         ->name('frontdashboard');
 
-    
     Route::get('/service-engineer/dashboard', [SEDashboardController::class, 'index'])
-        ->middleware('role:SE')
+        ->middleware('se_or_hop_se')
         ->name('sedashboard');
 
 

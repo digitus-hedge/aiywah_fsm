@@ -117,7 +117,7 @@ class SEDashboardController extends Controller
 
 
         $user = Auth::user();
-
+     $isHopSe = optional($user->role)->code === 'HP' && (bool) $user->is_se_enabled;
     $rawFrom = $request->query('from');
     $rawTo   = $request->query('to');
     $custom  = $rawFrom && $rawTo && strtotime($rawFrom) && strtotime($rawTo);
@@ -167,7 +167,7 @@ class SEDashboardController extends Controller
             // 'filters'     => ['period' => $period],
   
             // 'periodOptions' => ['month' => 'This Month', 'week' => 'This Week', 'today' => 'Today'],
-
+            'isHopSe'     => $isHopSe,
             'filters'     => [
     'period' => $period,
     'from'   => $custom ? $from->toDateString() : null,

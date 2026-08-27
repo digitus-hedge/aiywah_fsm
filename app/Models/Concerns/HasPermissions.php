@@ -4,63 +4,37 @@ namespace App\Models\Concerns;
 
 /**
  * Permission helpers for the User model.
+ * ...(docblock unchanged)...
  *
- * Usage: add `use HasPermissions;` inside the User class.
- *
- * Three independent axes per permission key:
- *
- *   access         → WHICH ROWS may they read: 'yes' all, 'rls' own, 'no' none
- *   is_readonly    → MAY THEY EDIT at all: true = page visible but frozen
- *   write_own_only → writes narrowed to rows they own, reads unrestricted
- *
- * Access resolution:
- *   1. Super Admin (role code 'SA') → always allowed, always writable.
- *   2. Role pivot access === 'yes'  → allowed.
- *   3. Role pivot access 'rls'/'no' → denied by hasAccess() (rls links are
- *      hidden per spec); use hasAnyAccess() where filtered views are shown.
  *   4. Key present in fd_grants / ac_grants → allowed (Admin-granted extension).
- *
- * Grant columns are JSON/array columns of permission KEYS.
- * Granted keys are writable — a grant is an extension of capability, not a
- * peek. If you ever need read-only grants, store them in a separate column
- * and add the check to isReadonly().
- *
- * REQUIRES on Role:
- *   ->withPivot('access', 'can_grant', 'is_readonly', 'write_own_only')
+ *   5. Key present in ext_grants → allowed at whatever access level ('yes'/'rls')
+ *      was computed when the extension was saved. This lets a user borrow a
+ *      specific permission from a role other than their own — e.g. an FD
+ *      account extended with an HP permission, or an SE extended with an
+ *      AC permission — while still respecting whether that borrowed access
+ *      was full ('yes') or record-filtered ('rls').
  */
 trait HasPermissions
 {
-    /**
-     * In-request cache of the role's pivot rows, keyed by permission key.
-     */
     protected ?array $permissionAccessCache = null;
 
-    /**
-     * Does this user have (unfiltered) access to the given permission key?
-     */
     public function hasAccess(?string $key): bool
     {
         if (!$key) {
             return false;
         }
 
-        // 1. Super Admin bypasses all checks.
         if ($this->isSuperAdmin()) {
             return true;
         }
 
-        // 2. Role-granted access ('yes' only; 'rls' and 'no' are treated as no access).
         if ($this->accessFor($key) === 'yes') {
             return true;
         }
 
-        // 3. Extra per-user grants (e.g. Admin extending a Front Desk user).
         return $this->hasGrant($key);
     }
 
-    /**
-     * Does the user have any access at all — including filtered ('rls')?
-     */
     public function hasAnyAccess(?string $key): bool
     {
         if (!$key) {
@@ -76,6 +50,9 @@ trait HasPermissions
 
     /**
      * Raw access level for a key: 'yes' | 'rls' | 'no'.
+     * Falls back to ext_grants when the role's own pivot has no access
+     * at all for this key — a cross-role extension only kicks in where
+     * the role wasn't already granted something of its own.
      */
     public function accessFor(?string $key): string
     {
@@ -83,12 +60,31 @@ trait HasPermissions
             return 'no';
         }
 
-        return $this->permissionAccessMap()[$key]['access'] ?? 'no';
+        $roleAccess = $this->permissionAccessMap()[$key]['access'] ?? 'no';
+
+        if ($roleAccess !== 'no') {
+            return $roleAccess;
+        }
+
+        return $this->extAccessFor($key);
     }
 
     /**
-     * Must the row list on this page be scoped to the user's own records?
+     * Access level granted purely via ext_grants (cross-role extension),
+     * ignoring the role's own pivot. Returns 'yes' | 'rls' | 'no'.
      */
+    protected function extAccessFor(?string $key): string
+    {
+        if (!$key) {
+            return 'no';
+        }
+
+        $extGrants = is_array($this->ext_grants) ? $this->ext_grants : [];
+        $value = $extGrants[$key] ?? null;
+
+        return in_array($value, ['yes', 'rls'], true) ? $value : 'no';
+    }
+
     public function isFiltered(?string $key): bool
     {
         if (!$key || $this->isSuperAdmin()) {
@@ -98,27 +94,25 @@ trait HasPermissions
         return $this->accessFor($key) === 'rls';
     }
 
-    /**
-     * Can see the page but must not mutate anything on it.
-     */
     public function isReadonly(?string $key): bool
     {
         if (!$key || $this->isSuperAdmin()) {
             return false;
         }
 
-        // A per-user grant carries write capability.
         if ($this->hasGrant($key)) {
+            return false;
+        }
+
+        // An ext_grants extension carries write capability too, same as
+        // fd_grants/ac_grants — it's an extension of capability, not a peek.
+        if ($this->extAccessFor($key) !== 'no') {
             return false;
         }
 
         return (bool) ($this->permissionAccessMap()[$key]['is_readonly'] ?? false);
     }
 
-    /**
-     * Are writes limited to rows the user owns, even though they read
-     * everything? (The 'edit_own' token.)
-     */
     public function writesOwnOnly(?string $key): bool
     {
         if (!$key || $this->isSuperAdmin()) {
@@ -129,35 +123,23 @@ trait HasPermissions
             return false;
         }
 
+        if ($this->extAccessFor($key) !== 'no') {
+            return false;
+        }
+
         return (bool) ($this->permissionAccessMap()[$key]['write_own_only'] ?? false);
     }
 
-    /**
-     * Does write capability here depend on who owns the record?
-     *
-     * True for 'rls' — the read scope already limits them, but a crafted
-     * request could still target someone else's id — and for 'edit_own',
-     * where the read scope does not limit them at all and this check is
-     * the only guard.
-     */
     public function writeNeedsOwnership(?string $key): bool
     {
         return $this->isFiltered($key) || $this->writesOwnOnly($key);
     }
 
-    /**
-     * May the user create / update / delete on this page at all?
-     * Page-level only — use canWriteRecord() once you have the record.
-     */
     public function canWrite(?string $key): bool
     {
         return $this->hasAnyAccess($key) && !$this->isReadonly($key);
     }
 
-    /**
-     * May the user mutate this specific record?
-     * Page-level write capability, narrowed by ownership where required.
-     */
     public function canWriteRecord(?string $key, $record): bool
     {
         if (! $this->canWrite($key)) {
@@ -171,10 +153,6 @@ trait HasPermissions
         return method_exists($record, 'isOwnedBy') && $record->isOwnedBy($this);
     }
 
-    /**
-     * Is this permission key explicitly granted to the user?
-     * Reads both grant columns: fd_grants (Front Desk) and ac_grants (Accounts).
-     */
     public function hasGrant(?string $key): bool
     {
         if (!$key) {
@@ -187,10 +165,6 @@ trait HasPermissions
         return in_array($key, $grants, true);
     }
 
-    /**
-     * May an Admin extend this permission to the user?
-     * (Drives the checkbox list on the User Provisioning screen.)
-     */
     public function canBeGranted(?string $key): bool
     {
         if (!$key) {
@@ -200,9 +174,6 @@ trait HasPermissions
         return (bool) ($this->permissionAccessMap()[$key]['can_grant'] ?? false);
     }
 
-    /**
-     * Build (and cache) the ['permission_key' => pivot data] map for this user's role.
-     */
     protected function permissionAccessMap(): array
     {
         if ($this->permissionAccessCache !== null) {
@@ -215,8 +186,6 @@ trait HasPermissions
             return $this->permissionAccessCache = [];
         }
 
-        // Expects Role::permissions() belongsToMany with
-        // ->withPivot('access', 'can_grant', 'is_readonly', 'write_own_only')
         return $this->permissionAccessCache = $role->permissions
             ->mapWithKeys(fn ($permission) => [
                 $permission->key => [
@@ -229,11 +198,21 @@ trait HasPermissions
             ->toArray();
     }
 
-    /**
-     * Call after changing the user's role or grants within a single request.
-     */
     public function flushPermissionCache(): void
     {
         $this->permissionAccessCache = null;
     }
+
+    /**
+ * Can this user reach the User Directory page at all?
+ *
+ * True if they have direct access to user_directory, OR if they have
+ * user_provisioning access — provisioning lives inside the directory
+ * page (the "New User" button), so a user granted provisioning rights
+ * must be able to open the page even without separate directory access.
+ */
+public function canAccessUserDirectory(): bool
+{
+    return $this->hasAnyAccess('user_directory') || $this->hasAccess('user_provisioning');
+}
 }

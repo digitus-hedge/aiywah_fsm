@@ -54,6 +54,7 @@ class ServiceRequest extends Model
         'reallocate',
         'reallocate_user_id',
         'reallocated_submit_at',
+        'logged_by_role',
         'relocation_remarks'
     ];
 

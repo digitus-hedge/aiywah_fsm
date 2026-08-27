@@ -14,6 +14,7 @@ class Userdirectorycontroller extends Controller
      */
     public function index(Request $request)
     {
+        abort_unless(auth()->user()?->canAccessUserDirectory(), 403);
         $roles = Role::orderBy('sort_order')->get();
         // Aggregate stats (single grouped query)
         $counts = User::selectRaw('status, COUNT(*) as c')
@@ -23,7 +24,7 @@ class Userdirectorycontroller extends Controller
         $stats = [
                     'total'    => (int) $counts->sum(),
                     'active'   => (int) ($counts['active']   ?? 0),
-                    'inactive' => (int) ($counts['inactive'] ?? 0) + (int) ($counts['pending'] ?? 0), // ← fold legacy pending in
+                    'inactive' => (int) ($counts['inactive'] ?? 0) + (int) ($counts['pending'] ?? 0),
                 ];
 
         // Filtered, eager-loaded, paginated listing
@@ -45,7 +46,13 @@ class Userdirectorycontroller extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        return view('user_directory', compact('roles', 'stats', 'users'));
+        // Whether this user can provision (create/edit) accounts — drives
+        // the "Add New User" button on the directory page. Directory
+        // viewing itself only needs user_directory access; provisioning
+        // is a separately gated capability layered on top of it.
+        $canProvisionUsers = auth()->user()?->hasAnyAccess('user_provisioning') ?? false;
+
+        return view('user_directory', compact('roles', 'stats', 'users', 'canProvisionUsers'));
     }
 
     /**
@@ -64,7 +71,6 @@ class Userdirectorycontroller extends Controller
      */
     public function resetPassword(User $user)
     {
-        // Password::sendResetLink(['email' => $user->email]);  // when ready
         return response()->json(['ok' => true]);
     }
 
@@ -79,7 +85,7 @@ class Userdirectorycontroller extends Controller
                 'email'   => $user->email,
                 'roleId'  => optional($user->role)->code ?? '',
                 'domains' => $user->serviceDomains->pluck('id')->all(),
-                'categories' => $user->serviceCategories->pluck('id')->all(),   // ← add
+                'categories' => $user->serviceCategories->pluck('id')->all(),
 
             ],
 
@@ -92,13 +98,12 @@ class Userdirectorycontroller extends Controller
                     'skills' => $c->domains->map(fn($d) => ['id' => $d->id, 'label' => $d->domain_name])->values(),
                 ])->values(),
 
-            // ← add: flat category list for the SE chips
             'categories' => ServiceCategory::where('status', true)
                 ->orderBy('sort_order')
                 ->get(['id', 'category_name'])
                 ->map(fn($c) => ['id' => $c->id, 'name' => $c->category_name])
                 ->values(),
-                
+
         ]);
     }
 }

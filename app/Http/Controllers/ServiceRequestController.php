@@ -35,7 +35,7 @@ class ServiceRequestController extends Controller
         $priorities = Priority::where('status', true)
             ->orderBy('display_order')
             ->get();
-
+        $canViewTriage = auth()->user()->hasAnyAccess('inquiry_approval');  
         return view('sr_registration', compact('categories', 'priorities'));
     }
     // Lookup endpoint — searches by company name, unique_code, or primary_mobile
@@ -210,6 +210,7 @@ class ServiceRequestController extends Controller
                 'internal_remark'   => $data['internal_remark'] ?? null,
                 'status'            => 'Pending',
                 'created_by'        => auth()->id(),
+                 'logged_by_role'    => optional(auth()->user()->role)->code,
                 'attachments'       => $paths ?: null,
             ]);
 
@@ -218,7 +219,9 @@ class ServiceRequestController extends Controller
                 'event'     => 'sr_created',
                 'title'     => 'New Service Request',
                 'message'   => 'SR-' . ($sr->created_at?->year ?? now()->year)
-                    . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT) . ' created',
+                . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT) . ' created'
+                . ' by ' . (auth()->user()->name ?? 'Unknown')
+                . ' (' . (optional(auth()->user()->role)->code ?? '—') . ')',   // ← NEW: role visible in the log line
                 'to_status' => 'Pending',
                 'caused_by' => auth()->id(),
             ]);
@@ -266,6 +269,19 @@ class ServiceRequestController extends Controller
         $categories = ServiceCategory::orderBy('category_name')->get(['id', 'category_name']);
 
         $query = ServiceRequest::with(['client', 'project', 'assignedUser', 'category']);
+
+        /* ── Row-level scope: only applies when this role's access level
+        on sr_explorer is 'view_rls'. SE keeps its assigned_se meaning
+        (their dispatched tickets); every other role scopes to the SRs
+        they personally logged (created_by). ── */
+        $user = auth()->user();
+        $roleCode = optional($user->role)->code;
+        $level = \App\Support\Permissions::for($roleCode, 'sr_explorer');   // 'yes' | 'rls' | 'view_rls' | ...
+
+        if ($level === 'view_rls' || $level === 'rls') {
+            $ownerColumn = $roleCode === 'SE' ? 'assigned_se' : 'created_by';
+            $query->where($ownerColumn, $user->id);
+        }
 
         // SE sees only their own assigned SRs
         $user = auth()->user();
@@ -550,61 +566,77 @@ class ServiceRequestController extends Controller
             'message' => "Ticket {$ref} released to Dispatch Engine — Out-of-Warranty scope.",
         ]);
     }
-    public function forward(ServiceRequest $serviceRequest)
-    {
-        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+   public function forward(ServiceRequest $serviceRequest)
+{
+    $oldStatus = $serviceRequest->status;
 
-        $serviceRequest->update([
-            'status'         => 'Forwarded',
-            'warranty_scope' => 'oow',
-        ]);
+    $serviceRequest->update([
+        'status'         => 'Forwarded',
+        'warranty_scope' => 'oow',
+    ]);
 
-        $ref = $this->buildSrRef($serviceRequest);
+    $ref = $this->buildSrRef($serviceRequest);
 
-        NotificationLog::create([
-            'service_request_id' => $serviceRequest->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            'message'     => "{$ref} Forwarded to Accounts",
-            'from_status' => $oldStatus,
-            'to_status'   => 'Forwarded',
-            'caused_by'   => auth()->id(),
-        ]);
+    NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => "{$ref} Forwarded to Accounts",
+        'from_status' => $oldStatus,
+        'to_status'   => 'Forwarded',
+        'caused_by'   => auth()->id(),
+    ]);
 
-        SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::FORWARDED, $ref);
-        return response()->json([
-            'ok'      => true,
-            'success' => true,
-            'message' => "Ticket {$ref} forwarded — Quotation Desk. Scope set as Out-of-Warranty.",
-        ]);
-    }
+    SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::FORWARDED, $ref);
+    SendSrNotifications::dispatch(
+        $serviceRequest->id,
+        SendSrNotifications::QUOTE_PENDING_ACCOUNTS,
+        $ref,
+        auth()->user()?->name
+    );
 
-    public function additionalWork(ServiceRequest $serviceRequest)
-    {
-        $oldStatus = $serviceRequest->status;          // capture BEFORE update
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => "Ticket {$ref} forwarded — Quotation Desk. Scope set as Out-of-Warranty.",
+    ]);
+}
 
-        $serviceRequest->update(['status' => 'Additional']);
+public function additionalWork(ServiceRequest $serviceRequest)
+{
+    $oldStatus = $serviceRequest->status;          // capture BEFORE update
 
-        $ref = $this->buildSrRef($serviceRequest);
+    $serviceRequest->update([
+        'status'         => 'Additional',
+        'warranty_scope' => 'oow',   // ← additional work is billed the same as OOW
+    ]);
 
-        NotificationLog::create([
-            'service_request_id' => $serviceRequest->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            'message'     => "{$ref} accepted as Additional Work",
-            'from_status' => $oldStatus,
-            'to_status'   => 'Additional',
-            'caused_by'   => auth()->id(),
-        ]);
+    $ref = $this->buildSrRef($serviceRequest);
 
-        SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::ADDITIONAL, $ref);
+    NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => "{$ref} accepted as Additional Work",
+        'from_status' => $oldStatus,
+        'to_status'   => 'Additional',
+        'caused_by'   => auth()->id(),
+    ]);
 
-        return response()->json([
-            'ok'      => true,
-            'success' => true,
-            'message' => "Ticket {$ref} accepted as Additional Work.",
-        ]);
-    }
+    SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::ADDITIONAL, $ref);
+    SendSrNotifications::dispatch(
+        $serviceRequest->id,
+        SendSrNotifications::QUOTE_PENDING_ACCOUNTS,
+        $ref,
+        auth()->user()?->name
+    );
+
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => "Ticket {$ref} accepted as Additional Work.",
+    ]);
+}
 
     public function reject(Request $request, ServiceRequest $serviceRequest)
     {
@@ -899,7 +931,6 @@ class ServiceRequestController extends Controller
      */
     private const OWNER_COLUMN_BY_ROLE = [
         'SE' => 'assigned_se',
-        'AC' => 'invoice_uploaded_by',   // or whichever field actually reflects Accounts' involvement
         'FD' => 'created_by',
     ];
     
@@ -1026,24 +1057,27 @@ private function rlsScope(string $module): ?array
         'Quote Rejected'    => ['color' => '#aeb7c5', 'group' => 'cancel'],
     ];
 
-    $user = auth()->user();
+     $user = auth()->user();
     $roleCode = optional($user->role)->code;
 
-    // Any role listed in OWNER_COLUMN_BY_ROLE is row-level-scoped to its own
-    // tickets (e.g. SE → assigned_se, AC → created_by). Any role NOT in the
-    // map sees everything, same as before.
     $ownerColumn = self::OWNER_COLUMN_BY_ROLE[$roleCode] ?? null;
 
     $requests = ServiceRequest::with([
-        'client',
-        'project',
-        'assignedUser',
-        'category',
-        'punches' => fn($q) => $q->latest('punch_out_at')->latest('id')->with('photos'),
-    ])
-        ->when($ownerColumn, fn($q) => $q->where($ownerColumn, $user->id))
-        ->latest()
-        ->get();
+    'client',
+    'project',
+    'assignedUser',
+    'category',
+    'punches' => fn($q) => $q->latest('punch_out_at')->latest('id')->with('photos'),
+])
+    ->when($ownerColumn, fn($q) => $q->where($ownerColumn, $user->id))
+    ->when($roleCode === 'AC', function ($q) use ($user) {
+        $q->where(function ($sub) use ($user) {
+            $sub->where('created_by', $user->id)      // SRs AC personally logged (CR-01)
+                ->orWhere('warranty_scope', 'oow');    // the broader OOW financial pipeline
+        });
+    })
+    ->latest()
+    ->get();
 
     /* "Last moved by" — newest notification log per SR. Ordering ascending
        and keying by SR means the final write wins, i.e. the latest entry. */
@@ -1354,8 +1388,14 @@ private function rlsScope(string $module): ?array
         // Out-of-warranty still has to clear invoicing — hopApprove() notifies instead.
         if ($scope === 'iw') {
             SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::COMPLETED, $ref);
+        } else {
+            SendSrNotifications::dispatch(
+                $serviceRequest->id,
+                SendSrNotifications::INVOICE_REQUIRED_ACCOUNTS,
+                $ref,
+                auth()->user()?->name   // ← actor is whoever is passing QC right now
+            );
         }
-
         return response()->json([
             'ok'      => true,
             'success' => true,
@@ -1536,37 +1576,40 @@ private function rlsScope(string $module): ?array
     }
 
     public function quoteApprove(ServiceRequest $serviceRequest)
-    {
-        $oldStatus = $serviceRequest->status;          // 'Quoted'
+{
+    $oldStatus = $serviceRequest->status;          // 'Quoted'
 
-        $serviceRequest->update([
-            'status'             => 'Quote Approved',  // ← was 'Approved'
-            'warranty_scope'     => 'oow',
-            'client_approved_at' => now(),
-            // approved_at deliberately NOT set — that stamp belongs to approveOow()
-        ]);
+    $serviceRequest->update([
+        'status'             => 'Quote Approved',
+        'warranty_scope'     => 'oow',
+        'client_approved_at' => now(),
+        // approved_at deliberately NOT set — that stamp belongs to approveOow()
+    ]);
 
-        NotificationLog::create([
-            'service_request_id' => $serviceRequest->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            'message'     => $this->buildSrRef($serviceRequest)
-                . ' — quotation approved by client, awaiting engineer allocation',
-            'from_status' => $oldStatus,
-            'to_status'   => 'Quote Approved',
-            'caused_by'   => auth()->id(),
-        ]);
+    NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => $this->buildSrRef($serviceRequest)
+            . ' — quotation approved by client, awaiting engineer allocation',
+        'from_status' => $oldStatus,
+        'to_status'   => 'Quote Approved',
+        'caused_by'   => auth()->id(),
+    ]);
 
-            // quoteApprove()
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, 'Quote Approved');
-        app(\App\Services\WhatsAppService::class)->notifyInternalStatusChange($serviceRequest, 'Quote Approved', auth()->user()?->name);
+    SendSrNotifications::dispatch(
+        $serviceRequest->id,
+        SendSrNotifications::QUOTE_CLIENT_APPROVED,
+        $this->buildSrRef($serviceRequest),
+        auth()->user()?->name
+    );
 
-        return response()->json([
-            'ok'      => true,
-            'success' => true,
-            'message' => 'Client approved the quotation — SR returned to Inquiry Approval for engineer allocation.',
-        ]);
-    }
+    return response()->json([
+        'ok'      => true,
+        'success' => true,
+        'message' => 'Client approved the quotation — SR returned to Inquiry Approval for engineer allocation.',
+    ]);
+}
 
     public function quoteReject(Request $request, ServiceRequest $serviceRequest)
     {
@@ -1685,48 +1728,48 @@ private function rlsScope(string $module): ?array
 
         return view('invoice_panel', compact('invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth'));
     }
+public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
+{
+    $data = $request->validate([
+        'invoice_code'  => ['required', 'string', 'max:100'],
+        'invoice_total' => ['required', 'numeric', 'min:0'],
+        'invoice_pdf'   => ['required', 'file', 'mimes:pdf', 'max:25600'],
+    ]);
 
-    public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
-    {
-        $data = $request->validate([
-            'invoice_code'  => ['required', 'string', 'max:100'],
-            'invoice_total' => ['required', 'numeric', 'min:0'],
-            'invoice_pdf'   => ['required', 'file', 'mimes:pdf', 'max:25600'],
-        ]);
+    $path = $request->file('invoice_pdf')->store('invoices', 'public');
 
-        $path = $request->file('invoice_pdf')->store('invoices', 'public');
+    $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Pending Invoice')
 
-        $oldStatus = $serviceRequest->status;          // capture BEFORE update ('Pending Invoice')
+    $serviceRequest->update([
+        'status'               => 'Invoice Submitted',
+        'invoice_code'         => strtoupper($data['invoice_code']),
+        'invoice_total'        => $data['invoice_total'],
+        'invoice_path'         => $path,
+        'invoice_submitted_at' => now(),
+        'invoice_uploaded_by'  => Auth::id(),
+    ]);
 
-        $serviceRequest->update([
-            'status'               => 'Invoice Submitted',
-            'invoice_code'         => strtoupper($data['invoice_code']),
-            'invoice_total' => $data['invoice_total'],
-            'invoice_path'         => $path,
-            'invoice_submitted_at' => now(),
-            'invoice_uploaded_by'  => Auth::id(),
-        ]);
+    NotificationLog::create([
+        'service_request_id' => $serviceRequest->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => $this->buildSrRef($serviceRequest) . ' invoice submitted — '
+            . strtoupper($data['invoice_code'])
+            . (isset($data['invoice_total']) ? ' (₹' . number_format($data['invoice_total'], 2) . ')' : ''),
+        'from_status' => $oldStatus,   // 'Pending Invoice'
+        'to_status'   => 'Invoice Submitted',
+        'caused_by'   => Auth::id(),
+    ]);
 
+    SendSrNotifications::dispatch(
+        $serviceRequest->id,
+        SendSrNotifications::INVOICE_SUBMITTED,
+        $this->buildSrRef($serviceRequest),
+        Auth::user()?->name
+    );
 
-        NotificationLog::create([
-            'service_request_id' => $serviceRequest->id,
-            'event'       => 'status_updated',
-            'title'       => 'Status Updated',
-            'message'     => $this->buildSrRef($serviceRequest) . ' invoice submitted — '
-                . strtoupper($data['invoice_code'])
-                . (isset($data['invoice_total']) ? ' (₹' . number_format($data['invoice_total'], 2) . ')' : ''),
-            'from_status' => $oldStatus,   // 'Pending Invoice'
-            'to_status'   => 'Invoice Submitted',
-            'caused_by'   => Auth::id(),
-        ]);
-
-        // invoiceSubmit()
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, 'Invoice Submitted');
-        app(\App\Services\WhatsAppService::class)->notifyInternalStatusChange($serviceRequest, 'Invoice Submitted', Auth::user()?->name);
-
-        return response()->json(['ok' => true, 'message' => 'Invoice committed. HoP notified.']);
-    }
-
+    return response()->json(['ok' => true, 'message' => 'Invoice committed. HoP notified.']);
+}
     public function hopApprove(ServiceRequest $serviceRequest)
 {
     $oldStatus = $serviceRequest->status;
@@ -2103,5 +2146,18 @@ private function rlsScope(string $module): ?array
  
         return $path ? asset('storage/' . $path) : null;
     }
+
+    public function loggedByRoleLabel(): string
+{
+    return match ($this->logged_by_role) {
+        'FD' => 'Front Desk',
+        'HP' => 'Head of Projects',
+        'SE' => 'Service Engineer',
+        'AC' => 'Accounts / AR',
+        'AD' => 'Admin',
+        'SA' => 'Super Admin',
+        default => $this->logged_by_role ?? '—',
+    };
+}
  
 }
