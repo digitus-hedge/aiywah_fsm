@@ -281,6 +281,7 @@ class DashboardController extends Controller
         if (strtoupper((string) optional($request->user()->role)->code) === 'AC') {
             return redirect()->route('kanban_view');
         }
+        $isHopSe = optional($request->user()->role)->code === 'HP' && (bool) $request->user()->is_se_enabled;
         $filters = [
             'range'   => $request->input('range', 'today'),
             'from'    => $request->input('from'),
@@ -335,7 +336,8 @@ class DashboardController extends Controller
             'greetingSub' => "Here's your complete operations overview",
             'today'       => now()->format('l, d F Y'),
             'panelUrl'    => Route::has('dashboard.panel') ? route('dashboard.panel') : null,
-
+            'isHopSe'     => $isHopSe,
+            
             'filters'        => $filters,
             'rangeLabel'     => $this->rangeLabel($filters),
             'rangeOptions'   => ['today' => 'Today', 'month' => 'This month', 'quarter' => 'This quarter'],

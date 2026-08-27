@@ -172,13 +172,67 @@ class PermissionSeeder extends Seeder
 
             // Accounts / AR — out-of-warranty financial flows only.
             'AC' => array_merge($deny, [
-                'kanban_view'    => 'view_rls',
+                'kanban_view'     => 'view_rls',
+                'sr_explorer'     => 'view_rls',
                 'quotation_desk' => 'grant',
                 'invoice_panel'  => 'grant',
                 'expense_ledger' => 'yes',
             ]),
         ];
 
+        // ── 3. Cross-role permission extensions ───────────────────────
+        // Format: target role => [ permission_key => source role the permission
+        // conceptually belongs to ]. These render as a separate, labeled block
+        // in the matrix ("Head of Projects permissions") with individual
+        // check/uncheck toggles — distinct from the role's own base access.
+        $extensions = [
+            'FD' => [
+                'inquiry_approval'  => 'HP',
+                'dispatch_engine'   => 'HP',
+                'qc_review'         => 'HP',
+                'expense_ledger'    => 'HP',
+                'analytics'         => 'HP',
+                'user_provisioning' => 'HP',
+            ],
+            // add more target-role => [permission => source-role] blocks as needed
+        ];
+
+        foreach ($extensions as $targetCode => $perms) {
+            $targetRoleId = $roleIds[$targetCode] ?? null;
+            if (! $targetRoleId) {
+                continue;
+            }
+
+            foreach ($perms as $permKey => $sourceCode) {
+                $permId       = $permissionIds[$permKey] ?? null;
+                $sourceRoleId = $roleIds[$sourceCode] ?? null;
+
+                if (! $permId || ! $sourceRoleId) {
+                    continue;
+                }
+
+                // Use the source role's own matrix access level as the token
+                // applied when this extension is switched on.
+                $sourceAccess = $matrix[$sourceCode][$permKey] ?? 'yes';
+                $access = match ($sourceAccess) {
+                    'grant'    => 'yes',
+                    'view'     => 'yes',
+                    'view_rls' => 'rls',
+                    'edit_own' => 'yes',
+                    default    => $sourceAccess,
+                };
+
+                DB::table('role_permission_extensions')->updateOrInsert(
+                    ['role_id' => $targetRoleId, 'permission_id' => $permId],
+                    [
+                        'source_role_id' => $sourceRoleId,
+                        'access'         => $access,
+                        'created_at'     => now(),
+                        'updated_at'     => now(),
+                    ]
+                );
+            }
+        }
         // Lookup id maps.
         $roleIds       = DB::table('roles')->pluck('id', 'code');       // ['SA' => 1, ...]
         $permissionIds = DB::table('permissions')->pluck('id', 'key');  // ['dashboard' => 1, ...]

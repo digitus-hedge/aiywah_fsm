@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'worker.reset' => \App\Http\Middleware\EnsurePasswordIsReset::class,
             'worker.active' => \App\Http\Middleware\EnsureWorkerIsActive::class, 
             'role'         => \App\Http\Middleware\EnsureUserHasRole::class,
+            'se_or_hop_se' => \App\Http\Middleware\SeOrHopSe::class,
         ]);
 
         $middleware->redirectGuestsTo(function ($request) {

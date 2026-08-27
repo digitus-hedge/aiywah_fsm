@@ -1035,7 +1035,9 @@ body.modal-open .topbar { pointer-events: none; }
 @endpush
 
 @section('content')
-
+@php
+    $canViewTriage = $canViewTriage ?? auth()->user()->hasAnyAccess('inquiry_approval');
+@endphp
 {{-- Toasts --}}
 <div class="toast-shelf" id="toastShelf"></div>
 
@@ -1050,13 +1052,13 @@ body.modal-open .topbar { pointer-events: none; }
       <i class="bi bi-check-circle-fill me-1" style="color:#05a34a;"></i>Timestamped and saved in the system.
     </p>
     <button class="btn-main w-100 mb-2" onclick="goHub()">
-      <i class="bi bi-grid-1x2"></i>Inquiry Approvels
+        <i class="bi bi-grid-1x2"></i>{{ $canViewTriage ? 'Inquiry Approvals' : 'View My Tickets' }}
     </button>
     <button class="btn-ghost w-100" onclick="newTicket()">
-      <i class="bi bi-plus-circle"></i>Register Another SR
+        <i class="bi bi-plus-circle"></i>Register Another SR
     </button>
+      </div>
   </div>
-</div>
 
 {{-- Main --}}
 <main class="main-content">
@@ -1067,9 +1069,7 @@ body.modal-open .topbar { pointer-events: none; }
       <h4><i class="bi bi-ticket-perforated me-2"></i>SR Registration</h4>
       <p>Log a new service request by verifying the customer, filling in service details, and submitting.</p>
       <div class="sr-header-tags">
-        <span class="sr-htag"><i class="bi bi-person-badge me-1"></i>Front Desk</span>
-        <span class="sr-htag"><i class="bi bi-person-gear me-1"></i>Admin</span>
-        <span class="sr-htag"><i class="bi bi-shield-check me-1"></i>Super Admin</span>
+        <span class="sr-htag"><i class="bi bi-people-fill me-1"></i>All Roles Can Log SRs</span>
       </div>
     </div>
   </div>
@@ -1896,11 +1896,15 @@ async function verify(val) {
   }
 
   /* ── Post-submit ── */
-  function goHub() {
+  const CAN_VIEW_TRIAGE = @json($canViewTriage);   
+
+function goHub() {
     document.getElementById('srOverlay').classList.remove('show');
     clearAll();
-    window.location.href = "{{ route('inquiry-approval.index') }}";
-  }
+    window.location.href = CAN_VIEW_TRIAGE
+        ? "{{ route('inquiry-approval.index') }}"
+        : "{{ route('sr_explorer') }}";   // or dashboard, or wherever SE/AC should land
+}
 
   function newTicket() {
     document.getElementById('srOverlay').classList.remove('show');

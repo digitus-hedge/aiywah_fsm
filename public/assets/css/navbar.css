@@ -117,7 +117,41 @@
     gap: 10px;
     flex-shrink: 0;
 }
-
+.dash-switch{
+  display:flex;
+  gap:3px;
+  background:var(--surface-2, rgba(0,0,0,.04));
+  border:1px solid var(--border-color, rgba(0,0,0,.08));
+  border-radius:10px;
+  padding:3px;
+}
+.dash-switch-btn{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 12px;
+  border-radius:7px;
+  font-size:.74rem;
+  font-weight:600;
+  color:var(--text-muted, #888);
+  text-decoration:none;
+  transition:background .15s, color .15s;
+  white-space:nowrap;
+}
+.dash-switch-btn:hover{
+  color:#9a8053;
+}
+.dash-switch-btn.active{
+  background:#9a8053;
+  color:#fff;
+}
+.dash-switch-btn i{
+  font-size:.85rem;
+}
+@media(max-width:767.98px){
+  .dash-switch-btn span{ display:none; }
+  .dash-switch-btn{ padding:6px 9px; }
+}
 /* Role badge */
 .topbar-role-badge {
     display: flex;

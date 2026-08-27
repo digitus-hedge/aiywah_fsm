@@ -103,13 +103,8 @@ class WorkerpunchController extends Controller
             return $p;
         });
         
-        try {
-            $wa = app(\App\Services\WhatsAppService::class);
-            $wa->notifyMaintenanceStarted($sr, $punch);          // customer
-            $wa->notifyInternalMaintenanceStarted($sr, $punch);  // internal
-        } catch (\Throwable $e) {
-            Log::error('Punch-in WhatsApp failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
-        }
+        \App\Jobs\SendSrNotifications::dispatch($sr->id, \App\Jobs\SendSrNotifications::MAINTENANCE_STARTED);
+
         return response()->json([
             'ok'          => true,
             'punch_id'    => $punch->id,
@@ -342,9 +337,8 @@ public function hold(Request $request)
         });
 
         $punch->refresh();
-        // WorkerpunchController::punchOut() — $worker is already resolved
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($sr, 'QC Review');
-        app(\App\Services\WhatsAppService::class)->notifyInternalStatusChange($sr, 'QC Review', $worker->name);
+        \App\Jobs\SendSrNotifications::dispatch($sr->id, \App\Jobs\SendSrNotifications::QC_SUBMITTED);
+
         return response()->json([
             'ok'          => true,
             'duration'    => $punch->duration_label,

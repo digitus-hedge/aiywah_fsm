@@ -61,7 +61,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
                 </li>
             @endif
 
-            @if ($show('sr_registration', ['SE']))
+                        @if ($can('sr_registration'))
                 <li>
                     <a href="{{ route('sr_registration') }}" class="{{ request()->routeIs('sr_registration') ? 'active' : '' }}">
                         <i data-feather="file-plus"></i><span>SR Registration</span>
@@ -213,30 +213,25 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
             @endif
         @endif
 
-        {{-- ══════════ SYSTEM ══════════ --}}
+       {{-- ══════════ SYSTEM ══════════ --}}
         @php
-            $showSystem = $can('user_directory') || $can('user_provisioning')
-                       || $can('master_data') || $can('wa_notification_log')
-                       || $can('activity-log');
+            // A user with only user_provisioning (no direct user_directory access)
+            // must still see this link — provisioning lives inside the directory
+            // page, so provisioning rights imply reaching the directory.
+            $showSystem = $u?->canAccessUserDirectory()
+                    || $can('master_data') || $can('wa_notification_log')
+                    || $can('activity-log');
         @endphp
         @if ($showSystem)
             <li class="sidebar-heading">System</li>
 
-            @if ($can('user_directory'))
+            @if ($u?->canAccessUserDirectory())
                 <li>
                     <a href="{{ route('user_directory') }}" class="{{ request()->routeIs('user_directory') ? 'active' : '' }}">
                         <i data-feather="users"></i><span>User Directory</span>
                     </a>
                 </li>
             @endif
-
-           {{-- @if ($show('user_provisioning', ['SE', 'HP']))
-                <li>
-                    <a href="{{ route('user_provisioning') }}" class="{{ request()->routeIs('user_provisioning') ? 'active' : '' }}">
-                        <i data-feather="shield"></i><span>User Provisioning</span>
-                    </a>
-                </li>
-            @endif --}}
 
             @if ($show('master_data', ['SE']))
                 <li>

@@ -37,6 +37,26 @@
         $roleColor  = optional($roleModel)->color ?? null;
         $userAvatar = strtoupper(substr(str_replace(' ', '', $userName), 0, 2));
     @endphp
+            @php
+            $isHopSe = optional($roleModel)->code === 'HP' && (bool) ($user->is_se_enabled ?? false);
+        @endphp
+
+                @if ($isHopSe)
+        <div class="dash-switch">
+            <a href="{{ route('dashboard') }}"
+               class="dash-switch-btn {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+               title="Head of Projects view">
+                <i class="bi bi-briefcase-fill"></i>
+                <span>HoP</span>
+            </a>
+            <a href="{{ route('sedashboard') }}"
+               class="dash-switch-btn {{ request()->routeIs('sedashboard') ? 'active' : '' }}"
+               title="Service Engineer view">
+                <i class="bi bi-wrench-adjustable"></i>
+                <span>SE</span>
+            </a>
+        </div>
+        @endif
 
         {{-- Role badge --}}
        <div class="topbar-role-badge" @if($roleColor) style="color:{{ $roleColor }};" @endif>

@@ -15,7 +15,7 @@ class User extends Authenticatable
     use LogsActivity;
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, HasPermissions;
-    protected $fillable = ['name', 'email', 'country_code', 'phone', 'password', 'role_id', 'fd_grants', 'ac_grants', 'status', 'can_qc_review'];
+    protected $fillable = ['name', 'email', 'country_code', 'phone', 'password', 'role_id', 'fd_grants', 'ac_grants', 'status', 'can_qc_review','is_se_enabled','ext_grants'];
 
     protected $casts = [
         'password'  => 'hashed',
@@ -24,6 +24,7 @@ class User extends Authenticatable
         'email_verified_at'   => 'datetime',
         'must_reset_password' => 'boolean',
         'can_qc_review'       => 'boolean',
+        'ext_grants'          => 'array',
     ];
 
     public function role()
