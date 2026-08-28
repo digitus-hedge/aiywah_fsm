@@ -9,6 +9,11 @@
 @push('styles')
 <style>
 
+body.modal-open .sidebar,
+body.modal-open .topbar {
+  pointer-events: none;
+}
+
 /* ── SIDEBAR ── */
 .sb-brand{display:flex;align-items:center;gap:11px;padding:18px 20px 15px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .sb-brand-icon{width:38px;height:38px;flex-shrink:0;background:linear-gradient(135deg,#9a8053,#b8975e);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.85rem;font-weight:700;letter-spacing:-.5px;line-height:1;}
@@ -187,9 +192,9 @@ table.listing tr:hover .row-actions{opacity:1;}
 .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 
 /* ── SR DETAIL DRAWER ── */
-.drawer-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:500;backdrop-filter:blur(3px);}
+.drawer-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:1101;backdrop-filter:blur(3px);}
 .drawer-overlay.show{display:block;}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:520px;max-width:100vw;background:var(--modal-bg);border-left:1px solid var(--card-border);box-shadow:var(--drawer-shadow);z-index:501;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:520px;max-width:100vw;background:var(--modal-bg);border-left:1px solid var(--card-border);box-shadow:var(--drawer-shadow);z-index:1102;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
 .drawer.open{transform:translateX(0);}
 .drawer-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .drawer-hdr-left{display:flex;align-items:center;gap:10px;}
@@ -224,9 +229,9 @@ table.listing tr:hover .row-actions{opacity:1;}
 .exp-amt{font-size:.81rem;font-weight:700;color:var(--text-heading);white-space:nowrap;}
 
 /* ── INQUIRY DRAWER ── */
-.inq-drawer{position:fixed;top:0;right:0;bottom:0;width:540px;max-width:100vw;background:var(--modal-bg);border-left:1px solid var(--card-border);box-shadow:var(--drawer-shadow);z-index:600;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+.inq-drawer{position:fixed;top:0;right:0;bottom:0;width:540px;max-width:100vw;background:var(--modal-bg);border-left:1px solid var(--card-border);box-shadow:var(--drawer-shadow);z-index:1101;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
 .inq-drawer.open{transform:translateX(0);}
-.inq-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:599;backdrop-filter:blur(3px);}
+.inq-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:1100;backdrop-filter:blur(3px);}
 .inq-overlay.show{display:block;}
 .inq-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .inq-hdr-icon{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#9a8053,#b8975e);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;flex-shrink:0;}
@@ -268,6 +273,190 @@ textarea.form-control{resize:vertical;min-height:88px;}
 .file-chip button:hover{color:#ef4444;}
 .wa-banner{display:flex;align-items:center;gap:10px;padding:10px 13px;background:rgba(37,211,102,.07);border:1px solid rgba(37,211,102,.2);border-radius:8px;}
 .inq-foot{display:flex;align-items:center;justify-content:flex-end;gap:9px;padding:13px 20px;border-top:1px solid var(--border-color);background:var(--surface-2);flex-shrink:0;}
+
+
+/* ── Side-by-side field row (Service Category / Contact Person) ── */
+.form-row-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+@media(max-width:480px) {
+  .form-row-split { grid-template-columns: 1fr; }
+}
+
+/* ── Priority pills (mirrors sr_registration) ── */
+.priority-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.pr-pill {
+  flex: 1;
+  min-width: 72px;
+  text-align: center;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  padding: 9px 6px;
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--input-bg);
+  transition: all .18s;
+  user-select: none;
+}
+.pr-pill:hover {
+  border-color: #9A7B4F;
+  color: #9A7B4F;
+  background: rgba(154,123,79,.05);
+}
+.pr-pill.on {
+  border-color: var(--pr-color, #9A7B4F);
+  color: var(--pr-color, #9A7B4F);
+  background: color-mix(in srgb, var(--pr-color, #9A7B4F) 10%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pr-color, #9A7B4F) 12%, transparent);
+  font-weight: 600;
+}
+.pr-pill .pi {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin: 0 auto 5px;
+  font-size: 0;          /* hide the ● glyph itself */
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+@media(max-width:420px) {
+  .pr-pill { min-width: 60px; font-size: .72rem; }
+}
+
+/* ── Contact Person input row + Add button ── */
+.ct-input-row {
+  display: flex;
+  gap: 7px;
+  align-items: stretch;
+}
+.ct-input-row .form-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-add-ct {
+  flex-shrink: 0;
+  width: 38px;
+  border: 1.5px solid rgba(154,123,79,.4);
+  background: rgba(154,123,79,.08);
+  color: #9A7B4F;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .9rem;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.btn-add-ct:hover {
+  background: rgba(154,123,79,.16);
+  border-color: #9A7B4F;
+}
+.btn-add-ct:active {
+  transform: scale(.94);
+}
+.btn-add-ct:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+/* ── Add Contact modal ── */
+.ct-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.55);
+  backdrop-filter: blur(4px);
+  z-index: 1200;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.ct-overlay.show { display: flex; }
+
+.ct-box {
+  background: var(--modal-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 24px 64px rgba(0,0,0,.28);
+  animation: modalIn .2s ease;
+}
+
+.ct-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+.ct-hdr h6 {
+  margin: 0;
+  font-size: .9rem;
+  font-weight: 600;
+  color: #9A7B4F;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ct-x {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  font-size: .95rem;
+  line-height: 1;
+}
+.ct-x:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.ct-body {
+  padding: 18px;
+}
+
+.ct-phone-row {
+  display: flex;
+  gap: 7px;
+}
+.ct-phone-row select {
+  width: 92px;
+  flex-shrink: 0;
+}
+.ct-phone-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.ct-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 13px 18px;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-2);
+}
+.ct-foot .btn-ghost,
+.ct-foot .btn-gold {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: .78rem;
+  font-weight: 600;
+}
 
 /* ── EMPTY STATE ── */
 .empty-st{padding:44px 24px;text-align:center;}
@@ -384,36 +573,94 @@ span#cds
 
 
 /* Laravel pagination links restyle */
+ /* ── Pagination bar ── */
+.cd-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--surface-2);
+}
+
+.cd-page-info {
+  font-size: .78rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.cd-pagination-bar .pagination {
+  margin: 0;
+  gap: 5px;
+}
+
+.cd-pagination-bar .page-item {
+  display: flex;
+}
+
+.cd-pagination-bar .page-link {
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-muted);
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 0 8px;
+  transition: all .15s;
+  box-shadow: none;
+}
+
+.cd-pagination-bar .page-link:hover {
+  border-color: #9A7B4F;
+  color: #9A7B4F;
+  background: rgba(154,123,79,.06);
+  z-index: 1;
+}
+
+.cd-pagination-bar .page-link:focus {
+  box-shadow: 0 0 0 3px rgba(154,123,79,.15);
+  z-index: 1;
+}
+
+.cd-pagination-bar .page-item.active .page-link {
+  background: linear-gradient(135deg, #9A7B4F, #b8975e);
+  border-color: #9A7B4F;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(154,123,79,.35);
+}
+
+.cd-pagination-bar .page-item.disabled .page-link {
+  color: var(--text-light);
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* Prev/Next arrows — slightly narrower, icon-only feel */
+.cd-pagination-bar .page-item:first-child .page-link,
+.cd-pagination-bar .page-item:last-child .page-link {
+  font-size: .85rem;
+  color: var(--text-muted);
+}
+
+@media(max-width:575.98px) {
+  .cd-pagination-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px 16px;
+  }
   .cd-pagination-bar .pagination {
-    margin: 0;
-    gap: 4px;
+    align-self: flex-end;
   }
-
-  .cd-pagination-bar .page-link {
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    background: var(--card-bg);
-    color: var(--text-muted);
-    font-size: .78rem;
-    padding: 4px 10px;
-  }
-
-  .cd-pagination-bar .page-link:hover {
-    border-color: #9A7B4F;
-    color: #9A7B4F;
-    background: var(--card-bg);
-  }
-
-  .cd-pagination-bar .page-item.active .page-link {
-    background: #9A7B4F;
-    color: #fff;
-    border-color: #9A7B4F;
-  }
-
-  .cd-pagination-bar .page-item.disabled .page-link {
-    color: var(--text-light);
-    background: var(--card-bg);
-  }
+}
 
 </style>
 @endpush
@@ -513,7 +760,7 @@ span#cds
             <a class="btn-ghost" href=""><i class="bi bi-download"></i>Export</a>
 
                   @if (auth()->user()?->role?->code !== 'SE')
-            <!-- <button class="btn-gold" onclick="openInquiry()"><i class="bi bi-plus-lg"></i>New Inquiry</button> -->
+            <button class="btn-gold" onclick="openInquiry()"><i class="bi bi-plus-lg"></i>New Inquiry</button>
             @endif
           </div>
         </div>
@@ -658,8 +905,9 @@ span#cds
         <div class="cd-pagination-bar">
     <div class="cd-page-info">
       @if($srsPaginated->total() > 0)
+        Showing {{ $srsPaginated->firstItem() }} to {{ $srsPaginated->lastItem() }} of {{ $srsPaginated->total() }} results
       @else
-   
+        No results
       @endif
     </div>
     <div>
@@ -822,7 +1070,40 @@ span#cds
     </div>
     <div class="drawer-body" id="drawerBody"></div>
   </div>
+{{-- Add Contact Modal (Project View) --}}
+<div class="ct-overlay" id="inqCtModal" onclick="if(event.target===this)closeInqCtModal()">
+  <div class="ct-box" role="dialog" aria-modal="true">
+    <div class="ct-hdr">
+      <h6><i class="bi bi-person-plus"></i> Add Contact Person</h6>
+      <button type="button" class="ct-x" onclick="closeInqCtModal()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="ct-body">
+      <label class="form-label">Name <span class="req">*</span></label>
+      <input type="text" class="form-control" id="inqCtName" placeholder="e.g. John Facilities">
 
+      <label class="form-label" style="margin-top:12px;">WhatsApp Number <span class="req">*</span></label>
+      <div class="ct-phone-row">
+        <select class="form-control" id="inqCtCountry">
+          <option value="+971">+971</option>
+          <option value="+91" selected>+91</option>
+          <option value="+1">+1</option>
+          <option value="+44">+44</option>
+          <option value="+966">+966</option>
+          <option value="+974">+974</option>
+        </select>
+        <input type="tel" class="form-control" id="inqCtMobile" placeholder="50 123 4567"
+               inputmode="numeric" maxlength="15"
+               oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+      </div>
+    </div>
+    <div class="ct-foot">
+      <button type="button" class="btn-ghost" onclick="closeInqCtModal()">Cancel</button>
+      <button type="button" class="btn-gold" id="inqCtSaveBtn" onclick="saveInqContact()">
+        <i class="bi bi-check-lg"></i> Save Contact
+      </button>
+    </div>
+  </div>
+</div>
   {{-- INQUIRY DRAWER --}}
   <div class="inq-overlay" id="inqOverlay" onclick="closeInquiry()"></div>
   <div class="inq-drawer" id="inqDrawer">
@@ -855,99 +1136,66 @@ span#cds
   <input type="text" class="form-control" value="{{ $nextSrCode }}" readonly
     style="background:var(--surface-2);color:#9a8053;font-weight:600;cursor:not-allowed;"/>
 </div>
+
     </div>
 
     <div class="inq-section">
-      <div class="sec-title"><i class="bi bi-tools"></i>Issue Details</div>
+  <div class="sec-title"><i class="bi bi-tools"></i>Service Information</div>
 
-      <div class="form-group">
-        <label class="form-label">Service Category <span class="req">*</span></label>
-        <select class="form-select" name="service_type_id" id="inqCat" required>
-          <option value="">— Select category —</option>
-          @foreach($categories as $cat)
-            <option value="{{ $cat->id }}" @selected(old('service_type_id') == $cat->id)>{{ $cat->category_name }}</option>
+  <div class="form-row-split">
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Service Category <span class="req">*</span></label>
+      <select class="form-select" name="service_type_id" id="inqCat" required>
+        <option value="">— Select category —</option>
+        @foreach($categories as $cat)
+          <option value="{{ $cat->id }}" @selected(old('service_type_id') == $cat->id)>{{ $cat->category_name }}</option>
+        @endforeach
+      </select>
+      @error('service_type_id')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
+    </div>
+
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="form-label">Contact Person <span class="req">*</span></label>
+      <div class="ct-input-row">
+        <select class="form-select" name="reported_by" id="inqReporter" required>
+          <option value="">— Select contact —</option>
+          @foreach($contacts as $c)
+            <option value="{{ $c['name'] }}" @selected(old('reported_by') === $c['name'])>{{ $c['name'] }}</option>
           @endforeach
         </select>
-        @error('service_type_id')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
+        <button type="button" class="btn-add-ct" onclick="openInqCtModal()" title="Add contact person">
+          <i class="bi bi-plus-lg"></i>
+        </button>
       </div>
-
-      <div class="form-group">
-        <label class="form-label">Problem Description <span class="req">*</span></label>
-        <textarea class="form-control" name="issue_description" id="inqDesc" maxlength="500" required
-          placeholder="Describe the issue — what is failing, where, any symptoms observed…"
-          oninput="document.getElementById('inqChar').textContent=this.value.length">{{ old('issue_description') }}</textarea>
-        <div class="char-hint"><span id="inqChar">0</span>/500</div>
-        <div class="field-hint">Minimum 20 characters required.</div>
-        @error('issue_description')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
-      </div>
-
-      <div class="form-group" style="margin-bottom:0;">
-        <label class="form-label">Remarks / Additional Notes</label>
-        <textarea class="form-control" name="internal_remark" id="inqRemark" rows="2"
-          placeholder="Access instructions, preferred time windows, or context for the technician…">{{ old('internal_remark') }}</textarea>
-        @error('internal_remark')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
-      </div>
+      @error('reported_by')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
     </div>
-
-    <div class="inq-section">
-      <div class="sec-title"><i class="bi bi-shield-check"></i>Warranty &amp; Priority</div>
-
-      @php
-  $warrantyEnd  = $project->warranty_end_date ?? null;
-  $isInWarranty = $warrantyEnd
-      && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
-  $scope = $isInWarranty ? 'iw' : 'oow';
-@endphp
-
-     <div class="form-group">
-  <label class="form-label">Warranty Coverage</label>
-
-  <input type="hidden" name="warranty_scope" id="warrantyInput" value="{{ $scope }}">
-
-  <div class="wt-static {{ $scope }}">
-    @if($isInWarranty)
-      <i class="bi bi-shield-fill-check"></i>
-      <div>
-        <div class="wt-static-title">In-Warranty</div>
-        <div class="wt-static-sub">
-          Covered until {{ \Carbon\Carbon::parse($warrantyEnd)->format('d M Y') }}
-       
-        </div>
-      </div>
-    @else
-      <i class="bi bi-currency-dollar"></i>
-      <div>
-        <div class="wt-static-title">Out-of-Warranty</div>
-        <div class="wt-static-sub">
-          @if($warrantyEnd)
-            Warranty expired on {{ \Carbon\Carbon::parse($warrantyEnd)->format('d M Y') }}. Quotation required.
-          @else
-            No warranty period recorded for this contract. Quotation required.
-          @endif
-        </div>
-      </div>
-    @endif
   </div>
-</div>
 
+  <div class="form-group" style="margin-top:12px;">
+    <label class="form-label">Issue Description <span class="req">*</span></label>
+    <textarea class="form-control" name="issue_description" id="inqDesc" maxlength="500" required
+      placeholder="Describe the issue — what is failing, where, any symptoms observed…"
+      oninput="document.getElementById('inqChar').textContent=this.value.length">{{ old('issue_description') }}</textarea>
+    <div class="char-hint">Minimum 20 characters required.  <span id="inqChar">0</span>/500</div>
+    @error('issue_description')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
+  </div>
 
-   <div class="form-group" style="margin-bottom:0;">
-  <label class="form-label">Priority Level</label>
-  <select class="form-select" name="priority_level" id="inqPriority">
-    <option value="">— Select priority —</option>
-    @foreach(($priorities ?? []) as $p)
-      <option value="{{ $p->name }}"
-              data-color="{{ $p->color }}"
-              @selected(old('priority_level', $serviceRequest->priority_level ?? '') === $p->name)>
-        {{ $p->name }}
-      </option>
-    @endforeach
-  </select>
-</div>
+  <div class="form-group" style="margin-bottom:0;">
+    <label class="form-label">Priority Level <span class="req">*</span></label>
+    <div class="priority-row" id="inqPrGroup">
+      @foreach($priorities as $priority)
+        <div class="pr-pill" style="--pr-color: {{ $priority->color }}" onclick="setInqPriority(this, '{{ $priority->name }}')">
+          <span class="pi" style="color: {{ $priority->color }}">●</span>{{ $priority->name }}
+        </div>
+      @endforeach
     </div>
+    <input type="hidden" name="priority_level" id="inqPriorityVal" value="{{ old('priority_level') }}" />
+  </div>
 
-    <div class="inq-section">
-      <div class="sec-title"><i class="bi bi-images"></i>Asset Photos <span style="font-weight:400;text-transform:none;font-size:.72rem;letter-spacing:0;color:var(--text-light);">(optional)</span></div>
+</div>
+
+        <div class="inq-section">
+      <div class="sec-title"><i class="bi bi-images"></i>Attachments <span style="font-weight:400;text-transform:none;font-size:.72rem;letter-spacing:0;color:var(--text-light);">(optional)</span></div>
       <div class="upload-zone" onclick="document.getElementById('inqFileInput').click()">
         <i class="bi bi-cloud-arrow-up"></i>
         <p>Click to attach photos or drag &amp; drop here</p>
@@ -959,6 +1207,38 @@ span#cds
       @error('photos.*')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
     </div>
 
+    {{-- MOVED HERE: Warranty Coverage --}}
+    <div class="inq-section">
+      <div class="sec-title"><i class="bi bi-shield-check"></i>Warranty Coverage</div>
+      @php
+        $warrantyEnd  = $project->warranty_end_date ?? null;
+        $isInWarranty = $warrantyEnd && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
+        $scope = $isInWarranty ? 'iw' : 'oow';
+      @endphp
+      <input type="hidden" name="warranty_scope" id="warrantyInput" value="{{ $scope }}">
+      <div class="wt-static {{ $scope }}">
+        @if($isInWarranty)
+          <i class="bi bi-shield-fill-check"></i>
+          <div>
+            <div class="wt-static-title">In-Warranty</div>
+            <div class="wt-static-sub">Covered until {{ \Carbon\Carbon::parse($warrantyEnd)->format('d M Y') }}</div>
+          </div>
+        @else
+          <i class="bi bi-currency-dollar"></i>
+          <div>
+            <div class="wt-static-title">Out-of-Warranty</div>
+            <div class="wt-static-sub">
+              @if($warrantyEnd)
+                Warranty expired on {{ \Carbon\Carbon::parse($warrantyEnd)->format('d M Y') }}. Quotation required.
+              @else
+                No warranty period recorded for this contract. Quotation required.
+              @endif
+            </div>
+          </div>
+        @endif
+      </div>
+    </div>
+
     <div class="inq-section">
       <div class="sec-title"><i class="bi bi-whatsapp"></i>WhatsApp Notification</div>
       <div class="wa-banner">
@@ -966,7 +1246,7 @@ span#cds
         <div style="flex:1;">
           <div style="font-size:.78rem;font-weight:600;color:var(--text-heading);">Ticket receipt will be auto-sent</div>
           <div style="font-size:.7rem;color:var(--text-muted);">  {{ $project->client?->company_name }} · {{ $project->client?->primary_country }} {{ $project->client?->primary_mobile }}
-</div>
+    </div>
         </div>
         <span class="sbadge sb-approved">Auto</span>
       </div>
@@ -1004,6 +1284,12 @@ function toggleTheme() {
     else if (matchMedia('(prefers-color-scheme:dark)').matches) document.documentElement.setAttribute('data-bs-theme','dark');
   } catch(e){}
 })();
+
+function setInqPriority(el, val) {
+  document.querySelectorAll('#inqPrGroup .pr-pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('inqPriorityVal').value = val;
+}
 
 /* FILTERS — operate on server-rendered rows */
 function filterSR() {
@@ -1147,7 +1433,7 @@ if (items.length) {
             ? '<span style="color:#059669;font-weight:600;">In-Warranty</span>'
             : '<span style="color:#7c3aed;font-weight:600;">Out-of-Warranty</span>') + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Category</div><div class="det-val">' + sr.category + '</div></div>' +
-        '<div class="det-cell full"><div class="det-key">Problem Description</div><div class="det-val" style="font-size:.79rem;line-height:1.5;">' + sr.desc + '</div></div>' +
+        '<div class="det-cell full"><div class="det-key">Issue Description</div><div class="det-val" style="font-size:.79rem;line-height:1.5;">' + sr.desc + '</div></div>' +
         
       '</div>' +
     '</div>' +
@@ -1204,8 +1490,30 @@ if (items.length) {
   document.getElementById('drawerOverlay').classList.add('show');
   document.getElementById('srDrawer').classList.add('open');
   document.body.style.overflow = 'hidden';
+  document.body.classList.add('modal-open');   // ← add
 }
 
+function closeDrawer() {
+  document.getElementById('drawerOverlay').classList.remove('show');
+  document.getElementById('srDrawer').classList.remove('open');
+  if (!document.getElementById('inqDrawer').classList.contains('open')) {
+    document.body.style.overflow = '';
+    document.body.classList.remove('modal-open');   // ← add
+  }
+  }
+function openInquiry() {
+  document.getElementById('inqOverlay').classList.add('show');
+  document.getElementById('inqDrawer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.body.classList.add('modal-open');   // ← add
+}
+
+function closeInquiry() {
+  document.getElementById('inqOverlay').classList.remove('show');
+  document.getElementById('inqDrawer').classList.remove('open');
+  document.body.style.overflow = '';
+  document.body.classList.remove('modal-open');   // ← add
+}
 
 function escapeHtml(str){
   var d = document.createElement('div');
@@ -1213,24 +1521,6 @@ function escapeHtml(str){
   return d.innerHTML;
 }
 
-
-function closeDrawer() {
-  document.getElementById('drawerOverlay').classList.remove('show');
-  document.getElementById('srDrawer').classList.remove('open');
-  if (!document.getElementById('inqDrawer').classList.contains('open')) document.body.style.overflow = '';
-}
-
-/* INQUIRY DRAWER */
-function openInquiry() {
-  document.getElementById('inqOverlay').classList.add('show');
-  document.getElementById('inqDrawer').classList.add('open');
-  document.body.style.overflow = 'hidden';
-}
-function closeInquiry() {
-  document.getElementById('inqOverlay').classList.remove('show');
-  document.getElementById('inqDrawer').classList.remove('open');
-  document.body.style.overflow = '';
-}
 
 function setWarranty(mode) {
   document.getElementById('warrantyInput').value = mode;
@@ -1241,6 +1531,57 @@ function setWarranty(mode) {
     : 'Out-of-warranty: Accounts will prepare a quotation before approval.';
 }
 
+const CLIENT_ID = @json($project->client_id);
+const CONTACT_STORE_URL = "{{ url('/service-requests/contacts') }}";
+
+function openInqCtModal() {
+  if (!CLIENT_ID) { showToast('err', 'Error', 'No customer linked to this project.'); return; }
+  document.getElementById('inqCtName').value = '';
+  document.getElementById('inqCtMobile').value = '';
+  document.getElementById('inqCtModal').classList.add('show');
+}
+function closeInqCtModal() {
+  document.getElementById('inqCtModal').classList.remove('show');
+}
+async function saveInqContact() {
+  const name    = document.getElementById('inqCtName').value.trim();
+  const country = document.getElementById('inqCtCountry').value;
+  const mobile  = document.getElementById('inqCtMobile').value.trim();
+
+  if (!name)   { showToast('err','Validation','Enter the contact name.'); return; }
+  if (!mobile) { showToast('err','Validation','Enter the WhatsApp number.'); return; }
+
+  const btn = document.getElementById('inqCtSaveBtn');
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(CONTACT_STORE_URL, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ client_id: CLIENT_ID, name, country, mobile, notify: 0 })
+    });
+    if (!res.ok) throw new Error('Save failed');
+    const data = await res.json();
+
+    const sel = document.getElementById('inqReporter');
+    const o = document.createElement('option');
+    o.value = data.contact.name;
+    o.textContent = data.contact.name;
+    sel.appendChild(o);
+    sel.value = data.contact.name;
+
+    closeInqCtModal();
+    showToast('ok', 'Contact Added', data.contact.name);
+  } catch (e) {
+    showToast('err', 'Save Failed', e.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
 
 const MAX_FILES = 5;
 const MAX_SIZE  = 10 * 1024 * 1024;

@@ -151,31 +151,48 @@ class ServiceRequestController extends Controller
         return response()->json($mls);
     }
     public function reallocate(Request $request)
-    {
-        $data = $request->validate([
-            'sr_id'       => 'required|exists:service_requests,id',
-            // 'category_id' => 'required|exists:service_categories,id',
-            'ml_id'       => 'required|exists:users,id',
-            'remark'      => 'nullable|string|max:1000',
-        ]);
+{
+    $data = $request->validate([
+        'sr_id'       => 'required|exists:service_requests,id',
+        'ml_id'       => 'required|exists:users,id',
+        'remark'      => 'nullable|string|max:1000',
+    ]);
 
-        $sr = ServiceRequest::findOrFail($data['sr_id']);
-        
-        $sr->update([
-            // 'assigned_user_id' => $data['ml_id'],
-            // 'service_type_id'       => $data['category_id'],
-            'reallocate_user_id'    =>  $data['ml_id'],
-            'reallocate'            => true,
-            'reallocated_submit_at' => now(),
-            'relocation_remarks'    =>  $data['remark'],
-            'status'                => 'Rework',
-            // 'reallocate'           => 'Re',
+    $sr = ServiceRequest::findOrFail($data['sr_id']);
 
+    $oldStatus = $sr->status;   // capture BEFORE update
 
-        ]);
+    $sr->update([
+        'reallocate_user_id'    => $data['ml_id'],
+        'reallocate'            => true,
+        'reallocated_submit_at' => now(),
+        'relocation_remarks'    => $data['remark'],
+        'status'                => 'Rework',
+    ]);
 
-        return response()->json(['ok' => true]);
-    }
+    $ref = $this->buildSrRef($sr);
+
+    NotificationLog::create([
+        'service_request_id' => $sr->id,
+        'event'       => 'status_updated',
+        'title'       => 'Status Updated',
+        'message'     => "{$ref} reallocated — returned to Rework"
+            . (!empty($data['remark']) ? ': ' . $data['remark'] : ''),
+        'from_status' => $oldStatus,
+        'to_status'   => 'Rework',
+        'caused_by'   => auth()->id(),
+    ]);
+
+    // Same customer/internal message as a QC-failed rework — queued.
+    SendSrNotifications::dispatch(
+        $sr->id,
+        SendSrNotifications::REALLOCATED,
+        $ref,
+        auth()->user()?->name
+    );
+
+    return response()->json(['ok' => true]);
+}
 
 
     public function store(Request $request)
@@ -1442,11 +1459,15 @@ private function rlsScope(string $module): ?array
             ]);
         });
 
-        // ServiceRequestController::qcFail() — inside/after the DB::transaction, alongside the existing notifyServiceStatus:
-        app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, 'Rework');
-        app(\App\Services\WhatsAppService::class)->notifyInternalStatusChange($serviceRequest, 'Rework', Auth::user()?->name);
-
         $ref = $this->buildSrRef($serviceRequest);
+
+        // Rework notifications — off the request, onto the queue.
+        SendSrNotifications::dispatch(
+            $serviceRequest->id,
+            SendSrNotifications::REWORK,
+            $ref,
+            Auth::user()?->name
+        );
 
         return response()->json([
             'ok'      => true,

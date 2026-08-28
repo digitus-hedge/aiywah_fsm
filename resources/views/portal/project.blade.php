@@ -312,10 +312,10 @@
   @forelse($cards as $c)
     <article class="card-x" data-card id="sr-{{ $c['id'] }}">
       <div class="card-head" role="button" tabindex="0" data-toggle
-           aria-expanded="false" aria-controls="body-{{ $c['id'] }}">
+          aria-expanded="false" aria-controls="body-{{ $c['id'] }}">
         <div style="flex:1;min-width:190px">
-          <div class="ref">{{ $c['ref'] }} · logged {{ $c['logged'] }}</div>
-          <p class="card-title">{{ $c['category'] }}</p>
+          <p class="card-title">{{ $c['ref'] }}</p>
+          <div class="ref">{{ $c['category'] }} · logged {{ $c['logged'] }}</div>
         </div>
         <span class="chip {{ $c['tone'] }}"><i class="bi {{ $c['icon'] }}"></i> {{ $c['label'] }}</span>
         <i class="bi bi-chevron-down caret" aria-hidden="true"></i>

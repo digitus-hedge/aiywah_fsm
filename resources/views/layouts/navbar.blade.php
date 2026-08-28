@@ -117,11 +117,6 @@
         </li>
         <li><hr class="dropdown-divider"></li>
         <li>
-            <a class="dropdown-item" href='#' }}">
-                <i class="bi bi-person me-2"></i>Profile
-            </a>
-        </li>
-        <li>
             <form method="POST" action="{{ route('logout') }}" class="m-0">
                 @csrf
                 <button type="submit" class="dropdown-item text-danger">

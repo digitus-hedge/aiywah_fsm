@@ -20,6 +20,39 @@
 @media(max-width:575.98px){.ud-header{padding:14px 16px;}.ud-header h4{font-size:.9rem;}}
 
 /* ═══════════════════════════════════════
+   CATEGORY / DOMAIN CHIPS
+═══════════════════════════════════════ */
+.ud-chip-list{display:flex;flex-wrap:wrap;gap:5px;align-items:center;max-width:280px;}
+.ud-chip{display:inline-flex;align-items:center;font-size:.68rem;font-weight:600;padding:3px 9px;border-radius:12px;white-space:nowrap;line-height:1.3;}
+.ud-chip-cat{background:rgba(101,113,255,.1);color:#6571ff;border:1px solid rgba(101,113,255,.18);}
+.ud-chip-dom{background:rgba(5,163,74,.1);color:#05a34a;border:1px solid rgba(5,163,74,.18);}
+.ud-chip-more{background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-color);cursor:pointer;transition:all .15s;position:relative;}
+.ud-chip-more:hover{border-color:#9A7B4F;color:#9A7B4F;background:rgba(154,123,79,.06);}
+.ud-chip-popover{
+  display:none;
+  position:absolute;
+  top:calc(100% + 6px);
+  left:0;
+  z-index:50;
+  background:var(--card-bg);
+  border:1px solid var(--card-border);
+  border-radius:8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+  padding:8px;
+  min-width:160px;
+  max-width:240px;
+}
+.ud-chip-popover.show{display:flex;flex-wrap:wrap;gap:5px;}
+.ud-chip-list{position:relative;}
+.ud-chip-empty{font-size:.72rem;color:var(--text-light);font-style:italic;}
+.ud-chip-warn{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:600;color:#f97316;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);padding:3px 9px;border-radius:12px;}
+.ud-chip-warn i{font-size:.7rem;}
+
+@media(max-width:575.98px){
+  .ud-chip-list{max-width:none;justify-content:flex-end;}
+}
+
+/* ═══════════════════════════════════════
    STATS STRIP
 ═══════════════════════════════════════ */
 .ud-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
@@ -138,7 +171,11 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 .ud-pager .page-link:hover{background:rgba(154,123,79,.1);border-color:#9A7B4F;color:#9A7B4F;}
 .ud-pager .active .page-link{background:rgba(154,123,79,.12);border-color:#9A7B4F;color:#9A7B4F;}
 .ud-pager .disabled .page-link{opacity:.45;pointer-events:none;}
-
+/* Hide Laravel's built-in "Showing X to Y of Z results" text —
+   keep only our custom .info text on the left */
+.ud-pager p {
+  display: none;
+}
 .ud-modal-overlay{display:none;position:fixed;inset:0;background:rgba(9,15,35,.6);z-index:9998;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
 .ud-modal-overlay.show{display:flex;}
 .ud-modal{background:var(--card-bg);border:1px solid var(--card-border);border-radius:12px;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
@@ -275,7 +312,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 </thead>
         <tbody>
           @forelse ($users as $user)
-            @php
+@php
   $initials = collect(explode(' ', trim($user->name)))
       ->map(fn($w) => mb_substr($w, 0, 1))
       ->take(2)->implode('');
@@ -283,16 +320,17 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
   $avColor   = $palette[$user->id % count($palette)];
   $roleColor = optional($user->role)->color_code ?? '#9A7B4F';
 
-  $isSE       = optional($user->role)->code === 'SE';
-  $categories = $isSE
-      ? $user->serviceCategories->pluck('category_name')->filter()->unique()->take(3)->implode(', ')
-      : '';
+  $isSE = optional($user->role)->code === 'SE';
 
-  $domains   = $user->serviceDomains->pluck('domain_name')->filter()->take(3)->implode(', ');
+  $categoryList = $isSE
+      ? $user->serviceCategories->pluck('category_name')->filter()->unique()->values()
+      : collect();
+
+  $domainList = $user->serviceDomains->pluck('domain_name')->filter()->values();
+
   $status    = $user->status ?? 'active';
   $sClass    = $status === 'active' ? 'ud-active' : 'ud-inactive';
   $sLabel    = $status === 'active' ? 'Active' : 'Not Active';
-
 @endphp
             <tr>
               <td class="cell-user" data-label="User">
@@ -310,21 +348,52 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 
 
               @if($showCategory)
-  <td data-label="Category" class="ud-muted">
-    @if(!$isSE)
-      —
-    @elseif($categories !== '')
-      {{ $categories }}
-    @else
-      <span style="color:#f97316;font-size:.72rem;">
-        <i class="bi bi-exclamation-triangle"></i> Not assigned
-      </span>
-    @endif
-  </td>
-@endif
+                <td data-label="Category" class="ud-muted">
+                  @if(!$isSE)
+                    <span class="ud-chip-empty">—</span>
+                  @elseif($categoryList->isNotEmpty())
+                    <div class="ud-chip-list">
+                      @foreach($categoryList->take(2) as $cat)
+                        <span class="ud-chip ud-chip-cat">{{ $cat }}</span>
+                      @endforeach
+                      @if($categoryList->count() > 2)
+                        <span class="ud-chip ud-chip-more" onclick="udToggleChipPopover(event, this)">
+                          +{{ $categoryList->count() - 2 }} more
+                        </span>
+                        <div class="ud-chip-popover">
+                          @foreach($categoryList->slice(2) as $cat)
+                            <span class="ud-chip ud-chip-cat">{{ $cat }}</span>
+                          @endforeach
+                        </div>
+                      @endif
+                    </div>
+                  @else
+                    <span class="ud-chip-warn"><i class="bi bi-exclamation-triangle"></i>Not assigned</span>
+                  @endif
+                </td>
+              @endif
 
-
-              <td data-label="Domain" class="ud-muted">{{ $domains !== '' ? $domains : '—' }}</td>
+              <td data-label="Domain" class="ud-muted">
+                @if($domainList->isNotEmpty())
+                  <div class="ud-chip-list">
+                    @foreach($domainList->take(2) as $dom)
+                      <span class="ud-chip ud-chip-dom">{{ $dom }}</span>
+                    @endforeach
+                    @if($domainList->count() > 2)
+                      <span class="ud-chip ud-chip-more" onclick="udToggleChipPopover(event, this)">
+                        +{{ $domainList->count() - 2 }} more
+                      </span>
+                      <div class="ud-chip-popover">
+                        @foreach($domainList->slice(2) as $dom)
+                          <span class="ud-chip ud-chip-dom">{{ $dom }}</span>
+                        @endforeach
+                      </div>
+                    @endif
+                  </div>
+                @else
+                  <span class="ud-chip-empty">—</span>
+                @endif
+              </td>
               
               <td data-label="Created" class="ud-muted">{{ optional($user->created_at)->format('d M Y') ?? '—' }}</td>
              
@@ -671,5 +740,22 @@ document.getElementById('udModalOverlay').addEventListener('click', function(e){
 document.getElementById('edit-role')
         .addEventListener('change', udToggleRoleFields);
 
+function udToggleChipPopover(e, chip){
+  e.stopPropagation();
+  const popover = chip.nextElementSibling;
+  if (!popover || !popover.classList.contains('ud-chip-popover')) return;
+
+  const isOpen = popover.classList.contains('show');
+
+  // close any other open popovers first
+  document.querySelectorAll('.ud-chip-popover.show').forEach(p => p.classList.remove('show'));
+
+  if (!isOpen) popover.classList.add('show');
+}
+
+// click anywhere else closes any open popover
+document.addEventListener('click', function(){
+  document.querySelectorAll('.ud-chip-popover.show').forEach(p => p.classList.remove('show'));
+});
 </script>
 @endpush
