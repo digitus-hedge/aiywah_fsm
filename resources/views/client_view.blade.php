@@ -1715,7 +1715,7 @@
               <th>Project Name</th>
               <th>Site Name</th>
               <th>Site Address</th>
-              <th style="text-align:center;">SRs</th>
+              <th style="text-align:center;">SR</th>
               <th style="width:88px;">Status</th>
               <th style="width:150px;">Actions</th>
             </tr>
@@ -1976,10 +1976,19 @@
     </div>
     <div style="flex:1;min-width:180px;">
       <label class="form-label">Engineer Contact</label>
-      <input type="text" class="form-control" id="pn-engineer-contact" placeholder="Phone"
-             inputmode="numeric" maxlength="15"
-             oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
-      <div class="field-hint">Digits only.</div>
+      <div style="display:flex;gap:6px;">
+        <select class="form-select" id="pn-engineer-country" style="max-width:130px;flex-shrink:0;">
+          <option value="+971" selected>🇦🇪 +971</option>
+          <option value="+91">🇮🇳 +91</option>
+          <option value="+1">🇺🇸 +1</option>
+          <option value="+44">🇬🇧 +44</option>
+          <option value="+61">🇦🇺 +61</option>
+        </select>
+        <input type="text" class="form-control" id="pn-engineer-contact" placeholder="Phone"
+               inputmode="numeric" maxlength="15"
+               oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+      </div>
+      <div class="field-hint">Select country code, digits only for the number.</div>
     </div>
   </div>
 </div>
@@ -2068,7 +2077,7 @@
       rows += '<tr>' +
         '<td class="muted">' + (i + 1) + '</td>' +
         '<td class="mono">' + p.code + '</td>' +
-        '<td><strong style="font-size:.81rem;">' + p.name + '</strong><div style="font-size:.68rem;color:var(--text-muted);margin-top:1px;">' + p.contract + '</div></td>' +
+        '<td><strong style="font-size:.81rem;">' + p.name + '</strong><div style="font-size:.68rem;color:var(--text-muted);margin-top:1px;"></div></td>' +
         '<td><div class="site-line"><i class="bi bi-geo-alt-fill"></i><span style="font-size:.79rem;">' + p.siteName + '</span></div></td>' +
         '<td class="muted" style="font-size:.75rem;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="' + p.siteAddress + '">' + p.siteAddress + '</td>' +
         '<td style="text-align:center;"><strong>' + p.srCount + '</strong></td>' +
@@ -2181,7 +2190,8 @@ function exportProjects() {
     document.getElementById('pn-completion').value = '';
     document.getElementById('pn-warranty').value = '';
     document.getElementById('pn-engineer').value = '';
-     document.getElementById('pn-engineer-contact').value = '';
+    document.getElementById('pn-engineer-country').value = '+971'; 
+    document.getElementById('pn-engineer-contact').value = '';
     var tog = document.getElementById('statusTog');
     tog.classList.add('on');
     var togLbl = tog.parentElement.querySelector('.tog-label');
@@ -2195,32 +2205,41 @@ function exportProjects() {
 
   /* ── EDIT (fill + open, NO reset) ── */
   function editProject(id) {
-    var p = PROJECTS.find(function (x) { return x.id === id; });
-    if (!p) { showToast('err', 'Not found', 'Project not found.'); return; }
+  var p = PROJECTS.find(function (x) { return x.id === id; });
+  if (!p) { showToast('err', 'Not found', 'Project not found.'); return; }
 
-    editingProjectId = id;
+  editingProjectId = id;
 
-    document.getElementById('pn-name').value = p.name || '';
-    document.getElementById('pn-code').value = p.code || '';
-    document.getElementById('pn-site').value = p.siteName || '';
-    document.getElementById('pn-addr').value = p.siteAddress || '';
-    document.getElementById('pn-engineer').value = p.project_engineer || '';
-    document.getElementById('pn-engineer-contact').value = p.engineer_contact || '';
-    document.getElementById('pn-completion').value = p.completionDate || '';
-    document.getElementById('pn-warranty').value = p.warrantyId ? String(p.warrantyId) : '';
+  document.getElementById('pn-name').value = p.name || '';
+  document.getElementById('pn-code').value = p.code || '';
+  document.getElementById('pn-site').value = p.siteName || '';
+  document.getElementById('pn-addr').value = p.siteAddress || '';
+  document.getElementById('pn-engineer').value = p.project_engineer || '';
+  document.getElementById('pn-engineer-contact').value = p.engineer_contact || '';
+  document.getElementById('pn-completion').value = p.completionDate || '';
+  document.getElementById('pn-warranty').value = p.warrantyId ? String(p.warrantyId) : '';
 
-    var tog = document.getElementById('statusTog');
-    tog.classList.toggle('on', !!p.active);
-    var togLbl = tog.parentElement.querySelector('.tog-label');
-    if (togLbl) togLbl.textContent = p.active ?
-      'Active — project visible across SR Registration and Dispatch' :
-      'Inactive — hidden from SR Registration';
-
-    document.querySelector('#projectModal .modal-hdr h6').textContent = 'Edit Project';
-    document.getElementById('pn-save-btn').innerHTML = '<i class="bi bi-floppy"></i>Update Project';
-
-    showProjectModal();
+  // Country code — fall back safely if value isn't a valid option
+  var countrySel = document.getElementById('pn-engineer-country');
+  var wantedCountry = p.engineer_country || '+971';
+  var hasOption = Array.from(countrySel.options).some(function(o){ return o.value === wantedCountry; });
+  countrySel.value = hasOption ? wantedCountry : '+971';
+  if (!hasOption && p.engineer_country) {
+    console.warn('Unrecognized engineer_country value from server:', p.engineer_country);
   }
+
+  var tog = document.getElementById('statusTog');
+  tog.classList.toggle('on', !!p.active);
+  var togLbl = tog.parentElement.querySelector('.tog-label');
+  if (togLbl) togLbl.textContent = p.active ?
+    'Active — project visible across SR Registration and Dispatch' :
+    'Inactive — hidden from SR Registration';
+
+  document.querySelector('#projectModal .modal-hdr h6').textContent = 'Edit Project';
+  document.getElementById('pn-save-btn').innerHTML = '<i class="bi bi-floppy"></i>Update Project';
+
+  showProjectModal();
+}
 
   function confirmDelete(id) {
   var p = PROJECTS.find(function(x){ return x.id === id; });
@@ -2295,8 +2314,10 @@ function exportProjects() {
     var completion = document.getElementById('pn-completion').value || null;
     var warranty = document.getElementById('pn-warranty').value || null;
     var active = document.getElementById('statusTog').classList.contains('on');
-    var engineer = document.getElementById('pn-engineer-contact').value.trim();
-    var engineer_contact = document.getElementById('pn-engineer').value.trim();
+
+    var engineer = document.getElementById('pn-engineer').value.trim();
+    var engineer_country = document.getElementById('pn-engineer-country').value.trim();
+    var engineer_contact = document.getElementById('pn-engineer-contact').value.trim();
 
     if (!name) { showToast('err','Missing','Please enter a project name.'); document.getElementById('pn-name').focus(); return; }
     if (!site) { showToast('err','Missing','Please enter the site name.'); document.getElementById('pn-site').focus(); return; }
@@ -2315,6 +2336,7 @@ function exportProjects() {
       completion_date: completion,
       warranty_id:     warranty,
       project_engineer: engineer,
+      engineer_country: engineer_country,
       engineer_contact: engineer_contact,
       status:          active ? 'Active' : 'Inactive',
     };

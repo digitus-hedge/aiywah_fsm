@@ -50,7 +50,7 @@ class ServiceRequestController extends Controller
             ->first();
 
         if ($client) {
-            $projects = $client->projects->map(fn($p) => [
+            $projects = $client->projects->where('status', 'Active')->map(fn($p) => [
                 'id'    => $p->id,
                 'name'  => $p->project_name,
                 'sites' => array_values(array_filter([$p->site_name])),
