@@ -865,33 +865,33 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
 
   /* ═══ MODAL ═══ */
   .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: var(--overlay-bg);
-    z-index: 900;
-    align-items: flex-start;
-    justify-content: center;
-    backdrop-filter: blur(3px);
-    padding: 40px 16px 24px;
-    overflow-y: auto;
-  }
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .6);
+  backdrop-filter: blur(6px);
+  z-index: 1100;          /* was 900 — now above sidebar's 1000 */
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px 24px;
+  overflow-y: auto;
+}
 
   .modal-overlay.show {
     display: flex;
   }
 
   .modal-box {
-    background: var(--modal-bg);
-    border-radius: 12px;
-    width: 100%;
-    max-width: 560px;
-    box-shadow: var(--modal-shadow);
-    border: 1px solid var(--card-border);
-    overflow: hidden;
-    animation: modalIn .2s ease;
-    margin: auto;
-  }
+  background: var(--modal-bg);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 560px;
+  box-shadow: var(--modal-shadow);
+  border: 1px solid var(--card-border);
+  overflow: visible;      /* was: hidden */
+  animation: modalIn .2s ease;
+  margin: auto;
+}
 
   @keyframes modalIn {
     from {
@@ -905,13 +905,14 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
     }
   }
 
-  .modal-hdr {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color);
-  }
+ .modal-hdr {
+  border-radius: 12px 12px 0 0;   /* add this */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
 
   .modal-hdr-left {
     display: flex;
@@ -965,15 +966,16 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
     padding: 0;
   }
 
-  .modal-foot {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 9px;
-    padding: 14px 20px;
-    border-top: 1px solid var(--border-color);
-    background: var(--surface-2);
-  }
+ .modal-foot {
+  border-radius: 0 0 12px 12px;   /* add this */
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--surface-2);
+}
 
   /* Modal section dividers */
   .m-section {
@@ -1126,19 +1128,20 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
   }
 
   .cust-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: var(--modal-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
-    z-index: 200;
-    max-height: 220px;
-    overflow-y: auto;
-    display: none;
-  }
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--modal-bg);
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .22);
+  z-index: 1150;           /* above modal-overlay's 1100 */
+  max-height: 280px;
+  overflow-y: auto;
+  display: none;
+  padding: 6px;
+}
 
   .cust-dropdown.open {
     display: block;
@@ -1340,15 +1343,15 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
 
   /* Delete confirm modal */
   .del-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: var(--overlay-bg);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    backdrop-filter: blur(3px);
-  }
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-bg);
+  z-index: 1100;            /* was 1000 — match modal-overlay */
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
 
   .del-overlay.show {
     display: flex;
@@ -1624,6 +1627,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
           'warranty_name' => optional($p->warranty)->name,
           'project_engineer' => $p->project_engineer,
           'engineer_contact' => $p->engineer_contact,
+          'engineer_country' => $p->engineer_country, 
           ];
           @endphp
           <tr data-client="{{ optional($cl)->company_name }}" data-status="{{ $p->status }}" data-json='@json($rowData)'>

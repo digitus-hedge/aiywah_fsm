@@ -326,7 +326,7 @@ class ClientController extends Controller
                 'siteAddress'    => $p->site_address,
                 'project_engineer'  => $p->project_engineer,
                 'engineer_contact' => $p->engineer_contact,
-                'contract'       => $p->contract_type ?? '—',
+                'engineer_country'  => $p->engineer_country,
                 'startDate'      => optional($p->created_at)->format('d M Y'),
                 'completionDate' => optional($p->completion_date)->format('Y-m-d'),  // <-- add
                 'warrantyId'     => $p->warranty_id,                                  // <-- add

@@ -266,7 +266,6 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     <th>Role</th>
     @if($showCategory)<th>Category</th>@endif
     <th>Domain Expertise</th>
-    <th>Status</th>
     <th>Created</th>
     @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
       <th style="width:80px;">Actions</th>
@@ -326,9 +325,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 
 
               <td data-label="Domain" class="ud-muted">{{ $domains !== '' ? $domains : '—' }}</td>
-              <td data-label="Status">
-                <span class="ud-badge {{ $sClass }}"><i class="bi bi-circle-fill"></i>{{ $sLabel }}</span>
-              </td>
+              
               <td data-label="Created" class="ud-muted">{{ optional($user->created_at)->format('d M Y') ?? '—' }}</td>
              
               @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
