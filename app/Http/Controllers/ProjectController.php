@@ -137,7 +137,27 @@ class ProjectController extends Controller
     public function show(Project $project)
     {
         $project->load(['client', 'warranty']);
+         // ── Contact Person options — mirrors ServiceRequestController::lookup() ──
+        $contacts = $project->client
+            ? $project->client->mobiles->map(fn($m) => [
+                'id'     => $m->id,
+                'name'   => $m->name,
+                'mobile' => trim(($m->country ?? '') . ' ' . $m->mobile),
+            ])->values()->toArray()
+            : [];
 
+        if ($project->client && !empty($project->client->contact_name)) {
+            $exists = collect($contacts)->contains(
+                fn($c) => strcasecmp($c['name'] ?? '', $project->client->contact_name) === 0
+            );
+            if (!$exists) {
+                array_unshift($contacts, [
+                    'id'     => null,
+                    'name'   => $project->client->contact_name,
+                    'mobile' => $project->client->primary_mobile ?? '',
+                ]);
+            }
+        }
         $srs = $project->serviceRequests()
             ->with(['assignedUser', 'category', 'punch.user', 'punch.items'])
             ->latest()
@@ -252,7 +272,7 @@ class ProjectController extends Controller
         $srsPaginated = $project->serviceRequests()
             ->with(['assignedUser', 'category', 'project'])
             ->latest()
-            ->paginate(10)
+            ->paginate(30)
             ->withQueryString();
 
         $categories = ServiceCategory::orderBy('sort_order')->get();
@@ -315,7 +335,8 @@ class ProjectController extends Controller
             'categories',
             'activities',
             'nextSrCode',
-            'priorities'
+            'priorities',
+            'contacts'
         ));
     }
 

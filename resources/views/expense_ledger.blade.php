@@ -233,7 +233,37 @@
   font-size:.75rem; font-weight:500; cursor:pointer; text-decoration:none;
 }
 .exl-modal-overlay .lb-dl:hover { background:rgba(154,128,83,.18); color:#9a8053; }
+/* ═══ PAGINATION BAR ═══ */
+.exl-wrap .cd-pagination-bar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:13px 18px; border-top:1px solid var(--border-color);
+  background:var(--surface-2); flex-wrap:wrap; gap:10px;
+}
+.exl-wrap .cd-page-info { font-size:.78rem; color:var(--text-muted); font-weight:500; }
+.exl-wrap .cd-pager { display:flex; gap:5px; }
+.exl-wrap .cd-page-btn {
+  min-width:32px; height:32px; display:flex; align-items:center; justify-content:center;
+  border-radius:8px; border:1px solid var(--border-color); background:var(--card-bg);
+  color:var(--text-muted); font-size:.78rem; font-weight:600; padding:0 8px;
+  cursor:pointer; transition:all .15s;
+}
+.exl-wrap .cd-page-btn:hover:not(:disabled) {
+  border-color:var(--gold); color:var(--gold); background:rgba(154,128,83,.06);
+}
+.exl-wrap .cd-page-btn.active {
+  background:linear-gradient(135deg,var(--gold),var(--gold-2));
+  border-color:var(--gold); color:#fff; box-shadow:0 2px 8px rgba(154,128,83,.35);
+}
+.exl-wrap .cd-page-btn:disabled {
+  color:var(--text-light); background:var(--card-bg); border-color:var(--border-color);
+  opacity:.5; cursor:not-allowed;
+}
+.exl-wrap .cd-page-btn.dots { border:none; background:none; cursor:default; }
 
+@media (max-width:575.98px) {
+  .exl-wrap .cd-pagination-bar { flex-direction:column; align-items:flex-start; padding:12px 16px; }
+  .exl-wrap .cd-pager { align-self:flex-end; }
+}
 /* ── TOAST ── */
 .exl-toast-wrap {
   position:fixed; bottom:22px; right:22px; z-index:9999;
@@ -352,8 +382,9 @@
       </table>
     </div>
 
-    <div class="ledger-foot">
-      <span>Showing <strong id="led-shown">0</strong> of {{ count($ledger ?? []) }} entries</span>
+        <div class="cd-pagination-bar">
+      <div class="cd-page-info" id="led-page-info">Showing 0 of 0 entries</div>
+      <div class="cd-pager" id="led-pager"></div>
     </div>
   </div>
 
@@ -418,21 +449,37 @@ const money = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', {
 });
 
 /* ── RENDER ── */
+/* ── PAGINATION STATE ── */
+const PAGE_SIZE = 10;
+let currentPage = 1;
+let filteredList = LEDGER.slice();
+
+/* ── RENDER (current page only) ── */
 function render(list) {
+  filteredList = list;
+
+  const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+
   const tbody = $('led-tbody');
 
   $('led-count').textContent = `${list.length} ${list.length === 1 ? 'entry' : 'entries'}`;
-  $('led-shown').textContent = list.length;
   $('led-total').textContent = money(list.reduce((sum, e) => sum + Number(e.amt || 0), 0));
 
   if (!list.length) {
     tbody.innerHTML =
       '<tr><td colspan="8" class="row-empty">' +
       '<i class="bi bi-inbox"></i>No entries match your filters</td></tr>';
+    $('led-page-info').textContent = 'No entries';
+    renderPager(0, 1);
     return;
   }
 
-  tbody.innerHTML = list.map((e, i) => {
+  tbody.innerHTML = pageItems.map((e, i) => {
     const receipt = e.receiptUrl
       ? `<button class="receipt-thumb" type="button" title="View receipt"
                  data-url="${esc(e.receiptUrl)}" data-sr="${esc(e.sr)}" data-tech="${esc(e.tech)}">
@@ -442,7 +489,7 @@ function render(list) {
       : '<div class="receipt-thumb no-rcpt" title="No receipt"><i class="bi bi-image-alt"></i></div>';
 
     return `<tr>
-      <td class="muted">${i + 1}</td>
+      <td class="muted">${start + i + 1}</td>
       <td class="mono">${esc(e.sr)}</td>
       <td class="tech">${esc(e.tech)}</td>
       <td>${esc(e.name ?? '—')}</td>
@@ -452,7 +499,51 @@ function render(list) {
       <td class="muted">${esc(e.date)}</td>
     </tr>`;
   }).join('');
+
+  const shownFrom = start + 1;
+  const shownTo = Math.min(start + PAGE_SIZE, list.length);
+  $('led-page-info').textContent = `Showing ${shownFrom}\u2013${shownTo} of ${list.length} entries`;
+
+  renderPager(list.length, totalPages);
 }
+
+/* ── PAGER BUTTONS ── */
+function renderPager(total, totalPages) {
+  const pager = $('led-pager');
+
+  if (totalPages <= 1) { pager.innerHTML = ''; return; }
+
+  const buttons = [];
+
+  buttons.push(`<button class="cd-page-btn" type="button" data-page="${currentPage - 1}" ${currentPage === 1 ? 'disabled' : ''}>
+    <i class="bi bi-chevron-left"></i></button>`);
+
+  const windowSize = 1;
+  let lastPrinted = 0;
+
+  for (let p = 1; p <= totalPages; p++) {
+    const inWindow = p === 1 || p === totalPages || Math.abs(p - currentPage) <= windowSize;
+    if (!inWindow) continue;
+
+    if (lastPrinted && p - lastPrinted > 1) {
+      buttons.push('<span class="cd-page-btn dots">&hellip;</span>');
+    }
+    buttons.push(`<button class="cd-page-btn ${p === currentPage ? 'active' : ''}" type="button" data-page="${p}">${p}</button>`);
+    lastPrinted = p;
+  }
+
+  buttons.push(`<button class="cd-page-btn" type="button" data-page="${currentPage + 1}" ${currentPage === totalPages ? 'disabled' : ''}>
+    <i class="bi bi-chevron-right"></i></button>`);
+
+  pager.innerHTML = buttons.join('');
+}
+
+$('led-pager').addEventListener('click', (e) => {
+  const btn = e.target.closest('.cd-page-btn[data-page]');
+  if (!btn || btn.disabled) return;
+  currentPage = Number(btn.dataset.page);
+  render(filteredList);
+});
 
 /* ── FILTER ── */
 function applyFilters() {
@@ -460,6 +551,8 @@ function applyFilters() {
   const cat = $('led-cat').value;
 
   $('led-clear').classList.toggle('show', q.length > 0);
+
+  currentPage = 1; // reset to page 1 on every new filter
 
   render(LEDGER.filter((e) => {
     const matchesQuery = !q

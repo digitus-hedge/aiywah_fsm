@@ -60,7 +60,30 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sb-oow{background:rgba(239,68,68,.1);color:#ef4444;}
 /* MONEY / DURATION CELLS */
 .cell-total{font-weight:700;color:var(--text-heading);}
-.cell-dur{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;color:var(--text-muted);}
+.cell-dur {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: .74rem;
+}
+/* Quiet, low-key styling for "within target" rows — no border, no bg,
+   just muted text so they don't visually compete with real breaches */
+.cell-dur.sla-ok {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.cell-dur.sla-ok .sla-band-lbl {
+  display: none; /* hide "Within target" text entirely — the quiet style already says it */
+}
+
+/* Genuine breach/critical rows keep the loud badge treatment */
+.cell-dur.sla-breach {
+  font-weight: 700;
+}
 .worker-cell{display:flex;align-items:center;gap:9px;}
 .w-av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#9A7B4F,#C4A882);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;flex-shrink:0;}
 /* PAGINATION */
@@ -359,22 +382,27 @@ $qc        = $qcFor($qcHrs);
 
 
          <td>
-  @if($qcHrs === null)
-    <span class="cell-dur" style="color:#8a8a8a;background:#8a8a8a1a;border:1px solid #8a8a8a55;">
-      <i class="bi bi-dash-circle"></i>—
-    </span>
-  @else
-    <span class="cell-dur"
-          style="color:{{ $qc['color'] }};background:{{ $qc['color'] }}1a;border:1px solid {{ $qc['color'] }}55;font-weight:600;"
-          title="{{ $qcFrom->format('d M Y h:i A') }} → {{ $qcTo ? $qcTo->format('d M Y h:i A') : 'pending' }}{{ $qc['next'] ? ' · '.($qc['next']['at'] - $qcHrs).'h to '.$qc['next']['name'] : '' }}">
-      <i class="bi {{ $qcPending ? 'bi-hourglass-split' : 'bi-stopwatch' }}"></i>
-      {{ $qcHrs }}h
-      @if($qc['name'])
-        <span style="font-size:.68rem;opacity:.85;margin-left:4px;">{{ $qc['name'] }}</span>
-      @endif
-    </span>
-  @endif
-</td>
+            @if($qcHrs === null)
+              <span class="cell-dur" style="color:#8a8a8a;background:#8a8a8a1a;border:1px solid #8a8a8a55;">
+                <i class="bi bi-dash-circle"></i>—
+              </span>
+            @else
+              @php
+                // Treat "no named band hit yet" as the quiet/default state
+                $isDefaultOk = is_null($qc['at']);
+              @endphp
+              <span class="cell-dur {{ $isDefaultOk ? 'sla-ok' : 'sla-breach' }}"
+                    style="{{ $isDefaultOk ? '' : 'color:'.$qc['color'].';background:'.$qc['color'].'1a;border:1px solid '.$qc['color'].'55;' }}"
+                    title="{{ $qcFrom->format('d M Y h:i A') }} → {{ $qcTo ? $qcTo->format('d M Y h:i A') : 'pending' }}{{ $qc['next'] ? ' · '.($qc['next']['at'] - $qcHrs).'h to '.$qc['next']['name'] : '' }}">
+                <i class="bi {{ $qcPending ? 'bi-hourglass-split' : 'bi-stopwatch' }}"></i>
+                {{ $qcHrs }}h
+                @if($qc['name'])
+                  <span class="sla-band-lbl" style="font-size:.68rem;opacity:.85;margin-left:4px;">{{ $qc['name'] }}</span>
+                @endif
+              </span>
+            @endif
+
+          </td>
 
             <td class="cell-total">{{ number_format($grandTotal, 2) }}</td> {{-- invoice_total --}}
             <td class="muted">{{ $completedAt->diffForHumans() }}</td>

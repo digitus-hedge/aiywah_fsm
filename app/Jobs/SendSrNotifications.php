@@ -45,7 +45,9 @@ class SendSrNotifications implements ShouldQueue
     public const QUOTE_PENDING_ACCOUNTS    = 'quote_pending_accounts';
     public const INVOICE_REQUIRED_ACCOUNTS = 'invoice_required_accounts';
     public const QUOTE_CLIENT_APPROVED     = 'quote_client_approved';
-    public const INVOICE_SUBMITTED         = 'invoice_submitted'; 
+    public const INVOICE_SUBMITTED         = 'invoice_submitted';
+    public const REWORK                    = 'rework';        
+    public const REALLOCATED               = 'reallocated';  
     public $tries   = 3;
     public $backoff = [10, 60, 180];   // don't hammer a provider that's down
     public $timeout = 120;
@@ -87,6 +89,8 @@ class SendSrNotifications implements ShouldQueue
             self::INVOICE_REQUIRED_ACCOUNTS => $this->invoiceRequiredAccounts($wa, $sr),
             self::QUOTE_CLIENT_APPROVED     => $this->quoteClientApproved($wa, $sr),
             self::INVOICE_SUBMITTED     => $this->invoiceSubmitted($wa, $sr),
+            self::REWORK        => $this->rework($wa, $sr),        
+            self::REALLOCATED   => $this->reallocated($wa, $sr),
             default => Log::warning('SR notification: unknown event type', [
                 'sr_id' => $this->srId,
                 'event' => $this->event,
@@ -296,6 +300,21 @@ private function invoiceSubmitted(WhatsAppService $wa, ServiceRequest $sr): void
     $this->safely('wa.invoice_submitted', function () use ($wa, $sr) {
         $wa->notifyServiceStatus($sr, 'Invoice Submitted');                          // customer
         $wa->notifyInternalStatusChange($sr, 'Invoice Submitted', $this->actor);     // internal
+    });
+}
+private function rework(WhatsAppService $wa, ServiceRequest $sr): void
+{
+    $this->safely('wa.rework', function () use ($wa, $sr) {
+        $wa->notifyServiceStatus($sr, 'Rework');                         // customer
+        $wa->notifyInternalStatusChange($sr, 'Rework', $this->actor);    // internal
+    });
+}
+
+private function reallocated(WhatsAppService $wa, ServiceRequest $sr): void
+{
+    $this->safely('wa.reallocated', function () use ($wa, $sr) {
+        $wa->notifyServiceStatus($sr, 'Reallocated');                         // ← changed
+        $wa->notifyInternalStatusChange($sr, 'Reallocated', $this->actor);    // ← changed
     });
 }
 }

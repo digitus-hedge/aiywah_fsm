@@ -683,36 +683,92 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
 
 
 
-    /* Laravel pagination links restyle */
-  .cd-pagination-bar .pagination {
-    margin: 0;
-    gap: 4px;
+      /* ═══ FOOTER / PAGINATION BAR ═══ */
+  .cd-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 13px 18px;
+    border-top: 1px solid var(--border-color);
+    background: var(--surface-2);
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
-  .cd-pagination-bar .page-link {
-    border-radius: 6px;
+  .cd-page-info {
+    font-size: .78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* Hide Laravel's built-in "Showing X to Y of Z results" text —
+     keep only our own .cd-page-info text on the left */
+  .cd-pager p {
+    display: none;
+  }
+
+  .cd-pager .pagination {
+    margin: 0;
+    gap: 5px;
+  }
+
+  .cd-pager .page-item {
+    display: flex;
+  }
+
+  .cd-pager .page-link {
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
     border: 1px solid var(--border-color);
     background: var(--card-bg);
     color: var(--text-muted);
     font-size: .78rem;
-    padding: 4px 10px;
+    font-weight: 600;
+    padding: 0 8px;
+    transition: all .15s;
+    box-shadow: none;
   }
 
-  .cd-pagination-bar .page-link:hover {
+  .cd-pager .page-link:hover {
     border-color: #9A7B4F;
     color: #9A7B4F;
-    background: var(--card-bg);
+    background: rgba(154, 123, 79, .06);
+    z-index: 1;
   }
 
-  .cd-pagination-bar .page-item.active .page-link {
-    background: #9A7B4F;
-    color: #fff;
+  .cd-pager .page-link:focus {
+    box-shadow: 0 0 0 3px rgba(154, 123, 79, .15);
+    z-index: 1;
+  }
+
+  .cd-pager .page-item.active .page-link {
+    background: linear-gradient(135deg, #9A7B4F, #b8975e);
     border-color: #9A7B4F;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(154, 123, 79, .35);
   }
 
-  .cd-pagination-bar .page-item.disabled .page-link {
+  .cd-pager .page-item.disabled .page-link {
     color: var(--text-light);
     background: var(--card-bg);
+    border-color: var(--border-color);
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  @media(max-width:575.98px) {
+    .cd-pagination-bar {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px 16px;
+    }
+    .cd-pager .pagination {
+      align-self: flex-end;
+    }
   }
 
 
@@ -1676,13 +1732,13 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
 
    <div class="cd-pagination-bar">
     <div class="cd-page-info">
-       @if($projects->total() > 0)
-      <!-- Showing {{ $projects->firstItem() }}–{{ $projects->lastItem() }} of {{ $projects->total() }} projects -->
+      @if($projects->total() > 0)
+        Showing {{ $projects->firstItem() }}–{{ $projects->lastItem() }} of {{ $projects->total() }} projects
       @else
-      <!-- 0 projects -->
+        No projects to show
       @endif
     </div>
-    <div>
+    <div class="cd-pager">
       {{ $projects->onEachSide(1)->links('pagination::bootstrap-5') }}
     </div>
   </div>

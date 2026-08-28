@@ -958,23 +958,23 @@ class ClientController extends Controller
         // stored paperwork the customer can download
         $docs = [];
 
-        if ($sr->quote_file_path) {
-            $docs[] = [
-                'kind'  => 'Quotation',
-                'label' => $sr->erp_quote_ref ?: 'Quotation',
-                'icon'  => 'bi-receipt',
-                'url'   => asset('storage/' . ltrim($sr->quote_file_path, '/')),
-            ];
-        }
+    if ($sr->quote_path) {
+        $docs[] = [
+            'kind'  => 'Quotation',
+            'label' => $sr->erp_quote_ref ?: 'Quotation',
+            'icon'  => 'bi-receipt',
+            'url'   => asset('storage/' . ltrim($sr->quote_path, '/')),
+        ];
+    }
 
-        if ($sr->invoice_file_path) {
-            $docs[] = [
-                'kind'  => 'Invoice',
-                'label' => $sr->invoice_code ?: 'Invoice',
-                'icon'  => 'bi-file-earmark-text',
-                'url'   => asset('storage/' . ltrim($sr->invoice_file_path, '/')),
-            ];
-        }
+    if ($sr->invoice_path) {
+        $docs[] = [
+            'kind'  => 'Invoice',
+            'label' => $sr->invoice_code ?: 'Invoice',
+            'icon'  => 'bi-file-earmark-text',
+            'url'   => asset('storage/' . ltrim($sr->invoice_path, '/')),
+        ];
+    }
 
         foreach ($sr->punches as $i => $pn) {
             if ($pn->customer_signature_path) {

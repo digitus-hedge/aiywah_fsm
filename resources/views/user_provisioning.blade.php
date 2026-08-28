@@ -582,17 +582,27 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
       <div id="catGrid" class="skill-tags"></div>
 
       <div class="qc-toggle-row" style="margin-top:16px;padding:14px;border-radius:9px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.18);display:flex;align-items:center;gap:12px;">
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:.84rem;color:var(--text-heading);">Enable QC Review for this SE</div>
-          <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">
-            ON — this Service Engineer performs QC. OFF — QC stays with Head of Projects. Can be changed anytime.
-          </div>
-        </div>
-        <label class="qc-switch" style="position:relative;display:inline-block;width:46px;height:25px;flex-shrink:0;">
-          <input type="checkbox" id="qcReviewToggle" onchange="onQcToggle(this.checked)" style="opacity:0;width:0;height:0;">
-          <span class="qc-slider"></span>
-        </label>
-      </div>
+  <div style="flex:1;">
+    <div style="font-weight:600;font-size:.84rem;color:var(--text-heading);">Enable QC Review for this SE</div>
+    <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">
+      ON — this Service Engineer performs QC. OFF — QC stays with Head of Projects. Can be changed anytime.
+    </div>
+  </div>
+  <label class="qc-switch" style="position:relative;display:inline-block;width:46px;height:25px;flex-shrink:0;">
+    <input type="checkbox" id="qcReviewToggle" onchange="onQcToggle(this.checked)" style="opacity:0;width:0;height:0;">
+    <span class="qc-slider"></span>
+  </label>
+</div>
+
+<div id="qcWarningBanner" style="display:none;margin-top:10px;padding:11px 14px;border-radius:8px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);display:flex;align-items:flex-start;gap:9px;">
+  <i class="bi bi-exclamation-triangle-fill" style="color:#ef4444;font-size:.95rem;flex-shrink:0;margin-top:1px;"></i>
+  <div>
+    <div style="font-weight:600;font-size:.78rem;color:#ef4444;">Head of Projects loses QC approval on this SE's tickets</div>
+    <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;line-height:1.5;">
+      Once enabled, only this Service Engineer can pass or fail QC on their own service requests — HoP will no longer be able to approve or reject them.
+    </div>
+  </div>
+</div>
     </div>
   </div>
 </div>
@@ -624,6 +634,10 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
                 Select the service categories this HoP will dispatch as an SE. Same category list as a standard SE account.
               </div>
               <div id="hopCatGrid" class="skill-tags"></div>
+              <div id="hopSeCatWarning" style="display:none;margin-top:10px;padding:9px 12px;border-radius:7px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.25);font-size:.72rem;color:#ef4444;display:flex;align-items:center;gap:7px;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                At least one category is required to save this dual-role account.
+              </div>
             </div>
           </div>
         </div>
@@ -782,7 +796,7 @@ function onRoleChange(val){
   selectedRole=val||null;
   fdGrants=new Set();
   accountPermissions=new Set();
-  extGrants=new Map();                 // ← add
+  extGrants=new Map();
   const box=document.getElementById('roleDescBox');
   const pill=document.getElementById('rolePillPreview');
   if(!val){
@@ -805,6 +819,27 @@ function onRoleChange(val){
   pill.style.display='flex';
   pill.style.cssText=`display:flex;align-items:center;gap:7px;padding:6px 12px;border-radius:7px;font-size:.78rem;font-weight:600;flex-shrink:0;background:${m.bg};color:${m.color};border:1px solid ${m.color}30;`;
   pill.innerHTML=`<i class="bi ${m.icon}"></i>${m.name}`;
+
+  // ── Default FD's inline "Extend (Admin grant)" checkboxes to CHECKED.
+  if(val === 'FD'){
+    (PERM_SECTIONS || []).forEach(sec=>{
+      (sec.items || []).forEach(item=>{
+        if(item.grant && item.grant['FD']){
+          fdGrants.add(item.key);
+        }
+      });
+    });
+  }
+
+  // ── Default AC's inline "Allow" checkboxes to CHECKED.
+  if(val === 'AC'){
+    const AC_OWN_GRANT_KEYS = new Set(['quotation_desk', 'invoice_panel']);
+    AC_OWN_GRANT_KEYS.forEach(key => accountPermissions.add(key));
+  }
+
+  // Extended Permissions block (cross-role grants) stays unchecked by
+  // default — admin must actively opt in per permission.
+
   renderPermTable(val);
   box.className='role-desc-box show';
   renderDomains();
@@ -1551,6 +1586,14 @@ function renderHopSeSection(){
         <i class="bi ${c.icon}" style="color:${c.color};margin-right:5px;"></i>${c.label}
       </div>`).join('');
   }
+
+  updateHopSeCatWarning();   // ← add
+}
+
+function updateHopSeCatWarning(){
+  const banner = document.getElementById('hopSeCatWarning');
+  if(!banner) return;
+  banner.style.display = (hopSeEnabled && hopSeCats.size === 0) ? 'flex' : 'none';
 }
 
 function onHopSeToggle(checked){
@@ -1564,7 +1607,7 @@ function toggleHopCategory(id){
   id = Number(id);
   if(hopSeCats.has(id)) hopSeCats.delete(id);
   else hopSeCats.add(id);
-  renderHopSeSection();
+  renderHopSeSection();   // already calls updateHopSeCatWarning() internally now
   syncAll();
 }
 
@@ -1577,8 +1620,8 @@ function toggleHopCategory(id){
 function saveUser(){
   const name=document.getElementById('empName').value.trim();
   const email=document.getElementById('empEmail').value.trim();
- const phone = document.getElementById('empPhone').value.trim();
-const countryCode = document.getElementById('empCountryCode').value;
+  const phone = document.getElementById('empPhone').value.trim();
+  const countryCode = document.getElementById('empCountryCode').value;
   const password=document.getElementById('empPassword').value;
   const isEditing = editingUserId !== null;
 
@@ -1587,6 +1630,13 @@ const countryCode = document.getElementById('empCountryCode').value;
   if(!isEditing && (!password || password.length<8)){showToast('error','Password Required','Password must be at least 8 characters.');document.getElementById('empPassword').focus();return;}
   if(isEditing && password && password.length<8){showToast('error','Password Too Short','New password must be at least 8 characters.');document.getElementById('empPassword').focus();return;}
   if(!selectedRole){showToast('error','Role Required','Please select an operational role.');return;}
+
+  if(selectedRole === 'HP' && hopSeEnabled && hopSeCats.size === 0){
+    showToast('error','Category Required','Select at least one service category for this HoP\'s SE dispatch role, or turn off "Also acts as Service Engineer".');
+    document.getElementById('hopSeCardWrap')?.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+
   const m=ROLE_META[selectedRole];
   const btn=document.getElementById('saveBtn');
   btn.disabled=true;

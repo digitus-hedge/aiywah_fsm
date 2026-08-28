@@ -9,7 +9,16 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-  
+  <script>
+(function() {
+  try {
+    var saved = localStorage.getItem('theme') || localStorage.getItem('data-bs-theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
+    }
+  } catch (e) {}
+})();
+</script>
   <style>
 
 /* ── SF PRO DISPLAY ── */

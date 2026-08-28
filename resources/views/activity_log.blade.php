@@ -249,7 +249,7 @@
             </td>
             <td><span class="mod-pill">{{ $log->module ?? '—' }}</span></td>
             <td><span class="sbadge {{ $cls }}"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $act }}</span></td>
-            <td class="muted">{{ $log->subject_id ? '#'.$log->subject_id : '—' }}</td>
+            <td class="mono">{{ $log->record_label ?? '—' }}</td>
             <td><div class="desc-txt">{{ $log->description ?? '—' }}</div></td>
             <td>@if($chg)<span class="chg-count">{{ $chg }} field{{ $chg > 1 ? 's' : '' }}</span>@else<span class="muted">—</span>@endif</td>
             <td>
@@ -343,7 +343,7 @@ function alView(id){
           '<div class="al-meta-item"><div class="al-meta-lbl">When</div><div class="al-meta-val">'+alEsc(d.created_at_human || d.created_at || '—')+'</div></div>'+
           '<div class="al-meta-item"><div class="al-meta-lbl">Module</div><div class="al-meta-val">'+alEsc(d.module||'—')+'</div></div>'+
           '<div class="al-meta-item"><div class="al-meta-lbl">Action</div><div class="al-meta-val"><span class="sbadge '+cls+'">'+alEsc(act||'—')+'</span></div></div>'+
-          '<div class="al-meta-item"><div class="al-meta-lbl">Record</div><div class="al-meta-val">'+alEsc(d.subject_type||'—')+(d.subject_id?' #'+alEsc(d.subject_id):'')+'</div></div>'+
+          '<div class="al-meta-item"><div class="al-meta-lbl">Record</div><div class="al-meta-val">'+alEsc(d.record_label || '—')+'</div></div>'+
           '<div class="al-meta-item"><div class="al-meta-lbl">IP Address</div><div class="al-meta-val">'+alEsc(d.ip_address||'—')+'</div></div>'+
         '</div>'+
         '<p class="al-sec-title">Description</p>'+
