@@ -170,7 +170,8 @@ a{text-decoration:none;}
 .sec-ttl i{color:#9a8053;}
 
 /* ── PANEL ── */
-.panel{background:var(--card-bg);border:1px solid var(--border-color);
+.panel{background:var(--card-bg);border:none;
+  border-radius:16px;box-shadow:var(--shadow);padding:18px 20px;}
   border-radius:14px;box-shadow:0 2px 16px rgba(0,0,0,.06);padding:18px 20px;}
 .p-hdr{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
   margin-bottom:14px;flex-wrap:wrap;}
@@ -183,11 +184,11 @@ a{text-decoration:none;}
 .act-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 @media(max-width:1000px){.act-grid{grid-template-columns:1fr 1fr;}}
 @media(max-width:520px){.act-grid{grid-template-columns:1fr;}}
-.act{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:12px;
-  border:1px solid var(--border-color);background:var(--card-bg);cursor:pointer;
+.act{display:flex;align-items:center;gap:12px;padding:13px 15px;border-radius:16px;
+  border:none;background:var(--card-bg);box-shadow:var(--shadow);cursor:pointer;
   text-align:left;font-family:inherit;width:100%;
   transition:transform .16s,box-shadow .16s;position:relative;overflow:hidden;}
-.act:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.09);}
+.act:hover{transform:translateY(-2px);box-shadow:var(--shadow-hover);}
 .act-rail{position:absolute;left:0;top:0;bottom:0;width:3px;}
 .act-n{font-family:'DM Sans',Georgia,serif;font-size:1.75rem;
   font-weight:700;line-height:1;min-width:30px;text-align:center;}
@@ -197,7 +198,7 @@ a{text-decoration:none;}
 /* ── METRIC GAUGES ── */
 .gauge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 @media(max-width:1000px){.gauge-grid{grid-template-columns:1fr 1fr;}}
-.gauge{background:var(--card-bg);border:1px solid var(--border-color);border-radius:13px;
+.gauge{background:var(--card-bg);border:none;border-radius:16px;box-shadow:var(--shadow);
   padding:14px 12px 12px;display:flex;flex-direction:column;align-items:center;}
 .gauge svg{width:100%;max-width:132px;height:auto;display:block;}
 .g-val{font-family:'DM Sans',Georgia,serif;font-weight:700;
@@ -241,9 +242,9 @@ a{text-decoration:none;}
 .team-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
 @media(max-width:1100px){.team-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:520px){.team-grid{grid-template-columns:1fr;}}
-.tm{background:var(--card-bg);border:1px solid var(--border-color);border-radius:13px;
+.tm{background:var(--card-bg);border:none;border-radius:16px;box-shadow:var(--shadow);
   padding:15px;transition:box-shadow .16s,transform .16s;}
-.tm:hover{box-shadow:0 6px 22px rgba(0,0,0,.08);transform:translateY(-1px);}
+.tm:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px);}
 .tm.offduty{opacity:.6;}
 
 .tm-top{display:flex;align-items:flex-start;gap:11px;margin-bottom:12px;}
@@ -297,10 +298,10 @@ a{text-decoration:none;}
 /* ── QUEUE CARDS (action zones) ── */
 .q2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 @media(max-width:900px){.q2{grid-template-columns:1fr;}}
-.qc-item{background:var(--card-bg);border:1px solid var(--border-color);
-  border-radius:13px;padding:14px 16px 13px;position:relative;overflow:hidden;
-  transition:box-shadow .15s;display:flex;flex-direction:column;}
-.qc-item:hover{box-shadow:0 6px 22px rgba(0,0,0,.09);}
+.qc-item{background:var(--card-bg);border:none;
+  border-radius:16px;box-shadow:var(--shadow);padding:14px 16px 13px;position:relative;overflow:hidden;
+  transition:box-shadow .15s,transform .15s;display:flex;flex-direction:column;}
+.qc-item:hover{box-shadow:var(--shadow-hover);transform:translateY(-1px);}
 .qc-rail{position:absolute;left:0;top:0;bottom:0;width:4px;}
 .qi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 .qi-id{font-size:.95rem;
@@ -393,7 +394,7 @@ a{text-decoration:none;}
 .kb-body{padding:8px;display:flex;flex-direction:column;gap:8px;flex:1;}
 .kb-card{background:var(--card-bg);border:1px solid var(--border-color);
   border-radius:10px;padding:11px 12px;transition:box-shadow .15s,transform .15s;
-  cursor:default;position:relative;}
+  cursor:pointer;position:relative;}
 .kb-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px);}
 .kb-card-top{display:flex;align-items:center;justify-content:space-between;gap:6px;
   margin-bottom:5px;}
@@ -450,45 +451,57 @@ a{text-decoration:none;}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);
   z-index:700;backdrop-filter:blur(3px);}
 .modal-overlay.open{display:flex;align-items:center;justify-content:center;}
-.dispatch-modal{background:var(--card-bg);border-radius:16px;
-  width:460px;max-width:95vw;max-height:90vh;overflow-y:auto;
-  box-shadow:0 20px 60px rgba(0,0,0,.2);}
-.dm-hdr{background:linear-gradient(135deg,#9a8053,#b8975e);padding:18px 22px;
-  border-radius:16px 16px 0 0;display:flex;align-items:center;
-  justify-content:space-between;}
-.dm-title{font-family:'DM Sans',Georgia,serif;font-size:1.1rem;
-  font-weight:700;color:#fff;}
 .dm-close{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
   color:#fff;width:28px;height:28px;border-radius:7px;display:flex;
   align-items:center;justify-content:center;cursor:pointer;font-size:.8rem;}
-.dm-body{padding:18px 22px;}
-.dm-sr-info{background:var(--surface-2);border-radius:9px;padding:11px 13px;margin-bottom:14px;}
-.dm-sr-id{font-family:'DM Sans',Georgia,serif;font-size:.95rem;
-  font-weight:700;color:#9a8053;margin-bottom:3px;}
-.dm-sr-detail{font-size:.76rem;color:var(--text-muted);}
 .dm-sec-label{font-size:.67rem;font-weight:700;text-transform:uppercase;
   letter-spacing:.08em;color:var(--text-light);margin-bottom:8px;}
-.dm-ml-list{display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
-.dm-ml-item{display:flex;align-items:center;gap:10px;padding:10px 12px;
-  border-radius:9px;border:1px solid var(--border-color);cursor:pointer;
-  transition:all .15s;background:var(--card-bg);}
-.dm-ml-item:hover{border-color:#9a8053;background:rgba(154,128,83,.05);}
-.dm-ml-item.selected{border-color:#9a8053;background:rgba(154,128,83,.08);}
-.dm-ml-av{width:32px;height:32px;border-radius:50%;
-  background:linear-gradient(135deg,#9a8053,#b8975e);
-  display:flex;align-items:center;justify-content:center;
-  color:#fff;font-size:.68rem;font-weight:700;flex-shrink:0;}
-.dm-ml-av.busy{background:linear-gradient(135deg,#64748b,#94a3b8);}
-.dm-ml-name{font-size:.82rem;font-weight:600;color:var(--text-heading);flex:1;}
-.dm-ml-domain{font-size:.68rem;color:var(--text-muted);}
-.dm-ml-load{font-size:.7rem;font-weight:600;}
-.btn-confirm{width:100%;padding:11px;border-radius:10px;
-  background:linear-gradient(135deg,#9a8053,#b8975e);color:#fff;
-  border:none;font-size:.84rem;font-weight:700;cursor:pointer;
-  font-family:'DM Sans',sans-serif;transition:opacity .15s;}
-.btn-confirm:hover{opacity:.88;}
 .reject-modal{background:var(--card-bg);border-radius:16px;
   width:440px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+
+  /* ── SLIDE-IN DETAIL PANEL (matches Front Desk dashboard) ── */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);
+  z-index:2000;backdrop-filter:blur(3px);}
+.panel-overlay.open{display:block;}
+.detail-panel{position:fixed;top:0;right:0;width:480px;max-width:96vw;
+  height:100vh;height:100dvh;background:var(--card-bg);z-index:2010;
+  box-shadow:-4px 0 40px rgba(0,0,0,.15);transform:translateX(105%);
+  transition:transform .32s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column;overflow:hidden;}
+.detail-panel.open{transform:translateX(0);}
+.dp-hdr{padding:18px 22px 16px;border-bottom:1px solid var(--border-color);
+  flex-shrink:0;background:linear-gradient(135deg,#9a8053,#b8975e);}
+.dp-hdr-top{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;margin-bottom:10px;}
+.dp-sr-id{font-size:1.3rem;font-weight:700;color:#fff;line-height:1;font-family:'DM Sans',Georgia,serif;}
+.dp-close{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);
+  color:#fff;width:30px;height:30px;border-radius:7px;display:flex;
+  align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;flex-shrink:0;}
+.dp-close:hover{background:rgba(255,255,255,.35);}
+.dp-chips{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.dp-chip{font-size:.72rem;font-weight:600;padding:3px 10px;border-radius:20px;
+  background:rgba(255,255,255,.18);color:#fff;border:1px solid rgba(255,255,255,.25);
+  display:inline-flex;align-items:center;gap:4px;}
+.dp-body{flex:1;overflow-y:auto;}
+.dp-body::-webkit-scrollbar{width:4px;}
+.dp-body::-webkit-scrollbar-thumb{background:var(--border-color);border-radius:2px;}
+.dp-sec{padding:16px 22px;border-bottom:1px solid var(--border-color);}
+.dp-sec:last-child{border-bottom:none;}
+.dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.dp-cell{background:var(--surface-2);border:1px solid var(--border-color);
+  border-radius:8px;padding:9px 11px;}
+.dp-cell-lbl{font-size:.66rem;color:var(--text-muted);font-weight:500;margin-bottom:3px;}
+.dp-cell-val{font-size:.8rem;font-weight:600;color:var(--text-heading);}
+.pr{padding:12px 14px;border-radius:10px;border:1px solid var(--border-color);
+  margin-bottom:9px;cursor:pointer;transition:all .15s;background:var(--surface-2);}
+.pr:last-child{margin-bottom:0;}
+.pr:hover{border-color:#9a8053;background:rgba(154,128,83,.05);}
+.pr-top{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:5px;gap:8px;}
+.pr-id{font-size:.8rem;font-weight:700;color:#9a8053;font-family:'DM Sans',Georgia,serif;}
+.pr-meta{font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.pr-meta i{color:#9a8053;font-size:.7rem;}
+
 .rm-hdr{background:linear-gradient(135deg,#dc2626,#ef4444);padding:16px 20px;
   border-radius:16px 16px 0 0;display:flex;align-items:center;justify-content:space-between;}
 .rm-title{font-family:'DM Sans',Georgia,serif;font-size:1rem;font-weight:700;color:#fff;}
@@ -900,24 +913,6 @@ a{text-decoration:none;}
 
 </main>
 
-<!-- ══ DISPATCH MODAL ══ -->
-<div class="modal-overlay" id="dispatchModal">
-  <div class="dispatch-modal">
-    <div class="dm-hdr">
-      <div class="dm-title cg">Assign Maintenance Lead</div>
-      <button class="dm-close" onclick="closeDispatchModal()"><i class="bi bi-x-lg"></i></button>
-    </div>
-    <div class="dm-body">
-      <div class="dm-sr-info" id="dmSrInfo"></div>
-      <div class="dm-sec-label">Select ML — filtered to your categories</div>
-      <div class="dm-ml-list" id="dmMlList"></div>
-      <button class="btn-confirm" onclick="confirmDispatch()">
-        <i class="bi bi-send"></i>&nbsp;&nbsp;Confirm Dispatch
-      </button>
-    </div>
-  </div>
-</div>
-
 <!-- ══ REJECT MODAL ══ -->
 <div class="modal-overlay" id="rejectModal">
   <div class="reject-modal">
@@ -935,7 +930,20 @@ a{text-decoration:none;}
     </div>
   </div>
 </div>
-
+<!-- ══ SR DETAIL PANEL (slide-in, matches Front Desk dashboard) ══ -->
+<div class="panel-overlay" id="srPanelOverlay"></div>
+<aside class="detail-panel" id="srDetailPanel" role="dialog" aria-modal="true" aria-labelledby="svTitle">
+  <div class="dp-hdr">
+    <div class="dp-hdr-top">
+      <div>
+        <div class="dp-sr-id" id="svTitle"></div>
+        <div class="dp-chips" id="svChips" style="margin-top:8px;"></div>
+      </div>
+      <button type="button" class="dp-close" onclick="closeSrView()" aria-label="Close panel"><i class="bi bi-x-lg"></i></button>
+    </div>
+  </div>
+  <div class="dp-body" id="svBody"></div>
+</aside>
 <div id="tw"></div>
 @endsection
 
@@ -952,18 +960,8 @@ var CLIENT_SPREAD = @json($clientSpread);
 
 var FIELD_SRS = @json($field);
 
-var MLS = [
-  {init:'MK',name:'Mohammed Khalil',domain:'Electrical', status:'onsite',    jobs:2, available:false, score:4.2, completed:34, pending:2, rework:3},
-  {init:'AR',name:'Ahmed Rashid',   domain:'Electrical', status:'available', jobs:0, available:true,  score:4.7, completed:41, pending:0, rework:1},
-  {init:'KS',name:'Khalid Salem',   domain:'Mechanical', status:'available', jobs:1, available:true,  score:4.5, completed:29, pending:1, rework:2},
-  {init:'FM',name:'Faisal Mohammed',domain:'Electrical', status:'onsite',    jobs:1, available:false, score:3.8, completed:26, pending:1, rework:4},
-  {init:'NH',name:'Nasser Hassan',  domain:'Mechanical', status:'enroute',   jobs:1, available:false, score:4.4, completed:31, pending:1, rework:1},
-  {init:'SM',name:'Saeed Mansoor',  domain:'Electrical', status:'offduty',   jobs:0, available:false, score:4.1, completed:18, pending:0, rework:2},
-];
-
 var QC_SRS = @json($qcItems);
 
-var COMPLETED_THIS_MONTH = 28, COMPLETED_LAST_MONTH = 22;
 var METRICS = @json($metrics);
 
 var PCOL={'High':'#dc2626','Medium':'#d97706','Low':'#15803d'};
@@ -971,27 +969,27 @@ var PBG ={'High':'rgba(220,38,38,.1)','Medium':'rgba(217,119,6,.1)','Low':'rgba(
 var C = {gold:'#9a8053',gold2:'#b8975e',red:'#dc2626',amber:'#d97706',green:'#15803d',
          blue:'#2563eb',cyan:'#0891b2',orange:'#ea580c',purple:'#7c3aed'};
 
-var currentDispatchSR = null, selectedML = null, currentRejectId = '';
+var currentRejectId = '';
 
 var TEAM = @json($team);
 /* helpers */
 function el(id){return document.getElementById(id);}
 function fieldAll(){return FIELD_SRS.assigned.concat(FIELD_SRS.eta,FIELD_SRS.inprog,FIELD_SRS.review);}
 function activeInField(){return FIELD_SRS.assigned.length+FIELD_SRS.eta.length+FIELD_SRS.inprog.length;}
-function slaAtRisk(){return fieldAll().filter(function(s){return s.sla==='risk';}).length;}
+function slaAtRisk(){return fieldAll().filter(function(s){return s.sla==='risk'||s.sla==='breached';}).length;}
 
 /* ══════════════════════════════════════════
    ACTION TILES
 ══════════════════════════════════════════ */
 function renderActions(){
   var tiles = [
-    {n:REWORK_SRS.length, t:'In rework', s:'QC rejected — needs re-dispatch', c:C.red,   ico:'bi-arrow-counterclockwise', go:'reworkSection'},
-    {n:PENDING_SRS.length,t:'Pending your dispatch', s:'No ML assigned yet',  c:C.gold,  ico:'bi-send',                   go:'pendingSection'},
-    {n:1,                 t:'At SLA breach risk today', s:'Escalate before the window closes', c:C.amber, ico:'bi-speedometer2', go:'fieldSection'},
-    {n:QC_SRS.length,     t:'Awaiting your QC review', s:'Proof submitted, decision pending', c:C.purple,ico:'bi-patch-check', go:'qcSection'},
+    {n:REWORK_SRS.length, t:'In rework', s:'QC rejected — needs re-dispatch', c:C.red,   ico:'bi-arrow-counterclockwise', key:'rework'},
+    {n:PENDING_SRS.length,t:'Pending your dispatch', s:'No ML assigned yet',  c:C.gold,  ico:'bi-send',                   key:'pending'},
+    {n:slaAtRisk(),        t:'At SLA breach risk today', s:'Escalate before the window closes', c:C.amber, ico:'bi-speedometer2', key:'slarisk'},
+    {n:QC_SRS.length,     t:'Awaiting your QC review', s:'Proof submitted, decision pending', c:C.purple,ico:'bi-patch-check', key:'qc'},
   ];
   el('actGrid').innerHTML = tiles.map(function(t){
-    return '<button class="act" onclick="jumpTo(\''+t.go+'\')">'+
+    return '<button class="act" onclick="openListModal(\''+t.key+'\')">'+
       '<span class="act-rail" style="background:'+t.c+';"></span>'+
       '<span class="act-n" style="color:'+t.c+';">'+t.n+'</span>'+
       '<span><span class="act-t">'+t.t+'</span>'+
@@ -1035,10 +1033,10 @@ function renderGauges(){
 ══════════════════════════════════════════ */
 function renderDonut(){
   var segs = [
-    {name:'Pending dispatch', n:PENDING_SRS.length, c:C.gold,   go:'pendingSection'},
-    {name:'In rework',        n:REWORK_SRS.length,  c:C.red,    go:'reworkSection'},
-    {name:'Active in field',  n:ACTIVE_FIELD,       c:C.blue,   go:'fieldSection'},
-    {name:'Awaiting QC',      n:QC_SRS.length,      c:C.purple, go:'qcSection'},
+    {name:'Pending dispatch', n:PENDING_SRS.length, c:C.gold,   key:'pending'},
+    {name:'In rework',        n:REWORK_SRS.length,  c:C.red,    key:'rework'},
+    {name:'Active in field',  n:ACTIVE_FIELD,       c:C.blue,   key:'field'},
+    {name:'Awaiting QC',      n:QC_SRS.length,      c:C.purple, key:'qc'},
   ];
   var total = segs.reduce(function(a,s){return a+s.n;},0);
 
@@ -1077,8 +1075,8 @@ function renderDonut(){
         'fill="var(--text-muted)">OPEN SRs</text>'+
     '</svg>';
 
-  el('donutLegend').innerHTML = segs.map(function(s){
-    return '<div class="dl-row" style="cursor:pointer;" onclick="jumpTo(\''+s.go+'\')">'+
+    el('donutLegend').innerHTML = segs.map(function(s){
+    return '<div class="dl-row" style="cursor:pointer;" onclick="openListModal(\''+s.key+'\')">'+
       '<span class="dl-dot" style="background:'+s.c+';"></span>'+
       '<span class="dl-name">'+s.name+'</span>'+
       '<span class="dl-n">'+s.n+'</span>'+
@@ -1255,21 +1253,25 @@ function renderTeam(){
         '</div>'+
       '</div>'+
 
-      (ml.available
-        ? '<button class="tm-btn" style="display:none;" data-ml="'+ml.id+'"><i class="bi bi-send" style="margin-right:5px;"></i>Select for dispatch</button>'
-        : '<button class="tm-btn" style="display:none;"  disabled>Unavailable</button>')+
     '</div>';
   }).join('');
 
   el('teamNote').textContent = TEAM.available+' of '+TEAM.total+' free · '+
     TEAM.jobs+' active jobs · '+TEAM.completed+' completed';
 
-  document.querySelectorAll('.tm-btn:not(:disabled)').forEach(function(b){
-    b.addEventListener('click', function(){
-      toast('info','Pick an SR first','Open a pending SR, then choose this ML in the dispatch panel.');
+  document.querySelectorAll('#teamGrid .tm').forEach(function(card, i){
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function(ev){
+      if (ev.target.closest('.tm-btn')) return;
+      var ml = rows[i];
+      openSrView(ml.name, [
+        ['Domain', ml.domain||'—'], ['Status', ml.status], ['Active jobs', ml.jobs],
+        ['Completed', ml.completed], ['Pending', ml.pending], ['Rework', ml.rework],
+        ['Review score', ml.score !== null ? ml.score.toFixed(1)+' / 5' : '—'],
+      ]);
     });
   });
-}
+  }
 /* ══════════════════════════════════════════
    DISPATCH QUEUE CARDS
 ══════════════════════════════════════════ */
@@ -1296,17 +1298,19 @@ function renderPending(){
         '<span class="age-t"><i class="bi bi-hourglass-split" style="color:'+c+';"></i> Logged '+sr.logged+'</span>'+
         '<span class="age-tr"><span class="age-fl" style="width:'+pct+'%;background:'+c+';display:block;"></span></span>'+
         '<span class="age-t">'+sr.hrs+'h</span>'+
-      '</div>'+
-      '<div class="qi-foot">'+
-        '</div>'+
+            '<div class="qi-foot" style="justify-content:space-between;">'+
+        '<span class="age-t" style="color:'+c+';font-weight:600;">Tap for details <i class="bi bi-arrow-right"></i></span>'+
       '</div>'+
     '</article>';
   }).join('');
-  document.querySelectorAll('#pendingList .btn-dispatch').forEach(function(b){
-    b.addEventListener('click',function(){openDispatch(this.dataset.srid);});
+  document.querySelectorAll('#pendingList .qc-item').forEach(function(card, i){
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function(){
+      var it = PENDING_SRS[i];
+      openSrView(it.id, rowsForItem('pending', it));
+    });
   });
 }
-
 /* ══════════════════════════════════════════
    REWORK CARDS
 ══════════════════════════════════════════ */
@@ -1339,20 +1343,15 @@ function renderRework(){
       '</div>'+
       '<div class="qi-foot">'+
         '<span class="age-t">'+sr.cat+' · re-dispatch needed</span>'+
-       
-        // '<div class="qi-actions">'+
-        //   '<button class="btn-red" data-srid="'+sr.id+'" data-type="reassign">'+
-        //     '<i class="bi bi-person-check"></i> Same ML</button>'+
-        //   '<button class="btn-dispatch" data-srid="'+sr.id+'" data-type="reallocate">'+
-        //     '<i class="bi bi-person-arrows"></i>Reallocate</button>'+
-        // '</div>'+
-
+        '<span class="age-t" style="color:'+C.red+';font-weight:600;">Tap for details <i class="bi bi-arrow-right"></i></span>'+
       '</div>'+
     '</article>';
   }).join('');
-  document.querySelectorAll('#reworkList .btn-dispatch, #reworkList .btn-red').forEach(function(b){
-    b.addEventListener('click',function(){
-      openDispatch(this.dataset.srid, this.dataset.type==='reassign');
+  document.querySelectorAll('#reworkList .qc-item').forEach(function(card, i){
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', function(){
+      var it = REWORK_SRS[i];
+      openSrView(it.id, rowsForItem('rework', it));
     });
   });
 }
@@ -1457,10 +1456,10 @@ function renderField(){
       '<div class="kb-body">'+
         (items.length===0
           ? '<div class="kb-empty">No SRs</div>'
-          : items.map(function(sr){
+            : items.map(function(sr,i){
               var cls = sr.sla==='ok'?'sla-ok':sr.sla==='risk'?'sla-risk':'sla-br';
               var lab = sr.sla==='ok'?'On track':sr.sla==='risk'?'At risk':'Breached';
-              return '<div class="kb-card">'+
+              return '<div class="kb-card" data-col="'+col.key+'" data-idx="'+i+'">'+
                 '<div class="kb-card-top">'+
                   '<span class="kb-id">'+sr.id+'</span>'+
                   '<span class="kb-sla '+cls+'">'+lab+'</span>'+
@@ -1480,56 +1479,6 @@ function renderField(){
 }
 
 /* ══════════════════════════════════════════
-   DISPATCH MODAL
-══════════════════════════════════════════ */
-function openDispatch(srId, reassign){
-  var sr = PENDING_SRS.find(function(s){return s.id===srId;}) ||
-           REWORK_SRS.find(function(s){return s.id===srId;});
-  if(!sr) return;
-  currentDispatchSR = sr; selectedML = null;
-
-  el('dmSrInfo').innerHTML =
-    '<div class="dm-sr-id">'+sr.id+(sr.attempt?' &nbsp;<span class="pill" style="background:rgba(220,38,38,.1);color:#dc2626;font-size:.62rem;">Rework attempt '+sr.attempt+'</span>':'')+'</div>'+
-    '<div class="dm-sr-detail">'+sr.client+' &nbsp;·&nbsp; '+sr.site+'</div>';
-
-  var availMls = reassign
-    ? MLS.filter(function(m){return m.init === (sr.mlInit||'');})
-    : MLS.filter(function(m){return m.status !== 'offduty';});
-
-  el('dmMlList').innerHTML = availMls.map(function(ml){
-    return '<div class="dm-ml-item" data-init="'+ml.init+'">'+
-      '<div class="dm-ml-av'+(ml.status==='offduty'||ml.status==='onsite'?' busy':'')+'">'+ml.init+'</div>'+
-      '<div style="flex:1;">'+
-        '<div class="dm-ml-name">'+ml.name+'</div>'+
-        '<div class="dm-ml-domain">'+ml.domain+'</div>'+
-      '</div>'+
-      '<div class="dm-ml-load" style="color:'+(ml.available?'#15803d':'#d97706')+';">'+
-        (ml.available?'✓ Available':'⚡ '+ml.jobs+' active')+
-      '</div>'+
-    '</div>';
-  }).join('');
-
-  document.querySelectorAll('.dm-ml-item').forEach(function(e){
-    e.addEventListener('click',function(){
-      document.querySelectorAll('.dm-ml-item').forEach(function(x){x.classList.remove('selected');});
-      this.classList.add('selected');
-      selectedML = this.dataset.init;
-    });
-  });
-  el('dispatchModal').classList.add('open');
-}
-function closeDispatchModal(){
-  el('dispatchModal').classList.remove('open');
-  currentDispatchSR=null; selectedML=null;
-}
-function confirmDispatch(){
-  if(!selectedML){toast('warn','Pick a maintenance lead','Select an ML before confirming.');return;}
-  var ml = MLS.find(function(m){return m.init===selectedML;});
-  toast('ok','SR dispatched',currentDispatchSR.id+' assigned to '+ml.name+'. Status → Assigned.');
-  closeDispatchModal();
-}
-
-/* ══════════════════════════════════════════
    REJECT MODAL
 ══════════════════════════════════════════ */
 function openRejectModal(srId){
@@ -1545,6 +1494,99 @@ function confirmReject(){
   toast('err','QC rejected',currentRejectId+' returned to field — ML notified.');
   closeRejectModal();
 }
+
+/* ══════════════════════════════════════════
+   ACTION-TILE / DONUT → MODAL LISTS
+══════════════════════════════════════════ */
+function esc(value){
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+  });
+}
+
+function panelLists(){
+  return {
+    pending: {title:'Pending Your Dispatch', items:PENDING_SRS, kind:'pending'},
+    rework:  {title:'In Rework',             items:REWORK_SRS,  kind:'rework'},
+    field:   {title:'Active In The Field',   items:fieldAll(),  kind:'field'},
+    slarisk: {title:'At SLA Breach Risk',    items:fieldAll().filter(function(s){return s.sla==='risk'||s.sla==='breached';}), kind:'field'},
+    qc:      {title:'Awaiting Your QC Review', items:QC_SRS,    kind:'qc'},
+  };
+}
+
+function rowMeta(kind, it){
+  if (kind === 'field')  return [it.client, it.site].filter(Boolean).join(' · ') + ' — ' + it.time;
+  if (kind === 'qc')     return [it.client, it.site].filter(Boolean).join(' · ') + ' — ' + it.ml;
+  return [it.client, it.site].filter(Boolean).join(' · ') + ' — ' + (it.priority || '');
+}
+
+function rowsForItem(kind, it){
+  if (kind === 'field') return [
+    ['Client', it.client], ['Site', it.site], ['Maintenance lead', it.ml],
+    ['Status', it.time], ['SLA', it.sla==='ok'?'On track':it.sla==='risk'?'At risk':'Breached'],
+  ];
+  if (kind === 'qc') return [
+    ['Client', it.client], ['Site', it.site], ['Maintenance lead', it.ml],
+    ['Category', it.cat], ['Priority', it.priority], ['Scope', it.scope], ['Punched out', it.punchout],
+  ];
+  if (kind === 'rework') return [
+    ['Client', it.client], ['Site', it.site], ['Category', it.cat],
+    ['Priority', it.priority], ['Scope', it.scope],
+    ['Was with', it.originalML], ['Rejected', it.elapsed], ['Reason', it.reason],
+  ];
+  return [
+    ['Client', it.client], ['Site', it.site], ['Category', it.cat],
+    ['Priority', it.priority], ['Scope', it.scope],
+    ['Logged', it.logged || '—'],
+  ];
+}
+
+function openSrView(title, rows, badge){
+  el('svTitle').textContent = title;
+  el('svChips').innerHTML = badge ? '<span class="dp-chip">'+esc(badge)+'</span>' : '';
+  el('svBody').innerHTML = '<div class="dp-sec"><div class="dp-grid">' + rows
+    .filter(function(r){ return r[1] !== undefined && r[1] !== null && r[1] !== ''; })
+    .map(function(r){
+      return '<div class="dp-cell"><div class="dp-cell-lbl">'+esc(r[0])+'</div><div class="dp-cell-val">'+esc(r[1])+'</div></div>';
+    }).join('') + '</div></div>';
+  el('srPanelOverlay').classList.add('open');
+  el('srDetailPanel').classList.add('open');
+}
+
+function closeSrView(){
+  el('srPanelOverlay').classList.remove('open');
+  el('srDetailPanel').classList.remove('open');
+}
+
+function openListModal(key){
+  var d = panelLists()[key];
+  if (!d) return;
+
+  el('svTitle').textContent = d.title;
+  el('svChips').innerHTML = '<span class="dp-chip">'+d.items.length+' '+(d.items.length===1?'record':'records')+'</span>';
+  el('svBody').innerHTML = '<div class="dp-sec">' + (d.items.length
+    ? d.items.map(function(it, i){
+        return '<div class="pr" data-key="'+key+'" data-idx="'+i+'">'+
+          '<div class="pr-top"><span class="pr-id">'+esc(it.id)+'</span></div>'+
+          '<div class="pr-meta"><i class="bi bi-geo-alt"></i>'+esc(rowMeta(d.kind, it))+'</div>'+
+        '</div>';
+      }).join('')
+    : '<p class="kb-empty">Nothing here right now</p>') + '</div>';
+
+  el('srPanelOverlay').classList.add('open');
+  el('srDetailPanel').classList.add('open');
+}
+
+el('svBody').addEventListener('click', function(e){
+  var row = e.target.closest('.pr');
+  if (!row) return;
+
+  var d  = panelLists()[row.dataset.key];
+  var it = d.items[parseInt(row.dataset.idx, 10)];
+  if (!it) return;
+
+  openSrView(it.id, rowsForItem(d.kind, it));
+});
 
 /* ══════════════════════════════════════════
    UTILS
@@ -1597,10 +1639,24 @@ function toast(tp,ti,bo){
 document.querySelectorAll('.modal-overlay').forEach(function(m){
   m.addEventListener('click',function(ev){if(ev.target===this)this.classList.remove('open');});
 });
+el('srPanelOverlay').addEventListener('click', closeSrView);
 document.addEventListener('keydown',function(ev){
-  if(ev.key==='Escape'){document.querySelectorAll('.modal-overlay.open').forEach(function(m){m.classList.remove('open');});}
+  if(ev.key==='Escape'){
+    document.querySelectorAll('.modal-overlay.open').forEach(function(m){m.classList.remove('open');});
+    closeSrView();
+  }
 });
 
+el('fieldKanban').addEventListener('click', function(e){
+  var card = e.target.closest('.kb-card');
+  if(!card) return;
+  var sr = (FIELD_SRS[card.dataset.col]||[])[parseInt(card.dataset.idx,10)];
+  if(!sr) return;
+  openSrView(sr.id, [
+    ['Client', sr.client], ['Site', sr.site], ['Maintenance lead', sr.ml],
+    ['Status', sr.time], ['SLA', sr.sla==='ok'?'On track':sr.sla==='risk'?'At risk':'Breached'],
+  ]);
+});
 /* ══════════════════════════════════════════
    INIT
 ══════════════════════════════════════════ */

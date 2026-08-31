@@ -279,8 +279,8 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     <div class="ud-actions">
       <a href="{{ route('user_directory') }}" class="ud-btn ud-btn-ghost"><i class="bi bi-x-circle"></i>Reset</a>
       <button type="submit" class="ud-btn ud-btn-gold"><i class="bi bi-funnel"></i>Apply</button>
-      @if (auth()->user() && auth()->user()->hasAnyAccess('user_provisioning') && auth()->user()?->role?->code !== 'SE' && auth()->user()?->role?->code !== 'HP')
-          <a href="{{ route('user_provisioning') }}" class="ud-btn ud-btn-gold"><i class="bi bi-person-plus"></i>New User</a>
+      @if ($canProvisionUsers)
+        <a href="{{ route('user_provisioning') }}" class="ud-btn ud-btn-gold"><i class="bi bi-person-plus"></i>New User</a>
       @endif
       </div>
   </form>
@@ -303,11 +303,11 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     <th>Role</th>
     @if($showCategory)<th>Category</th>@endif
     <th>Domain Expertise</th>
-    <th>Created</th>
-    @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
-      <th style="width:80px;">Actions</th>
-      <th style="width:80px;">Status</th>
-    @endif
+   <th>Created</th>
+@if($canProvisionUsers)
+  <th style="width:80px;">Actions</th>
+  <th style="width:80px;">Status</th>
+@endif
   </tr>
 </thead>
         <tbody>
@@ -396,33 +396,33 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
               </td>
               
               <td data-label="Created" class="ud-muted">{{ optional($user->created_at)->format('d M Y') ?? '—' }}</td>
-             
-              @if(!in_array(auth()->user()?->role?->code, ['SE', 'HP']))
-                <td data-label="Actions">
-                  <div class="ud-row-actions">
-                    <a href="{{ route('user_provisioning') }}?edit={{ $user->id }}" class="ud-xs ud-xs-edit">
-                      <i class="bi bi-pencil"></i>Edit
-                    </a>
-                  </div>
-                </td>
 
-                <td data-label="Status">
-                  <div class="ud-toggle-wrap">
-                    <button type="button"
-                            class="ud-toggle {{ $status === 'active' ? 'on' : 'off' }}"
-                            id="toggle-{{ $user->id }}"
-                            onclick="udConfirmToggle('{{ route('user_directory.toggle', $user->id) }}', '{{ $status }}', '{{ addslashes($user->name) }}', this)">
-                      <span class="ud-toggle-thumb"></span>
-                    </button>
-                  </div>
-                </td>
-              @endif
+            @if($canProvisionUsers)
+              <td data-label="Actions">
+                <div class="ud-row-actions">
+                  <a href="{{ route('user_provisioning') }}?edit={{ $user->id }}" class="ud-xs ud-xs-edit">
+                    <i class="bi bi-pencil"></i>Edit
+                  </a>
+                </div>
+              </td>
+
+              <td data-label="Status">
+                <div class="ud-toggle-wrap">
+                  <button type="button"
+                          class="ud-toggle {{ $status === 'active' ? 'on' : 'off' }}"
+                          id="toggle-{{ $user->id }}"
+                          onclick="udConfirmToggle('{{ route('user_directory.toggle', $user->id) }}', '{{ $status }}', '{{ addslashes($user->name) }}', this)">
+                    <span class="ud-toggle-thumb"></span>
+                  </button>
+                </div>
+              </td>
+            @endif
 
 
             </tr>
           @empty
             <tr>
-              <td colspan="6">
+              <td colspan="{{ $showCategory ? ($canProvisionUsers ? 6 : 4) : ($canProvisionUsers ? 5 : 3) }}">
                 <div class="ud-empty"><i class="bi bi-inbox"></i>No users match your filter.</div>
               </td>
             </tr>
@@ -486,9 +486,8 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
       </div>
     </div>
   </div>
-@endsection
 
-{{-- Confirm Toggle Modal --}}
+  {{-- Confirm Toggle Modal --}}
 <div class="ud-modal-overlay" id="udConfirmOverlay">
   <div class="ud-modal" style="max-width:380px;">
     <div class="ud-modal-hdr">
@@ -506,6 +505,9 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     </div>
   </div>
 </div>
+
+
+@endsection
 
 @push('scripts')
 <script>
