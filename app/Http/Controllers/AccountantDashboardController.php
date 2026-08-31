@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Punch;
+use App\Models\Punchitem;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,6 +17,9 @@ use Illuminate\Support\Str;
 class AccountantDashboardController extends Controller
 {
     private const CURRENCY = 'AED';
+
+    /** How many rows each card's table shows, most-recent first. */
+    private const RECENT_LIMIT = 3;
 
     public function index(Request $request)
     {
@@ -58,6 +61,8 @@ class AccountantDashboardController extends Controller
 
     /* =====================================================================
      | Invoice Panel — every SR invoiced within the selected window.
+     | Table shows only the latest RECENT_LIMIT rows; count/total still
+     | reflect the full period.
      ===================================================================== */
     private function invoicePanel(Carbon $start, Carbon $end): array
     {
@@ -70,7 +75,7 @@ class AccountantDashboardController extends Controller
             ->orderByDesc('service_requests.invoice_submitted_at')
             ->get();
 
-        $items = $rows->map(fn ($sr) => [
+        $items = $rows->take(self::RECENT_LIMIT)->map(fn ($sr) => [
             'ref'      => $this->srRef($sr),
             'client'   => $sr->client->company_name ?? '—',
             'category' => $sr->category_name ?: '—',
@@ -87,37 +92,38 @@ class AccountantDashboardController extends Controller
     }
 
     /* =====================================================================
-     | Expense Ledger — every field punch with spend in the selected window.
+     | Expense Ledger — mirrors ServiceRequestController::expenseLedger():
+     | line items (Punchitem), tech via serviceRequest.assignedUser, amount
+     | is line_total falling back to qty * rate. Windowed here to the
+     | dashboard's selected period via the parent punch's punch_out_at.
+     | Table shows only the latest RECENT_LIMIT rows; count/total still
+     | reflect the full period.
      ===================================================================== */
     private function expenseLedger(Carbon $start, Carbon $end): array
     {
-        $punches = Punch::query()
-            ->whereBetween('punch_out_at', [$start, $end])
-            ->with([
-                'items',
-                'user:id,name',
-                'serviceRequest:id,client_id,created_at',
-                'serviceRequest.client:id,company_name',
-            ])
-            ->orderByDesc('punch_out_at')
+        $lineItems = Punchitem::with(['punch.serviceRequest.assignedUser', 'punch.serviceRequest.client'])
+            ->whereHas('punch', fn ($q) => $q->whereBetween('punch_out_at', [$start, $end]))
+            ->latest('id')
             ->get();
 
-        $items = $punches->map(function ($punch) {
-            $sr = $punch->serviceRequest;
+        $amount = fn ($it) => (float) ($it->line_total ?? ($it->qty * $it->rate));
+
+        $items = $lineItems->take(self::RECENT_LIMIT)->map(function ($it) use ($amount) {
+            $sr = $it->punch?->serviceRequest;
 
             return [
                 'ref'    => $sr ? $this->srRef($sr) : '—',
                 'client' => $sr?->client?->company_name ?? '—',
-                'tech'   => $punch->user?->name ?? '—',
-                'amount' => self::CURRENCY . ' ' . number_format($this->punchExpense($punch), 2),
-                'date'   => $punch->punch_out_at?->format('d M Y') ?: '—',
+                'tech'   => optional($sr?->assignedUser)->name ?? 'Unassigned',
+                'amount' => self::CURRENCY . ' ' . number_format($amount($it), 2),
+                'date'   => $it->created_at?->format('d M Y') ?: '—',
             ];
         })->values()->all();
 
         return [
             'items' => $items,
-            'count' => $punches->count(),
-            'total' => $punches->sum(fn ($p) => $this->punchExpense($p)),
+            'count' => $lineItems->count(),
+            'total' => $lineItems->sum($amount),
         ];
     }
 
@@ -159,7 +165,8 @@ class AccountantDashboardController extends Controller
     /* =====================================================================
      | Quotation Desk — the actual SRs behind the "Pending to Quote" slice
      | of the breakdown pie above. Same statuses, same created_at window,
-     | just the row-level detail instead of a count.
+     | just the row-level detail instead of a count. Table shows only the
+     | latest RECENT_LIMIT rows; count still reflects the full period.
      ===================================================================== */
     private function quotationDesk(Carbon $start, Carbon $end): array
     {
@@ -172,7 +179,7 @@ class AccountantDashboardController extends Controller
             ->orderByDesc('service_requests.created_at')
             ->get();
 
-        $items = $rows->map(fn ($sr) => [
+        $items = $rows->take(self::RECENT_LIMIT)->map(fn ($sr) => [
             'ref'      => $this->srRef($sr),
             'client'   => $sr->client->company_name ?? '—',
             'category' => $sr->category_name ?: '—',
@@ -201,22 +208,16 @@ class AccountantDashboardController extends Controller
         return $end && $end->copy()->endOfDay()->isFuture();
     }
 
-    /** Field spend on one punch: grand total if set, else items plus labour. */
-    private function punchExpense(Punch $punch): float
-    {
-        if ((float) $punch->grand_total > 0) {
-            return (float) $punch->grand_total;
-        }
 
-        $items = collect($punch->items)
-            ->sum(fn ($item) => (float) ($item->line_total ?? ($item->qty * $item->rate)));
-
-        return $items + (float) $punch->labour_charge;
-    }
-
+    /**
+     * Mirrors ServiceRequestController::buildSrRef(). There's no stored
+     * 'code' column — the reference is derived from created_at's year plus
+     * the zero-padded id, so it never changes once created.
+     */
     private function srRef(ServiceRequest $sr): string
     {
-        return $sr->code;
+        return 'SR-' . ($sr->created_at?->year ?? now()->year)
+            . '-' . str_pad((string) $sr->id, 5, '0', STR_PAD_LEFT);
     }
 
     /* =====================================================================

@@ -999,8 +999,8 @@ class DashboardController extends Controller
         $open       = $current->filter(fn($sr) => $this->isOpen($sr));
         $inProgress = $current->where('status', 'In Progress')->count();
 
-        $sla     = $this->slaCompliance($current)  ?? 0;
-        $prevSla = $this->slaCompliance($previous) ?? 0;
+        $sla     = $this->slaCompliance2($current)  ?? 0;
+        $prevSla = $this->slaCompliance2($previous) ?? 0;
 
         $invoiced     = $this->invoicedTotal($filters, $start, $end);
         $prevInvoiced = $this->invoicedTotal($filters, $prevStart, $prevEnd);
@@ -1201,7 +1201,7 @@ class DashboardController extends Controller
                     'lbl' => $status,
                     'n'   => $n,
                     'w'   => round($n / $max * 100, 1),
-                    'c'   => self::STATUS_COLORS[$status] ?? '#64748b',
+                    'c'   => self::STATUS_LEGEND[$group] ?? '#64748b',
                 ];
             }
         }
@@ -1384,15 +1384,14 @@ class DashboardController extends Controller
             ? 'Oldest ' . optional($oldest->updated_at)->diffForHumans()
             : 'Queue clear',
 
-        'sla_compliance'  => $this->slaCompliance($srs),
-
+        'sla_compliance'  => $this->slaCompliance2($srs),
         'first_pass_rate' => $reviewed->isEmpty()
             ? null
             : round($firstPass->count() / $reviewed->count() * 100),
         'first_pass_sub'  => $firstPass->count() . ' of ' . $reviewed->count() . ' reviewed',
 
         'rework_count' => $rework,
-        'rework_sub'   => $reworkOpen . '',
+        'rework_sub'   => $reworkOpen . ' ' . \Illuminate\Support\Str::plural('ticket', $reworkOpen) . ' currently in rework',
 
         'sla_breaches'   => $breached->count(),
         'sla_breach_sub' => $breached->isEmpty()

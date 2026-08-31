@@ -51,6 +51,7 @@ class SEDashboardController extends Controller
         'quote_pending'    => 'pending_quote',
         'awaiting_quote'   => 'pending_quote',
         'forwarded'        => 'pending_quote',
+        'additional'       => 'pending_quote',
 
         'quoted'           => 'quoted',
         'quote_submitted'  => 'quoted',
@@ -71,6 +72,8 @@ class SEDashboardController extends Controller
         'punched_in'       => 'in_progress',
         'on_hold'          => 'in_progress',
         'hold'             => 'in_progress',
+        'rework'           => 'in_progress',
+        'reschedule'       => 'in_progress',
 
         'pending_review'   => 'pending_review',
         'qc_review'        => 'pending_review',
@@ -82,6 +85,7 @@ class SEDashboardController extends Controller
         'invoice_pending'  => 'pending_invoice',
         'awaiting_invoice' => 'pending_invoice',
         'qc_passed'        => 'pending_invoice',
+        'invoice_submitted'=> 'pending_invoice',
 
         'completed'        => 'completed',
         'closed'           => 'completed',
@@ -202,8 +206,8 @@ class SEDashboardController extends Controller
 
             'clients'     => $this->topClients($user->id, $from, $to),
             'clientStats' => [
-                'new_clients' => $this->newClientCount($user->id, $from, $to),
-                'new_sites'   => $this->newSiteCount($from, $to),
+            'new_clients' => $this->newClientCount($user->id, $from, $to),
+            'new_sites'   => $this->newSiteCount($user->id, $from, $to),
             ],
 
 
@@ -428,6 +432,8 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             sr.id,
             sr.priority_level as priority,
             CASE
+                WHEN LOWER(sr.warranty_scope) = 'oow' THEN 'OoW'
+                WHEN sr.warranty_scope IS NOT NULL AND sr.warranty_scope <> '' THEN 'IW'
                 WHEN p.warranty_end_date IS NULL THEN 'OoW'
                 WHEN DATE(p.warranty_end_date) >= ? THEN 'IW'
                 ELSE 'OoW'
@@ -601,7 +607,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->where('assigned_se', $userId)
             ->where('status', 'Rework')
             ->whereBetween('updated_at', [$from, $to])
-            ->with(['client:id,company_name', 'project:id,site_name', 'category:id,category_name', 'assignedUser:id,name'])
+            ->with(['client:id,company_name', 'project:id,site_name,warranty_end_date', 'category:id,category_name', 'assignedUser:id,name'])
             ->orderByDesc('updated_at')
             ->get()
             ->map(fn($sr) => [
@@ -609,10 +615,10 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
                 'client'     => $sr->client?->company_name ?? '—',
                 'site'       => $sr->project?->site_name ?? '—',
                 'priority'   => ucfirst((string) $sr->priority_level),
-                'scope'      => $sr->warranty_scope === 'oow' ? 'OoW' : 'IW',
+                'scope'      => $this->scopeCode($sr),
                 'cat'        => $sr->category?->category_name ?? '—',
                 'originalML' => $sr->assignedUser?->name ?? '—',
-                'mlInit'     => $sr->assignedUser?->initials ?? '—',
+                'mlInit'     => $sr->assignedUser ? $this->initials($sr->assignedUser->name) : '—',
                 'attempt'    => 1,
                 'elapsed'    => $sr->updated_at?->diffForHumans(),
                 'reason'     => $sr->rework_notes ?: 'No reason recorded.',
@@ -628,7 +634,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->where('assigned_se', $userId)
             ->where('status', 'Approved')
             ->whereBetween('updated_at', [$from, $to])
-            ->with(['client:id,company_name', 'project:id,site_name', 'category:id,category_name'])
+            ->with(['client:id,company_name', 'project:id,site_name,warranty_end_date', 'category:id,category_name'])
             ->orderBy('created_at')
             ->get()
             ->map(fn($sr) => [
@@ -636,7 +642,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
                 'client'   => $sr->client?->company_name ?? '—',
                 'site'     => $sr->project?->site_name ?? '—',
                 'priority' => $this->priority($sr->priority_level),
-                'scope'    => $this->scopeCode($sr->warranty_scope),
+                'scope'    => $this->scopeCode($sr),
                 'cat'      => $sr->category?->category_name ?? '—',
                 'logged'   => $this->shortAge($sr->created_at) . ' ago',
                 'hrs'      => (int) abs($sr->created_at?->diffInHours(now()) ?? 0),
@@ -654,7 +660,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->whereBetween('updated_at', [$from, $to])
             ->with([
                 'client:id,company_name',
-                'project:id,site_name',
+                'project:id,site_name,warranty_end_date',
                 'category:id,category_name',
                 'assignedUser:id,name',
                 'punches',
@@ -669,11 +675,11 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
                     'client'   => $sr->client?->company_name ?? '—',
                     'site'     => $sr->project?->site_name ?? '—',
                     'ml'       => $sr->assignedUser?->name ?? '—',
-                    'mlInit'   => $sr->assignedUser?->initials ?? '—',
+                    'mlInit'   => $sr->assignedUser ? $this->initials($sr->assignedUser->name) : '—',
                     'punchout' => $this->clockTime($punch?->punch_out_at) ?? '—',
                     'cat'      => $sr->category?->category_name ?? '—',
                     'priority' => $this->priority($sr->priority_level),
-                    'scope'    => $this->scopeCode($sr->warranty_scope),
+                    'scope'    => $this->scopeCode($sr),
                     'proofs'   => [
                         'before' => (bool) $punch?->before_photo_path,
                         'after'  => (bool) $punch?->after_photo_path,
@@ -949,14 +955,36 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
         };
     }
 
-    /** Normalises whatever `warranty_scope` holds into 'IW' / 'OoW'. */
-    private function scopeCode($raw): string
+       /** Mirrors DashboardControllerBase::isInWarranty(): explicit scope wins, else project end date. */
+    private function isInWarranty(ServiceRequest $sr): bool
+    {
+        if (! empty($sr->warranty_scope)) {
+            return $this->normalise($sr->warranty_scope) !== 'oow';
+        }
+
+        $end = $sr->project?->warranty_end_date;
+
+        return $end && Carbon::parse($end)->endOfDay()->isFuture();
+    }
+
+    private function scopeCode(ServiceRequest $sr): string
+    {
+        return $this->isInWarranty($sr) ? 'IW' : 'OoW';
+    }
+
+    /**
+     * Same IW/OoW classification, but for raw aggregate-query rows that
+     * only carry the warranty_scope string (no project relation loaded).
+     * Used by intakeTrend()/scopeSplit(), which group by warranty_scope
+     * directly in SQL and never hydrate a full ServiceRequest model.
+     */
+    private function scopeCodeRaw(?string $raw): string
     {
         $v = $this->normalise((string) $raw);
 
-        return in_array($v, ['iw', 'in_warranty', 'warranty', 'inwarranty', '1', 'yes', 'true'], true) ? 'IW' : 'OoW';
+        return in_array($v, ['iw', 'in_warranty', 'warranty', 'inwarranty', '1', 'yes', 'true'], true)
+            ? 'IW' : 'OoW';
     }
-
     /* ═══════════════════════ INTAKE TREND ═══════════════════════ */
 
     /** Last 6 calendar months, split in-warranty vs out-of-warranty. */
@@ -975,8 +1003,8 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             $bucket   = $rows->where('ym', $month->format('Y-m'));
             $labels[] = $month->format('M');
 
-            $iw[]  = (int) $bucket->filter(fn($r) => $this->scopeCode($r->warranty_scope) === 'IW')->sum('aggregate');
-            $oow[] = (int) $bucket->filter(fn($r) => $this->scopeCode($r->warranty_scope) === 'OoW')->sum('aggregate');
+            $iw[]  = (int) $bucket->filter(fn($r) => $this->scopeCodeRaw($r->warranty_scope) === 'IW')->sum('aggregate');
+            $oow[] = (int) $bucket->filter(fn($r) => $this->scopeCodeRaw($r->warranty_scope) === 'OoW')->sum('aggregate');
         }
 
         return [
@@ -994,8 +1022,8 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->selectRaw('warranty_scope, COUNT(*) AS aggregate')
             ->get();
 
-        $iw  = (int) $rows->filter(fn($r) => $this->scopeCode($r->warranty_scope) === 'IW')->sum('aggregate');
-        $oow = (int) $rows->filter(fn($r) => $this->scopeCode($r->warranty_scope) === 'OoW')->sum('aggregate');
+        $iw  = (int) $rows->filter(fn($r) => $this->scopeCodeRaw($r->warranty_scope) === 'IW')->sum('aggregate');
+        $oow = (int) $rows->filter(fn($r) => $this->scopeCodeRaw($r->warranty_scope) === 'OoW')->sum('aggregate');
 
         return ['iw' => $iw, 'oow' => $oow, 'total' => $iw + $oow];
     }
@@ -1041,20 +1069,34 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
         })->all();
     }
 
-    private function newClientCount(int $userId, Carbon $from, Carbon $to): int
+        private function newClientCount(int $userId, Carbon $from, Carbon $to): int
     {
-        $q = Client::whereBetween('created_at', [$from, $to]);
+        $query = Client::whereBetween('created_at', [$from, $to]);
 
         if (Schema::hasColumn('clients', 'created_by')) {
-            $q->where('created_by', $userId);
+            return $query->where('created_by', $userId)->count();
         }
 
-        return $q->count();
+        $clientIds = $this->mine($userId)
+            ->whereBetween('created_at', [$from, $to])
+            ->whereNotNull('client_id')
+            ->distinct()
+            ->pluck('client_id');
+
+        return $clientIds->isEmpty() ? 0 : $query->whereIn('id', $clientIds)->count();
     }
 
-    private function newSiteCount(Carbon $from, Carbon $to): int
+    private function newSiteCount(int $userId, Carbon $from, Carbon $to): int
     {
-        return Project::whereBetween('created_at', [$from, $to])->count();
+        $query = Project::whereBetween('created_at', [$from, $to]);
+
+        if (Schema::hasColumn('projects', 'created_by')) {
+            return $query->where('created_by', $userId)->count();
+        }
+
+        $clientIds = $this->mine($userId)->whereNotNull('client_id')->distinct()->pluck('client_id');
+
+        return $clientIds->isEmpty() ? 0 : $query->whereIn('client_id', $clientIds)->count();
     }
 
     /* ═══════════════════════ CANCELLATIONS ═══════════════════════ */
@@ -1163,7 +1205,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
         $requests = $this->mine($userId)
             ->with([
                 'client:id,company_name',
-                'project:id,site_name,site_address',
+                'project:id,site_name,site_address,warranty_end_date',
                 'category:id,category_name',
                 'assignedUser:id,name',
                 'punches',
@@ -1211,11 +1253,11 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             'client'   => $sr->client?->company_name ?? '—',
             'site'     => $sr->project?->site_name ?: ($sr->project?->site_address ?: '—'),
             'priority' => $this->priority($sr->priority_level),
-            'scope'    => $this->scopeCode($sr->warranty_scope),
+            'scope'    => $this->scopeCode($sr),
             'category' => $sr->category?->category_name ?? '—',
             'logged'   => $this->shortAge($sr->created_at),
             'tech'     => $tech?->name,
-            'initials' => $tech?->initials,
+            'initials' => $tech ? $this->initials($tech->name) : null,
             'issue'    => $sr->issue_description ?: 'No description recorded.',
             'punched'  => $this->clockTime($punch?->punch_in_at),
             'punchout' => $this->clockTime($punch?->punch_out_at),

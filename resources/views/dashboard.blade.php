@@ -1559,12 +1559,9 @@ button.kpi.k5
 
                 <div class="mini-metric"  data-panel="rework" style="cursor:pointer;">
                     <div class="mm-label">Rework this period</div>
-                    <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'rework_sub', 0) }}</div>
-                    <!-- <div class="mm-sub">{{ data_get($qc ?? [], 'rework_sub') }}</div> -->
-
-                     <div class="mm-sub">Current Reworks Open</div>
+                    <div class="mm-val" style="color:var(--danger);">{{ data_get($qc ?? [], 'rework_count', 0) }}</div>
+                    <div class="mm-sub">{{ data_get($qc ?? [], 'rework_sub') }}</div>
                 </div>
-                
                 <div class="mini-metric" data-panel="sla-breach" style="cursor:pointer;"
                     title="{{ collect(data_get($qc ?? [], 'stage_breaches', []))->map(fn ($s) => $s['label'].': '.$s['count'].' over '.$s['target'].'h')->implode("\n") }}">
                     <div class="mm-label">SLA breaches </div>

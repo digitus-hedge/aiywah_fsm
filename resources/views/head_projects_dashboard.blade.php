@@ -1006,9 +1006,11 @@ font-weight:700;
       <div class="ch-half" style="width:180px;"><canvas id="slaG"></canvas></div>
       <div style="text-align:center;margin-top:-14px;">
         <div style="font-size:1.6rem;font-weight:700;color:var(--muted);line-height:1;">
-          {{ $qc['sla_compliance'] !== null ? $qc['sla_compliance'].'%' : '—' }}
-        </div>
-        <div style="font-size:.7rem;color:var(--muted);">SLA Compliance</div>
+            {{ $qc['qc_rate'] !== null ? $qc['qc_rate'].'%' : '—' }}
+          </div>
+          <div style="font-size:.7rem;color:var(--muted);">
+            QC reviewed · {{ $qc['qc_reviewed'] }} of {{ $qc['qc_reached'] }}
+          </div>
       </div>
     </div>
 
@@ -1245,9 +1247,9 @@ var KPI = [
   {ico:'bi-person-gear', cls:'i3 k3', val:{{ $dispatchCount }}, lbl:'Awaiting Dispatch',
    delta:'Action', dc:'dd', sub:'', sp:[3,2,4,1,3,2,2], panel:'dispatch-queue'},
 
-{ico:'bi-speedometer2', cls:'i4 k4', val:'{{ $kpis['sla']['breach_count'] }}', lbl:'SLA Compliance',
-   delta:'Compliance', dc:'{{ $kpis['sla']['delta_tone'] }}',
-   sub:'{{ $kpis['sla']['value'] }} compliance', sp:{!! json_encode($kpis['sla']['spark']) !!}, panel:'sla-breach'},
+{ico:'bi-speedometer2', cls:'i4 k4', val:'{{ $kpis['sla']['value'] }}', lbl:'SLA Compliance',
+   delta:'{{ $kpis['sla']['delta'] ?? 'Live' }}', dc:'{{ $kpis['sla']['delta_tone'] }}',
+   sub:'{{ $kpis['sla']['breach_count'] }} {{ Str::plural('breach', $kpis['sla']['breach_count']) }} this period', sp:{!! json_encode($kpis['sla']['spark']) !!}, panel:'sla-breach'},
 
   {ico:'bi-check2-circle', cls:'i5 k5', val:{{$reworkCount}}, lbl:'SR Rework',
    delta:'Rework', dc:'du', sub:'', sp:[70,72,74,73,76,75,78], panel:'rework'},
@@ -1263,6 +1265,7 @@ var SR_DONE   = @json($srTrend2['done']);
 var SR_INQ    = @json($srTrend2['inquiries']);
 
 var STATUS_DATA = @json($statusBreakdown);
+var QC_SLA = {{ $qc['qc_rate'] !== null ? $qc['qc_rate'] : 0 }};
 /* MAINTENANCE LEADS — each supervises a technician team */
 var LEADS=[
   {i:'RH',n:'Rashid Al-Habsi', zone:'Electrical · Dubai',    team:5,jobs:34,sla:92,r:4.7,rw:2,resp:'38m'},
@@ -1534,8 +1537,10 @@ if (c3 && CAPACITY.length) {
   /* SLA gauge */
   var c4=document.getElementById('slaG');
   if(c4){
+    var met = QC_SLA;
+    var breached = Math.max(0, 100 - met);
     CHARTS.sla=new Chart(c4,{type:'doughnut',data:{labels:['Met','Breached'],
-      datasets:[{data:[84,16],backgroundColor:['#9a8053','rgba(220,38,38,.2)'],borderColor:['#9a8053','rgba(220,38,38,.3)'],borderWidth:2,hoverOffset:0}]},
+      datasets:[{data:[met,breached],backgroundColor:['#9a8053','rgba(220,38,38,.2)'],borderColor:['#9a8053','rgba(220,38,38,.3)'],borderWidth:2,hoverOffset:0}]},
       options:{responsive:true,maintainAspectRatio:false,cutout:'78%',rotation:-90,circumference:180,plugins:{legend:{display:false},tooltip:{enabled:false}}}});
   }
 
@@ -1924,22 +1929,37 @@ function openPanel(type,id){
 
   } else if(type==='tech'){
     var t=TECHS[id];
-    heading=t.n;icon='bi-person-badge';sub=t.d+' · Reports to '+t.lead;
-    var stars='';for(var s=1;s<=5;s++)stars+='<i class="bi bi-star'+(s<=Math.round(t.r)?'-fill':'')+'" style="color:#f59e0b;font-size:.8rem;"></i>';
+    heading=t.name;
+    icon='bi-person-badge';
+    sub=(t.department||'—')+(t.critical ? ' · Critical breach on file' : '');
+
+    var stars='';for(var s=1;s<=5;s++)stars+='<i class="bi bi-star'+(s<=Math.round(t.rating)?'-fill':'')+'" style="color:#f59e0b;font-size:.8rem;"></i>';
+
     body='<div class="dp-sec">Performance Summary</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;">'+
-        '<div class="mini-metric"><div class="mm-label">Jobs Completed</div><div class="mm-val">'+t.j+'</div><div class="mm-sub">This month</div></div>'+
-        '<div class="mini-metric"><div class="mm-label">Field Hours</div><div class="mm-val">'+t.h+'h</div><div class="mm-sub">On-site total</div></div>'+
-        '<div class="mini-metric"><div class="mm-label">Client Rating</div><div class="mm-val" style="color:#f59e0b;">'+t.r+'</div><div class="mm-sub" style="display:flex;gap:1px;">'+stars+'</div></div>'+
-        '<div class="mini-metric"><div class="mm-label">Rework Count</div><div class="mm-val" style="color:'+(t.rw===0?'#15803d':'#dc2626')+';">'+t.rw+'</div><div class="mm-sub">'+(t.rw===0?'Clean record':'Needs attention')+'</div></div>'+
-        '<div class="mini-metric"><div class="mm-label">Punch-in Rate</div><div class="mm-val" style="color:'+(t.p>=95?'#15803d':'#d97706')+';">'+t.p+'%</div><div class="mm-sub">'+(t.p>=95?'Excellent':'Monitor')+'</div></div>'+
-        '<div class="mini-metric"><div class="mm-label">Reports To</div><div class="mm-val" style="font-size:.95rem;">'+t.i+'</div><div class="mm-sub">'+t.lead+'</div></div>'+
-      '</div><div class="dp-sec">Recent Job Assignments</div>';
-    var jobs=TECH_JOBS[id]||[];
-    body+=jobs.map(function(j){return prCard(j.id,j.status,j.bc,j.client,j.meta);}).join('');
+        '<div class="mini-metric"><div class="mm-label">Jobs Completed</div><div class="mm-val">'+t.jobs+'</div><div class="mm-sub">This period</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Field Hours</div><div class="mm-val">'+t.hours+'h</div><div class="mm-sub">On-site total</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Client Rating</div><div class="mm-val" style="color:#f59e0b;">'+(t.rating||'—')+'</div><div class="mm-sub" style="display:flex;gap:1px;">'+stars+'</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Rework Count</div><div class="mm-val" style="color:'+(t.rework===0?'#15803d':'#dc2626')+';">'+t.rework+'</div><div class="mm-sub">'+(t.rework===0?'Clean record':'Needs attention')+'</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Punch-in Rate</div><div class="mm-val" style="color:'+(t.punch_rate>=95?'#15803d':'#d97706')+';">'+t.punch_rate+'%</div><div class="mm-sub">'+(t.punch_rate>=95?'Excellent':'Monitor')+'</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Field Expenses</div><div class="mm-val" style="font-size:.95rem;">'+(t.expenses_formatted||'—')+'</div><div class="mm-sub">This period</div></div>'+
+      '</div><div class="dp-sec">Open Assignments</div>';
+
+    var pending = t.pending_items || [];
+    body += pending.length
+      ? pending.map(function(p){ return '<div class="pr"><div class="pr-meta"><i class="bi bi-geo-alt"></i>'+p+'</div></div>'; }).join('')
+      : '<p class="empty">No open assignments right now.</p>';
+
+    if ((t.sla_breaches||0) > 0) {
+      body += '<div class="dp-sec">SLA Breaches</div>';
+      body += (t.breach_items||[]).map(function(b){
+        return '<div class="pr"><div class="pr-meta"><i class="bi bi-exclamation-triangle"></i>'+b+'</div></div>';
+      }).join('');
+    }
+
     document.getElementById('dpBody').innerHTML=body;
 
-  } 
+  }
   
 else if(type==='client'){
     var c = CLIENTS[id];

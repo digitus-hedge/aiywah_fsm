@@ -7,6 +7,10 @@
 | Deliberately small: this role only has Invoice Panel and Expense Ledger
 | permissions, so that's all this page shows. Same colour theme and card
 | language as admin/dashboard.blade.php, no KPI row, no charts.
+|
+| Each table shows only the latest 3 rows for the period (see RECENT_LIMIT
+| in AccountantDashboardController); the count/total in the card header
+| still reflect the full period, not just the rows shown.
 --}}
 
 @extends('layouts.layout')
@@ -100,6 +104,7 @@ footer.footer { display: none; }
 #accDash .c-label i{color:var(--gold);font-size:.9rem;}
 #accDash .c-sub{font-size:.76rem;color:var(--muted);}
 #accDash .c-sub strong{color:var(--text);font-weight:700;}
+#accDash .c-sub-limit{font-size:.7rem;color:var(--light);margin-top:2px;}
 
 /* ── TABLE ── */
 #accDash .tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
@@ -242,6 +247,9 @@ footer.footer { display: none; }
             <div class="c-sub">
                 <strong>{{ $quotationCount ?? 0 }}</strong> {{ \Illuminate\Support\Str::plural('SR', $quotationCount ?? 0) }}
                 pending to quote &nbsp;·&nbsp; {{ $rangeLabel ?? 'this month' }}
+                @if (($quotationCount ?? 0) > count($quotationItems))
+                    <div class="c-sub-limit">Showing latest {{ count($quotationItems) }}</div>
+                @endif
             </div>
         </div>
 
@@ -280,6 +288,9 @@ footer.footer { display: none; }
             <div class="c-sub">
                 <strong>{{ $invoiceCount ?? 0 }}</strong> {{ \Illuminate\Support\Str::plural('invoice', $invoiceCount ?? 0) }}
                 &nbsp;·&nbsp; <strong>{{ $invoiceTotalFormatted ?? '—' }}</strong> total, {{ $rangeLabel ?? 'this month' }}
+                @if (($invoiceCount ?? 0) > count($invoiceItems))
+                    <div class="c-sub-limit">Showing latest {{ count($invoiceItems) }}</div>
+                @endif
             </div>
         </div>
 
@@ -320,6 +331,9 @@ footer.footer { display: none; }
             <div class="c-sub">
                 <strong>{{ $expenseCount ?? 0 }}</strong> {{ \Illuminate\Support\Str::plural('entry', $expenseCount ?? 0) }}
                 &nbsp;·&nbsp; <strong>{{ $expenseTotalFormatted ?? '—' }}</strong> total, {{ $rangeLabel ?? 'this month' }}
+                @if (($expenseCount ?? 0) > count($expenseItems))
+                    <div class="c-sub-limit">Showing latest {{ count($expenseItems) }}</div>
+                @endif
             </div>
         </div>
 
@@ -447,6 +461,11 @@ footer.footer { display: none; }
 |         ],
 |         'total' => 27,
 |     ],
+|
+|     // NOTE: quotationItems / invoiceItems / expenseItems are now capped at
+|     // the latest 3 rows (AccountantDashboardController::RECENT_LIMIT).
+|     // quotationCount / invoiceCount / expenseCount still reflect the full
+|     // period so the "Showing latest N" note in each card can compare.
 |
 |     'quotationItems' => [
 |         ['ref' => 'SR-2026-00052', 'client' => 'Acme LLC', 'category' => 'Electrical',

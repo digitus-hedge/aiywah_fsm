@@ -64,6 +64,7 @@ class FrontDashboardController extends Controller
         'quote_pending'    => 'pending_quote',
         'awaiting_quote'   => 'pending_quote',
         'forwarded'        => 'pending_quote',
+        'additional'       => 'pending_quote',
 
         'quoted'           => 'quoted',
         'quote_submitted'  => 'quoted',
@@ -84,6 +85,8 @@ class FrontDashboardController extends Controller
         'punched_in'       => 'in_progress',
         'on_hold'          => 'in_progress',
         'hold'             => 'in_progress',
+        'rework'           => 'in_progress',    
+        'reschedule'       => 'in_progress',  
 
         'pending_review'   => 'pending_review',
         'qc_review'        => 'pending_review',
@@ -95,6 +98,7 @@ class FrontDashboardController extends Controller
         'invoice_pending'  => 'pending_invoice',
         'awaiting_invoice' => 'pending_invoice',
         'qc_passed'        => 'pending_invoice',
+        'invoice_submitted'=> 'pending_invoice',
 
         'completed'        => 'completed',
         'closed'           => 'completed',
@@ -140,6 +144,8 @@ class FrontDashboardController extends Controller
             'today'       => now()->format('l, d F Y'),
             'periodLabel' => $periodLabel,
             'filters'     => ['period' => $period],
+            'panelUrl'    => \Illuminate\Support\Facades\Route::has('front_dashboard.panel')
+                ? route('front_dashboard.panel') : null,
 
             // Order matches the mock-up's pill order.
             'periodOptions' => ['month' => 'This Month', 'week' => 'This Week', 'today' => 'Today'],
@@ -170,11 +176,99 @@ class FrontDashboardController extends Controller
             'clients'     => $this->topClients($user->id, $from, $to),
             'clientStats' => [
                 'new_clients' => $this->newClientCount($user->id, $from, $to),
-                'new_sites'   => $this->newSiteCount($from, $to),
+                'new_sites'   => $this->newSiteCount($user->id, $from, $to),
             ],
 
             'completedCount' => $completed,
             'kanban'         => $this->kanban($user->id),
+        ]);
+    }
+
+        /**
+     * JSON endpoint for the slide-in drill-down panels. Mirrors the scoping
+     * rules of the KPI/status cards it's opened from — some lists are
+     * windowed to the selected period, one (the triage backlog) deliberately
+     * isn't, matching openTriageCount()'s own comment on why.
+     */
+    public function panel(Request $request)
+    {
+        $user   = Auth::user();
+        $period = in_array($request->query('period'), ['today', 'week', 'month'], true)
+            ? $request->query('period')
+            : 'month';
+
+        [$from, $to, $periodLabel] = $this->resolvePeriod($period);
+
+        $type  = (string) $request->query('type', 'all');
+        $id    = $request->query('id');
+        $title = (string) $request->query('title', 'Service Requests');
+
+        if ($type === 'wa-failures') {
+            $wa    = $this->whatsappStats($user->id, $from, $to);
+            $items = collect($wa['failedList'])->map(fn ($f) => [
+                'code' => $f['code'], 'client' => $f['client'], 'meta' => $f['reason'],
+                'badgeText' => 'Failed', 'badgeColor' => '#dc2626',
+            ]);
+
+            return response()->json([
+                'title'    => $title,
+                'subtitle' => $items->count().' '.\Illuminate\Support\Str::plural('record', $items->count()).' · '.$periodLabel,
+                'items'    => $items->values()->all(),
+            ]);
+        }
+
+        $query        = $this->mine($user->id)
+            ->with(['client:id,company_name', 'project:id,warranty_end_date', 'category:id,category_name']);
+        $periodScoped = true;
+
+        if ($type === 'triage-backlog') {
+            $periodScoped = false; // matches openTriageCount() — old ones still matter
+            $raw = $this->rawFor(self::TRIAGE_STAGES);
+            $query->whereIn('status', $raw ?: ['__none__']);
+        } elseif ($type === 'client' && $id) {
+            $query->where('client_id', $id);
+        } elseif ($type === 'scope' && $id) {
+            // filtered after fetch below — scopeCode() needs the project relation loaded
+        } elseif ($type === 'completed') {
+            $raw = $this->rawFor(self::COMPLETED_STAGES);
+            $query->whereIn('status', $raw ?: ['__none__']);
+        } elseif ($type === 'cancelled') {
+            $raw = $this->rawFor(self::CANCELLED_STAGES);
+            $query->whereIn('status', $raw ?: ['__none__']);
+        } elseif ($type !== 'all' && array_key_exists($type, self::COLUMNS)) {
+            $raw = $this->rawFor([$type]);
+            $query->whereIn('status', $raw ?: ['__none__']);
+        }
+
+        if ($periodScoped) {
+            $query->whereBetween('created_at', [$from, $to]);
+        }
+
+        $rows = $query->latest()->limit(200)->get();
+
+        if ($type === 'scope' && $id) {
+            $rows = $rows->filter(fn (ServiceRequest $sr) => $this->scopeCode($sr) === $id)->values();
+        }
+
+        $items = $rows->map(function (ServiceRequest $sr) {
+            $stage      = $this->stageOf($sr->status);
+            $stageLabel = $stage && isset(self::COLUMNS[$stage]) ? self::COLUMNS[$stage]['label'] : ($sr->status ?: 'Unknown');
+            $priority   = $this->priority($sr->priority_level);
+
+            return [
+                'code'       => $sr->code,
+                'client'     => $sr->client?->company_name ?? '—',
+                'meta'       => ($sr->category?->category_name ?? '—').' · '.$stageLabel,
+                'badgeText'  => $priority,
+                'badgeColor' => ['High' => '#dc2626', 'Medium' => '#d97706', 'Low' => '#15803d'][$priority] ?? '#9a8053',
+            ];
+        });
+
+        return response()->json([
+            'title'    => $title,
+            'subtitle' => $items->count().' '.\Illuminate\Support\Str::plural('record', $items->count())
+                          .($periodScoped ? ' · '.$periodLabel : ' · live backlog'),
+            'items'    => $items->values()->all(),
         ]);
     }
 
@@ -452,56 +546,65 @@ class FrontDashboardController extends Controller
         };
     }
 
-    /** Normalises whatever `warranty_scope` holds into 'IW' / 'OoW'. */
-    private function scopeCode($raw): string
+   private function isInWarranty(ServiceRequest $sr): bool
     {
-        $v = $this->normalise((string) $raw);
+        if (! empty($sr->warranty_scope)) {
+            return $this->normalise($sr->warranty_scope) !== 'oow';
+        }
 
-        return in_array($v, ['iw', 'in_warranty', 'warranty', 'inwarranty', '1', 'yes', 'true'], true) ? 'IW' : 'OoW';
+        $end = $sr->project?->warranty_end_date;
+
+        return $end && Carbon::parse($end)->endOfDay()->isFuture();
+    }
+
+    private function scopeCode(ServiceRequest $sr): string
+    {
+        return $this->isInWarranty($sr) ? 'IW' : 'OoW';
     }
 
     /* ═══════════════════════ INTAKE TREND ═══════════════════════ */
 
     /** Last 6 calendar months, split in-warranty vs out-of-warranty. */
     private function intakeTrend(int $userId): array
-    {
-        $rows = $this->mine($userId)
-            ->where('created_at', '>=', now()->startOfMonth()->subMonths(5))
-            ->groupBy('ym', 'warranty_scope')
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') AS ym, warranty_scope, COUNT(*) AS aggregate")
-            ->get();
+{
+    $rows = $this->mine($userId)
+        ->where('created_at', '>=', now()->startOfMonth()->subMonths(5))
+        ->with('project:id,warranty_end_date')
+        ->get(['id', 'created_at', 'warranty_scope', 'project_id']);
 
-        $labels = $iw = $oow = [];
+    $labels = $iw = $oow = [];
 
-        foreach (range(5, 0) as $i) {
-            $month    = now()->startOfMonth()->subMonths($i);
-            $bucket   = $rows->where('ym', $month->format('Y-m'));
-            $labels[] = $month->format('M');
+    foreach (range(5, 0) as $i) {
+        $month  = now()->startOfMonth()->subMonths($i);
+        $bucket = $rows->filter(fn ($sr) => $sr->created_at
+            && $sr->created_at->between($month->copy()->startOfMonth(), $month->copy()->endOfMonth()));
 
-            $iw[]  = (int) $bucket->filter(fn ($r) => $this->scopeCode($r->warranty_scope) === 'IW')->sum('aggregate');
-            $oow[] = (int) $bucket->filter(fn ($r) => $this->scopeCode($r->warranty_scope) === 'OoW')->sum('aggregate');
-        }
+        $inWarrantyCount = $bucket->filter(fn ($sr) => $this->isInWarranty($sr))->count();
 
-        return [
-            'labels'       => $labels,
-            'in_warranty'  => $iw,
-            'out_warranty' => $oow,
-        ];
+        $labels[] = $month->format('M');
+        $iw[]     = $inWarrantyCount;
+        $oow[]    = $bucket->count() - $inWarrantyCount;
     }
 
-    private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
-    {
-        $rows = $this->mine($userId)
-            ->whereBetween('created_at', [$from, $to])
-            ->groupBy('warranty_scope')
-            ->selectRaw('warranty_scope, COUNT(*) AS aggregate')
-            ->get();
+    return [
+        'labels'       => $labels,
+        'in_warranty'  => $iw,
+        'out_warranty' => $oow,
+    ];
+}
 
-        $iw  = (int) $rows->filter(fn ($r) => $this->scopeCode($r->warranty_scope) === 'IW')->sum('aggregate');
-        $oow = (int) $rows->filter(fn ($r) => $this->scopeCode($r->warranty_scope) === 'OoW')->sum('aggregate');
+private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
+{
+    $rows = $this->mine($userId)
+        ->whereBetween('created_at', [$from, $to])
+        ->with('project:id,warranty_end_date')
+        ->get(['id', 'warranty_scope', 'project_id']);
 
-        return ['iw' => $iw, 'oow' => $oow, 'total' => $iw + $oow];
-    }
+    $iw  = $rows->filter(fn ($sr) => $this->isInWarranty($sr))->count();
+    $oow = $rows->count() - $iw;
+
+    return ['iw' => $iw, 'oow' => $oow, 'total' => $iw + $oow];
+}
 
     private function intakeStats(int $userId, Carbon $from, Carbon $to, int $total): array
     {
@@ -546,20 +649,37 @@ class FrontDashboardController extends Controller
 
     private function newClientCount(int $userId, Carbon $from, Carbon $to): int
     {
-        $q = Client::whereBetween('created_at', [$from, $to]);
+        $query = Client::whereBetween('created_at', [$from, $to]);
 
         if (Schema::hasColumn('clients', 'created_by')) {
-            $q->where('created_by', $userId);
+            return $query->where('created_by', $userId)->count();
         }
 
-        return $q->count();
+        // No direct authorship column — fall back to new clients this executive
+        // actually logged a service request against in this window.
+        $clientIds = $this->mine($userId)
+            ->whereBetween('created_at', [$from, $to])
+            ->whereNotNull('client_id')
+            ->distinct()
+            ->pluck('client_id');
+
+        return $clientIds->isEmpty() ? 0 : $query->whereIn('id', $clientIds)->count();
     }
 
-    private function newSiteCount(Carbon $from, Carbon $to): int
+    private function newSiteCount(int $userId, Carbon $from, Carbon $to): int
     {
-        return Project::whereBetween('created_at', [$from, $to])->count();
-    }
+        $query = Project::whereBetween('created_at', [$from, $to]);
 
+        if (Schema::hasColumn('projects', 'created_by')) {
+            return $query->where('created_by', $userId)->count();
+        }
+
+        // No direct authorship column on projects — fall back to sites under
+        // clients this executive actually raised a service request for.
+        $clientIds = $this->mine($userId)->whereNotNull('client_id')->distinct()->pluck('client_id');
+
+        return $clientIds->isEmpty() ? 0 : $query->whereIn('client_id', $clientIds)->count();
+    }
     /* ═══════════════════════ CANCELLATIONS ═══════════════════════ */
 
     private function cancelledList(int $userId, Carbon $from, Carbon $to, int $limit = 4): array
@@ -666,7 +786,7 @@ class FrontDashboardController extends Controller
         $requests = $this->mine($userId)
             ->with([
                 'client:id,company_name',
-                'project:id,site_name,site_address',
+                'project:id,site_name,site_address,warranty_end_date',
                 'category:id,category_name',
                 'assignedUser:id,name',
                 'punches',
@@ -710,15 +830,16 @@ class FrontDashboardController extends Controller
         $punch = $sr->punches->sortByDesc('created_at')->first();
 
         return [
-            'code'     => $sr->code,
-            'client'   => $sr->client?->company_name ?? '—',
+            'code'      => $sr->code,
+            'client'    => $sr->client?->company_name ?? '—',
+            'client_id' => $sr->client_id,
             'site'     => $sr->project?->site_name ?: ($sr->project?->site_address ?: '—'),
             'priority' => $this->priority($sr->priority_level),
-            'scope'    => $this->scopeCode($sr->warranty_scope),
+            'scope'    => $this->scopeCode($sr),
             'category' => $sr->category?->category_name ?? '—',
             'logged'   => $this->shortAge($sr->created_at),
             'tech'     => $tech?->name,
-            'initials' => $tech?->initials,
+            'initials' => $tech ? $this->initials($tech->name) : null,
             'issue'    => $sr->issue_description ?: 'No description recorded.',
             'punched'  => $this->clockTime($punch?->punch_in_at),
             'punchout' => $this->clockTime($punch?->punch_out_at),
@@ -745,5 +866,17 @@ class FrontDashboardController extends Controller
         } catch (\Throwable) {
             return null;
         }
+    }
+    private function initials(?string $name): string
+    {
+        if (! $name) {
+            return '—';
+        }
+
+        $parts = preg_split('/\s+/', trim($name)) ?: [];
+
+        return mb_strtoupper(
+            mb_substr($parts[0] ?? '', 0, 1) . (isset($parts[1]) ? mb_substr($parts[1], 0, 1) : '')
+        );
     }
 }

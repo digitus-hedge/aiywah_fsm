@@ -92,6 +92,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/front-desk/dashboard', [FrontDashboardController::class, 'index'])
         ->middleware('role:FD')
         ->name('frontdashboard');
+    Route::get('/front-dashboard/panel', [FrontDashboardController::class, 'panel'])
+        ->name('front_dashboard.panel');
 
     Route::get('/service-engineer/dashboard', [SEDashboardController::class, 'index'])
         ->middleware('se_or_hop_se')

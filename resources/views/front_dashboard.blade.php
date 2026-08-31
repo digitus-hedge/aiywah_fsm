@@ -32,8 +32,8 @@ body { background: #f4f2ef; }
 #fdeDash{
   --card:#fff; --card2:#faf9f7; --surface-2:#f4f2ef;
   --border:rgba(0,0,0,.07);
-  --shadow:0 2px 16px rgba(0,0,0,.06);
-  --shadow-hover:0 8px 28px rgba(0,0,0,.11);
+  --shadow:0 2px 20px rgba(0,0,0,.06);
+  --shadow-hover:0 8px 32px rgba(0,0,0,.11);
   --text:#1a1614; --muted:#8a8480; --light:#bbb8b4;
   --gold:#9a8053; --gold2:#b8975e; --gold-bg:rgba(154,128,83,.1);
   --ok:#15803d; --warn:#d97706; --danger:#dc2626;
@@ -89,7 +89,9 @@ body { background: #f4f2ef; }
 /* ── ALERT STRIP ── */
 #fdeDash .alert-row{display:flex;gap:9px;margin-bottom:20px;flex-wrap:wrap;}
 #fdeDash .a-chip{display:inline-flex;align-items:center;gap:7px;padding:7px 13px;
-  border-radius:9px;font-size:.76rem;font-weight:500;border:1px solid;}
+  border-radius:9px;font-size:.76rem;font-weight:500;border:1px solid;
+  background:transparent;cursor:pointer;transition:opacity .15s;}
+#fdeDash .a-chip:hover{opacity:.82;}
 #fdeDash .a-red{background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.16);color:var(--danger);}
 #fdeDash .a-amb{background:rgba(217,119,6,.08);border-color:rgba(217,119,6,.16);color:var(--warn);}
 #fdeDash .a-grn{background:rgba(21,128,61,.08);border-color:rgba(21,128,61,.16);color:var(--ok);}
@@ -103,11 +105,13 @@ body { background: #f4f2ef; }
 #fdeDash .sec-ttl i{color:var(--gold);}
 
 /* ── CARDS ── */
-#fdeDash .card{background:var(--card);border:1px solid var(--border);border-radius:14px;
-  box-shadow:var(--shadow);overflow:hidden;}
-#fdeDash .card-pad{padding:18px 20px;}
+#fdeDash .card{background:var(--card);border:none;border-radius:16px;
+  box-shadow:var(--shadow);overflow:hidden;transition:box-shadow .2s,transform .2s;}
+#fdeDash .card.clickable{cursor:pointer;}
+#fdeDash .card.clickable:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px);}
+#fdeDash .card-pad{padding:20px 22px;}
 #fdeDash .c-hdr{display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:14px;gap:8px;flex-wrap:wrap;}
+  margin-bottom:16px;gap:8px;flex-wrap:wrap;}
 #fdeDash .c-label{font-size:.7rem;font-weight:700;text-transform:uppercase;
   letter-spacing:.08em;color:var(--muted);display:flex;align-items:center;gap:5px;}
 #fdeDash .c-label i{color:var(--gold);}
@@ -123,8 +127,9 @@ body { background: #f4f2ef; }
 #fdeDash .mb-block{margin-bottom:16px;}
 
 /* ── KPI CARDS ── */
-#fdeDash .kpi{background:var(--card);border:1px solid var(--border);border-radius:14px;
+#fdeDash .kpi{background:var(--card);border:none;border-radius:16px;
   padding:18px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
   transition:box-shadow .2s,transform .2s;}
 #fdeDash .kpi:hover{box-shadow:var(--shadow-hover);transform:translateY(-2px);}
 #fdeDash .kpi::after{content:'';position:absolute;right:-18px;top:-18px;
@@ -170,7 +175,10 @@ body { background: #f4f2ef; }
 #fdeDash .leg-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0;display:inline-block;}
 
 /* ── STATUS DISTRIBUTION ── */
-#fdeDash .sd-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+#fdeDash .sd-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;
+  width:100%;background:none;border:0;padding:4px 6px;border-radius:8px;
+  font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background .12s;}
+#fdeDash .sd-row:hover{background:var(--gold-bg);}
 #fdeDash .sd-row:last-child{margin-bottom:0;}
 #fdeDash .sd-lbl{font-size:.72rem;color:var(--muted);width:120px;flex-shrink:0;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -203,7 +211,9 @@ body { background: #f4f2ef; }
 
 /* ── CLIENT RANK LIST ── */
 #fdeDash .client-row{display:flex;align-items:center;gap:10px;padding:8px;
-  border-bottom:1px solid var(--border);border-radius:7px;transition:background .1s;}
+  width:100%;background:none;border:0;border-bottom:1px solid var(--border);
+  border-radius:7px;font:inherit;color:inherit;text-align:left;cursor:pointer;
+  transition:background .1s;}
 #fdeDash .client-row:last-child{border-bottom:none;}
 #fdeDash .client-row:hover{background:var(--gold-bg);}
 #fdeDash .c-rank{width:22px;height:22px;border-radius:6px;background:var(--gold-bg);
@@ -215,8 +225,11 @@ body { background: #f4f2ef; }
 #fdeDash .c-sub{font-size:.68rem;color:var(--muted);}
 
 /* ── MINI METRIC ── */
-#fdeDash .mm{background:var(--card2);border:1px solid var(--border);
-  border-radius:10px;padding:12px 14px;}
+#fdeDash .mm{background:var(--card2);border-radius:10px;padding:12px 14px;
+  width:100%;text-align:left;font:inherit;color:inherit;
+  transition:background .12s,box-shadow .12s;}
+#fdeDash .mm.clickable{cursor:pointer;}
+#fdeDash .mm.clickable:hover{background:var(--gold-bg);}
 #fdeDash .mm-lbl{font-size:.68rem;color:var(--muted);font-weight:500;margin-bottom:4px;}
 #fdeDash .mm-val{font-size:1.5rem;font-weight:700;color:var(--text);line-height:1;}
 #fdeDash .mm-sub{font-size:.68rem;color:var(--muted);margin-top:3px;}
@@ -229,18 +242,38 @@ body { background: #f4f2ef; }
 #fdeDash .donut-center-val{font-size:1.4rem;font-weight:700;color:var(--text);line-height:1;}
 #fdeDash .donut-center-lbl{font-size:.6rem;color:var(--muted);}
 #fdeDash .donut-leg{display:flex;flex-direction:column;gap:8px;flex:1;min-width:120px;}
-#fdeDash .leg-r{display:flex;align-items:center;gap:8px;}
+#fdeDash .leg-r{display:flex;align-items:center;gap:8px;width:100%;
+  background:none;border:0;padding:4px 2px;border-radius:6px;font:inherit;
+  color:inherit;text-align:left;cursor:pointer;transition:background .12s;}
+#fdeDash .leg-r:hover{background:var(--gold-bg);}
 #fdeDash .leg-n{font-size:.74rem;color:var(--muted);flex:1;}
 #fdeDash .leg-v{font-size:.8rem;font-weight:600;color:var(--text);}
+
+#fdeDash .pnl-item{padding:12px 14px;border-radius:10px;border:1px solid var(--border);
+  margin-bottom:9px;background:var(--card2);cursor:pointer;transition:all .15s;}
+#fdeDash .pnl-item:last-child{margin-bottom:0;}
+#fdeDash .pnl-item:hover{border-color:var(--gold);background:var(--gold-bg);}
+#fdeDash .pnl-item-top{display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:5px;gap:8px;}
+#fdeDash .pnl-item-id{font-size:.85rem;font-weight:700;color:var(--gold);font-family:var(--serif);}
+#fdeDash .pnl-badge{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:20px;}
+#fdeDash .pnl-client{font-size:.8rem;font-weight:500;color:var(--text);margin-bottom:2px;}
+#fdeDash .pnl-meta{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:6px;}
+
+#fdeDash .triage-tbl tbody tr[data-sr-code]{cursor:pointer;}
 
 /* ── CANCELLATION ── */
 #fdeDash .rate-big{font-size:2.6rem;font-weight:700;color:var(--danger);line-height:1;}
 #fdeDash .cancel-item{background:var(--card2);border:1px solid var(--border);
-  border-radius:9px;padding:10px 12px;}
+  border-radius:9px;padding:10px 12px;width:100%;text-align:left;font:inherit;
+  color:inherit;cursor:pointer;transition:background .12s,border-color .12s;}
+#fdeDash .cancel-item:hover{background:var(--gold-bg);border-color:var(--gold);}
 
 /* ── WHATSAPP FAILURES ── */
 #fdeDash .wa-fail{background:rgba(220,38,38,.05);border:1px solid rgba(220,38,38,.12);
-  border-radius:8px;padding:9px 11px;margin-bottom:7px;}
+  border-radius:8px;padding:9px 11px;margin-bottom:7px;width:100%;text-align:left;
+  font:inherit;color:inherit;cursor:pointer;transition:background .12s;}
+#fdeDash .wa-fail:hover{background:rgba(220,38,38,.09);}
 #fdeDash .wa-sub-ttl{font-size:.68rem;font-weight:700;text-transform:uppercase;
   letter-spacing:.08em;color:var(--light);margin-bottom:8px;}
 
@@ -275,10 +308,10 @@ body { background: #f4f2ef; }
 
 /* ── SLIDE-IN DETAIL PANEL ── */
 #fdeDash .panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);
-  z-index:700;backdrop-filter:blur(3px);}
+  z-index:2000;backdrop-filter:blur(3px);}
 #fdeDash .panel-overlay.open{display:block;}
 #fdeDash .detail-panel{position:fixed;top:0;right:0;width:480px;max-width:96vw;
-  height:100vh;height:100dvh;background:var(--card);z-index:800;
+  height:100vh;height:100dvh;background:var(--card);z-index:2010;
   box-shadow:-4px 0 40px rgba(0,0,0,.15);transform:translateX(105%);
   transition:transform .32s cubic-bezier(.4,0,.2,1);
   display:flex;flex-direction:column;overflow:hidden;}
@@ -395,6 +428,12 @@ body { background: #f4f2ef; }
 
     $maxStatus   = collect($statusBreakdown)->max(fn ($r) => (int) data_get($r, 'count')) ?: 1;
     $priorityCls = ['High' => 'p-red', 'Medium' => 'p-amber', 'Low' => 'p-green'];
+    $kpiListMap = [
+        'total'     => ['list' => 'all',             'title' => 'All SRs · '.($periodLabel ?? 'This period')],
+        'pending'   => ['list' => 'triage-backlog',  'title' => 'Pending triage queue'],
+        'cancelled' => ['list' => 'cancelled',        'title' => 'Cancelled / rejected SRs'],
+        'completed' => ['list' => 'completed',        'title' => 'Completed SRs'],
+    ];
 
     $kpiCards = [
         ['key' => 'total',     'ico' => 'bi-ticket-perforated', 'n' => 1, 'lbl' => 'SRs Logged · '.($periodLabel ?? 'This Month')],
@@ -434,18 +473,18 @@ body { background: #f4f2ef; }
 
     {{-- ── ALERT STRIP ────────────────────────────────────────────────── --}}
     <div class="alert-row">
-        @if (($alertCounts['triage'] ?? 0) > 0)
-            <span class="a-chip a-red">
+                @if (($alertCounts['triage'] ?? 0) > 0)
+                <button type="button" class="a-chip a-red" data-list="triage-backlog" data-list-title="Pending triage queue">
                 <i class="bi bi-hourglass-split"></i>
                 {{ $alertCounts['triage'] }} {{ \Illuminate\Support\Str::plural('SR', $alertCounts['triage']) }} awaiting HoP triage — logged by you
-            </span>
+            </button>
         @endif
 
         @if (($alertCounts['wa_failures'] ?? 0) > 0)
-            <span class="a-chip a-amb">
+            <button type="button" class="a-chip a-amb" data-list="wa-failures" data-list-title="Failed WhatsApp confirmations">
                 <i class="bi bi-whatsapp"></i>
                 {{ $alertCounts['wa_failures'] }} WhatsApp {{ \Illuminate\Support\Str::plural('confirmation', $alertCounts['wa_failures']) }} failed on your SRs
-            </span>
+            </button>
         @endif
 
         @if (($alertCounts['triage'] ?? 0) === 0 && ($alertCounts['wa_failures'] ?? 0) === 0)
@@ -459,7 +498,9 @@ body { background: #f4f2ef; }
     {{-- ── KPI ROW ────────────────────────────────────────────────────── --}}
     <div class="g4 mb-block" style="margin-bottom:20px;">
         @foreach ($kpiCards as $i => $c)
-            <div class="kpi k{{ $c['n'] }}">
+            <button type="button" class="kpi k{{ $c['n'] }}"
+                    data-list="{{ $kpiListMap[$c['key']]['list'] }}"
+                    data-list-title="{{ $kpiListMap[$c['key']]['title'] }}">
                 <div class="kpi-top">
                     <span class="kpi-ico i{{ $c['n'] }}"><i class="bi {{ $c['ico'] }}"></i></span>
                     @if (data_get($kpis, $c['key'].'.delta'))
@@ -469,8 +510,8 @@ body { background: #f4f2ef; }
                 <div class="big-num">{{ data_get($kpis, $c['key'].'.value', 0) }}</div>
                 <div class="kpi-lbl">{{ $c['lbl'] }}</div>
                 <div class="kpi-sub">{{ data_get($kpis, $c['key'].'.sub') }}</div>
-                <div class="sp-wrap"><canvas id="fdeSpark{{ $i }}"></canvas></div>
-            </div>
+                    <div class="sp-wrap"><canvas id="fdeSpark{{ $i }}"></canvas></div>
+            </button>
         @endforeach
     </div>
 
@@ -493,8 +534,10 @@ body { background: #f4f2ef; }
             </div>
 
             <div>
-                @forelse ($statusBreakdown as $row)
-                    <div class="sd-row">
+                               @forelse ($statusBreakdown as $row)
+                    <button type="button" class="sd-row"
+                            data-list="{{ data_get($row, 'key') }}"
+                            data-list-title="{{ data_get($row, 'label') }} · SRs">
                         <span class="sd-lbl" title="{{ data_get($row, 'label') }}">{{ data_get($row, 'label') }}</span>
                         <span class="sd-track">
                             <span class="sd-fill"
@@ -502,23 +545,10 @@ body { background: #f4f2ef; }
                                   style="background:{{ data_get($row, 'color', '#9a8053') }};"></span>
                         </span>
                         <span class="sd-n">{{ data_get($row, 'count') }}</span>
-                    </div>
+                    </button>
                 @empty
                     <p class="empty"><i class="bi bi-inbox"></i>No service requests in this period.</p>
                 @endforelse
-            </div>
-
-            <div class="mm-grid" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
-                <div class="mm">
-                    <div class="mm-lbl">Completed from my intake</div>
-                    <div class="mm-val" style="color:var(--ok);">{{ $completedCount ?? 0 }}</div>
-                    <div class="mm-sub">Fully closed this period</div>
-                </div>
-                <div class="mm">
-                    <div class="mm-lbl">Cancelled / rejected</div>
-                    <div class="mm-val" style="color:var(--danger);">{{ data_get($cancellation, 'count', 0) }}</div>
-                    <div class="mm-sub">{{ data_get($cancellation, 'rate', 0) }}% of my total</div>
-                </div>
             </div>
         </div>
 
@@ -546,8 +576,8 @@ body { background: #f4f2ef; }
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse ($triage as $row)
-                            <tr>
+                      @forelse ($triage as $row)
+                            <tr data-sr-code="{{ data_get($row, 'code') }}">
                                 <td style="padding-left:18px;"><span class="sr-id">{{ data_get($row, 'code') }}</span></td>
                                 <td style="font-weight:500;color:var(--text);">{{ data_get($row, 'client') }}</td>
                                 <td style="font-size:.76rem;color:var(--muted);">{{ data_get($row, 'category') }}</td>
@@ -627,16 +657,16 @@ body { background: #f4f2ef; }
                     </div>
                 </div>
                 <div class="donut-leg" style="width:100%;">
-                    <div class="leg-r">
+                    <button type="button" class="leg-r" data-list="scope" data-scope="IW" data-list-title="In-warranty SRs">
                         <span class="leg-dot" style="background:#9a8053;"></span>
                         <span class="leg-n">In-warranty</span>
                         <span class="leg-v" style="color:var(--gold);">{{ data_get($scope, 'iw', 0) }}</span>
-                    </div>
-                    <div class="leg-r">
+                    </button>
+                    <button type="button" class="leg-r" data-list="scope" data-scope="OoW" data-list-title="Out-of-warranty SRs">
                         <span class="leg-dot" style="background:#393837;"></span>
                         <span class="leg-n">Out-of-warranty</span>
                         <span class="leg-v">{{ data_get($scope, 'oow', 0) }}</span>
-                    </div>
+                    </button>
                 </div>
             </div>
         </div>
@@ -661,8 +691,10 @@ body { background: #f4f2ef; }
             </div>
 
             <div style="margin-bottom:14px;">
-                @forelse ($clients as $client)
-                    <div class="client-row">
+                               @forelse ($clients as $client)
+                    <button type="button" class="client-row"
+                            data-list="client" data-client-id="{{ data_get($client, 'id') }}"
+                            data-list-title="{{ data_get($client, 'name') }} · SRs">
                         <span class="c-rank">{{ $loop->iteration }}</span>
                         <span style="flex:1;min-width:0;">
                             <span class="c-name" style="display:block;">{{ data_get($client, 'name') }}</span>
@@ -674,7 +706,7 @@ body { background: #f4f2ef; }
                             <span class="c-count" style="display:block;">{{ data_get($client, 'srs') }}</span>
                             <span class="c-sub">SRs</span>
                         </span>
-                    </div>
+                    </button>
                 @empty
                     <p class="empty"><i class="bi bi-building"></i>No client activity in this period.</p>
                 @endforelse
@@ -718,13 +750,16 @@ body { background: #f4f2ef; }
 
             <div style="display:flex;flex-direction:column;gap:8px;">
                 @forelse (data_get($cancellation, 'items', []) as $item)
-                    <div class="cancel-item">
+                    <button type="button" class="cancel-item"
+                            data-sr-code="{{ data_get($item, 'code') }}"
+                            data-sr-client="{{ data_get($item, 'client') }}"
+                            data-sr-meta="{{ data_get($item, 'reason') }}">
                         <div style="font-size:.67rem;color:var(--muted);margin-bottom:3px;">Cancelled SR from my intake</div>
                         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
                             <span class="sr-id" style="font-size:.85rem;">{{ data_get($item, 'code') }}</span>
                             <span class="pill p-muted">{{ data_get($item, 'client') }} · {{ data_get($item, 'reason') }}</span>
                         </div>
-                    </div>
+                    </button>
                 @empty
                     <p class="empty"><i class="bi bi-check2-circle"></i>No cancellations in this period.</p>
                 @endforelse
@@ -764,13 +799,16 @@ body { background: #f4f2ef; }
 
             <div class="wa-sub-ttl">Failed — needs manual follow-up</div>
             @forelse (data_get($whatsapp, 'failedList', []) as $failure)
-                <div class="wa-fail">
+                <button type="button" class="wa-fail"
+                        data-sr-code="{{ data_get($failure, 'code') }}"
+                        data-sr-client="{{ data_get($failure, 'client') }}"
+                        data-sr-meta="{{ data_get($failure, 'reason') }}">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:3px;">
                         <span class="sr-id" style="font-size:.82rem;">{{ data_get($failure, 'code') }}</span>
                         <span class="pill p-red" style="font-size:.62rem;">Failed</span>
                     </div>
                     <div style="font-size:.74rem;color:var(--muted);">{{ data_get($failure, 'client') }} &middot; {{ data_get($failure, 'reason') }}</div>
-                </div>
+                </button>
             @empty
                 <p class="empty">
                     <i class="bi bi-{{ data_get($whatsapp, 'available') ? 'check2-circle' : 'plug' }}"></i>
@@ -827,6 +865,8 @@ body { background: #f4f2ef; }
     // Built here rather than inline: the json directive splits its argument on
     // commas, so any expression containing a comma has to be a variable first.
     $fdeChartData = [
+        'panelUrl' => $panelUrl ?? null,
+        'period'   => $filters['period'] ?? 'month',
         'sparks' => [
             data_get($kpis, 'total.spark', []),
             data_get($kpis, 'pending.spark', []),
@@ -1143,6 +1183,83 @@ window.FDE_TOAST = @json($fdeToast);
           + '</div>').join('');
     }
 
+        
+        /* --------------------------------------------------- list/mini panels */
+    function allCards() {
+        return (DATA.kanban || []).flatMap(function (col) {
+            return (col.cards || []).map(function (c) {
+                return Object.assign({}, c, { stageKey: col.key, stageLabel: col.label, stageColor: col.color });
+            });
+        });
+    }
+
+    function findCardByCode(code) {
+        return allCards().find(function (c) { return c.code === code; });
+    }
+
+        function openListPanel(type, title, id) {
+        if (!DATA.panelUrl) return;
+
+        document.getElementById('fdePanelId').textContent = 'Loading…';
+        document.getElementById('fdePanelChips').innerHTML = '';
+        document.getElementById('fdePanelBody').innerHTML =
+            '<div class="dp-sec"><p class="empty"><i class="bi bi-hourglass-split"></i>Fetching records…</p></div>';
+        overlay.classList.add('open');
+        panel.classList.add('open');
+        document.getElementById('fdePanelClose').focus();
+
+        const url = new URL(DATA.panelUrl, window.location.origin);
+        url.searchParams.set('period', DATA.period || 'month');
+        url.searchParams.set('type', type);
+        url.searchParams.set('title', title);
+        if (id !== null && id !== undefined) url.searchParams.set('id', id);
+
+        fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then((res) => { if (!res.ok) throw new Error(res.status); return res.json(); })
+            .then((payload) => {
+                document.getElementById('fdePanelId').textContent = payload.title || title;
+                document.getElementById('fdePanelChips').innerHTML =
+                    '<span class="dp-chip">' + esc(payload.subtitle || '') + '</span>';
+
+                const items = payload.items || [];
+                document.getElementById('fdePanelBody').innerHTML = '<div class="dp-sec">' + (
+                    items.length
+                        ? items.map((it) =>
+                            '<div class="pnl-item" data-open-code="' + esc(it.code) + '">'
+                          +   '<div class="pnl-item-top">'
+                          +     '<span class="pnl-item-id">' + esc(it.code) + '</span>'
+                          +     (it.badgeText ? '<span class="pnl-badge" style="background:' + esc(it.badgeColor || '#9a8053') + '22;color:' + esc(it.badgeColor || '#9a8053') + ';">' + esc(it.badgeText) + '</span>' : '')
+                          +   '</div>'
+                          +   (it.client ? '<div class="pnl-client">' + esc(it.client) + '</div>' : '')
+                          +   (it.meta ? '<div class="pnl-meta"><i class="bi bi-geo-alt"></i>' + esc(it.meta) + '</div>' : '')
+                          + '</div>'
+                          ).join('')
+                        : '<p class="empty"><i class="bi bi-inbox"></i>Nothing to show here.</p>'
+                ) + '</div>';
+            })
+            .catch(() => {
+                document.getElementById('fdePanelId').textContent = 'Could not load details';
+                document.getElementById('fdePanelBody').innerHTML =
+                    '<div class="dp-sec"><p class="empty"><i class="bi bi-wifi-off"></i>The request failed. Close and try again.</p></div>';
+            });
+    }
+
+    function openMiniPanel(code, client, meta) {
+        document.getElementById('fdePanelId').textContent = code || 'Service Request';
+        document.getElementById('fdePanelChips').innerHTML = '';
+
+        var body = '<div class="dp-sec">'
+          +   (client ? '<div class="dp-cell" style="margin-bottom:9px;"><div class="dp-cell-lbl">Client</div><div class="dp-cell-val">' + esc(client) + '</div></div>' : '')
+          +   (meta ? '<div class="dp-cell"><div class="dp-cell-lbl">Detail</div><div class="dp-cell-val">' + esc(meta) + '</div></div>' : '')
+          +   '<p style="margin-top:12px;font-size:.74rem;color:var(--muted);">Full record details aren\'t loaded on this dashboard for older/closed SRs — open the SR explorer for the complete history.</p>'
+          + '</div>';
+
+        document.getElementById('fdePanelBody').innerHTML = body;
+        overlay.classList.add('open');
+        panel.classList.add('open');
+        document.getElementById('fdePanelClose').focus();
+    }
+
     function openPanel(card, stageLabel) {
         document.getElementById('fdePanelId').textContent = card.code;
         document.getElementById('fdePanelChips').innerHTML =
@@ -1217,7 +1334,41 @@ window.FDE_TOAST = @json($fdeToast);
         panel.classList.remove('open');
     }
 
-    root.addEventListener('click', (e) => {
+        root.addEventListener('click', (e) => {
+                const listTrigger = e.target.closest('[data-list]');
+        if (listTrigger) {
+            const key   = listTrigger.dataset.list;
+            const title = listTrigger.dataset.listTitle || 'Details';
+
+            if (key === 'client') {
+                openListPanel('client', title, listTrigger.dataset.clientId);
+            } else if (key === 'scope') {
+                openListPanel('scope', title, listTrigger.dataset.scope);
+            } else {
+                openListPanel(key, title);
+            }
+            return;
+        }
+
+        const openCode = e.target.closest('[data-open-code]');
+        if (openCode) {
+            const card = findCardByCode(openCode.dataset.openCode);
+            if (card) openPanel(card, card.stageLabel || 'Service Request');
+            return;
+        }
+
+        const srTrigger = e.target.closest('[data-sr-code]');
+        if (srTrigger) {
+            const code  = srTrigger.dataset.srCode;
+            const found = code ? findCardByCode(code) : null;
+            if (found) {
+                openPanel(found, found.stageLabel || 'Service Request');
+            } else {
+                openMiniPanel(code, srTrigger.dataset.srClient, srTrigger.dataset.srMeta);
+            }
+            return;
+        }
+
         const cardEl = e.target.closest('.kb-card');
         if (cardEl) {
             const col  = (DATA.kanban || []).find((c) => c.key === cardEl.dataset.col);
@@ -1225,6 +1376,7 @@ window.FDE_TOAST = @json($fdeToast);
             if (card) openPanel(card, col.label);
             return;
         }
+
         if (e.target.closest('#fdePanelClose') || e.target === overlay) closePanel();
     });
 
