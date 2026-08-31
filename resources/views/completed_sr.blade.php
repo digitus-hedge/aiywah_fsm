@@ -259,7 +259,8 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
           <th>Site / Location</th>
           <th>Worker</th>
           <th>SLA Elapsed</th>
-          <th>Total</th>
+          <th>Material Exp.</th>
+          <th>Invoice Total</th>
           <th>Completed</th>
           <th style="width:70px;">Action</th>
         </tr>
@@ -279,6 +280,8 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
             // Invoice total lives on service_requests.invoice_total — only show it
             // when it's actually been recorded, no fallback to punch grand_total.
             $hasInvoiceTotal = $sr->invoice_total !== null;
+            $materialsAmt    = $punch->materials_subtotal ?? 0;
+            $invoiceAmt      = $hasInvoiceTotal ? $sr->invoice_total : null;
             $grandTotal      = $hasInvoiceTotal ? $sr->invoice_total : ($punch->materials_subtotal ?? 0);
             $worker          = optional($punch?->user)->name ?? 'Unassigned';
 
@@ -404,7 +407,14 @@ $qc        = $qcFor($qcHrs);
 
           </td>
 
-            <td class="cell-total">{{ number_format($grandTotal, 2) }}</td> {{-- invoice_total --}}
+            <td class="muted">{{ number_format($materialsAmt, 2) }}</td>
+            <td class="cell-total">
+              @if($hasInvoiceTotal)
+                {{ number_format($invoiceAmt, 2) }}
+              @else
+                <span class="muted">—</span>
+              @endif
+            </td>
             <td class="muted">{{ $completedAt->diffForHumans() }}</td>
             <td onclick="event.stopPropagation()">
               <div style="display:flex;gap:5px;">

@@ -279,7 +279,7 @@ class DashboardController extends Controller
         }
 
         if (strtoupper((string) optional($request->user()->role)->code) === 'AC') {
-            return redirect()->route('kanban_view');
+            return redirect()->route('accountant.dashboard');
         }
         $isHopSe = optional($request->user()->role)->code === 'HP' && (bool) $request->user()->is_se_enabled;
         $filters = [

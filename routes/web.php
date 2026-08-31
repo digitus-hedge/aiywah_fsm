@@ -25,6 +25,8 @@ use App\Http\Controllers\MlDashboardController;
 use App\Http\Controllers\FrontDashboardController;
 use App\Http\Controllers\SEDashboardController;
 use App\Http\Controllers\ReworkServiceRequestController;
+use App\Http\Controllers\AccountantDashboardController;
+
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -115,6 +117,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/user-directory/{user}',[UserdirectoryController::class, 'show'])->name('user_directory.show');
 
+    Route::get('/accountant/dashboard', [AccountantDashboardController::class, 'index'])
+        ->name('accountant.dashboard');
+        
     /* ---- Inquiry Approval ---- */
     Route::get('/inquiry-approval', [ServiceRequestController::class, 'approvalIndex'])->name('inquiry-approval.index');
     Route::post('/service-requests/{serviceRequest}/approve', [ServiceRequestController::class, 'approve'])->name('service-requests.approve');

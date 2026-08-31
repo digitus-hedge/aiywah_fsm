@@ -1676,6 +1676,7 @@ private function rlsScope(string $module): ?array
 
     public function invoicePanel()
     {
+        $canHopApprove = (bool) auth()->user()?->hasAnyAccess('invoice_hop_approve');
         $pending = ServiceRequest::with([
             'client',
             'project',
@@ -1747,7 +1748,9 @@ private function rlsScope(string $module): ?array
             0
         );
 
-        return view('invoice_panel', compact('invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth'));
+         return view('invoice_panel', compact(
+        'invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth', 'canHopApprove'
+    ));
     }
 public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
 {
@@ -1793,6 +1796,14 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
 }
     public function hopApprove(ServiceRequest $serviceRequest)
 {
+     if (! auth()->user()?->hasAnyAccess('invoice_hop_approve')) {
+        return response()->json([
+            'ok'      => false,
+            'success' => false,
+            'message' => 'You do not have permission to approve invoices for closure.',
+        ], 403);
+    }
+
     $oldStatus = $serviceRequest->status;
 
     $serviceRequest->update([
