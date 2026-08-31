@@ -427,7 +427,7 @@
 var INV_QUEUE   = @json($invQueue ?? []);
 var PENDING_HOP = @json($pendingHop ?? []);
 var CSRF        = '{{ csrf_token() }}';
-
+var CAN_HOP_APPROVE = @json($canHopApprove ?? false);
 /* filtered views — what actually gets rendered */
 var INV_FILTERED = INV_QUEUE.slice();
 var PH_FILTERED  = PENDING_HOP.slice();
@@ -582,16 +582,20 @@ function renderPH(list){
     return;
   }
   tbody.innerHTML = list.map(function(item){
-    return '<tr>'+
-      '<td class="mono">'+item.sr+'</td>'+
-      '<td style="font-weight:500;">'+item.client+'</td>'+
-      '<td class="muted">'+item.site+'</td>'+
-      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.code+'</span></td>'+
-      '<td class="muted">'+item.submitted+'</td>'+
-      '<td><span style="font-size:.75rem;color:#9a8053;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
-      '<td style="text-align:center;"><button class="btn-mark btn-mark-blue" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openHopModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-patch-check-fill"></i>Mark HoP Approved &amp; Close</button></td>'+
-    '</tr>';
-  }).join('');
+  var actionCell = CAN_HOP_APPROVE
+    ? '<button class="btn-mark btn-mark-blue" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openHopModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-patch-check-fill"></i>Mark HoP Approved &amp; Close</button>'
+    : '<span style="font-size:.72rem;color:var(--text-muted);"><i class="bi bi-lock" style="margin-right:4px;"></i>No access</span>';
+
+  return '<tr>'+
+    '<td class="mono">'+item.sr+'</td>'+
+    '<td style="font-weight:500;">'+item.client+'</td>'+
+    '<td class="muted">'+item.site+'</td>'+
+    '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.code+'</span></td>'+
+    '<td class="muted">'+item.submitted+'</td>'+
+    '<td><span style="font-size:.75rem;color:#9a8053;display:inline-flex;align-items:center;gap:4px;"><i class="bi bi-clock"></i>'+item.waiting+'</span></td>'+
+    '<td style="text-align:center;">'+actionCell+'</td>'+
+  '</tr>';
+}).join('');
 }
 
 /* ---------- FILTERS ---------- */

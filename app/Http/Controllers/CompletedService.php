@@ -219,8 +219,9 @@ class CompletedService extends Controller
 
         // Invoice total should only appear when it's actually been recorded
         // on the service_requests table — no fallback to punch grand_total.
+        
         $hasInvoiceTotal = $sr->invoice_total !== null;
-        $invoiceTotal    = $hasInvoiceTotal ? $sr->invoice_total : 0;
+        $invoiceTotal    = $hasInvoiceTotal ? $sr->invoice_total : null;
 
         return [
             'id'          => $sr->id,
@@ -283,7 +284,7 @@ class CompletedService extends Controller
                 'Duration',
                 'Materials',
                 'Labour',
-                'Grand Total',
+                 'Invoice Total',
                 'Completed',
             ]);
 
@@ -301,7 +302,7 @@ class CompletedService extends Controller
                     $p['duration'],
                     $p['materials'],
                     $p['labour'],
-                    $p['total'],
+                    $p['invoice_total'] ?? '',
                     $p['completed'],
                 ]);
             }

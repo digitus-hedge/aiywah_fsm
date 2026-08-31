@@ -68,6 +68,7 @@ class PermissionSeeder extends Seeder
 
             // System
             ['analytics',              'Analytics',              'System',            'bar-chart-2',    null,                    17],
+            ['invoice_hop_approve',    'Invoice HoP Approval',   'Finance',           null,             null,                    23], 
             ['user_directory',         'User Directory',         'System',            'users',          'user_directory',        18],
             ['user_provisioning',      'User Provisioning',      'System',            'shield',         'user_provisioning',     19],
             ['master_data',            'Master Data',            'System',            'database',       'masters.index',         20],
@@ -119,6 +120,7 @@ class PermissionSeeder extends Seeder
                 'assigned'               => 'yes',
                 'quotation_desk'         => 'view',   // finance owns pricing
                 'invoice_panel'          => 'yes',
+                'invoice_hop_approve'    => 'yes',
                 'qc_review'              => 'yes',
                 'completed'              => 'view',   // closed work is a record
                 'expense_ledger'         => 'view',
@@ -172,6 +174,7 @@ class PermissionSeeder extends Seeder
 
             // Accounts / AR — out-of-warranty financial flows only.
             'AC' => array_merge($deny, [
+                'dashboard'         => 'yes',
                 'kanban_view'     => 'view_rls',
                 'sr_explorer'     => 'view_rls',
                 'quotation_desk' => 'grant',
