@@ -13,6 +13,10 @@
 .qd-wrap h4,.qd-wrap h5,.qd-wrap h6,.qd-wrap .pg-hdr-title,.qd-wrap .card-title,
 .qd-wrap .ws-sr-id,.qd-wrap .qi-id,.qd-wrap .stat-num,.qd-wrap .pa-card-title{letter-spacing:-.01em;}
 
+.qd-wrap .qi-id.sr-ref-trigger,
+.qd-wrap .ws-sr-id.sr-ref-trigger,
+.qd-wrap td.mono .sr-ref-trigger{ cursor:pointer; }
+
 /* PAGE HEADER */
 .qd-wrap .pg-header{background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden;}
 .qd-wrap .pg-header::before{content:'';position:absolute;left:-40px;bottom:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.05);}
@@ -410,6 +414,7 @@
 
   <div class="qd-toast-wrap" id="qdToastWrap"></div>
 </div>
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -513,7 +518,7 @@ function renderQQueue(list){
   ul.innerHTML = list.map(function(sr){
     var ac = selQ && selQ.id===sr.id ? ' active':'';
     return '<div class="queue-item'+ac+'" data-id="'+sr.id+'" onclick="selectQ(this.dataset.id)">'+
-      '<div class="qi-id">'+sr.id+'</div>'+
+      '<div class="qi-id sr-ref-trigger" data-sr-id="'+sr.dbId+'" onclick="event.stopPropagation(); openSrTracking('+sr.dbId+');">'+sr.id+'</div>'+
       '<div class="qi-client">'+sr.client+'</div>'+
       '<div class="qi-sub"><i class="bi bi-geo-alt" style="font-size:.7rem;"></i> '+sr.site+'</div>'+
       '<div class="qi-foot">'+
@@ -537,7 +542,10 @@ function selectQ(id){
   document.getElementById('q-empty').style.display   = 'none';
   document.getElementById('q-success').classList.remove('show');
   document.getElementById('q-detail').style.display = 'flex';
-  document.getElementById('q-sr-id').textContent     = selQ.id;
+  var qSrIdEl = document.getElementById('q-sr-id');
+qSrIdEl.textContent = selQ.id;
+qSrIdEl.classList.add('sr-ref-trigger');
+qSrIdEl.onclick = function(){ openSrTracking(selQ.dbId); };
   document.getElementById('q-sr-client').textContent = selQ.client;
   document.getElementById('q-sr-site').innerHTML     = '<i class="bi bi-geo-alt" style="color:#9a8053;font-size:.8rem;"></i> '+selQ.site;
   document.getElementById('q-chips').innerHTML =
@@ -562,7 +570,7 @@ function renderPA(list){
       ? '<button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Record Decision</button>'
       : '<span class="muted" style="font-size:.75rem;">—</span>';
     return '<tr>'+
-      '<td class="mono">'+item.sr+'</td>'+
+      '<td class="mono"><span class="sr-ref-trigger" data-sr-id="'+item.dbId+'" onclick="openSrTracking('+item.dbId+');">'+item.sr+'</span></td>'+
       '<td style="font-weight:500;">'+item.client+'</td>'+
       '<td class="muted">'+item.site+'</td>'+
       '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.ref+'</span></td>'+
@@ -726,7 +734,7 @@ function renderRJ(list){
   }
   tbody.innerHTML = list.map(function(item){
     return '<tr>'+
-      '<td class="mono">'+item.sr+'</td>'+
+      '<td class="mono"><span class="sr-ref-trigger" data-sr-id="'+item.dbId+'" onclick="openSrTracking('+item.dbId+');">'+item.sr+'</span></td>'+
       '<td style="font-weight:500;">'+item.client+'</td>'+
       '<td class="muted">'+item.site+'</td>'+
       '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+(item.ref||'—')+'</span></td>'+

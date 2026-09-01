@@ -77,6 +77,10 @@
 .qc-wrap .sla-bar{height:3px;border-radius:2px;margin-top:7px;background:var(--surface-3);overflow:hidden;}
 .qc-wrap .sla-bar-fill{height:100%;border-radius:2px;transition:width .3s;}
 
+.qc-wrap .queue-item-id.sr-ref-trigger,
+.qc-wrap .ws-sr-id.sr-ref-trigger{ cursor:pointer; }
+.qc-wrap .queue-item-id.sr-ref-trigger:hover,
+
 /* QC WORKSPACE (RIGHT PANEL) */
 .qc-wrap .ws-panel{display:flex;flex-direction:column;gap:14px;}
 .qc-wrap .ws-empty{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;box-shadow:var(--card-shadow);padding:60px 24px;text-align:center;}
@@ -662,6 +666,7 @@
 
   <div class="qc-toast-wrap" id="toastWrap"></div>
 </div>
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -704,7 +709,7 @@ const ownerTag = sr.canAct ? '' :
   `<span class="owner-chip ${ownerCls}" title="QC owner: ${sr.qcOwner}"><i class="bi bi-lock-fill" style="font-size:.6rem;"></i>${sr.qcOwner}</span>`;
 
 return `<div class="queue-item ${active} ${lockCls}" id="qi-${sr.id}" onclick="selectSR('${sr.id}')">
-  <div class="queue-item-id">${sr.id}</div>
+  <div class="queue-item-id sr-ref-trigger" data-sr-id="${sr.dbId}" onclick="event.stopPropagation(); openSrTracking(${sr.dbId});">${sr.id}</div>
   <div class="queue-item-client">${sr.client}</div>
   <div class="queue-item-site"><i class="bi bi-geo-alt" style="font-size:.7rem;"></i> ${sr.site}</div>
   <div class="queue-item-foot">
@@ -811,7 +816,10 @@ function selectSR(id){
   document.getElementById('ws-success').classList.remove('show');
   document.getElementById('ws-detail').classList.add('show');
 
-  document.getElementById('ws-sr-id').textContent    = selectedSR.id;
+  const wsIdEl = document.getElementById('ws-sr-id');
+  wsIdEl.textContent = selectedSR.id;
+  wsIdEl.classList.add('sr-ref-trigger');
+  wsIdEl.onclick = function(){ openSrTracking(selectedSR.dbId); };
   document.getElementById('ws-client').textContent   = selectedSR.client;
   document.getElementById('ws-site').innerHTML       = `<i class="bi bi-geo-alt" style="color:#9a8053;font-size:.8rem;"></i> ${selectedSR.site}`;
   document.getElementById('ws-tech').textContent     = selectedSR.tech;

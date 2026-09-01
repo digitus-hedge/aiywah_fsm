@@ -184,6 +184,7 @@ table.listing tr:hover .row-actions{opacity:1;}
 .tl-action{font-size:.78rem;font-weight:500;color:var(--text-heading);line-height:1.3;}
 .tl-by{font-size:.7rem;color:var(--text-muted);margin-top:2px;}
 .tl-time{font-size:.65rem;color:var(--text-light);margin-top:3px;}
+.tl-action .sr-ref-trigger{ cursor:pointer; }
 
 /* ── DONUT ── */
 .donut-wrap{padding:16px;text-align:center;}
@@ -227,6 +228,10 @@ table.listing tr:hover .row-actions{opacity:1;}
 .exp-cat{font-size:.68rem;font-weight:600;background:rgba(154,128,83,.1);color:#9a8053;border-radius:5px;padding:2px 6px;white-space:nowrap;}
 .exp-desc{font-size:.77rem;color:var(--text-heading);flex:1;min-width:0;}
 .exp-amt{font-size:.81rem;font-weight:700;color:var(--text-heading);white-space:nowrap;}
+
+table.listing td.mono .sr-ref-trigger,
+.drawer-title.sr-ref-trigger,
+.det-val.mono.sr-ref-trigger{ cursor:pointer; }
 
 /* ── INQUIRY DRAWER ── */
 .inq-drawer{position:fixed;top:0;right:0;bottom:0;width:540px;max-width:100vw;background:var(--modal-bg);border-left:1px solid var(--card-border);box-shadow:var(--drawer-shadow);z-index:1101;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
@@ -837,7 +842,11 @@ span#cds
           data-warranty="{{ $isInWarranty ? 'iw' : 'oow' }}"
           data-date="{{ $sr->created_at?->toDateString() }}">
 
-        <td class="mono">{{ $sr->code }}</td>
+        <td class="mono">
+          <span class="sr-ref-trigger" data-sr-id="{{ $sr->id }}" onclick="event.stopPropagation(); openSrTracking({{ $sr->id }});">
+            {{ $sr->code }}
+          </span>
+        </td>
         <td class="muted">{{ $sr->created_at?->format('d M Y') ?? '—' }}</td>
 
         <td style="font-size:.76rem;max-width:105px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -1033,9 +1042,15 @@ span#cds
           <i class="bi {{ $act['icon'] }}" style="color:{{ $act['color'] }};font-size:.65rem;"></i>
         </div>
         <div class="tl-content">
-          <div class="tl-action">{{ $act['title'] }}</div>
-          <div class="tl-by">by {{ $act['by'] }}</div>
-          <div class="tl-time">
+            <div class="tl-action">
+              @if(!empty($act['sr_id']))
+                <span class="sr-ref-trigger" data-sr-id="{{ $act['sr_id'] }}" onclick="openSrTracking({{ $act['sr_id'] }});">{{ $act['title'] }}</span>
+              @else
+                {{ $act['title'] }}
+              @endif
+            </div>
+            <div class="tl-by">by {{ $act['by'] }}</div>
+            <div class="tl-time">
             @if($act['at']->isToday())
               Today, {{ $act['at']->format('h:i A') }}
             @elseif($act['at']->isYesterday())
@@ -1261,6 +1276,7 @@ span#cds
   </div>
 
   <div id="toastWrap"></div>
+  @include('partials.sr_tracking_modal')
 @endsection
 
 
@@ -1346,7 +1362,10 @@ function openDrawer(id) {
   var PROJECT_SITE = @js($project->site_name);
 
   /* ── header ── */
-  document.getElementById('dTitle').textContent = sr.code;
+  var dTitleEl = document.getElementById('dTitle');
+dTitleEl.textContent = sr.code;
+dTitleEl.classList.add('sr-ref-trigger');
+dTitleEl.onclick = function(){ openSrTracking(id); };
   document.getElementById('dSub').textContent   = sr.category;
   var cfg = STATUS_CFG[sr.status] || { icon: 'bi-ticket-detailed' };
   document.getElementById('dhdrIcon').innerHTML = '<i class="bi ' + cfg.icon + '"></i>';
@@ -1425,7 +1444,7 @@ if (items.length) {
     '<div class="d-section">' +
       '<div class="d-sec-title"><i class="bi bi-info-circle"></i>Ticket Overview</div>' +
       '<div class="det-grid">' +
-        '<div class="det-cell"><div class="det-key">SR ID</div><div class="det-val mono">' + sr.code + '</div></div>' +
+        '<div class="det-cell"><div class="det-key">SR ID</div><div class="det-val mono sr-ref-trigger" onclick="openSrTracking(' + id + ')">' + sr.code + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Current Status</div><div class="det-val">' + statusBadge(sr.status) + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Date Raised</div><div class="det-val">' + (sr.date || '—') + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Priority</div><div class="det-val">' + (sr.priority || '—') + '</div></div>' +

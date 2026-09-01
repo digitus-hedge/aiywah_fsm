@@ -423,7 +423,11 @@ $srPayload = [
           <tr class="{{ $rowClass }}" data-status="{{ $sr->status }}"
               data-sr='@json($srPayload)'
               onclick="openSrModal(this)">
-            <td class="mono">{{ $srCode }}</td>
+            <td class="mono">
+              <span class="sr-ref-trigger" data-sr-id="{{ $sr->id }}" onclick="event.stopPropagation(); openSrTracking({{ $sr->id }});">
+                {{ $srCode }}
+              </span>
+            </td>
             <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name }}</strong></td>
            <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
 
@@ -586,7 +590,7 @@ $srPayload = [
 
 
 <div id="toastWrap"></div>
-
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')

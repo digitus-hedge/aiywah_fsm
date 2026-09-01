@@ -26,7 +26,7 @@ use App\Http\Controllers\FrontDashboardController;
 use App\Http\Controllers\SEDashboardController;
 use App\Http\Controllers\ReworkServiceRequestController;
 use App\Http\Controllers\AccountantDashboardController;
-
+use App\Http\Controllers\SrTrackingController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -159,7 +159,8 @@ Route::middleware('auth')->group(function () {
     // Job Tracking
     Route::get('/job-tracking/{id}', [ClientController::class, 'job_tracking'])->name('clients.job_tracking');
     Route::get('/job-tracking/{id}/data', [ClientController::class, 'job_tracking_data'])->name('clients.job_tracking.data');
-
+    //sr-tracking
+    Route::get('/sr-tracking/{id}/popup', [SrTrackingController::class, 'popup'])->name('sr.tracking.popup');
 
     Route::get('project_site_directory',   [ProjectController::class, 'index'])->name('project_site_directory');
     Route::post('projects',                [ProjectController::class, 'store'])->name('projects.store');
@@ -320,6 +321,9 @@ Route::prefix('worker')->name('worker.')->group(function () {
         Route::post('/password', [WorkerLoginController::class, 'changePassword'])->name('password.change');
 
         Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
+        Route::get('/sr-tracking-mobile/{id}/popup', [SrTrackingController::class, 'popupForWorker'])
+        ->name('worker.sr.tracking.popup');
+
         // Forced reset — outside the gate, or you get a redirect loop
         Route::get('/set-password',  [WorkerPasswordController::class, 'showForcedResetForm'])->name('password.forced');
         Route::post('/set-password', [WorkerPasswordController::class, 'forcedReset'])->name('password.forced.update');

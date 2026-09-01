@@ -75,6 +75,7 @@ class WhatsappLog extends Model
         return [
             'id'        => $this->id,
             'sr'        => $this->sr_reference ?? '—',
+            'srId'      => $this->service_request_id,
             'recipient' => $this->recipient,
             'client'    => $this->client_name ?? '—',
             'event'     => $this->event,

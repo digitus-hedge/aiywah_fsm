@@ -45,6 +45,7 @@ table.listing tbody tr:hover{background:var(--table-hover);}
 table.listing td{padding:11px 16px;font-size:.8125rem;color:var(--text-primary);vertical-align:middle;}
 table.listing td.muted{color:var(--text-muted);font-size:.78rem;}
 table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
+.mono .sr-ref-trigger{ cursor:pointer; }
 /* BUTTONS */
 .btn-gold{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:linear-gradient(135deg,#9A7B4F,#C4A882);color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:500;cursor:pointer;white-space:nowrap;}
 .btn-gold:hover{opacity:.87;}
@@ -326,6 +327,7 @@ $qc        = $qcFor($qcHrs);
 
             $srPayload = [
               'code'        => $srCode,
+               'dbId'        => $sr->id,
               'client'      => optional($sr->client)->company_name ?? '—',
               'site'        => optional($sr->project)->site_name ?? '—',
               'worker'      => $worker,
@@ -372,7 +374,11 @@ $qc        = $qcFor($qcHrs);
             ];
           @endphp
           <tr data-sr='@json($srPayload)' onclick="openSrModal(this)">
-            <td class="mono">{{ $srCode }}</td>
+            <td class="mono">
+              <span class="sr-ref-trigger" data-sr-id="{{ $sr->id }}" onclick="event.stopPropagation(); openSrTracking({{ $sr->id }});">
+                {{ $srCode }}
+              </span>
+            </td>
             <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name ?? '—' }}</strong></td>
             <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
             <td>
@@ -574,7 +580,7 @@ $qc        = $qcFor($qcHrs);
 </div>
 
 <div id="toastWrap"></div>
-
+@include('partials.sr_tracking_modal')
 @endsection
 
 
@@ -616,8 +622,15 @@ function openSrModal(row){
   try { data = JSON.parse(row.getAttribute('data-sr') || '{}'); }
   catch (e) { data = {}; }
   currentSr = data;
-
-  _set('sr-m-id', data.code);
+var idEl = document.getElementById('sr-m-id');
+if (idEl) {
+  idEl.textContent = data.code || '—';
+  if (data.dbId) {
+    idEl.classList.add('sr-ref-trigger');
+    idEl.style.cursor = 'pointer';
+    idEl.onclick = function(){ openSrTracking(data.dbId); };
+  }
+}('sr-m-id', data.code);
   _set('sr-m-client', data.client);
   _set('sr-m-warranty', data.warranty);
   _set('sr-m-site', data.site);

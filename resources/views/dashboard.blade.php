@@ -2024,6 +2024,7 @@ button.kpi.k5
 
     <div class="toast-wrap" id="mmToasts" aria-live="polite"></div>
 </div>
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -2642,24 +2643,30 @@ if (fdEl && (DATA.frontDesk || []).length) {
     }
 
     function renderPanelItems(items) {
-        if (!items || !items.length) {
-            return '<p class="empty"><i class="bi bi-inbox"></i>Nothing to show here yet.</p>';
-        }
-        return items.map((item) => {
-            const colour = item.color || GOLD;
-            return '<div class="pr">'
-                +   '<div class="pr-top">'
-                +     '<span class="pr-id">' + escapeHtml(item.reference) + '</span>'
-                +     (item.badge
-                        ? '<span class="pr-badge" style="background:' + escapeHtml(colour) + '22;color:' + escapeHtml(colour) + ';">'
-                          + escapeHtml(item.badge) + '</span>'
-                        : '')
-                +   '</div>'
-                +   (item.title ? '<div class="pr-client">' + escapeHtml(item.title) + '</div>' : '')
-                +   (item.meta  ? '<div class="pr-meta"><i class="bi bi-geo-alt"></i>' + escapeHtml(item.meta) + '</div>' : '')
-                + '</div>';
-        }).join('');
+    if (!items || !items.length) {
+        return '<p class="empty"><i class="bi bi-inbox"></i>Nothing to show here yet.</p>';
     }
+    return items.map((item) => {
+        const colour = item.color || GOLD;
+        const label  = item.reference || item.id || '—';
+        const refHtml = item.dbId
+            ? '<span class="pr-id sr-ref-trigger" data-sr-id="' + escapeHtml(item.dbId) + '" onclick="event.stopPropagation(); openSrTracking(' + Number(item.dbId) + ')">'
+              + escapeHtml(label) + '</span>'
+            : '<span class="pr-id">' + escapeHtml(label) + '</span>';
+
+        return '<div class="pr">'
+            +   '<div class="pr-top">'
+            +     refHtml
+            +     (item.badge
+                    ? '<span class="pr-badge" style="background:' + escapeHtml(colour) + '22;color:' + escapeHtml(colour) + ';">'
+                      + escapeHtml(item.badge) + '</span>'
+                    : '')
+            +   '</div>'
+            +   (item.title ? '<div class="pr-client">' + escapeHtml(item.title) + '</div>' : '')
+            +   (item.meta  ? '<div class="pr-meta"><i class="bi bi-geo-alt"></i>' + escapeHtml(item.meta) + '</div>' : '')
+            + '</div>';
+    }).join('');
+}
 
 
 

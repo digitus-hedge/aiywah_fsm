@@ -21,6 +21,7 @@
   border-radius:12px; padding:22px 26px; margin-bottom:18px;
   color:#fff; position:relative; overflow:hidden;
 }
+.exl-wrap td.mono .sr-ref-trigger{ cursor:pointer; }
 .exl-wrap .pg-header::before {
   content:''; position:absolute; left:-40px; bottom:-40px; width:180px; height:180px;
   border-radius:50%; background:rgba(255,255,255,.05);
@@ -414,6 +415,7 @@
 
   <div class="exl-toast-wrap" id="exlToastWrap"></div>
 </div>
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -490,7 +492,11 @@ function render(list) {
 
     return `<tr>
       <td class="muted">${start + i + 1}</td>
-      <td class="mono">${esc(e.sr)}</td>
+      <td class="mono">${
+          e.srId
+            ? `<span class="sr-ref-trigger" data-sr-id="${esc(e.srId)}" onclick="openSrTracking(${e.srId})">${esc(e.sr)}</span>`
+            : esc(e.sr)
+        }</td>
       <td class="tech">${esc(e.tech)}</td>
       <td>${esc(e.name ?? '—')}</td>
       <td class="muted">${esc(e.cat)}</td>

@@ -232,6 +232,7 @@ class DashboardController extends Controller
                 'id'     => $sr->sr_number
                     ?: 'SR-' . ($sr->created_at?->format('Y') ?? date('Y'))
                     . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
+                'dbId'   => $sr->id,   // ← ADD THIS
                 'client' => $sr->client->company_name ?? '—',
                 'meta'   => implode(' · ', $meta),
                 'badge'  => $sr->status ?: 'Unknown',
@@ -522,12 +523,13 @@ class DashboardController extends Controller
                 if ($score <= 2)             $meta[] = 'Flagged for QC review';
 
                 return [
-                    'id'     => $this->srCode($sr),
-                    'client' => optional($sr->client)->company_name ?: ($sr->project_site ?: '—'),
-                    'badge'  => $score . '★',
-                    'bc'     => $this->ratingColor($score),
-                    'meta'   => implode(' · ', $meta),
-                ];
+                        'id'     => $this->srCode($sr),
+                        'dbId'   => $sr->id,   // ← ADD THIS
+                        'client' => optional($sr->client)->company_name ?: ($sr->project_site ?: '—'),
+                        'badge'  => $score . '★',
+                        'bc'     => $this->ratingColor($score),
+                        'meta'   => implode(' · ', $meta),
+                    ];
             })
             ->values()
             ->all();
@@ -1832,7 +1834,6 @@ class DashboardController extends Controller
 
         $items = $srs
             ->sortByDesc('created_at')
-
             ->map(function ($sr) use ($type) {
                 $isCritical = $type === 'sla-breach' && $this->isCriticalBreach($sr);
 
@@ -1853,11 +1854,10 @@ class DashboardController extends Controller
 
                 return [
                     'reference' => $sr->code,
+                    'dbId'      => $sr->id,   // ← ADD THIS
                     'badge'     => $isCritical ? 'Critical' : $sr->status,
                     'color'     => $isCritical ? '#dc2626' : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
-                    // 'title'     => $sr->project?->client?->company_name ?? '—',
                     'title'     => $sr->client?->company_name ?? '—',
-
                     'meta'      => $meta->filter()->implode(' · '),
                 ];
             })
@@ -2060,4 +2060,5 @@ private function expenseTotal(array $filters, Carbon $start, Carbon $end): float
             mb_substr($parts[0] ?? '', 0, 1) . (isset($parts[1]) ? mb_substr($parts[1], 0, 1) : '')
         );
     }
+    
 }

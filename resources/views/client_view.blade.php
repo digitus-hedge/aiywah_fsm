@@ -1130,7 +1130,7 @@
     min-width: 0;
     overflow: hidden;
   }
-
+  .tl-action .sr-ref-trigger{ cursor:pointer; }
   .tl-action {
     font-size: .78rem;
     font-weight: 600;
@@ -1875,7 +1875,13 @@
           <i class="bi {{ $style['ic'] }}" style="color:{{ $style['col'] }};font-size:{{ $style['fs'] }};"></i>
         </div>
         <div class="tl-content">
-          <div class="tl-action">{{ $a['title'] }}</div>
+          <div class="tl-action">
+            @if(($a['type'] ?? null) === 'sr' && !empty($a['sr_id']))
+              <span class="sr-ref-trigger" data-sr-id="{{ $a['sr_id'] }}" onclick="openSrTracking({{ $a['sr_id'] }});">{{ $a['title'] }}</span>
+            @else
+              {{ $a['title'] }}
+            @endif
+          </div>
           <div class="tl-by">{{ $a['sub'] }}</div>
           <div class="tl-time">{{ $a['time']->diffForHumans() }}</div>
         </div>
@@ -2028,7 +2034,7 @@
 </div>
 
 <div id="toastWrap"></div>
-
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')

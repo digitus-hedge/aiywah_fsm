@@ -17,7 +17,7 @@
   flex:0 0 auto;white-space:nowrap;}
 .tf-btn:hover{border-color:var(--gold-border);color:var(--gold);}
 .tf-btn.active{background:var(--gold);border-color:var(--gold);color:#fff;}
-
+.sr-ref-trigger{ cursor:pointer; }
 /* ══════════════════════════════════════════════════════ JOB CARDS ═══ */
 .pl-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;
   box-shadow:var(--shadow);overflow:hidden;transition:border-color .15s;}
@@ -485,7 +485,7 @@
     <article class="pl-card">
       <div class="jc-main">
         <div class="jc-top">
-          <span class="jc-sr">{{ $r['ref'] }}</span>
+          <span class="jc-sr sr-ref-trigger" data-sr-id="{{ $r['srId'] }}" onclick="openSrTracking({{ $r['srId'] }})">{{ $r['ref'] }}</span>
           <!-- <span class="pill pill-red">Reallocated</span> -->
         </div>
 
@@ -1052,7 +1052,7 @@ const statusCls = isRealloc ? 'pill-purple' : badgeClass;
     <article class="pl-card${isActive ? ' is-active' : ''}${isAccepted && !isActive ? ' is-accepted' : ''}" id="jcard-${ref}">
       <div class="jc-main" data-toggle="${ref}">
         <div class="jc-top">
-          <span class="jc-sr">${ref}</span>
+          <span class="jc-sr sr-ref-trigger" data-sr-id="${Number(job.sr_id)}" onclick="event.stopPropagation(); openSrTracking(${Number(job.sr_id)})">${ref}</span>
           <div style="display:flex;gap:6px;align-items:center;">
             <span class="pill ${statusCls}">${esc(statusLbl)}</span>
             ${isActive ? '<span class="pill pill-green">&#9679; Live</span>' : ''}
@@ -1301,7 +1301,7 @@ function buildBanner(job, etaDate, etaTime) {
   const shortSite = String(job.site ?? '').split(',')[0];
 
   $('jobBanner').innerHTML = `
-    <div class="ajb-sr">${esc(job.id)} \u00b7 ${esc(job.domain)}</div>
+    <div class="ajb-sr"><span class="sr-ref-trigger" style="color:inherit;" data-sr-id="${Number(job.sr_id)}" onclick="openSrTracking(${Number(job.sr_id)})">${esc(job.id)}</span> \u00b7 ${esc(job.domain)}</div>
     <div class="ajb-client">${esc(job.client)}</div>
     <div class="ajb-site"><i class="bi bi-geo-alt-fill"></i>${esc(shortSite)}</div>
     <div class="ajb-meta">
@@ -1310,7 +1310,7 @@ function buildBanner(job, etaDate, etaTime) {
     <span class="ajb-chip" style="color:${sla.color};"><i class="bi bi-clock"></i>${sla.hrs}h · ${esc(sla.name)}</span>
     </div>`;
 
-  $('termTitle').innerHTML = `<i class="bi bi-broadcast"></i>${esc(job.id)}`;
+  $('termTitle').innerHTML = `<i class="bi bi-broadcast"></i><span class="sr-ref-trigger" style="color:inherit;" data-sr-id="${Number(job.sr_id)}" onclick="openSrTracking(${Number(job.sr_id)})">${esc(job.id)}</span>`;
   $('termSub').textContent  = job.client;
   $('expSrRef').textContent = job.id;
   $('rsSrRef').textContent  = job.id;
@@ -2245,7 +2245,7 @@ async function loadHistory(force = false) {
     list.innerHTML = res.items.map((h) => `
       <article class="hist-card">
         <div class="hist-top">
-          <span class="hist-ref">${esc(h.ref)}</span>
+          <span class="hist-ref sr-ref-trigger" data-sr-id="${Number(h.sr_id)}" onclick="openSrTracking(${Number(h.sr_id)})">${esc(h.ref)}</span>
           <div style="display:flex;gap:6px;align-items:center;">
             <span class="pill pill-${esc(h.status)}">${esc(h.status)}</span>
             <span class="hist-date">${esc(h.date)}</span>
@@ -2511,13 +2511,17 @@ function restoreTerminal(state) {
 function applyFilter(name) {
   if (!name) return false;
 
-  const buttons = Array.from(document.querySelectorAll('.tf-btn'));
+  const buttons = Array.from(document.querySelectorAll('#tabFilter .tf-btn'));
   const target  = buttons.find((b) => b.dataset.filter.toLowerCase() === String(name).toLowerCase());
   if (!target) return false;
 
   currentFilter = target.dataset.filter;
   buttons.forEach((b) => b.classList.remove('active'));
   target.classList.add('active');
+
+  const sf = $('sourceFilter');
+  sf.style.display = currentFilter === 'Rework' ? 'flex' : 'none';
+
   return true;
 }
 
@@ -2532,6 +2536,14 @@ function focusJob(ref) {
   }
 
   if (job.status !== currentFilter) applyFilter(job.status);
+
+  if (job.status === 'Rework') {
+    currentSource = job.source === 'reallocated' ? 'reallocated' : 'own';
+    document.querySelectorAll('#sourceFilter .tf-btn').forEach((b) => {
+      b.classList.toggle('active', b.dataset.source === currentSource);
+    });
+  }
+
   renderPipeline();
   if (expandedRef !== ref) toggleExpand(ref);
 
