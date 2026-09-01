@@ -1273,7 +1273,7 @@
 
   <!-- </div>{{-- /right-panel --}} -->
 </div>{{-- /workspace --}}
-
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -1431,7 +1431,7 @@ function renderTable() {
 
     return `<tr class="${sel?'sel':''}" onclick="selectTicket('${t.id}')">
       <td><input type="radio" ${sel?'checked':''} onclick="event.stopPropagation();selectTicket('${t.id}')" style="accent-color:#6571ff;"/></td>
-      <td data-label="SR ID"><span class="sr-link">${t.id}</span></td>
+      <td data-label="SR ID"><span class="sr-link sr-ref-trigger" data-sr-id="${t.dbId}" onclick="event.stopPropagation(); openSrTracking(${t.dbId});">${t.id}</span></td>
       <td data-label="Client">
         <div style="font-weight:500;color:var(--text-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.client}</div>
         <div style="font-size:.67rem;color:var(--text-muted);">${t.contract || ''}</div>
@@ -1508,7 +1508,7 @@ function renderSnapshot(t) {
 
   document.getElementById('snapBody').innerHTML = `
   <div class="tk-grid">
-    <div class="tk-row"><div class="tk-l">SR_ID</div><div class="tk-v" style="color:#6571ff;font-weight:700;">${t.id}</div></div>
+    <div class="tk-row"><div class="tk-l">SR_ID</div><div class="tk-v sr-ref-trigger" data-sr-id="${t.dbId}" onclick="openSrTracking(${t.dbId});" style="color:#6571ff;font-weight:700;">${t.id}</div></div>
     <div class="tk-row"><div class="tk-l">Priority</div>
       <div class="tk-v">
         <span class="chip" style="background:${pc}1a;color:${pc};border:1px solid ${pc}55;font-weight:700;">

@@ -154,6 +154,18 @@
 .list-more{width:100%;padding:10px;margin-top:4px;background:var(--card-bg);border:1px dashed var(--border-color);border-radius:8px;color:#9a8053;font-size:.78rem;font-weight:600;cursor:pointer;}
 .list-more:hover{background:rgba(154,128,83,.1);border-color:#9a8053;}
 
+.kc-sr.sr-ref-trigger,
+.mlc-sr.sr-ref-trigger{
+  cursor:pointer;
+  text-decoration:none;
+  border-bottom:1px dashed rgba(154,128,83,.4);
+  transition:border-color .12s;
+}
+.kc-sr.sr-ref-trigger:hover,
+.mlc-sr.sr-ref-trigger:hover{
+  border-bottom-style:solid;
+}
+
 .scroll-hint{display:none;font-size:.72rem;color:var(--text-muted);text-align:center;padding:6px 0 10px;margin-top:-8px;}
 @media(max-width:767.98px){.scroll-hint{display:block;}}
 
@@ -278,7 +290,7 @@
 
 {{-- LIST VIEW --}}
 <div class="mobile-list-view" id="listView"></div>
-
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -373,7 +385,7 @@ function buildCard(t){
 
   return `<div class="kcard">
     <div class="kc-top">
-      <span class="kc-sr">${esc(t.id)}</span>
+      <span class="kc-sr sr-ref-trigger" data-sr-id="${t.dbId}" onclick="event.stopPropagation(); openSrTracking(${t.dbId});">${esc(t.id)}</span>
       <span class="kc-warranty ${wCls}"><i class="bi ${wIcon} me-1"></i>${esc(t.warranty)}</span>
     </div>
     <div class="kc-client" title="${esc(t.client)}">${esc(t.client)}</div>
@@ -415,7 +427,7 @@ function buildListCard(t){
   return `<div class="mobile-list-card">
     <div class="mlc-top">
       <div>
-        <div class="mlc-sr">${esc(t.id)}</div>
+        <div class="mlc-sr sr-ref-trigger" data-sr-id="${t.dbId}" onclick="event.stopPropagation(); openSrTracking(${t.dbId});">${esc(t.id)}</div>
         <div class="mlc-client">${esc(t.client)}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">

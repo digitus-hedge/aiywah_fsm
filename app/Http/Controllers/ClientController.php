@@ -12,11 +12,13 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Jobs\SendClientWelcomeNotifications;
+use App\Services\SrTrackingService;
 class ClientController extends Controller
 {
     /**
      * Client Directory — searchable, filterable, paginated listing.
      */
+
     public function directory(Request $request)
     {
 
@@ -108,6 +110,7 @@ class ClientController extends Controller
         ]);
     }
 
+    public function __construct(private SrTrackingService $tracking) {}
 
     public function job_tracking($id)
     {
@@ -139,164 +142,6 @@ class ClientController extends Controller
             'punch_in'   => optional(optional($sr->punch)->punch_in_at)->toIso8601String(),
         ]);
     }
-
-    /* ── Status catalogue ── */
-    private function statusCatalogue(): array
-    {
-        return [
-            'Pending'           => ['label' => 'Pending',            'chip' => 'chip-pending', 'color' => '#7c3aed', 'icon' => 'bi-hourglass-split'],
-            'Approved'          => ['label' => 'Approved',           'chip' => 'chip-ok',      'color' => '#15803d', 'icon' => 'bi-check-circle'],
-            'Forwarded'         => ['label' => 'Forwarded',          'chip' => 'chip-info',    'color' => '#2563eb', 'icon' => 'bi-send'],
-            'Rejected'          => ['label' => 'Rejected',           'chip' => 'chip-bad',     'color' => '#dc2626', 'icon' => 'bi-x-octagon'],
-            'Assigned'          => ['label' => 'Assigned',           'chip' => 'chip-info',    'color' => '#2563eb', 'icon' => 'bi-person-check'],
-            'Quoted'            => ['label' => 'Quoted',             'chip' => 'chip-warn',    'color' => '#b45309', 'icon' => 'bi-receipt'],
-            'In Progress'       => ['label' => 'In Progress',        'chip' => 'chip-inprog',  'color' => '#0891b2', 'icon' => 'bi-wrench-adjustable-circle'],
-            'Quote Rejected'    => ['label' => 'Quote Rejected',     'chip' => 'chip-bad',     'color' => '#dc2626', 'icon' => 'bi-x-circle'],
-            'Qc Review'         => ['label' => 'Qc Review',          'chip' => 'chip-warn',    'color' => '#b45309', 'icon' => 'bi-clipboard2-check'],
-            'Rework'            => ['label' => 'Rework',             'chip' => 'chip-warn',    'color' => '#ea580c', 'icon' => 'bi-arrow-repeat'],
-            'Reschedule'        => ['label' => 'Reschedule',         'chip' => 'chip-warn',    'color' => '#ea580c', 'icon' => 'bi-calendar-event'],
-            'Accepted'          => ['label' => 'Accepted',           'chip' => 'chip-ok',      'color' => '#15803d', 'icon' => 'bi-hand-thumbs-up'],
-            'Pending Invoice'   => ['label' => 'Pending Invoice',    'chip' => 'chip-warn',    'color' => '#b45309', 'icon' => 'bi-file-earmark-text'],
-            'Invoice Submitted' => ['label' => 'Invoice Submitted',  'chip' => 'chip-info',    'color' => '#2563eb', 'icon' => 'bi-file-earmark-check'],
-            'Completed'         => ['label' => 'Completed',          'chip' => 'chip-ok',      'color' => '#15803d', 'icon' => 'bi-patch-check'],
-            'On Hold'           => ['label' => 'On Hold',            'chip' => 'chip-pending', 'color' => '#64748b', 'icon' => 'bi-pause-circle'],
-        ];
-    }
-
-    private function statusMeta(?string $s): array
-    {
-        return $this->statusCatalogue()[$s]
-            ?? ['label' => $s ?: '—', 'chip' => 'chip-pending', 'color' => '#6b7280', 'icon' => 'bi-circle'];
-    }
-
-    /* ── Milestone graph ── */
-    private function buildMilestones(ServiceRequest $sr): array
-    {
-        $terminal = ['Rejected', 'Quote Rejected'];
-        $flow = in_array($sr->status, $terminal, true)
-            ? ['Pending', $sr->status]
-            : $this->flowFor($sr);
-
-        $cat  = $this->statusCatalogue();
-        $cur  = array_search($sr->status, $flow, true);
-        $out  = [];
-
-        foreach ($flow as $i => $key) {
-            $m = $cat[$key];
-            $out[] = [
-                'key'   => $key,
-                'label' => $m['label'],
-                'icon'  => $m['icon'],
-                'state' => $cur === false ? 'pending' : ($i < $cur ? 'done' : ($i === $cur ? 'active' : 'pending')),
-                'time'  => optional($this->stampFor($sr, $key))->format('d M · h:i A') ?? '',
-                'desc'  => $this->descFor($sr, $key),
-            ];
-        }
-        return $out;
-    }
-
-    private function flowFor(ServiceRequest $sr): array
-    {
-        // OOW jobs pass through quoting; IW jobs skip it.
-        $quote = $sr->warranty_scope === 'oow' ? ['Quoted'] : [];
-        return array_merge(
-            ['Pending', 'Approved', 'Assigned'],
-            $quote,
-            ['in_progress', 'qc_review', 'Pending Invoice', 'Invoice Submitted', 'Completed']
-        );
-    }
-
-    private function stampFor(ServiceRequest $sr, string $key)
-    {
-        return [
-            'Pending'           => $sr->created_at,
-            'Approved'          => $sr->accepted_at,
-            'Forwarded'         => $sr->dispatched_at,
-            'Rejected'          => $sr->updated_at,
-            'Assigned'          => $sr->dispatched_at,
-            'Quoted'            => $sr->quote_submitted_at ?: $sr->client_approved_at,
-            'In Progress'       => optional($sr->punch)->punch_in_at,
-            'Quote Rejected'    => $sr->updated_at,
-            'Qc Review'         => $sr->qc_reviewed_at,
-            'Rework'            => $sr->qc_reviewed_at,
-            'Reschedule'        => $sr->rescheduled_at ?? $sr->updated_at,
-            'Accepted'          => $sr->client_approved_at ?: $sr->accepted_at,
-            'Pending Invoice'   => optional($sr->punch)->punch_out_at,
-            'Invoice Submitted' => $sr->invoice_submitted_at,
-            'Completed'         => $sr->status === 'Completed' ? $sr->updated_at : null,
-            'On Hold'           => $sr->on_hold_at ?? $sr->updated_at,
-        ][$key] ?? null;
-    }
-
-    private function descFor(ServiceRequest $sr, string $key): string
-    {
-        return match ($key) {
-            'Pending'           => 'SR Logged',
-            'Approved'          => trim(strtoupper($sr->warranty_scope ?: '') . ' path confirmed'),
-            'Forwarded'         => 'Forwarded to service partner',
-            'Rejected'          => $sr->rejection_reason ?: 'Request rejected',
-            'Assigned'          => 'Technician ' . (optional($sr->assignedUser)->name ?: 'pending assignment'),
-            'Quoted'            => 'Quote ' . ($sr->erp_quote_ref ?: 'submitted') . ' sent to client',
-            'In Progress'       => 'Technician on-site and working',
-            'Quote Rejected'    => $sr->quote_rejection_reason ?: 'Quote rejected by client',
-            'Qc Review'         => 'Quality check by supervisor',
-            'Rework'            => $sr->rework_notes ?: 'Rework requested by QC',
-            'Reschedule'        => $sr->reschedule_reason ?: 'Visit rescheduled',
-            'Accepted'          => 'Quote accepted by client',
-            'Pending Invoice'   => 'Awaiting invoice generation',
-            'Invoice Submitted' => trim('Invoice ' . ($sr->invoice_code ?: '') . ' submitted'),
-            'Completed'         => 'Work completed and closed',
-            'On Hold'           => $sr->hold_reason ?: 'Request on hold',
-            default             => '',
-        };
-    }
-
-    /* ── Activity log ── */
-    private function buildHistory(ServiceRequest $sr): array
-    {
-        $cat  = $this->statusCatalogue();
-        $rows = [];
-
-        $push = function ($key, $event, $meta, $ts) use (&$rows, $cat) {
-            if (!$ts) return;
-            $rows[] = [
-                'color' => $cat[$key]['color'] ?? '#6b7280',
-                'event' => $event,
-                'meta'  => $meta,
-                'ts'    => $ts,
-            ];
-        };
-
-        $tech = optional($sr->assignedUser)->name;
-        $push('Pending', 'Service Request logged — ' . $sr->sr_code . ' created', 'Logged by ' . ($sr->reported_by ?: 'Front Desk'), $sr->created_at);
-        $push('Approved', 'SR approved — ' . strtoupper($sr->warranty_scope ?: '') . ' path', 'Contract coverage verified', $sr->accepted_at);
-        $push('Forwarded', 'SR forwarded to service partner', $sr->forward_remark ?: 'Routed for dispatch', $sr->dispatched_at);
-        $push('Assigned', ($tech ?: 'Technician') . ' accepted job and committed attendance', 'Dispatched by Head of Projects', $sr->dispatched_at);
-        $push('Assigned', 'ETA confirmed — arriving at ' . optional($sr->eta_at)->format('h:i A'), 'WhatsApp notification sent', $sr->eta_at);
-        $push('Quoted', 'Quote submitted — ' . ($sr->erp_quote_ref ?: ''), 'Awaiting client approval', $sr->quote_submitted_at);
-        $push('Accepted', 'Quote accepted by client', 'Approval received — work authorised', $sr->client_approved_at);
-        $push('Quote Rejected', 'Quote rejected by client', $sr->quote_rejection_reason ?: 'Client declined the quotation', $sr->status === 'Quote Rejected' ? $sr->updated_at : null);
-        $push('Reschedule', 'Visit rescheduled', $sr->reschedule_reason ?: 'New slot agreed with client', $sr->rescheduled_at);
-        $push('In Progress', 'Technician ' . ($tech ?: '') . ' punched in on-site', optional($sr->category)->category_name . ' — ' . ($sr->project_site ?: '—'), optional($sr->punch)->punch_in_at);
-        $push('Pending Invoice', 'Technician punched out', optional($sr->punch)->completion_summary, optional($sr->punch)->punch_out_at);
-        $push('Qc Review', 'QC review recorded', $sr->rework_notes ?: 'Passed quality check', $sr->qc_reviewed_at);
-        $push('Rework', 'Rework requested by QC', $sr->rework_notes ?: 'Returned to technician', $sr->status === 'Rework' ? $sr->qc_reviewed_at : null);
-        $push('Invoice Submitted', 'Invoice ' . ($sr->invoice_code ?: '') . ' submitted', 'Total: ' . $sr->invoice_total, $sr->invoice_submitted_at);
-        $push('On Hold', 'SR placed on hold', $sr->hold_reason ?: $sr->internal_remark, $sr->on_hold_at);
-        $push('Completed', 'Work completed and closed', $sr->closure_remark ?: 'SR closed', $sr->status === 'Completed' ? $sr->updated_at : null);
-        $push('Rejected', 'SR rejected', $sr->internal_remark, $sr->status === 'Rejected' ? $sr->updated_at : null);
-
-        usort($rows, fn($a, $b) => $b['ts'] <=> $a['ts']);
-
-        return array_map(fn($r) => [
-            'color' => $r['color'],
-            'event' => $r['event'],
-            'meta'  => $r['meta'] ?: '—',
-            'day'   => $r['ts']->isToday() ? 'Today' : $r['ts']->format('d M'),
-            'time'  => $r['ts']->format('h:i A'),
-        ], $rows);
-    }
-
 
     public function show($id)
     {
@@ -353,6 +198,7 @@ class ClientController extends Controller
             ->get()
             ->map(fn($sr) => [
                 'type'   => 'sr',
+                'sr_id'  => $sr->id,
                 'status' => strtolower($sr->status ?? 'pending'),
                 'title'  => 'SR-' . optional($sr->created_at)->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT)
                     . ' — ' . ucfirst($sr->status ?? 'Pending'),
@@ -912,7 +758,7 @@ class ClientController extends Controller
     /** Flatten one service request into everything the customer card renders. */
     private function portalCard(ServiceRequest $sr): array
     {
-        $meta = $this->statusMeta($sr->status);
+        $meta = $this->tracking->statusMeta($sr->status);
 
         // staff chip classes -> the tone classes the portal blade uses
         $tone = [

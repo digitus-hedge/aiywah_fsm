@@ -130,7 +130,7 @@ a.funnel-row:hover{background:var(--card2);}
 .qc-footer{display:flex;align-items:center;justify-content:space-between;margin-top:9px;
   padding-top:8px;border-top:1px solid var(--border);gap:6px;flex-wrap:wrap;}
 .qc-time{font-size:.68rem;color:var(--light);}
-
+.sr-ref-trigger{ cursor:pointer; }
 .exp-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;
   border-bottom:1px solid var(--border);gap:10px;}
 .exp-item:last-child{border-bottom:none;}
@@ -211,7 +211,7 @@ a.funnel-row:hover{background:var(--card2);}
       <div class="ajc-inner">
         <div class="ajc-top">
           <div class="ajc-live"><div class="ajc-live-dot"></div>In progress</div>
-          <span class="ajc-sr">{{ $a['ref'] }}</span>
+          <span class="ajc-sr sr-ref-trigger" data-sr-id="{{ $a['sr_id'] }}" onclick="openSrTracking({{ $a['sr_id'] }})">{{ $a['ref'] }}</span>
         </div>
         <div class="ajc-client">{{ $a['client'] }}</div>
         <div class="ajc-site"><i class="bi bi-geo-alt-fill"></i>{{ $a['site'] }}</div>
@@ -252,7 +252,7 @@ a.funnel-row:hover{background:var(--card2);}
       <div class="job-card-body">
         <div class="job-card-top">
           <div>
-            <div class="job-sr-id">{{ $n['ref'] }}</div>
+            <div class="job-sr-id sr-ref-trigger" data-sr-id="{{ $n['sr_id'] }}" onclick="openSrTracking({{ $n['sr_id'] }})">{{ $n['ref'] }}</div>
             <div class="job-client">{{ $n['client'] }}</div>
           </div>
           <span class="pill {{ $n['pill'] }}"><i class="bi bi-calendar-check"></i>{{ $n['chip'] }}</span>
@@ -287,7 +287,7 @@ a.funnel-row:hover{background:var(--card2);}
         <div class="job-card-body">
           <div class="job-card-top">
             <div>
-              <div class="job-sr-id">{{ $j['ref'] }}</div>
+              <div class="job-sr-id sr-ref-trigger" data-sr-id="{{ $j['sr_id'] }}" onclick="event.preventDefault(); event.stopPropagation(); openSrTracking({{ $j['sr_id'] }})">{{ $j['ref'] }}</div>
               <div class="job-client">{{ $j['client'] }}</div>
             </div>
             <span class="pill {{ $j['pill'] }}"><i class="bi bi-hourglass-split"></i>{{ $j['chip'] }}</span>
@@ -488,7 +488,7 @@ a.funnel-row:hover{background:var(--card2);}
     @foreach($qc['pending'] as $p)
       <a class="qc-item qc-pending as-link" href="{{ $go(['job' => $p['ref'], 'filter' => 'Review']) }}">
         <div class="qc-item-top">
-          <div class="qc-sr-id">{{ $p['ref'] }}</div>
+          <div class="qc-sr-id sr-ref-trigger" data-sr-id="{{ $p['sr_id'] }}" onclick="event.preventDefault(); event.stopPropagation(); openSrTracking({{ $p['sr_id'] }})">{{ $p['ref'] }}</div>
           <span class="pill pill-amber"><i class="bi bi-hourglass"></i>QC pending</span>
         </div>
         <div class="qc-client">{{ $p['client'] }}</div>
@@ -517,7 +517,7 @@ a.funnel-row:hover{background:var(--card2);}
     @foreach($qc['rework'] as $w)
       <div class="qc-item rework-item">
         <div class="qc-item-top">
-          <div class="qc-sr-id">{{ $w['ref'] }}</div>
+          <div class="qc-sr-id sr-ref-trigger" data-sr-id="{{ $w['sr_id'] }}" onclick="openSrTracking({{ $w['sr_id'] }})">{{ $w['ref'] }}</div>
           <span class="pill pill-red"><i class="bi bi-x-circle"></i>Returned</span>
         </div>
         <div class="qc-client">{{ $w['client'] }}</div>
@@ -561,7 +561,7 @@ a.funnel-row:hover{background:var(--card2);}
         <div class="exp-left">
           <div class="exp-icon"><i class="bi bi-box-seam"></i></div>
           <div style="min-width:0;">
-            <div class="exp-sr">{{ $e['ref'] }}</div>
+            <div class="exp-sr sr-ref-trigger" data-sr-id="{{ $e['sr_id'] }}" onclick="openSrTracking({{ $e['sr_id'] }})">{{ $e['ref'] }}</div>
             <div class="exp-cat">{{ $e['client'] }} &middot; {{ $e['category'] }}</div>
           </div>
         </div>

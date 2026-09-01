@@ -273,7 +273,7 @@
         font-weight: 600;
         color: #9A7B4F;
     }
-
+    .mono .sr-ref-trigger{ cursor:pointer; }
     /* BUTTONS */
     .btn-gold {
         display: inline-flex;
@@ -965,6 +965,7 @@
 
                 $srPayload = [
                 'code' => $srCode,
+                'dbId' => $sr->id,
                 'client' => optional($sr->client)->company_name ?? '—',
                 'site' => optional($sr->project)->site_name ?? '—',
                 'worker' => $worker,
@@ -997,7 +998,11 @@
                 ];
                 @endphp
                 <tr data-sr='@json($srPayload)' onclick="openSrModal(this)">
-                    <td class="mono">{{ $srCode }}</td>
+                    <td class="mono">
+                        <span class="sr-ref-trigger" data-sr-id="{{ $sr->id }}" onclick="event.stopPropagation(); openSrTracking({{ $sr->id }});">
+                            {{ $srCode }}
+                        </span>
+                    </td>
                     <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name ?? '—' }}</strong></td>
                     <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
                     <td>
@@ -1157,7 +1162,7 @@
 </div>
 
 <div id="toastWrap"></div>
-
+@include('partials.sr_tracking_modal')
 @endsection
 
 
@@ -1205,7 +1210,15 @@
         }
         currentSr = data;
 
-        _set('sr-m-id', data.code);
+        var idEl = document.getElementById('sr-m-id');
+        if (idEl) {
+            idEl.textContent = data.code || '—';
+            if (data.dbId) {
+                idEl.classList.add('sr-ref-trigger');
+                idEl.style.cursor = 'pointer';
+                idEl.onclick = function(){ openSrTracking(data.dbId); };
+            }
+        }
         _set('sr-m-client', data.client);
         _set('sr-m-status', data.status);
         _set('sr-m-priority', data.priority);

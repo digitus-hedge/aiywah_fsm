@@ -684,7 +684,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
   </div>
 
 
-
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -842,7 +842,7 @@ function renderTable(){
     const sel=t.id===selectedId;
     return `<tr class="${sel?'selected':''}" onclick="selectRow('${t.id}')">
       <td class="cell-radio"><input type="radio" class="select-row-radio" ${sel?'checked':''} onclick="event.stopPropagation();selectRow('${t.id}')"/></td>
-      <td data-label="SR_ID"><span class="sr-id-link">${t.id}</span></td>
+      <td data-label="SR_ID"><span class="sr-id-link sr-ref-trigger" data-sr-id="${t.dbId}" onclick="event.stopPropagation(); openSrTracking(${t.dbId});">${t.id}</span></td>
       <td data-label="Client"><div style="font-weight:500;color:var(--text-heading);font-size:.78rem;">${t.client}</div><div style="font-size:.68rem;color:var(--text-muted);">${t.contract}</div></td>
       <td data-label="Category" style="font-size:.78rem;">${t.category}</td>
       <td data-label="Site" style="font-size:.72rem;color:var(--text-muted);">${t.site}</td>
@@ -970,7 +970,7 @@ function loadContractPanel(t){
 document.getElementById('contractBody').innerHTML=`
     ${mode === 'oow' ? `<div class="quote-banner"><i class="bi bi-file-earmark-check-fill"></i>
       <span>Quotation <strong>${t.quoteRef}</strong> approved by client on <strong>${t.quoteOkStr}</strong>. Allocate an engineer to release this into Dispatch.</span></div>` : ''}
-    <div class="dp-row"><span>SR_ID</span><span style="color:#6571ff;font-weight:700;">${t.id}</span></div>
+    <div class="dp-row"><span>SR_ID</span><span class="sr-ref-trigger" data-sr-id="${t.dbId}" onclick="openSrTracking(${t.dbId});" style="color:#6571ff;font-weight:700;">${t.id}</span></div>
     <div class="dp-row"><span>Customer Code</span><span>${t.contract}</span></div>
     <div class="dp-row"><span>Customer</span><span>${t.client}</span></div>
     <div class="dp-row"><span>Project</span><span>${t.project}</span></div>

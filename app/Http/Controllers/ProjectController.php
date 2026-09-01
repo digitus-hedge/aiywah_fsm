@@ -280,6 +280,7 @@ class ProjectController extends Controller
 
         foreach ($srs as $s) {
             $activities->push([
+                'sr_id' => $s->id,
                 'title' => $s->code . ' — New Inquiry Raised',
                 'by'    => $s->reported_by ?? 'System',
                 'icon'  => 'bi-plus',
@@ -290,6 +291,7 @@ class ProjectController extends Controller
 
             if ($s->dispatched_at) {
                 $activities->push([
+                    'sr_id' => $s->id,
                     'title' => $s->code . ' — Dispatched to ' . ('Technician'),
                     'by'    => $s->assignedUser?->name ?? 'Unassigned',
                     'icon'  => 'bi-send',
@@ -302,6 +304,7 @@ class ProjectController extends Controller
             if ($s->qc_reviewed_at) {
                 $isRework = ! empty($s->rework_notes);
                 $activities->push([
+                     'sr_id' => $s->id,
                     'title' => $s->code . ($isRework ? ' — Returned for Rework' : ' — QC Passed & Closed'),
                     'by'    => optional(User::find($s->qc_reviewed_by))->name ?? 'QC Team',
                     'icon'  => $isRework ? 'bi-arrow-repeat' : 'bi-check-lg',

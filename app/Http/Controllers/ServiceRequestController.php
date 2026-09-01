@@ -1844,11 +1844,12 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
             ->get();
 
         $ledger = $items->map(function ($it) {
-            $sr = $it->punch?->serviceRequest;
+        $sr = $it->punch?->serviceRequest;
 
             return [
                 'id'         => $it->id,
                 'sr'         => $sr ? $this->buildSrRef($sr) : '—',
+                'srId'       => $sr?->id,
                 'tech'       => optional($sr?->assignedUser)->name ?? 'Unassigned',
                 'name'       => $it->name,
                 'cat'        => $it->category ?? '—',

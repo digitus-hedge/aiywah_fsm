@@ -198,6 +198,7 @@ class WorkerPipelineController extends Controller
             ],
             'items' => $punches->map(fn(Punch $p) => [
                 'ref'       => optional($p->serviceRequest)->ref ?? '—',
+                'sr_id'     => $p->service_request_id,
                 'client'    => optional(optional($p->serviceRequest)->client)->company_name ?? '—',
                 'domain'    => optional(optional($p->serviceRequest)->domain)->domain_name ?? '—',
                 'site'      => optional(optional($p->serviceRequest)->project)->site_address ?? '—',

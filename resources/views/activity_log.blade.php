@@ -20,7 +20,8 @@
 .al-wrap .pg-header p{font-size:.78rem;margin:0;opacity:.85;position:relative;z-index:1;}
 .al-wrap .pg-header .meta-row{display:flex;align-items:center;gap:8px;margin-top:9px;position:relative;z-index:1;flex-wrap:wrap;}
 .al-wrap .meta-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:20px;font-size:.6875rem;padding:2px 10px;font-weight:500;}
-
+.al-wrap td.mono .sr-ref-trigger,
+.al-meta-val .sr-ref-trigger{ cursor:pointer; }
 /* STATS STRIP */
 .al-wrap .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
 .al-wrap .stat-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:9px;padding:13px 15px;display:flex;align-items:center;gap:12px;box-shadow:var(--card-shadow);}
@@ -249,7 +250,15 @@
             </td>
             <td><span class="mod-pill">{{ $log->module ?? '—' }}</span></td>
             <td><span class="sbadge {{ $cls }}"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $act }}</span></td>
-            <td class="mono">{{ $log->record_label ?? '—' }}</td>
+            <td class="mono">
+              @if($log->module === 'ServiceRequest' && $log->subject_id)
+                <span class="sr-ref-trigger" data-sr-id="{{ $log->subject_id }}" onclick="event.stopPropagation(); openSrTracking({{ $log->subject_id }});">
+                  {{ $log->record_label ?? '—' }}
+                </span>
+              @else
+                {{ $log->record_label ?? '—' }}
+              @endif
+            </td>
             <td><div class="desc-txt">{{ $log->description ?? '—' }}</div></td>
             <td>@if($chg)<span class="chg-count">{{ $chg }} field{{ $chg > 1 ? 's' : '' }}</span>@else<span class="muted">—</span>@endif</td>
             <td>
@@ -290,6 +299,7 @@
     </div>
   </div>
 </div>
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -343,7 +353,11 @@ function alView(id){
           '<div class="al-meta-item"><div class="al-meta-lbl">When</div><div class="al-meta-val">'+alEsc(d.created_at_human || d.created_at || '—')+'</div></div>'+
           '<div class="al-meta-item"><div class="al-meta-lbl">Module</div><div class="al-meta-val">'+alEsc(d.module||'—')+'</div></div>'+
           '<div class="al-meta-item"><div class="al-meta-lbl">Action</div><div class="al-meta-val"><span class="sbadge '+cls+'">'+alEsc(act||'—')+'</span></div></div>'+
-          '<div class="al-meta-item"><div class="al-meta-lbl">Record</div><div class="al-meta-val">'+alEsc(d.record_label || '—')+'</div></div>'+
+          '<div class="al-meta-item"><div class="al-meta-lbl">Record</div><div class="al-meta-val">'+
+  (d.module === 'ServiceRequest' && d.srId
+    ? '<span class="sr-ref-trigger" data-sr-id="'+d.srId+'" onclick="openSrTracking('+d.srId+');">'+alEsc(d.record_label||'—')+'</span>'
+    : alEsc(d.record_label || '—'))+
+'</div></div>'+
           '<div class="al-meta-item"><div class="al-meta-lbl">IP Address</div><div class="al-meta-val">'+alEsc(d.ip_address||'—')+'</div></div>'+
         '</div>'+
         '<p class="al-sec-title">Description</p>'+

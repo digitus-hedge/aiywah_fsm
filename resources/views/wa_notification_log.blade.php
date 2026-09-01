@@ -25,7 +25,7 @@
 .wa-wrap .pg-header p{font-size:.78rem;margin:0;opacity:.85;position:relative;z-index:1;}
 .wa-wrap .pg-header .meta-row{display:flex;align-items:center;gap:8px;margin-top:9px;position:relative;z-index:1;flex-wrap:wrap;}
 .wa-wrap .meta-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:20px;font-size:.6875rem;padding:2px 10px;font-weight:500;}
-
+.wa-wrap td.mono .sr-ref-trigger{ cursor:pointer; }
 /* STATS STRIP */
 .wa-wrap .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
 .wa-wrap .stat-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:9px;padding:13px 15px;display:flex;align-items:center;gap:12px;box-shadow:var(--card-shadow);}
@@ -247,6 +247,7 @@
 
   <div class="wa-toast-wrap" id="waToastWrap"></div>
 </div>
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -286,7 +287,9 @@ function waRenderRows(list, filteredTotal){
       ? '<button class="btn-xs btn-xs-retry" onclick="event.stopPropagation();waRetry('+m.id+')"><i class="bi bi-arrow-clockwise"></i>Retry</button>'
       : '';
     return '<tr>'+
-      '<td class="mono">'+esc(m.sr)+'</td>'+
+      '<td class="mono">'+(m.srId
+  ? '<span class="sr-ref-trigger" data-sr-id="'+m.srId+'" onclick="event.stopPropagation(); openSrTracking('+m.srId+');">'+esc(m.sr)+'</span>'
+  : esc(m.sr))+'</td>'+
       '<td class="muted">'+esc(m.recipient)+'</td>'+
       '<td style="font-size:.8rem;">'+esc(m.client)+'</td>'+
       '<td><span class="trigger-txt">'+esc(m.event)+'</span></td>'+

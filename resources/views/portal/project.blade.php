@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#0c1a20">
 <title>{{ $project->project_name }} — Service record</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
 <style>
   :root{
     --ink:#132029; --ink-deep:#0c1a20; --ink-soft:#41535e; --muted:#78909c;

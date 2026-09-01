@@ -29,6 +29,7 @@ class ActivityLogController extends Controller
         // Attach a human-readable record label to each row without touching the DB again.
         $logs->getCollection()->transform(function ($log) {
             $log->record_label = $this->recordLabel($log);
+            $log->is_sr         = class_basename($log->subject_type ?? '') === 'ServiceRequest';
             return $log;
         });
 
@@ -56,6 +57,7 @@ class ActivityLogController extends Controller
             'data'   => array_merge($activityLog->toArray(), [
                 'created_at_human' => $activityLog->created_at?->format('d M Y · h:i A'),
                 'record_label'     => $this->recordLabel($activityLog),
+                'is_sr'            => class_basename($activityLog->subject_type ?? '') === 'ServiceRequest',
             ]),
         ]);
     }

@@ -21,6 +21,9 @@
 .inv-wrap .pg-hdr-meta{display:flex;align-items:center;gap:8px;margin-top:9px;position:relative;z-index:1;flex-wrap:wrap;}
 .inv-wrap .meta-badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:20px;font-size:.6875rem;padding:2px 10px;font-weight:500;}
 
+.inv-wrap .qi-id.sr-ref-trigger,
+.inv-wrap .ws-sr-id.sr-ref-trigger,
+.inv-wrap td.mono .sr-ref-trigger{ cursor:pointer; }
 /* STATS */
 .inv-wrap .stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
 .inv-wrap .stat-card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:9px;padding:13px 15px;display:flex;align-items:center;gap:12px;box-shadow:var(--card-shadow);}
@@ -412,6 +415,7 @@
 
   <div class="inv-toast-wrap" id="invToastWrap"></div>
 </div>
+@include('partials.sr_tracking_modal')
 @endsection
 
 @push('scripts')
@@ -525,7 +529,7 @@ function renderInvQueue(list){
   ul.innerHTML = list.map(function(sr){
     var ac = selInv && selInv.id===sr.id ? ' active':'';
     return '<div class="queue-item'+ac+'" data-id="'+sr.id+'" onclick="selectInv(this.dataset.id)">'+
-      '<div class="qi-id">'+sr.id+'</div>'+
+      '<div class="qi-id sr-ref-trigger" data-sr-id="'+sr.dbId+'" onclick="event.stopPropagation(); openSrTracking('+sr.dbId+');">'+sr.id+'</div>'+
       '<div class="qi-client">'+sr.client+'</div>'+
       '<div class="qi-sub"><i class="bi bi-geo-alt" style="font-size:.7rem;"></i> '+sr.site+'</div>'+
       '<div class="qi-foot">'+
@@ -547,7 +551,10 @@ function selectInv(id){
   document.getElementById('inv-empty').style.display = 'none';
   document.getElementById('inv-success').classList.remove('show');
   document.getElementById('inv-detail').style.display = 'flex';
-  document.getElementById('inv-sr-id').textContent     = selInv.id;
+  var invSrIdEl = document.getElementById('inv-sr-id');
+invSrIdEl.textContent = selInv.id;
+invSrIdEl.classList.add('sr-ref-trigger');
+invSrIdEl.onclick = function(){ openSrTracking(selInv.dbId); };
   document.getElementById('inv-sr-client').textContent = selInv.client;
   document.getElementById('inv-sr-site').innerHTML     = '<i class="bi bi-geo-alt" style="color:#9a8053;font-size:.8rem;"></i> '+selInv.site;
   document.getElementById('inv-chips').innerHTML =
@@ -587,7 +594,7 @@ function renderPH(list){
     : '<span style="font-size:.72rem;color:var(--text-muted);"><i class="bi bi-lock" style="margin-right:4px;"></i>No access</span>';
 
   return '<tr>'+
-    '<td class="mono">'+item.sr+'</td>'+
+    '<td class="mono"><span class="sr-ref-trigger" data-sr-id="'+item.dbId+'" onclick="openSrTracking('+item.dbId+');">'+item.sr+'</span></td>'+
     '<td style="font-weight:500;">'+item.client+'</td>'+
     '<td class="muted">'+item.site+'</td>'+
     '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+item.code+'</span></td>'+

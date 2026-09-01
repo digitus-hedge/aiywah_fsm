@@ -32,7 +32,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet"/>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
   @stack('head')
-
+  
   <style>
 /* ══════════════════════════════════════════════════════ SF PRO ═══ */
 @font-face{font-family:'SF Pro Display';font-weight:400;font-style:normal;font-display:swap;
@@ -394,7 +394,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
   @stack('styles')
 </head>
 <body>
-
+@include('partials.sr_tracking_modal', ['srTrackingBase' => url('/worker/sr-tracking-mobile')])
 <div id="tw"></div>
 
 <div class="lb-overlay" id="lbOverlay">
