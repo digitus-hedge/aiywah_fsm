@@ -662,7 +662,7 @@ public function notifyMaintenanceCompleted(
     $tech = $this->techContext($sr);
 
     $out  = $punch?->punch_out_at ? Carbon::parse($punch->punch_out_at) : now();
-    $link = $photosLink ?: url("/sr/{$sr->id}/photos");
+    $link = $photosLink ?: \App\Support\PortalLink::project($sr->project, $sr);
 
     // in notifyMaintenanceCompleted()
     $buttonValue = $this->buttonSuffix($link, config('app.url') . '/portal/project/');
@@ -706,11 +706,17 @@ public function notifyMaintenanceCompleted(
      * something usable rather than nothing.
      */
     private function buttonSuffix(string $link, string $prefix): string
-    {
-        return str_starts_with($link, $prefix)
-            ? substr($link, strlen($prefix))
-            : $link;
+{
+    if (!str_starts_with($link, $prefix)) {
+        Log::warning('WhatsApp button URL prefix mismatch — sending full link, check for domain doubling', [
+            'link'   => $link,
+            'prefix' => $prefix,
+        ]);
+        return $link;
     }
+
+    return substr($link, strlen($prefix));
+}
 
     /**
  * Post-completion survey → satisfaction_survey
@@ -1206,10 +1212,7 @@ public function notifyInternalMaintenanceCompleted(
     $tech = $this->techContext($sr);
 
     $out  = Carbon::parse($punch?->punch_out_at ?? now());
-    $link = $photosLink ?: \Illuminate\Support\Facades\URL::signedRoute(
-        'sr.photos', ['serviceRequest' => $sr->id]
-    );
-    
+    $link = $photosLink ?: \App\Support\PortalLink::project($sr->project, $sr);
     $buttonValue = $this->buttonSuffix($link, config('app.url') . '/portal/project/');
     // (removed the stray one-arg buttonSuffix() call that was here — it would
     // have thrown a TypeError, since buttonSuffix() now requires a prefix)
