@@ -27,7 +27,7 @@ class Userdirectorycontroller extends Controller
             'inactive' => (int) ($counts['inactive'] ?? 0) + (int) ($counts['pending'] ?? 0),
         ];
 
-        $users = User::with(['role', 'serviceDomains'])
+        $users = User::with(['role', 'serviceDomains', 'serviceCategories'])
             ->when($request->filled('q'), function ($query) use ($request) {
                 $term = $request->string('q');
                 $query->where(function ($w) use ($term) {
@@ -63,7 +63,7 @@ class Userdirectorycontroller extends Controller
     }
 
     /**
-     * Trigger a password-reset email (stub — wire to your notification).
+     * Trigger a password-reset email (stub - wire to your notification).
      */
     public function resetPassword(User $user)
     {
@@ -111,7 +111,7 @@ class Userdirectorycontroller extends Controller
             return response()->json(['message' => 'You cannot delete your own account.'], 422);
         }
 
-        $user->delete(); // soft delete — sets deleted_at
+        $user->delete(); // soft delete - sets deleted_at
 
         return response()->json(['ok' => true]);
     }

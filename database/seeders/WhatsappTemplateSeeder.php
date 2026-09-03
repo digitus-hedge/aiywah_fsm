@@ -27,8 +27,8 @@ class WhatsappTemplateSeeder extends Seeder
                 'status'        => 1,
             ],
             [
-                'template_name' => 'Punch In — Work Started',
-                'trigger_event' => 'Punch In — Work Started',
+                'template_name' => 'Punch In - Work Started',
+                'trigger_event' => 'Punch In - Work Started',
                 'description'   => 'Maintenance Lead executes Punch In on-site',
                 'body'          => "Update for SR *{{SR_ID}}*: Work has commenced on-site.\n\nTechnician: {{TECHNICIAN_NAME}}\nCheck-in Time: {{PUNCH_IN_TIME}}\nLocation: {{LOCATION_LINK}}\n\nWe will notify you once work is completed.",
                 'variables'     => ['{{SR_ID}}','{{TECHNICIAN_NAME}}','{{PUNCH_IN_TIME}}','{{LOCATION_LINK}}'],
@@ -37,7 +37,7 @@ class WhatsappTemplateSeeder extends Seeder
             [
                 'template_name' => 'SR Completed',
                 'trigger_event' => 'SR Completed',
-                'description'   => 'QC passed — In-Warranty close or OoW invoice uploaded',
+                'description'   => 'QC passed - In-Warranty close or OoW invoice uploaded',
                 'body'          => "Dear {{CLIENT_NAME}}, your service request *{{SR_ID}}* has been completed successfully.\n\nTechnician: {{TECHNICIAN_NAME}}\nCompleted On: {{COMPLETION_DATE}}\nDuration On-Site: {{DURATION}}\n\nWork Summary: {{SUMMARY_LINK}}\n\nThank you for choosing Mattermind.",
                 'variables'     => ['{{CLIENT_NAME}}','{{SR_ID}}','{{TECHNICIAN_NAME}}','{{COMPLETION_DATE}}','{{DURATION}}','{{SUMMARY_LINK}}'],
                 'status'        => 1,
@@ -53,7 +53,7 @@ class WhatsappTemplateSeeder extends Seeder
             [
                 'template_name' => 'Invoice Finalized',
                 'trigger_event' => 'Invoice Finalized',
-                'description'   => 'Accounts uploads invoice — OoW SR moves to Completed',
+                'description'   => 'Accounts uploads invoice - OoW SR moves to Completed',
                 'body'          => "Dear {{CLIENT_NAME}}, the invoice for SR *{{SR_ID}}* has been finalized.\n\nInvoice Ref: {{INVOICE_REF}}\nAmount: {{INVOICE_AMOUNT}}\nDocument: {{INVOICE_LINK}}\n\nPlease arrange payment at your earliest convenience.",
                 'variables'     => ['{{CLIENT_NAME}}','{{SR_ID}}','{{INVOICE_REF}}','{{INVOICE_AMOUNT}}','{{INVOICE_LINK}}'],
                 'status'        => 1,
@@ -61,7 +61,7 @@ class WhatsappTemplateSeeder extends Seeder
             [
                 'template_name' => 'Feedback Request',
                 'trigger_event' => 'Feedback Request',
-                'description'   => 'Post-completion — collect client satisfaction rating',
+                'description'   => 'Post-completion - collect client satisfaction rating',
                 'body'          => "Dear {{CLIENT_NAME}}, thank you for using Mattermind services for SR *{{SR_ID}}*.\n\nWe'd love your feedback on technician {{TECHNICIAN_NAME}}:\n\n{{FEEDBACK_LINK}}\n\nYour response helps us improve our service quality.",
                 'variables'     => ['{{CLIENT_NAME}}','{{SR_ID}}','{{TECHNICIAN_NAME}}','{{FEEDBACK_LINK}}'],
                 'status'        => 1,

@@ -98,7 +98,7 @@ class CompletedService extends Controller
             ->with([
                 'client',
                 'project',
-                'punch.user',   // hasOne latest punch — see note; falls back gracefully if hasMany
+                'punch.user',   // hasOne latest punch - see note; falls back gracefully if hasMany
             ]);
 
         if (! $applyFilters) {
@@ -218,7 +218,7 @@ class CompletedService extends Controller
         $labour    = $punch->labour_charge ?? 0;
 
         // Invoice total should only appear when it's actually been recorded
-        // on the service_requests table — no fallback to punch grand_total.
+        // on the service_requests table - no fallback to punch grand_total.
         
         $hasInvoiceTotal = $sr->invoice_total !== null;
         $invoiceTotal    = $hasInvoiceTotal ? $sr->invoice_total : null;
@@ -226,19 +226,19 @@ class CompletedService extends Controller
         return [
             'id'          => $sr->id,
             'code'        => $srCode,
-            'client'      => optional($sr->client)->company_name ?? '—',
-            'site'        => optional($sr->project)->site_name ?? '—',
+            'client'      => optional($sr->client)->company_name ?? '-',
+            'site'        => optional($sr->project)->site_name ?? '-',
             'worker'      => optional($punch?->user)->name ?? 'Unassigned',
-            'issue'       => $sr->issue_description ?? '—',
+            'issue'       => $sr->issue_description ?? '-',
             'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
             'contact'     => optional($sr->client)->primary_mobile
-                ?? optional($sr->client)->contact_number ?? '—',
-            'cust_name'   => $punch->customer_name ?? '—',
-            'summary'     => $punch->completion_summary ?? '—',
+                ?? optional($sr->client)->contact_number ?? '-',
+            'cust_name'   => $punch->customer_name ?? '-',
+            'summary'     => $punch->completion_summary ?? '-',
             'punch_in'    => $punch && $punch->punch_in_at
-                ? Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A') : '—',
+                ? Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A') : '-',
             'punch_out'   => $punch && $punch->punch_out_at
-                ? Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '—',
+                ? Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '-',
             'duration'         => $this->computeDuration($punch),
             'materials'        => number_format($materials, 2),
             'labour'           => number_format($labour, 2),
@@ -317,13 +317,13 @@ class CompletedService extends Controller
     }
     /**
  * Human readable duration computed directly from punch in/out timestamps,
- * e.g. "1d 2h 15m" / "3h 05m" / "42m". Returns '—' if either timestamp is
+ * e.g. "1d 2h 15m" / "3h 05m" / "42m". Returns '-' if either timestamp is
  * missing.
  */
 private function computeDuration(?Punch $punch): string
 {
     if (! $punch || ! $punch->punch_in_at || ! $punch->punch_out_at) {
-        return '—';
+        return '-';
     }
 
     $in  = Carbon::parse($punch->punch_in_at);

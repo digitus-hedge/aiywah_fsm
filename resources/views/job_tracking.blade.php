@@ -348,7 +348,7 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
   $techName   = optional($sr->assignedUser)->name;
   $domainName = optional($sr->domain)->domain_name;
   $catName    = optional($sr->category)->category_name;
-  $techDomain = collect([$catName, $domainName])->filter()->implode(' · ') ?: '—';
+  $techDomain = collect([$catName, $domainName])->filter()->implode(' · ') ?: '-';
 
 
   $initials = $techName
@@ -389,7 +389,7 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
     <div class="sr-card-top">
       <div>
         <div class="sr-id">{{ $srRef }}</div>
-        <div class="sr-client">{{ optional($sr->client)->company_name ?? '—' }}</div>
+        <div class="sr-client">{{ optional($sr->client)->company_name ?? '-' }}</div>
         <div class="sr-site"><i class="bi bi-geo-alt" style="color:#9a8053;font-size:.85rem;"></i>
     {{ $siteName ?? 'Site not specified' }}
       </div>
@@ -407,12 +407,12 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
         <div class="sr-meta-label">Service Type</div>
         <div class="sr-meta-value">
           
-          {{ optional($sr->category)->category_name ?? '—' }}
+          {{ optional($sr->category)->category_name ?? '-' }}
         </div>
       </div>
       <div class="sr-meta-item">
         <div class="sr-meta-label">Logged On</div>
-        <div class="sr-meta-value">{{ optional($sr->created_at)->format('d M Y') ?? '—' }}</div>
+        <div class="sr-meta-value">{{ optional($sr->created_at)->format('d M Y') ?? '-' }}</div>
       </div>
     </div>
     <div class="sr-card-hint"><i class="bi bi-info-circle"></i>Tap for full job details</div>
@@ -485,8 +485,8 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
     <div class="drawer-hdr-left">
       <div class="drawer-hdr-icon"><i class="bi bi-file-earmark-text"></i></div>
       <div>
-        <div class="drawer-title">Job Details — {{ $srRef }}</div>
-        <div class="drawer-sub">{{ optional($sr->client)->company_name ?? '—' }} · {{ $siteName ?? '—' }}</div>
+        <div class="drawer-title">Job Details - {{ $srRef }}</div>
+        <div class="drawer-sub">{{ optional($sr->client)->company_name ?? '-' }} · {{ $siteName ?? '-' }}</div>
       </div>
     </div>
     <button class="drawer-close" onclick="closeDrawer()"><i class="bi bi-x-lg"></i></button>
@@ -498,13 +498,13 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
       <div class="detail-grid">
         <div class="detail-cell"><div class="dc-label">SR Reference</div><div class="dc-value gold">{{ $srRef }}</div></div>
         <div class="detail-cell"><div class="dc-label">Status</div><div class="dc-value" style="color:{{ $statusMeta['color'] }}">{{ $statusMeta['label'] }}</div></div>
-        <div class="detail-cell"><div class="dc-label">Scope</div><div class="dc-value">{{ $sr->warranty_scope === 'iw' ? 'In Warranty' : ($sr->warranty_scope === 'oow' ? 'Out of Warranty' : '—') }}</div></div>
-        <div class="detail-cell"><div class="dc-label">Service Domain</div><div class="dc-value">{{ optional($sr->category)->category_name ?? '—' }}</div></div>
-        <div class="detail-cell"><div class="dc-label">Priority</div><div class="dc-value">{{ $sr->priority_level ?? '—' }}</div></div>
-        <div class="detail-cell"><div class="dc-label">Logged On</div><div class="dc-value">{{ optional($sr->created_at)->format('d M Y') ?? '—' }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Scope</div><div class="dc-value">{{ $sr->warranty_scope === 'iw' ? 'In Warranty' : ($sr->warranty_scope === 'oow' ? 'Out of Warranty' : '-') }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Service Domain</div><div class="dc-value">{{ optional($sr->category)->category_name ?? '-' }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Priority</div><div class="dc-value">{{ $sr->priority_level ?? '-' }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Logged On</div><div class="dc-value">{{ optional($sr->created_at)->format('d M Y') ?? '-' }}</div></div>
         <div class="detail-cell full">
           <div class="dc-label">Issue Description</div>
-          <div class="dc-value" style="font-weight:400;font-size:.8rem;line-height:1.5;">{{ $sr->issue_description ?: '—' }}</div>
+          <div class="dc-value" style="font-weight:400;font-size:.8rem;line-height:1.5;">{{ $sr->issue_description ?: '-' }}</div>
         </div>
       </div>
     </div>
@@ -512,12 +512,12 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
     <div class="detail-section">
       <div class="detail-section-title"><i class="bi bi-buildings"></i>Customer &amp; Site</div>
       <div class="detail-grid">
-        <div class="detail-cell"><div class="dc-label">Customer</div><div class="dc-value">{{ optional($sr->client)->company_name ?? '—' }}</div></div>
-        <div class="detail-cell"><div class="dc-label">Customer Token</div><div class="dc-value gold">{{ optional($sr->client)->unique_code ?? '—' }}</div></div>
-        <div class="detail-cell"><div class="dc-label">Site</div><div class="dc-value">{{ $siteName ?? '—' }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Customer</div><div class="dc-value">{{ optional($sr->client)->company_name ?? '-' }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Customer Token</div><div class="dc-value gold">{{ optional($sr->client)->unique_code ?? '-' }}</div></div>
+        <div class="detail-cell"><div class="dc-label">Site</div><div class="dc-value">{{ $siteName ?? '-' }}</div></div>
         <div class="detail-cell full">
           <div class="dc-label">Full Address</div>
-          <div class="dc-value" style="font-weight:400;font-size:.8rem;">{{ $siteAddr ?? '—' }}</div>
+          <div class="dc-value" style="font-weight:400;font-size:.8rem;">{{ $siteAddr ?? '-' }}</div>
         </div>
       </div>
     </div>
@@ -533,8 +533,8 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
         </div>
         <div class="tech-detail-status">
           <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:3px;">{{ $punchIn ? 'On-site since' : 'ETA' }}</div>
-          <div style="font-size:.85rem;font-weight:700;color:#9a8053;">{{ optional($punchIn ?? $sr->eta_at)->format('h:i A') ?? '—' }}</div>
-          <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;" id="drawer-duration">—</div>
+          <div style="font-size:.85rem;font-weight:700;color:#9a8053;">{{ optional($punchIn ?? $sr->eta_at)->format('h:i A') ?? '-' }}</div>
+          <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;" id="drawer-duration">-</div>
         </div>
       </div>
     </div>
@@ -578,7 +578,7 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
           <div class="ct-right">
             <div class="ct-label {{ $m['state'] === 'pending' ? 'pending' : '' }}">{{ $m['label'] }}</div>
             <div class="ct-time {{ $m['state'] === 'active' ? 'gold' : '' }}">
-              {{ $m['time'] ?: 'Pending' }}{{ $m['desc'] ? ' — '.$m['desc'] : '' }}
+              {{ $m['time'] ?: 'Pending' }}{{ $m['desc'] ? ' - '.$m['desc'] : '' }}
             </div>
           </div>
         </div>
@@ -618,7 +618,7 @@ function renderH(){
   if(!el) return;
   el.innerHTML = MILESTONES.map(function(m, idx){
     var label = esc(m.label).replace(/ /, '<br>');
-    var time  = m.time ? esc(m.time) : (m.state === 'pending' ? '' : '—');
+    var time  = m.time ? esc(m.time) : (m.state === 'pending' ? '' : '-');
     return '<div class="tl-item '+m.state+'">'+
       '<div class="tl-node '+m.state+'" data-idx="'+idx+'" onclick="showMsTip(event, parseInt(this.dataset.idx))">'+
         '<i class="bi '+esc(m.icon)+' node-icon"></i></div>'+
@@ -635,7 +635,7 @@ function renderV(){
   el.innerHTML = MILESTONES.map(function(m, idx){
     var isLast    = idx === MILESTONES.length - 1;
     var lineClass = m.state === 'done' ? 'done' : (m.state === 'active' ? 'active' : '');
-    var time      = m.time ? esc(m.time) : (m.state === 'pending' ? 'Pending' : '—');
+    var time      = m.time ? esc(m.time) : (m.state === 'pending' ? 'Pending' : '-');
     return '<div class="tlv-item">'+
       '<div class="tlv-left">'+
         '<div class="tlv-node '+m.state+'" data-idx="'+idx+'" onclick="showMsTip(event, parseInt(this.dataset.idx))">'+
@@ -771,7 +771,7 @@ function closeDrawer(){
 function updateDrawerDuration(){
   var el = document.getElementById('drawer-duration');
   if(!el) return;
-  el.textContent = PUNCH_IN ? fmtDur(PUNCH_IN)+' on-site' : '—';
+  el.textContent = PUNCH_IN ? fmtDur(PUNCH_IN)+' on-site' : '-';
 }
 
 /* ═══ TOOLTIP ═══ */
@@ -781,7 +781,7 @@ function showMsTip(e, idx){
   var m = MILESTONES[idx];
   if(!m) return;
   var tip  = document.getElementById('ms-tooltip');
-  var time = m.time || (m.state === 'pending' ? 'Not reached yet' : '—');
+  var time = m.time || (m.state === 'pending' ? 'Not reached yet' : '-');
   tip.innerHTML = '<strong>'+esc(m.label)+'</strong><br>'+esc(m.desc)+
     '<br><span style="opacity:.7;font-size:.68rem;">'+esc(time)+'</span>';
   var rect = e.currentTarget.getBoundingClientRect();

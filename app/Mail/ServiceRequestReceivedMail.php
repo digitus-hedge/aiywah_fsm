@@ -31,10 +31,10 @@ class ServiceRequestReceivedMail extends Mailable
         view: 'emails.service_request_received',
         with: [
             'customerName' => $this->sr->client?->company_name ?? 'Customer',
-            'projectName'  => $this->sr->project?->project_name ?? '—',
+            'projectName'  => $this->sr->project?->project_name ?? '-',
             'location'     => $this->sr->project?->site_name
                               ?? $this->sr->project_site
-                              ?? '—',
+                              ?? '-',
         ],
     );
 }

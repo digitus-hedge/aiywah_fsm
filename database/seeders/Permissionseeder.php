@@ -74,8 +74,8 @@ class PermissionSeeder extends Seeder
             ['master_data',            'Master Data',            'System',            'database',       'masters.index',         21],
             ['wa_notification_log',    'WhatsApp Notifications', 'System',            'message-circle', 'wa_notification_log',   22],
             ['activity-log',           'Activity Log',           'System',            'activity',       'activity-log',          23],
-            ['user_delete',            'Delete Users',           'System',             'trash-2',        null,                   24],
-            ['client_delete',          'Delete Customers',       'Customer',           'trash-2',        null,                   25],
+            ['user_delete',            'Disable Users',           'System',             'trash-2',        null,                   24],
+            ['client_delete',          'Disable Customers',       'Customer',           'trash-2',        null,                   25],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -102,13 +102,13 @@ class PermissionSeeder extends Seeder
         $deny = array_fill_keys($all, 'no');
 
         $matrix = [
-            // Super Admin — everything.
+            // Super Admin - everything.
             'SA' => array_fill_keys($all, 'yes'),
 
-            // Admin — everything.
+            // Admin - everything.
             'AD' => array_fill_keys($all, 'yes'),
 
-            // Head of Projects — operational scope.
+            // Head of Projects - operational scope.
             'HP' => array_merge($deny, [
                 'dashboard'              => 'yes',
                 'sr_registration'        => 'yes',
@@ -136,7 +136,7 @@ class PermissionSeeder extends Seeder
                 'user_delete'            => 'yes',
             ]),
 
-            // Service Engineer — own tickets only.
+            // Service Engineer - own tickets only.
             'SE' => array_merge($deny, [
                 'dashboard'              => 'yes',
                 'sr_explorer'            => 'view_rls',  // own SRs, lookup only
@@ -150,14 +150,14 @@ class PermissionSeeder extends Seeder
                 'wa_notification_log'    => 'view_rls',  // own message history
             ]),
 
-            // Maintenance Lead — own pipeline only.
+            // Maintenance Lead - own pipeline only.
             'ML' => array_merge($deny, [
                 'dashboard'   => 'yes',
                 'kanban_view' => 'rls',
                 'assigned'    => 'rls',
             ]),
 
-            // Front Desk Executive — intake + onboarding; several grantable extensions.
+            // Front Desk Executive - intake + onboarding; several grantable extensions.
             'FD' => array_merge($deny, [
                 'dashboard'         => 'yes',
                 'sr_registration'   => 'yes',
@@ -176,7 +176,7 @@ class PermissionSeeder extends Seeder
                 'wa_notification_log'    => 'view_rls',
             ]),
 
-            // Accounts / AR — out-of-warranty financial flows only.
+            // Accounts / AR - out-of-warranty financial flows only.
             'AC' => array_merge($deny, [
                 'dashboard'         => 'yes',
                 'kanban_view'     => 'view_rls',
@@ -191,7 +191,7 @@ class PermissionSeeder extends Seeder
         // Format: target role => [ permission_key => source role the permission
         // conceptually belongs to ]. These render as a separate, labeled block
         // in the matrix ("Head of Projects permissions") with individual
-        // check/uncheck toggles — distinct from the role's own base access.
+        // check/uncheck toggles - distinct from the role's own base access.
         $extensions = [
             'FD' => [
                 'inquiry_approval'  => 'HP',
@@ -247,7 +247,7 @@ class PermissionSeeder extends Seeder
         foreach ($matrix as $roleCode => $perms) {
             $roleId = $roleIds[$roleCode] ?? null;
             if (! $roleId) {
-                continue; // role not seeded — skip
+                continue; // role not seeded - skip
             }
 
             foreach ($perms as $permKey => $token) {

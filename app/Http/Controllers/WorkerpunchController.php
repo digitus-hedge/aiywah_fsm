@@ -183,7 +183,7 @@ class WorkerpunchController extends Controller
         $punch = $this->openPunch($request, $data['sr_id']);
         $qty   = $data['qty'] ?? 1;
 
-        // Store outside the transaction — a rolled-back write shouldn't strand a file,
+        // Store outside the transaction - a rolled-back write shouldn't strand a file,
         // and a failed upload shouldn't leave a half-committed item.
         $receiptPath = $request->hasFile('receipt')
             ? $request->file('receipt')->store("punches/{$punch->id}/receipts", 'public')
@@ -224,7 +224,7 @@ class WorkerpunchController extends Controller
         ]);
     }
 
-    /** Technician attended but could not finish — park the SR and close the punch. */
+    /** Technician attended but could not finish - park the SR and close the punch. */
 public function hold(Request $request)
 {
     $data = $request->validate([
@@ -263,7 +263,7 @@ public function hold(Request $request)
             'service_request_id' => $sr->id,
             'event'       => 'status_updated',
             'title'       => 'Status Updated',
-            'message'     => $this->buildSrRef($sr) . ' — visit incomplete: '
+            'message'     => $this->buildSrRef($sr) . ' - visit incomplete: '
                 . \Illuminate\Support\Str::limit($data['reason'], 60),
             'from_status' => $oldStatus,          // 'In Progress'
             'to_status'   => $data['status'],

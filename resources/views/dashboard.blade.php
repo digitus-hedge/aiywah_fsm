@@ -4,7 +4,7 @@
 |--------------------------------------------------------------------------
 | resources/views/admin/dashboard.blade.php
 |
-| No placeholder data — every value comes from the controller.
+| No placeholder data - every value comes from the controller.
 | See the variable contract at the bottom of this file.
 --}}
 
@@ -16,7 +16,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 <style>
 /* ==========================================================================
-   ADMIN DASHBOARD — all rules scoped to #adminDash so nothing leaks into
+   ADMIN DASHBOARD - all rules scoped to #adminDash so nothing leaks into
    the rest of the app (and Bootstrap's .card etc. can't override these).
    ========================================================================== */
 
@@ -586,7 +586,7 @@ footer.footer { display: none; }
   grid-template-columns:minmax(0,118px) minmax(0,1fr) 26px;
   align-items:center;
   gap:10px;
-  height:18px;                 /* was ~32px — this is the gap you're seeing */
+  height:18px;                 /* was ~32px - this is the gap you're seeing */
   margin-bottom:2px;
 }
 
@@ -756,7 +756,7 @@ footer.footer { display: none; }
 .client-list{margin-top:6px;}
 
 .lrow{
-  /* button reset — this is a <button> element */
+  /* button reset - this is a <button> element */
   display:flex;
   flex-direction:row;              /* ← the fix; buttons can inherit column */
   align-items:center;
@@ -1058,7 +1058,7 @@ button.kpi.k5
     }
 
 
-    /* cards 1 & 2 — whole list scrolls, header rows included */
+    /* cards 1 & 2 - whole list scrolls, header rows included */
 .card.is-open .client-list,
 .card.is-open .fd-list {
     max-height: 180px;   /* ~4 rows */
@@ -1067,7 +1067,7 @@ button.kpi.k5
     padding-right: 4px;
 }
 
-/* card 3 — reviews + distribution live inside the box itself */
+/* card 3 - reviews + distribution live inside the box itself */
 /* .card.is-open #satMore {
     max-height: 200px;
     overflow-y: auto;
@@ -1366,7 +1366,7 @@ button.kpi.k5
                     <span class="kpi-delta {{ data_get($kpis, 'sla.delta_tone', 'dn') }}">{{ data_get($kpis, 'sla.delta') }}</span>
                 @endif
             </div>
-            <span class="big-num">{{ data_get($kpis, 'sla.value', '—') }}</span>
+            <span class="big-num">{{ data_get($kpis, 'sla.value', '-') }}</span>
             <span class="kpi-lbl">SLA Compliance</span>
             <span class="kpi-sub">{{ data_get($kpis, 'sla.sub') }}</span>
             <span class="sp-wrap"><canvas id="mmSpark2"></canvas></span>
@@ -1380,7 +1380,7 @@ button.kpi.k5
                     <span class="kpi-delta {{ data_get($kpis, 'invoiced.delta_tone', 'dn') }}">{{ data_get($kpis, 'invoiced.delta') }}</span>
                 @endif
             </div>
-            <span class="big-num">{{ data_get($kpis, 'invoiced.value', '—') }}</span>
+            <span class="big-num">{{ data_get($kpis, 'invoiced.value', '-') }}</span>
             <span class="kpi-lbl">Invoiced This Period</span>
             <span class="kpi-sub">{{ data_get($kpis, 'invoiced.sub') }}</span>
             @if (data_get($kpis, 'invoiced.spark'))
@@ -1396,7 +1396,7 @@ button.kpi.k5
                     <span class="kpi-delta {{ data_get($kpis, 'turnaround.delta_tone', 'dn') }}">{{ data_get($kpis, 'turnaround.delta') }}</span>
                 @endif
             </div>
-            <span class="big-num">{{ data_get($kpis, 'turnaround.value', '—') }}</span>
+            <span class="big-num">{{ data_get($kpis, 'turnaround.value', '-') }}</span>
             <span class="kpi-lbl">Avg Completion Time</span>
             <span class="kpi-sub">{{ data_get($kpis, 'turnaround.sub') }}</span>
             <span class="sp-wrap"><canvas id="mmSpark4"></canvas></span>
@@ -1515,11 +1515,11 @@ button.kpi.k5
             <div class="fin-num-row">
                 <div class="fin-block">
                     <div class="fin-lbl">Invoiced</div>
-                    <div class="fin-val g">{{ data_get($finance ?? [], 'invoiced_formatted', '—') }}</div>
+                    <div class="fin-val g">{{ data_get($finance ?? [], 'invoiced_formatted', '-') }}</div>
                 </div>
                 <div class="fin-block">
                     <div class="fin-lbl">Field expense</div>
-                    <div class="fin-val r">{{ data_get($finance ?? [], 'expense_formatted', '—') }}</div>
+                    <div class="fin-val r">{{ data_get($finance ?? [], 'expense_formatted', '-') }}</div>
                 </div>
                 
             </div>
@@ -1542,7 +1542,7 @@ button.kpi.k5
                 <div class="ch-half"><canvas id="mmSlaGauge"></canvas></div>
                 <div style="text-align:center;margin-top:-14px;">
                     <div style="font-family:var(--font-body);font-size:1.6rem;font-weight:700;line-height:1;">
-                        {{ ! is_null(data_get($qc ?? [], 'qc_rate')) ? data_get($qc, 'qc_rate') . '%' : '—' }}
+                        {{ ! is_null(data_get($qc ?? [], 'qc_rate')) ? data_get($qc, 'qc_rate') . '%' : '-' }}
                     </div>
                     <div style="font-size:.7rem;color:var(--muted);">
                         QC reviewed · {{ data_get($qc ?? [], 'qc_reviewed', 0) }} of {{ data_get($qc ?? [], 'qc_reached', 0) }}
@@ -1583,7 +1583,7 @@ button.kpi.k5
                 <div class="ch-d-sm"><canvas id="mmWaDonut"></canvas></div>
                 <div>
                     <div style="font-family:var(--font-body);font-size:1.6rem;font-weight:700;color:var(--gold);line-height:1;">
-                        {{ ! is_null(data_get($whatsapp ?? [], 'delivery_rate')) ? data_get($whatsapp, 'delivery_rate') . '%' : '—' }}
+                        {{ ! is_null(data_get($whatsapp ?? [], 'delivery_rate')) ? data_get($whatsapp, 'delivery_rate') . '%' : '-' }}
                     </div>
                     <div style="font-size:.72rem;color:var(--muted);margin-bottom:8px;">Delivery rate</div>
                     <div class="leg" style="margin-bottom:4px;">
@@ -1894,7 +1894,7 @@ button.kpi.k5
         <div class="card-body">
             <div class="sat-hdr">
                 <div>
-                    <div class="sat-score">{{ ! is_null($avg) ? number_format((float) $avg, 1) : '—' }}</div>
+                    <div class="sat-score">{{ ! is_null($avg) ? number_format((float) $avg, 1) : '-' }}</div>
                     <div class="sat-stars">
                         @for ($s = 1; $s <= 5; $s++)
                             <i class="bi bi-star{{ $s <= round((float) $avg) ? '-fill' : '' }}"></i>
@@ -2388,7 +2388,7 @@ if (clientEl && clientRows.length) {
     if (charts.mmClient) charts.mmClient.destroy();
 
     const shorten = (s, max = 14) => {
-    s = String(s || '—');
+    s = String(s || '-');
     return s.length > max ? s.slice(0, max) + '…' : s;
 };
     charts.mmClient = new Chart(clientEl, {
@@ -2433,7 +2433,7 @@ if (clientEl && clientRows.length) {
                 callbacks: {
                     title: (items) => {
                         const row = clientRows[items[0].dataIndex];
-                        return String(row?.n ?? row?.name ?? '—');
+                        return String(row?.n ?? row?.name ?? '-');
                     },
                 },
             },
@@ -2648,7 +2648,7 @@ if (fdEl && (DATA.frontDesk || []).length) {
     }
     return items.map((item) => {
         const colour = item.color || GOLD;
-        const label  = item.reference || item.id || '—';
+        const label  = item.reference || item.id || '-';
         const refHtml = item.dbId
             ? '<span class="pr-id sr-ref-trigger" data-sr-id="' + escapeHtml(item.dbId) + '" onclick="event.stopPropagation(); openSrTracking(' + Number(item.dbId) + ')">'
               + escapeHtml(label) + '</span>'
@@ -2796,7 +2796,7 @@ if (fdEl && (DATA.frontDesk || []).length) {
 |     'frontDesk' => [['initials' => 'SM', 'name' => '...', 'srs' => 18, 'completed' => 16, 'pending' => 2]],
 |
 |     'satisfaction'  => ['average' => 4.6, 'responses' => 31, 'response_rate' => 66,
-|                         'completed_srs' => 43, 'flagged' => 'SR-2025-0033 rated 2 stars — flagged for review'],
+|                         'completed_srs' => 43, 'flagged' => 'SR-2025-0033 rated 2 stars - flagged for review'],
 |     'ratingBuckets' => [['stars' => 5, 'count' => 18], ['stars' => 4, 'count' => 8]],
 | ]);
 |

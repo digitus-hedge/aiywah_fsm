@@ -37,7 +37,7 @@ class SrStatus
     public static function meta(?string $status): array
     {
         return self::all()[$status]
-            ?? ['label' => $status ?: '—', 'tone' => 'wait', 'color' => '#6b7280', 'icon' => 'bi-circle'];
+            ?? ['label' => $status ?: '-', 'tone' => 'wait', 'color' => '#6b7280', 'icon' => 'bi-circle'];
     }
 
     /** Statuses a customer should read as "still open". */

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>{{ $project->project_code }} — Service report</title>
+<title>{{ $project->project_code }} - Service report</title>
 <style>
   /* dompdf: table-based layout only, no flex/grid, no webfonts */
   @page{margin:26mm 16mm 20mm}
@@ -40,7 +40,7 @@
 
 <table class="kv">
   <tr><td>Site</td><td>{{ $project->site_name }}{{ $project->site_address ? ', '.$project->site_address : '' }}</td></tr>
-  <tr><td>Handover date</td><td>{{ $project->completion_date ? \Carbon\Carbon::parse($project->completion_date)->format('d M Y') : '—' }}</td></tr>
+  <tr><td>Handover date</td><td>{{ $project->completion_date ? \Carbon\Carbon::parse($project->completion_date)->format('d M Y') : '-' }}</td></tr>
   <tr><td>Warranty</td><td>
     {{ $warrantyEnd ? ($inWarranty ? 'Active until '.$warrantyEnd->format('d M Y') : 'Ended '.$warrantyEnd->format('d M Y')) : 'Not recorded' }}
   </td></tr>
@@ -63,8 +63,8 @@
     </table>
 
     <table class="kv" style="margin-top:8px">
-      <tr><td>Reported issue</td><td>{{ $c['issue'] ?: '—' }}</td></tr>
-      <tr><td>Technician</td><td>{{ $c['technician'] ?: '—' }}</td></tr>
+      <tr><td>Reported issue</td><td>{{ $c['issue'] ?: '-' }}</td></tr>
+      <tr><td>Technician</td><td>{{ $c['technician'] ?: '-' }}</td></tr>
       <tr><td>Cost</td><td>{{ $c['coverage'] }}</td></tr>
     </table>
 
@@ -83,8 +83,8 @@
     @foreach($c['photos'] as $set)
       <table class="photos" style="margin-top:10px">
         <tr>
-          <td class="cap">{{ $set['visit'] }} — before</td>
-          <td class="cap">{{ $set['visit'] }} — after</td>
+          <td class="cap">{{ $set['visit'] }} - before</td>
+          <td class="cap">{{ $set['visit'] }} - after</td>
         </tr>
         <tr>
           <td>@if($set['before'] && file_exists($set['before']))<img src="{{ $set['before'] }}" alt="">@else<span class="muted">Not captured</span>@endif</td>

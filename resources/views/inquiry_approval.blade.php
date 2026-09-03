@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Inquiry Approval — Digit-Us Portal')
+@section('title', 'Inquiry Approval - Digit-Us Portal')
 @section('page_title', 'Inquiry Approval')
 @section('page_icon', 'clipboard-check')
 
@@ -342,7 +342,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
   .data-table{min-width:0;}
   .table-wrap{overflow-x:visible;}
 
-  /* Hide the table header — labels move into each cell */
+  /* Hide the table header - labels move into each cell */
   .data-table thead{display:none;}
 
   /* Each row becomes a card */
@@ -464,7 +464,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 
   <!-- Page Header -->
   <div class="pg-header">
-    <h4><i class="bi bi-clipboard-check me-2"></i>Inquiry Approval — Triage Panel</h4>
+    <h4><i class="bi bi-clipboard-check me-2"></i>Inquiry Approval - Triage Panel</h4>
     <p>Review incoming Pending service requests against active contracts. Approve, forward to Accounts, or reject with documented reason.</p>
     <div class="meta-row">
       <span class="meta-badge"><i class="bi bi-briefcase me-1"></i>Head of Projects</span>
@@ -504,7 +504,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
           <span class="tab-count" id="tab-pending-count">0</span>
         </div>
         <div class="queue-tab oow" id="tab-oow" onclick="switchMode('oow')">
-          <i class="bi bi-file-earmark-check"></i>Quoted — Awaiting Release
+          <i class="bi bi-file-earmark-check"></i>Quoted - Awaiting Release
           <span class="tab-count" id="tab-oow-count">0</span>
         </div>
       </div>
@@ -625,7 +625,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
       <i class="bi bi-person-badge" style="color:#2563eb;"></i> Assign Service Engineer
     </label>
     <select class="form-select" id="seSelect" onchange="onSeChange(this.value)" disabled style="font-size:.8rem;">
-      <option value="">— Select a ticket first —</option>
+      <option value="">- Select a ticket first -</option>
     </select>
     <div id="seHint" style="font-size:.68rem;color:var(--text-muted);margin-top:5px;"></div>
   </div>
@@ -707,16 +707,16 @@ const ALL_TICKETS = [
   {
     id:           @json($srRef),
     dbId:         {{ $t->id }},
-    client:       @json($t->client?->company_name ?? '—'),
-    contract:     @json($t->client?->unique_code ?? '—'),
-    category:     @json($t->category?->category_name ?? '—'),
+    client:       @json($t->client?->company_name ?? '-'),
+    contract:     @json($t->client?->unique_code ?? '-'),
+    category:     @json($t->category?->category_name ?? '-'),
     catId:        {{ (int) ($t->service_category_id ?? $t->category?->id ?? 0) }},
-    site:         @json($t->project?->site_name ?? '—'),
-    project:      @json($t->project?->project_name ?? '—'),
+    site:         @json($t->project?->site_name ?? '-'),
+    project:      @json($t->project?->project_name ?? '-'),
     priority:     @json(ucfirst($t->priority_level)),
     warranty:     @json(($t->project && $t->project->warranty_end_date && \Carbon\Carbon::parse($t->project->warranty_end_date)->endOfDay()->isFuture()) ? 'In Warranty' : 'Out of Warranty'),
     description:  @json($t->issue_description ?? ''),
-    submitter:    @json($t->reported_by ?? '—'),
+    submitter:    @json($t->reported_by ?? '-'),
     submittedStr: @json($t->created_at?->format('d M H:i')),
     hrsAgo:       {{ (int) ($t->created_at ? $t->created_at->diffInHours(now()) : 0) }},
     status:       @json($t->status),
@@ -734,22 +734,22 @@ const ALL_OOW = [
   {
     id:           @json($srRef),
     dbId:         {{ $t->id }},
-    client:       @json($t->client?->company_name ?? '—'),
-    contract:     @json($t->client?->unique_code ?? '—'),
-    category:     @json($t->category?->category_name ?? '—'),
+    client:       @json($t->client?->company_name ?? '-'),
+    contract:     @json($t->client?->unique_code ?? '-'),
+    category:     @json($t->category?->category_name ?? '-'),
     catId:        {{ (int) ($t->service_category_id ?? $t->category?->id ?? 0) }},
-    site:         @json($t->project?->site_name ?? '—'),
-    project:      @json($t->project?->project_name ?? '—'),
+    site:         @json($t->project?->site_name ?? '-'),
+    project:      @json($t->project?->project_name ?? '-'),
     priority:     @json(ucfirst($t->priority_level)),
     warranty:     'Out of Warranty',
     description:  @json($t->issue_description ?? ''),
-    submitter:    @json($t->reported_by ?? '—'),
+    submitter:    @json($t->reported_by ?? '-'),
     submittedStr: @json($t->created_at?->format('d M H:i')),
     hrsAgo:       {{ (int) ($t->created_at ? $t->created_at->diffInHours(now()) : 0) }},
     status:       @json($t->status),
     attachments:  @json($t->attachments ?? []),
-    quoteRef:     @json($t->erp_quote_ref ?? '—'),
-    quoteOkStr:   @json($t->client_approved_at?->format('d M Y · h:i A') ?? '—'),
+    quoteRef:     @json($t->erp_quote_ref ?? '-'),
+    quoteOkStr:   @json($t->client_approved_at?->format('d M Y · h:i A') ?? '-'),
   },
   @endforeach
 ];
@@ -871,7 +871,7 @@ function switchMode(m){
   document.getElementById('tab-pending').classList.toggle('active', m === 'pending');
   document.getElementById('tab-oow').classList.toggle('active',     m === 'oow');
   document.getElementById('gridTitle').textContent =
-    m === 'oow' ? 'Quoted — Awaiting Engineer Allocation' : 'Pending Inquiries';
+    m === 'oow' ? 'Quoted - Awaiting Engineer Allocation' : 'Pending Inquiries';
 
   selectedId = null;
   resetDetailPanel();
@@ -895,7 +895,7 @@ function renderEngineerOptions(t){
 
   if(!t){
     sel.disabled = true;
-    sel.innerHTML = '<option value="">— Select a ticket first —</option>';
+    sel.innerHTML = '<option value="">- Select a ticket first -</option>';
     hint.textContent = '';
     return;
   }
@@ -911,7 +911,7 @@ function renderEngineerOptions(t){
   }
 
   sel.disabled = false;
-  sel.innerHTML = '<option value="">— Select Service Engineer —</option>' +
+  sel.innerHTML = '<option value="">- Select Service Engineer -</option>' +
     eligible.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
   hint.textContent = `${eligible.length} engineer${eligible.length === 1 ? '' : 's'} cover ${t.category}.`;
 }
@@ -1038,7 +1038,7 @@ function loadDescPanel(t){
 
   document.getElementById('descBody').innerHTML = `
     <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:7px;">Issue Description</div>
-    <div class="desc-block">${t.description || '—'}</div>
+    <div class="desc-block">${t.description || '-'}</div>
     <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-geo-alt"></i>${t.site}</span>
       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-person"></i>${t.submitter}</span>
@@ -1051,7 +1051,7 @@ function loadDescPanel(t){
 // function loadDescPanel(t){
 //   document.getElementById('descBody').innerHTML=`
 //     <div style="font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:7px;">Issue Description</div>
-//     <div class="desc-block">${t.description||'—'}</div>
+//     <div class="desc-block">${t.description||'-'}</div>
 //     <div style="display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;">
 //       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-geo-alt"></i>${t.site}</span>
 //       <span style="font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;"><i class="bi bi-person"></i>${t.submitter}</span>
@@ -1159,7 +1159,7 @@ function closeModal(){document.getElementById('confirmModal').classList.remove('
 document.getElementById('confirmModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
 /* ════════════════════════════════
-    EXECUTE ACTION — Real POST payload dispatch
+    EXECUTE ACTION - Real POST payload dispatch
 ════════════════════════════════ */
 
 
@@ -1286,7 +1286,7 @@ function executeAction(){
         return;
       }
 
-      // reject only — update in place
+      // reject only - update in place
       tickets = tickets.filter(x => x.id !== selectedId);
       todayRejected++;
       selectedId = null;

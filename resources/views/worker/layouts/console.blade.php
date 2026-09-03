@@ -4,22 +4,22 @@
   drawer plumbing and the responsive shell are defined exactly once.
 
   Sections a page can fill:
-    @section('title')     — browser title
-    @section('live')      — optional strip under the header (omit it entirely and
+    @section('title')     - browser title
+    @section('live')      - optional strip under the header (omit it entirely and
                             the strip is not rendered)
-    @section('tabs')      — the .tab-btn row
-    @section('content')   — .tab-pane blocks
-    @section('drawers')   — bottom sheets; these sit outside .tab-content so an
+    @section('tabs')      - the .tab-btn row
+    @section('content')   - .tab-pane blocks
+    @section('drawers')   - bottom sheets; these sit outside .tab-content so an
                             inactive pane can't hide them
-    @push('styles')       — page-only CSS
-    @push('scripts')      — page-only JS (globals from this file are in scope)
+    @push('styles')       - page-only CSS
+    @push('scripts')      - page-only JS (globals from this file are in scope)
 
   JS this file exposes to pages:
     $(id) esc(v) showToast(type,title,body) busy(btn,label)
     apiPost(url,payload,isForm) apiGet(url)
     switchTab(id) onTabShow(id,fn) openDrawer(name) closeDrawer(name)
     openLightbox(type,url,name) closeLightbox() animateBars()
-    window.beforeSignOut — set it to a function returning false to block sign-out
+    window.beforeSignOut - set it to a function returning false to block sign-out
 --}}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
@@ -150,7 +150,7 @@ a{color:inherit;}
 .sla-warn.crit{color:var(--red);background:var(--red-bg);border-color:rgba(220,38,38,.2);}
 .sla-warn.ok{color:var(--green);background:var(--green-bg);border-color:rgba(21,128,61,.2);}
 
-/* TAB BAR — scrolls sideways on a phone, centres on desktop */
+/* TAB BAR - scrolls sideways on a phone, centres on desktop */
 .tab-bar{background:var(--tab-bg);border-bottom:1px solid var(--border);flex-shrink:0;
   overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .tab-bar::-webkit-scrollbar{display:none;}
@@ -404,7 +404,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
   </div>
 </div>
 
-{{-- Sign out — every page has it, so it lives here --}}
+{{-- Sign out - every page has it, so it lives here --}}
 <div class="overlay" data-overlay="out"></div>
 <div class="drawer" data-drawer="out">
   <div class="drawer-handle"></div>
@@ -607,7 +607,7 @@ document.addEventListener('click', () => {
 });
 
 $('logoutBtn').addEventListener('click', () => {
-  // A page can block this — the pipeline does while a punch is open.
+  // A page can block this - the pipeline does while a punch is open.
   if (typeof window.beforeSignOut === 'function' && window.beforeSignOut() === false) return;
   openDrawer('out');
 });
@@ -620,7 +620,7 @@ $('outConfirmBtn').addEventListener('click', () => {
 });
 
 /* ══════════════════════════════════════════════════════
-   DRAWERS — discovered from the DOM, so a page just adds
+   DRAWERS - discovered from the DOM, so a page just adds
    [data-drawer="x"] + [data-overlay="x"] and it works.
 ══════════════════════════════════════════════════════ */
 const DRAWERS = {};

@@ -295,7 +295,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
   @if($data['enabled']['se_assigned'] ?? true)
     <div class="card" onclick="openSheet('assigned')">
       <div class="card-top">
-        <div class="card-title">SRs Assigned — Dispatch Split</div>
+        <div class="card-title">SRs Assigned - Dispatch Split</div>
         <div class="card-more-btn">View all ›</div>
       </div>
       <div class="donut-wrap" style="height:180px;">
@@ -306,8 +306,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
         </div>
       </div>
       <div class="legend">
-        <div class="leg-item"><div class="leg-dot" style="background:#4a8a6a;"></div>Dispatched — {{ $data['kpis']['dispatched']['value'] }}</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#e8a030;"></div>Pending — {{ $data['kpis']['pending']['value'] }}</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#4a8a6a;"></div>Dispatched - {{ $data['kpis']['dispatched']['value'] }}</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#e8a030;"></div>Pending - {{ $data['kpis']['pending']['value'] }}</div>
       </div>
     </div>
   @endif
@@ -412,7 +412,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
 
 </div>
 
-<!-- CTA — no dashboard access without logging in, so this always sends to /login -->
+<!-- CTA - no dashboard access without logging in, so this always sends to /login -->
 <div class="cta-wrap">
   <a class="cta-btn" href="{{ $loginUrl }}">Open Portal Dashboard →</a>
 </div>

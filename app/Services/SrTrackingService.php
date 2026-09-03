@@ -33,7 +33,7 @@ class SrTrackingService
     public function statusMeta(?string $s): array
     {
         return $this->statusCatalogue()[$s]
-            ?? ['label' => $s ?: '—', 'chip' => 'chip-pending', 'color' => '#6b7280', 'icon' => 'bi-circle'];
+            ?? ['label' => $s ?: '-', 'chip' => 'chip-pending', 'color' => '#6b7280', 'icon' => 'bi-circle'];
     }
     /**
      * Assignment + ownership summary for the popup header.
@@ -50,7 +50,7 @@ class SrTrackingService
     $isOow = $sr->warranty_scope === 'oow';
 
     $quote   = $isOow ? ['Quoted', 'Quote Approved'] : [];
-    // In-warranty work closes straight from QC — no invoicing stage at all.
+    // In-warranty work closes straight from QC - no invoicing stage at all.
     $invoice = $isOow ? ['Pending Invoice', 'Invoice Submitted'] : [];
 
     return array_merge(
@@ -69,7 +69,7 @@ private function milestoneOnlyMeta(): array
         'Punched Out' => ['label' => 'Punched Out', 'icon' => 'bi-box-arrow-right', 'color' => '#0891b2'],
     ];
 }
-/** "Aysha (SE)" — falls back to just the name if no role code is present. */
+/** "Aysha (SE)" - falls back to just the name if no role code is present. */
 private function withRole(?\App\Models\User $user): ?string
 {
     if (!$user) {
@@ -205,11 +205,11 @@ private function descFor(ServiceRequest $sr, string $key, array $actors): string
 
         $tech = optional($sr->assignedUser)->name;
         $push('Pending', 'Service Request logged', 'Logged by ' . ($sr->reported_by ?: 'Front Desk'), $sr->created_at);
-        $push('Approved', 'SR approved — ' . strtoupper($sr->warranty_scope ?: '') . ' path', 'Contract coverage verified', $sr->approved_at);
+        $push('Approved', 'SR approved - ' . strtoupper($sr->warranty_scope ?: '') . ' path', 'Contract coverage verified', $sr->approved_at);
         $push('Forwarded', 'SR forwarded to service partner', 'Routed for dispatch', $sr->updated_at && $sr->status === 'Forwarded' ? $sr->updated_at : null);
         $push('Assigned', ($tech ?: 'Technician') . ' assigned', 'Dispatched by Head of Projects', $sr->dispatched_at);
-        $push('Quoted', 'Quote submitted — ' . ($sr->erp_quote_ref ?: ''), 'Awaiting client approval', $sr->quote_submitted_at);
-        $push('Quote Approved', 'Quote accepted by client', 'Approval received — work authorised', $sr->client_approved_at);
+        $push('Quoted', 'Quote submitted - ' . ($sr->erp_quote_ref ?: ''), 'Awaiting client approval', $sr->quote_submitted_at);
+        $push('Quote Approved', 'Quote accepted by client', 'Approval received - work authorised', $sr->client_approved_at);
         $push('Quote Rejected', 'Quote rejected by client', 'Client declined the quotation', $sr->status === 'Quote Rejected' ? $sr->quote_rejected_at ?? $sr->updated_at : null);
         $push('In Progress', 'Technician ' . ($tech ?: '') . ' punched in on-site', optional($sr->category)->category_name, optional($sr->punch)->punch_in_at);
         $push('Pending Invoice', 'Technician punched out', optional($sr->punch)->completion_summary, optional($sr->punch)->punch_out_at);
@@ -224,7 +224,7 @@ private function descFor(ServiceRequest $sr, string $key, array $actors): string
         return array_map(fn($r) => [
             'color' => $r['color'],
             'event' => $r['event'],
-            'meta'  => $r['meta'] ?: '—',
+            'meta'  => $r['meta'] ?: '-',
             'day'   => $r['ts']->isToday() ? 'Today' : $r['ts']->format('d M'),
             'time'  => $r['ts']->format('h:i A'),
         ], $rows);
@@ -235,7 +235,7 @@ private function descFor(ServiceRequest $sr, string $key, array $actors): string
     /**
      * Who caused each status transition, keyed by the to_status value.
      * NotificationLog rows are ordered ascending and keyed by to_status,
-     * so the final write wins — matches the "last moved by" pattern used
+     * so the final write wins - matches the "last moved by" pattern used
      * elsewhere in the app (e.g. ticketSummary()).
      */
     private function actorsByStatus(ServiceRequest $sr): array
@@ -258,7 +258,7 @@ private function descFor(ServiceRequest $sr, string $key, array $actors): string
         return array_map(fn($userId) => $names[$userId] ?? null, $causerIds);
     }
     /**
-     * Who currently owns this SR's status — i.e. whose court the ball is in.
+     * Who currently owns this SR's status - i.e. whose court the ball is in.
      * Mirrors the same role logic used across the controllers (assigned_se,
      * assigned_user_id, created_by) so this reads consistently with the rest
      * of the app.
@@ -266,7 +266,7 @@ private function descFor(ServiceRequest $sr, string $key, array $actors): string
     private function currentOwner(ServiceRequest $sr): ?string
     {
         return match ($sr->status) {
-            'Pending'                          => 'Front Desk / Triage',
+            'Pending'                          => 'Front Desk',
             'Approved', 'Quote Approved'        => 'Dispatch Engine',
             'Forwarded', 'Additional', 'Quoted',
             'Quote Rejected'                    => 'Accounts',
@@ -276,7 +276,7 @@ private function descFor(ServiceRequest $sr, string $key, array $actors): string
             'Rework'                            => $this->withRole($sr->assignedUser) ?? 'Technician',
             'Pending Invoice'                   => 'Accounts',
             'Invoice Submitted'                 => 'Head of Projects',
-            'Completed', 'Rejected'             => null, // closed — nobody owns it
+            'Completed', 'Rejected'             => null, // closed - nobody owns it
             default                             => null,
         };
     }

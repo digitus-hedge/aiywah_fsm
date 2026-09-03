@@ -9,9 +9,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
- * Accountant Dashboard — scoped to what the Accountant role can actually see:
+ * Accountant Dashboard - scoped to what the Accountant role can actually see:
  * Invoice Panel and Expense Ledger. Deliberately NOT a trimmed copy of
- * DashboardController — no SR status/client/service filters, no KPI cards,
+ * DashboardController - no SR status/client/service filters, no KPI cards,
  * no charts. Just the two finance tables and a date range.
  */
 class AccountantDashboardController extends Controller
@@ -60,7 +60,7 @@ class AccountantDashboardController extends Controller
     }
 
     /* =====================================================================
-     | Invoice Panel — every SR invoiced within the selected window.
+     | Invoice Panel - every SR invoiced within the selected window.
      | Table shows only the latest RECENT_LIMIT rows; count/total still
      | reflect the full period.
      ===================================================================== */
@@ -77,11 +77,11 @@ class AccountantDashboardController extends Controller
 
         $items = $rows->take(self::RECENT_LIMIT)->map(fn ($sr) => [
             'ref'      => $this->srRef($sr),
-            'client'   => $sr->client->company_name ?? '—',
-            'category' => $sr->category_name ?: '—',
+            'client'   => $sr->client->company_name ?? '-',
+            'category' => $sr->category_name ?: '-',
             'amount'   => self::CURRENCY . ' ' . number_format((float) $sr->invoice_total, 2),
             'status'   => $sr->status ?: 'Unknown',
-            'date'     => $sr->invoice_submitted_at?->format('d M Y') ?: '—',
+            'date'     => $sr->invoice_submitted_at?->format('d M Y') ?: '-',
         ])->values()->all();
 
         return [
@@ -92,7 +92,7 @@ class AccountantDashboardController extends Controller
     }
 
     /* =====================================================================
-     | Expense Ledger — mirrors ServiceRequestController::expenseLedger():
+     | Expense Ledger - mirrors ServiceRequestController::expenseLedger():
      | line items (Punchitem), tech via serviceRequest.assignedUser, amount
      | is line_total falling back to qty * rate. Windowed here to the
      | dashboard's selected period via the parent punch's punch_out_at.
@@ -112,11 +112,11 @@ class AccountantDashboardController extends Controller
             $sr = $it->punch?->serviceRequest;
 
             return [
-                'ref'    => $sr ? $this->srRef($sr) : '—',
-                'client' => $sr?->client?->company_name ?? '—',
+                'ref'    => $sr ? $this->srRef($sr) : '-',
+                'client' => $sr?->client?->company_name ?? '-',
                 'tech'   => optional($sr?->assignedUser)->name ?? 'Unassigned',
                 'amount' => self::CURRENCY . ' ' . number_format($amount($it), 2),
-                'date'   => $it->created_at?->format('d M Y') ?: '—',
+                'date'   => $it->created_at?->format('d M Y') ?: '-',
             ];
         })->values()->all();
 
@@ -128,9 +128,9 @@ class AccountantDashboardController extends Controller
     }
 
     /* =====================================================================
-     | SR breakdown pie — in warranty / out of warranty / quoted / pending
+     | SR breakdown pie - in warranty / out of warranty / quoted / pending
      | to quote. Four independent counts over the same created_at window as
-     | the rest of the page — not a partition of one total, just four quick
+     | the rest of the page - not a partition of one total, just four quick
      | reads on where the period's SRs stand.
      ===================================================================== */
     private const PENDING_TO_QUOTE_STATUSES = ['Pending', 'Approved', 'Forwarded', 'Additional'];
@@ -163,7 +163,7 @@ class AccountantDashboardController extends Controller
     }
 
     /* =====================================================================
-     | Quotation Desk — the actual SRs behind the "Pending to Quote" slice
+     | Quotation Desk - the actual SRs behind the "Pending to Quote" slice
      | of the breakdown pie above. Same statuses, same created_at window,
      | just the row-level detail instead of a count. Table shows only the
      | latest RECENT_LIMIT rows; count still reflects the full period.
@@ -181,10 +181,10 @@ class AccountantDashboardController extends Controller
 
         $items = $rows->take(self::RECENT_LIMIT)->map(fn ($sr) => [
             'ref'      => $this->srRef($sr),
-            'client'   => $sr->client->company_name ?? '—',
-            'category' => $sr->category_name ?: '—',
+            'client'   => $sr->client->company_name ?? '-',
+            'category' => $sr->category_name ?: '-',
             'status'   => $sr->status ?: 'Unknown',
-            'date'     => $sr->created_at?->format('d M Y') ?: '—',
+            'date'     => $sr->created_at?->format('d M Y') ?: '-',
         ])->values()->all();
 
         return [
@@ -211,7 +211,7 @@ class AccountantDashboardController extends Controller
 
     /**
      * Mirrors ServiceRequestController::buildSrRef(). There's no stored
-     * 'code' column — the reference is derived from created_at's year plus
+     * 'code' column - the reference is derived from created_at's year plus
      * the zero-padded id, so it never changes once created.
      */
     private function srRef(ServiceRequest $sr): string
@@ -221,7 +221,7 @@ class AccountantDashboardController extends Controller
     }
 
     /* =====================================================================
-     | Range handling — same shape as DashboardController, date-only.
+     | Range handling - same shape as DashboardController, date-only.
      ===================================================================== */
     private function normaliseRange(Request $request, array $filters): array
     {

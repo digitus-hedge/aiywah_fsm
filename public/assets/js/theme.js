@@ -2,7 +2,7 @@
  * DIGIT-US PORTAL  ·  GLOBAL THEME MANAGER
  * public/assets/js/theme.js
  *
- * Load as the VERY FIRST <script> inside <head> — before any CSS link.
+ * Load as the VERY FIRST <script> inside <head> - before any CSS link.
  * This prevents the white flash on dark-mode page loads.
  *
  *   <script src="{{ asset('assets/js/theme.js') }}"></script>
@@ -48,7 +48,7 @@
         },
 
         _broadcast: function (theme) {
-            /* 1. Custom event — any page JS can listen */
+            /* 1. Custom event - any page JS can listen */
             try {
                 document.dispatchEvent(new CustomEvent('themechange', {
                     detail: { theme: theme, isDark: theme === 'dark' }
@@ -78,7 +78,7 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', wireBtn);
     } else {
-        wireBtn();          /* script loaded after DOM — wire immediately */
+        wireBtn();          /* script loaded after DOM - wire immediately */
     }
 
     /* ── 4. Re-wire after every Livewire / Turbo navigation ── */

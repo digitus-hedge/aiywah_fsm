@@ -365,7 +365,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
 
             $cols[$key][] = [
 'id' => 'SR-' . Carbon::parse($r->created_at)->format('Y') . '-' . str_pad($r->id, 5, '0', STR_PAD_LEFT),                'client' => (string) $r->client,
-                'site'   => $r->site ?: '—',
+                'site'   => $r->site ?: '-',
                 'ml'     => $r->ml ?: 'Unassigned',
                 'mlInit' => $this->initials($r->ml),
                 'time'   => $time,
@@ -525,7 +525,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
 
         return [
             'value'   => $avg,
-            'display' => $count ? number_format($avg, 1) : '—',
+            'display' => $count ? number_format($avg, 1) : '-',
             'sub'     => $count
                 ? $count . ' ' . Str::plural('response', $count) . ' · out of 5'
                 : 'No feedback yet',
@@ -547,7 +547,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
         return [
             'mins'    => $mins,
             'display' => $mins <= 0
-                ? '—'
+                ? '-'
                 : ($mins < 60
                     ? $mins . 'm'
                     : intdiv($mins, 60) . 'h ' . ($mins % 60) . 'm'),
@@ -612,13 +612,13 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->get()
             ->map(fn($sr) => [
                 'id'         => $sr->code,
-                'client'     => $sr->client?->company_name ?? '—',
-                'site'       => $sr->project?->site_name ?? '—',
+                'client'     => $sr->client?->company_name ?? '-',
+                'site'       => $sr->project?->site_name ?? '-',
                 'priority'   => ucfirst((string) $sr->priority_level),
                 'scope'      => $this->scopeCode($sr),
-                'cat'        => $sr->category?->category_name ?? '—',
-                'originalML' => $sr->assignedUser?->name ?? '—',
-                'mlInit'     => $sr->assignedUser ? $this->initials($sr->assignedUser->name) : '—',
+                'cat'        => $sr->category?->category_name ?? '-',
+                'originalML' => $sr->assignedUser?->name ?? '-',
+                'mlInit'     => $sr->assignedUser ? $this->initials($sr->assignedUser->name) : '-',
                 'attempt'    => 1,
                 'elapsed'    => $sr->updated_at?->diffForHumans(),
                 'reason'     => $sr->rework_notes ?: 'No reason recorded.',
@@ -639,11 +639,11 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->get()
             ->map(fn($sr) => [
                 'id'       => $sr->code,
-                'client'   => $sr->client?->company_name ?? '—',
-                'site'     => $sr->project?->site_name ?? '—',
+                'client'   => $sr->client?->company_name ?? '-',
+                'site'     => $sr->project?->site_name ?? '-',
                 'priority' => $this->priority($sr->priority_level),
                 'scope'    => $this->scopeCode($sr),
-                'cat'      => $sr->category?->category_name ?? '—',
+                'cat'      => $sr->category?->category_name ?? '-',
                 'logged'   => $this->shortAge($sr->created_at) . ' ago',
                 'hrs'      => (int) abs($sr->created_at?->diffInHours(now()) ?? 0),
                 'issue'    => $sr->issue_description ?: 'No description recorded.',
@@ -672,12 +672,12 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
 
                 return [
                     'id'       => $sr->code,
-                    'client'   => $sr->client?->company_name ?? '—',
-                    'site'     => $sr->project?->site_name ?? '—',
-                    'ml'       => $sr->assignedUser?->name ?? '—',
-                    'mlInit'   => $sr->assignedUser ? $this->initials($sr->assignedUser->name) : '—',
-                    'punchout' => $this->clockTime($punch?->punch_out_at) ?? '—',
-                    'cat'      => $sr->category?->category_name ?? '—',
+                    'client'   => $sr->client?->company_name ?? '-',
+                    'site'     => $sr->project?->site_name ?? '-',
+                    'ml'       => $sr->assignedUser?->name ?? '-',
+                    'mlInit'   => $sr->assignedUser ? $this->initials($sr->assignedUser->name) : '-',
+                    'punchout' => $this->clockTime($punch?->punch_out_at) ?? '-',
+                    'cat'      => $sr->category?->category_name ?? '-',
                     'priority' => $this->priority($sr->priority_level),
                     'scope'    => $this->scopeCode($sr),
                     'proofs'   => [
@@ -693,7 +693,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
 
 
 
-    /** "vs 16 last month" — the phrasing used on the first KPI card. */
+    /** "vs 16 last month" - the phrasing used on the first KPI card. */
     private function previousLabel(string $period): string
     {
         return match ($period) {
@@ -788,7 +788,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
         return $counts;
     }
 
-    /** Triage backlog is deliberately NOT period-scoped — old ones still matter. */
+    /** Triage backlog is deliberately NOT period-scoped - old ones still matter. */
     private function openTriageCount(int $userId): int
     {
         $raw = $this->rawFor(self::TRIAGE_STAGES);
@@ -919,8 +919,8 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->get()
             ->map(fn(ServiceRequest $sr) => [
                 'code'     => $sr->code,
-                'client'   => $sr->client?->company_name ?? '—',
-                'category' => $sr->category?->category_name ?? '—',
+                'client'   => $sr->client?->company_name ?? '-',
+                'category' => $sr->category?->category_name ?? '-',
                 'priority' => $this->priority($sr->priority_level),
                 'wait'     => $this->shortAge($sr->created_at),
                 'stale'    => $sr->created_at && abs($sr->created_at->diffInHours(now())) >= 5,
@@ -928,11 +928,11 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->all();
     }
 
-    /** "18h" / "3d" — the compact style used across the mock-up. */
+    /** "18h" / "3d" - the compact style used across the mock-up. */
     private function shortAge(?CarbonInterface $when): string
     {
         if (! $when) {
-            return '—';
+            return '-';
         }
 
         $mins = (int) abs($when->diffInMinutes(now()));
@@ -1062,7 +1062,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
 
             return [
                 'id'     => $r->client_id,
-                'name'   => $client->company_name ?? '—',
+                'name'   => $client->company_name ?? '-',
                 'srs'    => (int) $r->aggregate,
                 'is_new' => (bool) ($client && $client->created_at && $client->created_at->between($from, $to)),
             ];
@@ -1118,7 +1118,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ->get()
             ->map(fn(ServiceRequest $sr) => [
                 'code'   => $sr->code,
-                'client' => $sr->client?->company_name ?? '—',
+                'client' => $sr->client?->company_name ?? '-',
                 'reason' => $sr->hold_reason ?: ucfirst(str_replace('_', ' ', (string) $sr->status)),
             ])
             ->all();
@@ -1129,7 +1129,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
     /**
      * Reads the WhatsApp log table directly and degrades to zeros when it is
      * absent or shaped differently. Point TABLE at your real table and adjust
-     * the column names once confirmed — WhatsappLogController owns that schema.
+     * the column names once confirmed - WhatsappLogController owns that schema.
      */
     private function whatsappStats(int $userId, Carbon $from, Carbon $to): array
     {
@@ -1180,7 +1180,7 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
             ]))
             ->map(fn($r) => [
                 'code'   => 'SR-' . Carbon::parse($r->sr_created)->format('Y') . '-' . str_pad((string) $r->sr_id, 5, '0', STR_PAD_LEFT),
-                'client' => $r->company_name ?? '—',
+                'client' => $r->company_name ?? '-',
                 'reason' => ($r->reason ?? null) ?: 'Delivery failed',
             ])
             ->all();
@@ -1250,11 +1250,11 @@ private function fieldBoard(int $userId, Carbon $from, Carbon $to): array
 
         return [
             'code'     => $sr->code,
-            'client'   => $sr->client?->company_name ?? '—',
-            'site'     => $sr->project?->site_name ?: ($sr->project?->site_address ?: '—'),
+            'client'   => $sr->client?->company_name ?? '-',
+            'site'     => $sr->project?->site_name ?: ($sr->project?->site_address ?: '-'),
             'priority' => $this->priority($sr->priority_level),
             'scope'    => $this->scopeCode($sr),
-            'category' => $sr->category?->category_name ?? '—',
+            'category' => $sr->category?->category_name ?? '-',
             'logged'   => $this->shortAge($sr->created_at),
             'tech'     => $tech?->name,
             'initials' => $tech ? $this->initials($tech->name) : null,

@@ -41,12 +41,12 @@ class MaintenanceCompletedMail extends Mailable
             view: 'emails.maintenance_completed',
             with: [
                 'customerName'    => $this->sr->client?->company_name ?? 'Customer',
-                'projectName'     => $this->sr->project?->project_name ?? '—',
+                'projectName'     => $this->sr->project?->project_name ?? '-',
                 'location'        => $this->sr->project?->site_name
                                      ?? $punch?->site_location
                                      ?? $this->sr->project_site
-                                     ?? '—',
-                'issue'           => $this->sr->issue_description ?? '—',
+                                     ?? '-',
+                'issue'           => $this->sr->issue_description ?? '-',
                 'technician'      => $this->sr->assignedUser?->name ?? 'Our service team',
                 'completionDate'  => $out?->format('d M Y') ?? now()->format('d M Y'),
                 'completionTime'  => $out?->format('h:i A') ?? now()->format('h:i A'),

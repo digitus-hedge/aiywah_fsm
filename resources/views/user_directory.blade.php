@@ -76,7 +76,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 .ud-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;}
 @media(max-width:767.98px){.ud-filter{flex-direction:column;align-items:stretch;gap:8px;}.ud-filter .form-select-sm{width:100%!important;}.ud-search{min-width:100%;}.ud-actions{margin-left:0;}}
 
-/* Buttons — gold primary, ghost secondary (theme-consistent) */
+/* Buttons - gold primary, ghost secondary (theme-consistent) */
 .ud-btn{display:inline-flex;align-items:center;gap:6px;border-radius:6px;font-size:.78rem;font-weight:500;padding:.4rem .9rem;cursor:pointer;white-space:nowrap;text-decoration:none;height:34px;border:1px solid transparent;transition:all .15s;}
 .ud-btn i{font-size:.9rem;}
 .ud-btn-gold{background:linear-gradient(135deg,#9A7B4F,#7A6140);color:#fff;}
@@ -171,7 +171,7 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
 .ud-pager .page-link:hover{background:rgba(154,123,79,.1);border-color:#9A7B4F;color:#9A7B4F;}
 .ud-pager .active .page-link{background:rgba(154,123,79,.12);border-color:#9A7B4F;color:#9A7B4F;}
 .ud-pager .disabled .page-link{opacity:.45;pointer-events:none;}
-/* Hide Laravel's built-in "Showing X to Y of Z results" text —
+/* Hide Laravel's built-in "Showing X to Y of Z results" text -
    keep only our custom .info text on the left */
 .ud-pager p {
   display: none;
@@ -294,7 +294,10 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
     <div class="ud-table-wrap">
 
     @php
-  $showCategory = $users->contains(fn($u) => optional($u->role)->code === 'SE');
+  $showCategory = $users->contains(function ($u) {
+      $code = optional($u->role)->code;
+      return $code === 'SE' || ($code === 'HP' && $u->is_se_enabled);
+  });
 @endphp
       <table class="ud-table">
         <thead>
@@ -323,11 +326,11 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
   $avColor   = $palette[$user->id % count($palette)];
   $roleColor = optional($user->role)->color_code ?? '#9A7B4F';
 
-  $isSE = optional($user->role)->code === 'SE';
-
-  $categoryList = $isSE
-      ? $user->serviceCategories->pluck('category_name')->filter()->unique()->values()
-      : collect();
+  $hasCategories = optional($user->role)->code === 'SE'
+    || (optional($user->role)->code === 'HP' && $user->is_se_enabled);
+$categoryList = $hasCategories
+    ? $user->serviceCategories->pluck('category_name')->filter()->unique()->values()
+    : collect();
 
   $domainList = $user->serviceDomains->pluck('domain_name')->filter()->values();
 
@@ -346,14 +349,14 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
                 </div>
               </td>
               <td data-label="Role">
-                <span class="ud-role-pill" style="color:{{ $roleColor }};background:{{ $roleColor }}1f;">{{ optional($user->role)->name ?? '—' }}</span>
+                <span class="ud-role-pill" style="color:{{ $roleColor }};background:{{ $roleColor }}1f;">{{ optional($user->role)->name ?? '-' }}</span>
               </td>
 
 
               @if($showCategory)
                 <td data-label="Category" class="ud-muted">
-                  @if(!$isSE)
-                    <span class="ud-chip-empty">—</span>
+                  @if(!$hasCategories)
+                    <span class="ud-chip-empty">-</span>
                   @elseif($categoryList->isNotEmpty())
                     <div class="ud-chip-list">
                       @foreach($categoryList->take(2) as $cat)
@@ -394,11 +397,11 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
                     @endif
                   </div>
                 @else
-                  <span class="ud-chip-empty">—</span>
+                  <span class="ud-chip-empty">-</span>
                 @endif
               </td>
               
-              <td data-label="Created" class="ud-muted">{{ optional($user->created_at)->format('d M Y') ?? '—' }}</td>
+              <td data-label="Created" class="ud-muted">{{ optional($user->created_at)->format('d M Y') ?? '-' }}</td>
 
             @if($canProvisionUsers)
               <td data-label="Actions">
@@ -471,17 +474,17 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
         <select class="ud-inp" id="edit-role"></select>
         <div class="ud-err" id="err-roleId"></div>
 
-        <label class="ud-lbl">Password <span style="font-weight:400;color:var(--text-muted);">— leave blank to keep current</span></label>
+        <label class="ud-lbl">Password <span style="font-weight:400;color:var(--text-muted);">- leave blank to keep current</span></label>
         <input type="password" class="ud-inp" id="edit-password" autocomplete="new-password">
         <div class="ud-err" id="err-password"></div>
 
-                {{-- Domain Expertise — non-SE roles --}}
+                {{-- Domain Expertise - non-SE roles --}}
         <div id="wrap-domains">
           <label class="ud-lbl">Domain Expertise</label>
           <div class="ud-domains" id="edit-domains"></div>
         </div>
 
-        {{-- Categories — Service Engineer only --}}
+        {{-- Categories - Service Engineer only --}}
         <div id="wrap-categories" style="display:none;">
           <label class="ud-lbl">Service Categories</label>
           <div class="ud-domains" id="edit-categories"></div>
@@ -648,7 +651,7 @@ function udToggleRoleFields(){
   const wCats = document.getElementById('wrap-categories');
   const wDoms = document.getElementById('wrap-domains');
 
-  if (wCats) wCats.style.display = code === 'SE' ? '' : 'none';
+  if (wCats) wCats.style.display = (code === 'SE' || code === 'HOP') ? '' : 'none';
   if (wDoms) wDoms.style.display = code === 'ML' ? '' : 'none';
 }
 
@@ -739,7 +742,7 @@ async function udSaveEdit(){
     roleId:     code,
     role:       roleSel.options[roleSel.selectedIndex]?.text || '',
     domains:    code === 'ML' ? [...udSelectedDomains] : [],
-    categories: code === 'SE' ? [...udSelectedCats]    : [],
+    categories: (code === 'SE' || code === 'HOP') ? [...udSelectedCats] : [],
     fdGrants:   [],
   };
 

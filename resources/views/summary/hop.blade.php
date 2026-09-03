@@ -319,13 +319,13 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f7;color:#1a1a2e
   @endif
   </div>
 
-  <!-- ROW 1 — Pending Review + Approved Funnel -->
+  <!-- ROW 1 - Pending Review + Approved Funnel -->
   <div class="grid-2">
 
   @if($data['enabled']['hop_pending'] ?? true)
     <div class="card" onclick="openSheet('pending')">
       <div class="card-top">
-        <div class="card-title">Pending Review — Action Required</div>
+        <div class="card-title">Pending Review - Action Required</div>
         <div class="card-more-btn" style="color:#b91c1c;">View all ›</div>
       </div>
       <div class="sr-rows">
@@ -344,7 +344,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f7;color:#1a1a2e
   @if($data['enabled']['hop_approved'] ?? true)
     <div class="card" onclick="openSheet('approved')">
       <div class="card-top">
-        <div class="card-title">Approved SRs — Forward Progress</div>
+        <div class="card-title">Approved SRs - Forward Progress</div>
         <div class="card-more-btn">View all ›</div>
       </div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:14px;">
@@ -380,7 +380,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f7;color:#1a1a2e
 
   </div>
 
-  <!-- ROW 2 — QC Pending + Rework -->
+  <!-- ROW 2 - QC Pending + Rework -->
   <div class="grid-2">
 
   @if($data['enabled']['hop_qc'] ?? true)
@@ -412,7 +412,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f7;color:#1a1a2e
   @if($data['enabled']['hop_rework'] ?? true)
     <div class="card" onclick="openSheet('rework')">
       <div class="card-top">
-        <div class="card-title">Rework Cases — Yesterday</div>
+        <div class="card-title">Rework Cases - Yesterday</div>
         <div class="card-more-btn" style="color:#b45309;">View ›</div>
       </div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:12px;">
@@ -438,7 +438,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f7;color:#1a1a2e
 
   </div>
 
-  <!-- ROW 3 — Re-allocations + Completed with Ratings -->
+  <!-- ROW 3 - Re-allocations + Completed with Ratings -->
   <div class="grid-2">
 
   @if($data['enabled']['hop_realloc'] ?? true)
@@ -474,7 +474,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f7;color:#1a1a2e
   @if($data['enabled']['hop_completed'] ?? true)
     <div class="card" onclick="openSheet('completed')">
       <div class="card-top">
-        <div class="card-title">Completed SRs — Ratings</div>
+        <div class="card-title">Completed SRs - Ratings</div>
         <div class="card-more-btn" style="color:#047857;">View all ›</div>
       </div>
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">

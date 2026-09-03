@@ -152,7 +152,7 @@ a.funnel-row:hover{background:var(--card2);}
   @if(!empty($live['active']))
     <div class="live-chip">
       <div class="live-dot"></div>
-      On site — {{ $live['active']['site'] }} · Punched in {{ $live['active']['since'] }}
+      On site - {{ $live['active']['site'] }} · Punched in {{ $live['active']['since'] }}
     </div>
   @else
     <div class="live-chip"><i class="bi bi-cup-hot"></i>Not punched in</div>
@@ -161,7 +161,7 @@ a.funnel-row:hover{background:var(--card2);}
   @if(!empty($live['sla']))
     <a class="sla-warn {{ $live['sla']['state'] }}" href="{{ $go(['job' => $live['sla']['ref']]) }}">
       <i class="bi bi-{{ $live['sla']['state'] === 'crit' ? 'exclamation-triangle-fill' : 'clock' }}"></i>
-      {{ $live['sla']['ref'] }} — {{ $live['sla']['label'] }}
+      {{ $live['sla']['ref'] }} - {{ $live['sla']['label'] }}
     </a>
   @endif
 @endsection

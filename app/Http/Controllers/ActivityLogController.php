@@ -63,7 +63,7 @@ class ActivityLogController extends Controller
     }
 
 /**
- * Human-readable record reference — SR-2026-00085 for service requests,
+ * Human-readable record reference - SR-2026-00085 for service requests,
  * the unique code for clients/projects, or a fallback #id for anything else.
  * Falls back to the logged old/new value snapshot when the live record
  * has since been deleted (subject relation resolves to null).
@@ -71,13 +71,13 @@ class ActivityLogController extends Controller
 private function recordLabel(ActivityLog $log): string
 {
     if (! $log->subject_id) {
-        return '—';
+        return '-';
     }
 
     $type = class_basename($log->subject_type ?? '');
     $sub  = $log->subject; // null if hard-deleted since this log entry was written
 
-    // Snapshot fallback — decode whichever value set is present.
+    // Snapshot fallback - decode whichever value set is present.
     $snapshot = $this->decodeValues($log->new_values) ?? $this->decodeValues($log->old_values) ?? [];
 
     return match ($type) {

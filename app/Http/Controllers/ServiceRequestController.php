@@ -38,7 +38,7 @@ class ServiceRequestController extends Controller
         $canViewTriage = auth()->user()->hasAnyAccess('inquiry_approval');  
         return view('sr_registration', compact('categories', 'priorities'));
     }
-    // Lookup endpoint — searches by company name, unique_code, or primary_mobile
+    // Lookup endpoint - searches by company name, unique_code, or primary_mobile
     public function lookup(string $code)
     {
         $term = trim($code);
@@ -176,19 +176,19 @@ class ServiceRequestController extends Controller
         'service_request_id' => $sr->id,
         'event'       => 'status_updated',
         'title'       => 'Status Updated',
-        'message'     => "{$ref} reallocated — returned to Rework"
+        'message'     => "{$ref} reallocated - returned to Rework"
             . (!empty($data['remark']) ? ': ' . $data['remark'] : ''),
         'from_status' => $oldStatus,
         'to_status'   => 'Rework',
         'caused_by'   => auth()->id(),
     ]);
 
-    // Same customer/internal message as a QC-failed rework — queued.
+    // Same customer/internal message as a QC-failed rework - queued.
     SendSrNotifications::dispatch(
         $sr->id,
         SendSrNotifications::REALLOCATED,
         $ref,
-        auth()->user()?->name
+        auth()->user()
     );
 
     return response()->json(['ok' => true]);
@@ -208,7 +208,7 @@ class ServiceRequestController extends Controller
             'attachments.*'     => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:10240'],
         ]);
 
-        // Store files OUTSIDE the transaction — disk writes shouldn't hold a DB lock.
+        // Store files OUTSIDE the transaction - disk writes shouldn't hold a DB lock.
         $paths = [];
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
@@ -238,7 +238,7 @@ class ServiceRequestController extends Controller
                 'message'   => 'SR-' . ($sr->created_at?->year ?? now()->year)
                 . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT) . ' created'
                 . ' by ' . (auth()->user()->name ?? 'Unknown')
-                . ' (' . (optional(auth()->user()->role)->code ?? '—') . ')',   // ← NEW: role visible in the log line
+                . ' (' . (optional(auth()->user()->role)->code ?? '-') . ')',   // ← NEW: role visible in the log line
                 'to_status' => 'Pending',
                 'caused_by' => auth()->id(),
             ]);
@@ -246,7 +246,7 @@ class ServiceRequestController extends Controller
             return $sr;
         });
 
-    // WhatsApp + email are slow network calls — hand them to the queue.
+    // WhatsApp + email are slow network calls - hand them to the queue.
     SendSrNotifications::dispatch($sr->id, SendSrNotifications::CREATED, $this->buildSrRef($sr));
     return response()->json([
         'success'      => true,
@@ -302,7 +302,7 @@ class ServiceRequestController extends Controller
 
         // SE sees only their own assigned SRs
         $user = auth()->user();
-        $isSe = $user->role?->code === 'SE';
+        $isSe = $this->isServiceEngineer($user);
 
         if ($isSe) {
             $query->where('assigned_se', $user->id);
@@ -406,7 +406,7 @@ class ServiceRequestController extends Controller
         $query = ServiceRequest::with('client', 'project', 'creator', 'category')
             ->where('status', 'Pending');
 
-        // Only window when the dashboard sent a range — a direct visit shows everything pending.
+        // Only window when the dashboard sent a range - a direct visit shows everything pending.
         if (!empty($filters['range'])) {
             [$start, $end] = $this->resolveRange($filters);
             $query->whereBetween('created_at', [$start, $end]);
@@ -439,7 +439,7 @@ class ServiceRequestController extends Controller
             ->orderBy('display_order')
             ->get();
 
-        // Today's throughput — deliberately NOT windowed by the dashboard filter.
+        // Today's throughput - deliberately NOT windowed by the dashboard filter.
         // These read "what happened today", so a past date range shouldn't zero them.
         $stats = [
             'pending'   => $inquiries->count(),
@@ -449,7 +449,7 @@ class ServiceRequestController extends Controller
             'rejected'  => ServiceRequest::where('status', 'Rejected')->whereDate('updated_at', today())->count(),
         ];
 
-        $engineers = User::whereHas('role', fn($q) => $q->where('code', 'SE'))
+        $engineers = $this->serviceEngineerScope()
             ->with('serviceCategories:id')
             ->orderBy('name')
             ->get()
@@ -524,7 +524,7 @@ class ServiceRequestController extends Controller
         return response()->json([
             'ok'      => true,
             'success' => true,
-            'message' => "Ticket {$ref} approved — Dispatch Engine. In-Warranty approval stamped.",
+            'message' => "Ticket {$ref} approved - Dispatch Engine. In-Warranty approval stamped.",
         ]);
     }
 
@@ -580,7 +580,7 @@ class ServiceRequestController extends Controller
         return response()->json([
             'ok'      => true,
             'success' => true,
-            'message' => "Ticket {$ref} released to Dispatch Engine — Out-of-Warranty scope.",
+            'message' => "Ticket {$ref} released to Dispatch Engine - Out-of-Warranty scope.",
         ]);
     }
    public function forward(ServiceRequest $serviceRequest)
@@ -609,13 +609,13 @@ class ServiceRequestController extends Controller
         $serviceRequest->id,
         SendSrNotifications::QUOTE_PENDING_ACCOUNTS,
         $ref,
-        auth()->user()?->name
+        auth()->user()
     );
 
     return response()->json([
         'ok'      => true,
         'success' => true,
-        'message' => "Ticket {$ref} forwarded — Quotation Desk. Scope set as Out-of-Warranty.",
+        'message' => "Ticket {$ref} forwarded - Quotation Desk. Scope set as Out-of-Warranty.",
     ]);
 }
 
@@ -645,7 +645,7 @@ public function additionalWork(ServiceRequest $serviceRequest)
         $serviceRequest->id,
         SendSrNotifications::QUOTE_PENDING_ACCOUNTS,
         $ref,
-        auth()->user()?->name
+        auth()->user()
     );
 
     return response()->json([
@@ -676,7 +676,7 @@ public function additionalWork(ServiceRequest $serviceRequest)
             'service_request_id' => $serviceRequest->id,
             'event'       => 'status_updated',
             'title'       => 'Status Updated',
-            'message'     => "{$ref} Rejected — " . $data['reason'],
+            'message'     => "{$ref} Rejected - " . $data['reason'],
             'from_status' => $oldStatus,
             'to_status'   => 'Rejected',
             'caused_by'   => auth()->id(),
@@ -708,7 +708,7 @@ public function additionalWork(ServiceRequest $serviceRequest)
         $query = ServiceRequest::with(['client', 'project', 'creator', 'category.domains'])
             ->where('status', 'Approved');
 
-        /* ▼ ADD — Service Engineers see only their own assigned tickets */
+        /* ▼ ADD - Service Engineers see only their own assigned tickets */
         $user = auth()->user();
 
         if ($this->isServiceEngineer($user)) {
@@ -716,7 +716,7 @@ public function additionalWork(ServiceRequest $serviceRequest)
         }
         /* ▲ */
 
-        // Only window when the dashboard sent a range — a direct visit shows the full queue.
+        // Only window when the dashboard sent a range - a direct visit shows the full queue.
         if (!empty($filters['range'])) {
             [$start, $end] = $this->resolveRange($filters);
             $query->whereBetween('created_at', [$start, $end]);
@@ -765,7 +765,7 @@ public function additionalWork(ServiceRequest $serviceRequest)
                 'contract'          => optional($sr->project)->project_name ?? '-',
                 'domain'            => optional($sr->category)->category_name ?? '-',
                 'site'              => optional($sr->project)->site_name ?? '-',
-                'priority'          => $meta['name']  ?? ($rawPrio !== null ? (string) $rawPrio : '—'),
+                'priority'          => $meta['name']  ?? ($rawPrio !== null ? (string) $rawPrio : '-'),
                 'prioColor'         => $meta['color'] ?? '#8a8a8a',
                 'prioId'            => $meta['prioId'] ?? null,
                 'prioKey'           => $meta['prioKey'] ?? strtolower(trim((string) $rawPrio)),
@@ -803,7 +803,12 @@ public function additionalWork(ServiceRequest $serviceRequest)
         $catsBySe = DB::table('user_service_category as usc')
             ->join('users as u', 'u.id', '=', 'usc.user_id')
             ->join('roles as r', 'r.id', '=', 'u.role_id')
-            ->where('r.code', 'SE')
+            ->where(function ($q) {
+                $q->where('r.code', 'SE')
+                ->orWhere(function ($q2) {
+                    $q2->where('r.code', 'HP')->where('u.is_se_enabled', true);
+                });
+            })
             ->select('usc.user_id', 'usc.service_category_id')
             ->get()
             ->groupBy('user_id')
@@ -845,16 +850,21 @@ public function additionalWork(ServiceRequest $serviceRequest)
     }
 
 
-    private function isServiceEngineer($user): bool
-    {
-        if (!$user) return false;
+    // private function isServiceEngineer($user): bool
+    // {
+    //     if (!$user) return false;
 
-        return \DB::table('users')            // ← use your real pivot name
-            ->join('roles', 'roles.id', '=', 'users.role_id')
-            ->where('users.id', $user->id)
-            ->where('roles.code', 'SE')
-            ->exists();
-    }
+    //     return \DB::table('users')            // ← use your real pivot name
+    //         ->join('roles', 'roles.id', '=', 'users.role_id')
+    //         ->where('users.id', $user->id)
+    //         ->where('roles.code', 'SE')
+    //         ->exists();
+    // }
+    private function isServiceEngineer($user): bool
+{
+    if (!$user) return false;
+    return $this->serviceEngineerScope()->where('id', $user->id)->exists();
+}
 
 
     public function storeContact(Request $request)
@@ -913,14 +923,14 @@ public function additionalWork(ServiceRequest $serviceRequest)
             'title'       => 'Status Updated',
             'message'     => "{$ref} assigned to " . ($tech->name ?? 'a technician')
                 . (!empty($data['eta_at'])
-                    ? ' — ETA ' . \Carbon\Carbon::parse($data['eta_at'])->format('d M Y h:i A')
+                    ? ' - ETA ' . \Carbon\Carbon::parse($data['eta_at'])->format('d M Y h:i A')
                     : ''),
             'from_status' => $oldStatus,
             'to_status'   => 'Assigned',
             'caused_by'   => auth()->id(),
         ]);
 
-        // Two mails and two WhatsApp round-trips — off the request entirely.
+        // Two mails and two WhatsApp round-trips - off the request entirely.
         \App\Jobs\SendSrNotifications::dispatch(
             $serviceRequest->id,
             \App\Jobs\SendSrNotifications::DISPATCHED,
@@ -956,7 +966,7 @@ public function additionalWork(ServiceRequest $serviceRequest)
  * role's permission map. Returns:
  *   null   → no scoping (permission is 'grant' or role isn't restricted)
  *   [col, id] → apply ->where($col, $id)
- * Deny is NOT handled here — a denied user shouldn't reach this method at all;
+ * Deny is NOT handled here - a denied user shouldn't reach this method at all;
  * that should be enforced by your route middleware / policy.
  */
 private function rlsScope(string $module): ?array
@@ -964,7 +974,7 @@ private function rlsScope(string $module): ?array
     $user = auth()->user();
     $code = optional($user->role)->code;
 
-    // Swap this for however you actually resolve the permission map —
+    // Swap this for however you actually resolve the permission map -
     // e.g. config('permissions.roles'), a Permission model, a Gate, etc.
     $level = \App\Support\Permissions::for($code, $module); // ← placeholder
 
@@ -1096,7 +1106,7 @@ private function rlsScope(string $module): ?array
     ->latest()
     ->get();
 
-    /* "Last moved by" — newest notification log per SR. Ordering ascending
+    /* "Last moved by" - newest notification log per SR. Ordering ascending
        and keying by SR means the final write wins, i.e. the latest entry. */
     $logs = NotificationLog::whereIn('service_request_id', $requests->pluck('id'))
         ->orderBy('id')
@@ -1112,7 +1122,7 @@ private function rlsScope(string $module): ?array
         $punch = $sr->punches->first();
         $log   = $logs->get($sr->id);
 
-        /* Archived is derived at render time — the stored status stays
+        /* Archived is derived at render time - the stored status stays
            'Completed', so nothing else in the system is affected. */
         $closedAt   = $this->srClosedAt($sr);
         $isArchived = $sr->status === 'Completed'
@@ -1121,7 +1131,7 @@ private function rlsScope(string $module): ?array
 
         $laneStatus = $isArchived ? 'Archived' : $sr->status;
 
-        /* Site photos and the signed sheet are completion artefacts — they
+        /* Site photos and the signed sheet are completion artefacts - they
            only exist after the job is closed, so they are only offered on
            the Completed and Archived lanes. */
         $showProof = in_array($laneStatus, ['Completed', 'Archived'], true);
@@ -1132,23 +1142,23 @@ private function rlsScope(string $module): ?array
 
         $site = $punch?->site_location
             ?? optional($sr->project)->site_name
-            ?? '—';
+            ?? '-';
 
         return [
             'id'           => $this->buildSrRef($sr),
             'dbId'         => $sr->id,
-            'client'       => optional($sr->client)->company_name ?? '—',
-            'contract'     => optional($sr->project)->project_name ?? '—',
+            'client'       => optional($sr->client)->company_name ?? '-',
+            'contract'     => optional($sr->project)->project_name ?? '-',
             'site'         => $site,
-            'category'     => optional($sr->category)->category_name ?? '—',
+            'category'     => optional($sr->category)->category_name ?? '-',
             'status'       => $laneStatus,
             'realStatus'   => $sr->status,          // untouched DB value
             'priority'     => $sr->priority_level,
             'tech'         => optional($sr->assignedUser)->name ?? 'Unassigned',
             'techInitials' => $this->initials(optional($sr->assignedUser)->name),
-            'createdAt'    => $sr->created_at?->format('d M Y h:i A') ?? '—',
+            'createdAt'    => $sr->created_at?->format('d M Y h:i A') ?? '-',
             'createdRaw'   => $sr->created_at?->toIso8601String(),
-            'closedAt'     => $closedAt?->format('d M Y') ?? '—',
+            'closedAt'     => $closedAt?->format('d M Y') ?? '-',
 
             'warranty'     => $this->srWarrantyLabel($sr),
 
@@ -1168,7 +1178,7 @@ private function rlsScope(string $module): ?array
             'mover' => [
                 'name'     => $moverName,
                 'initials' => $this->initials($moverName),
-                'at'       => $log?->created_at?->format('d M Y h:i A') ?? '—',
+                'at'       => $log?->created_at?->format('d M Y h:i A') ?? '-',
             ],
         ];
     })->values();
@@ -1206,7 +1216,7 @@ private function rlsScope(string $module): ?array
             'punches' => fn($q) => $q->latest('punch_out_at')->latest('id')->with(['items', 'photos']),
         ])->where('status', 'Qc Review');
 
-        /* QC ownership — engineers only ever see tickets they personally hold.
+        /* QC ownership - engineers only ever see tickets they personally hold.
        The can_qc_review grant controls the Pass/Fail buttons (via canQc),
        not whether the ticket is visible. */
         if ($isSe) {
@@ -1233,7 +1243,7 @@ private function rlsScope(string $module): ?array
             $qcOwnerId = $this->qcOwnerId($sr);
 
             $sla = $punch ? $this->srSla($sr, $punch)
-                : ['label' => '—', 'cls' => '', 'fill' => 0, 'color' => '#9ca3af'];
+                : ['label' => '-', 'cls' => '', 'fill' => 0, 'color' => '#9ca3af'];
             $exp = $punch ? $this->srExpenses($punch)
                 : ['rows' => [], 'total' => 0];
 
@@ -1244,9 +1254,9 @@ private function rlsScope(string $module): ?array
             return [
                 'id'         => $this->buildSrRef($sr),
                 'dbId'       => $sr->id,
-                'client'     => optional($sr->client)->company_name ?? '—',
+                'client'     => optional($sr->client)->company_name ?? '-',
                 'site'       => $punch?->site_location
-                    ?? optional($sr->project)->site_name ?? '—',
+                    ?? optional($sr->project)->site_name ?? '-',
                 'tech'       => optional($sr->assignedUser)->name ?? 'Unassigned',
 
                 'scope'      => $isInWarranty ? 'iw' : 'oow',
@@ -1256,14 +1266,14 @@ private function rlsScope(string $module): ?array
                 'categoryId'   => $sr->service_type_id,
                 'categoryName' => optional($sr->category)->category_name ?? '',
 
-                'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
-                'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
+                'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '-',
+                'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '-',
                 'sla'        => $sla,
                 'slaFill'    => $sla['fill'],
                 'slaColor'   => $sla['color'],
 
                 'expenses' => collect($exp['rows'])->map(fn($r) => [
-                    'cat'     => $r['cat']  ?? $r['category'] ?? '—',
+                    'cat'     => $r['cat']  ?? $r['category'] ?? '-',
                     'icon'    => $r['icon'] ?? 'bi-receipt',
                     'amt'     => $r['amt']  ?? $r['amount']   ?? 0,
                     'receipt' => (bool) ($r['receipt'] ?? $r['receipt_path'] ?? false),
@@ -1357,7 +1367,7 @@ private function rlsScope(string $module): ?array
 
                 return [$from, $to];
             } catch (\Exception $e) {
-                // unparseable date — fall through to the presets
+                // unparseable date - fall through to the presets
             }
         }
 
@@ -1391,7 +1401,7 @@ private function rlsScope(string $module): ?array
                 'service_request_id' => $serviceRequest->id,
                 'event'       => 'status_updated',
                 'title'       => 'Status Updated',
-                'message'     => $this->buildSrRef($serviceRequest) . ' passed QC — '
+                'message'     => $this->buildSrRef($serviceRequest) . ' passed QC - '
                     . ($scope === 'iw' ? 'marked Completed' : 'forwarded to invoicing'),
                 'from_status' => $oldStatus,   // 'Qc Review'
                 'to_status'   => $newStatus,   // 'Completed' or 'Pending Invoice'
@@ -1402,7 +1412,7 @@ private function rlsScope(string $module): ?array
         $ref = $this->buildSrRef($serviceRequest);
 
         // In-warranty work ends here, so this is the moment to tell the customer.
-        // Out-of-warranty still has to clear invoicing — hopApprove() notifies instead.
+        // Out-of-warranty still has to clear invoicing - hopApprove() notifies instead.
         if ($scope === 'iw') {
             SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::COMPLETED, $ref);
         } else {
@@ -1410,7 +1420,7 @@ private function rlsScope(string $module): ?array
                 $serviceRequest->id,
                 SendSrNotifications::INVOICE_REQUIRED_ACCOUNTS,
                 $ref,
-                auth()->user()?->name   // ← actor is whoever is passing QC right now
+                auth()->user()   // ← actor is whoever is passing QC right now
             );
         }
         return response()->json([
@@ -1419,8 +1429,8 @@ private function rlsScope(string $module): ?array
             'scope'   => $scope,
             'status'  => $newStatus,
             'message' => $scope === 'iw'
-                ? "Ticket {$ref} passed QC — marked Completed. Client notified."
-                : "Ticket {$ref} passed QC — forwarded to Invoice Panel.",
+                ? "Ticket {$ref} passed QC - marked Completed. Client notified."
+                : "Ticket {$ref} passed QC - forwarded to Invoice Panel.",
         ]);
     }
 
@@ -1451,7 +1461,7 @@ private function rlsScope(string $module): ?array
                 'service_request_id' => $serviceRequest->id,
                 'event'       => 'status_updated',
                 'title'       => 'Status Updated',
-                'message'     => $this->buildSrRef($serviceRequest) . ' returned for rework — '
+                'message'     => $this->buildSrRef($serviceRequest) . ' returned for rework - '
                     . \Illuminate\Support\Str::limit($data['rework_notes'], 60),
                 'from_status' => $oldStatus,   // 'Qc Review'
                 'to_status'   => 'Rework',
@@ -1461,7 +1471,7 @@ private function rlsScope(string $module): ?array
 
         $ref = $this->buildSrRef($serviceRequest);
 
-        // Rework notifications — off the request, onto the queue.
+        // Rework notifications - off the request, onto the queue.
         SendSrNotifications::dispatch(
             $serviceRequest->id,
             SendSrNotifications::REWORK,
@@ -1485,9 +1495,9 @@ private function rlsScope(string $module): ?array
 
 
         $user = auth()->user();
-        $isSe = $user?->role?->code === 'SE';
+        $isSe = $this->isServiceEngineer($user);
 
-        // one reusable base builder — call it fresh each time
+        // one reusable base builder - call it fresh each time
         $scoped = fn() => ServiceRequest::with(['client', 'project'])
             ->when($isSe, fn($q) => $q->where('assigned_se', $user->id));
 
@@ -1500,11 +1510,11 @@ private function rlsScope(string $module): ?array
             return [
                 'id'        => $this->buildSrRef($sr),
                 'dbId'      => $sr->id,
-                'client'    => optional($sr->client)->company_name ?? '—',
-                'site'      => optional($sr->project)->site_name ?? '—',
-                'logged'    => $sr->updated_at?->diffForHumans() ?? '—',
+                'client'    => optional($sr->client)->company_name ?? '-',
+                'site'      => optional($sr->project)->site_name ?? '-',
+                'logged'    => $sr->updated_at?->diffForHumans() ?? '-',
                 'createdAt' => $sr->created_at?->format('Y-m-d'),
-                'issue'     => $sr->issue_description ?? '—',
+                'issue'     => $sr->issue_description ?? '-',
             ];
         })->values();
 
@@ -1518,11 +1528,11 @@ private function rlsScope(string $module): ?array
                 'id'        => 'PA-' . $sr->id,
                 'sr'        => $this->buildSrRef($sr),
                 'dbId'      => $sr->id,
-                'client'    => optional($sr->client)->company_name ?? '—',
-                'site'      => optional($sr->project)->site_name ?? '—',
-                'ref'       => $sr->erp_quote_ref ?? '—',
-                'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '—',
-                'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+                'client'    => optional($sr->client)->company_name ?? '-',
+                'site'      => optional($sr->project)->site_name ?? '-',
+                'ref'       => $sr->erp_quote_ref ?? '-',
+                'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '-',
+                'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '-',
                 'createdAt' => $sr->created_at?->format('Y-m-d'),
             ];
         })->values();
@@ -1537,11 +1547,11 @@ private function rlsScope(string $module): ?array
                 'id'        => 'QR-' . $sr->id,
                 'sr'        => $this->buildSrRef($sr),
                 'dbId'      => $sr->id,
-                'client'    => optional($sr->client)->company_name ?? '—',
-                'site'      => optional($sr->project)->site_name ?? '—',
-                'ref'       => $sr->erp_quote_ref ?? '—',
-                'rejected'  => $sr->updated_at?->format('d M · h:i A') ?? '—',
-                'ago'       => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+                'client'    => optional($sr->client)->company_name ?? '-',
+                'site'      => optional($sr->project)->site_name ?? '-',
+                'ref'       => $sr->erp_quote_ref ?? '-',
+                'rejected'  => $sr->updated_at?->format('d M · h:i A') ?? '-',
+                'ago'       => $sr->updated_at?->diffForHumans(null, true) ?? '-',
                 'createdAt' => $sr->created_at?->format('Y-m-d'),
             ];
         })->values();
@@ -1587,7 +1597,7 @@ private function rlsScope(string $module): ?array
             'service_request_id' => $serviceRequest->id,
             'event'       => 'status_updated',
             'title'       => 'Status Updated',
-            'message'     =>  $this->buildSrRef($serviceRequest) . ' quoted — ref '
+            'message'     =>  $this->buildSrRef($serviceRequest) . ' quoted - ref '
                 . strtoupper($data['erp_quote_ref']),
             'from_status' => $oldStatus,   // e.g. 'Forwarded'
             'to_status'   => 'Quoted',
@@ -1604,7 +1614,7 @@ private function rlsScope(string $module): ?array
         'status'             => 'Quote Approved',
         'warranty_scope'     => 'oow',
         'client_approved_at' => now(),
-        // approved_at deliberately NOT set — that stamp belongs to approveOow()
+        // approved_at deliberately NOT set - that stamp belongs to approveOow()
     ]);
 
     NotificationLog::create([
@@ -1612,7 +1622,7 @@ private function rlsScope(string $module): ?array
         'event'       => 'status_updated',
         'title'       => 'Status Updated',
         'message'     => $this->buildSrRef($serviceRequest)
-            . ' — quotation approved by client, awaiting engineer allocation',
+            . ' - quotation approved by client, awaiting engineer allocation',
         'from_status' => $oldStatus,
         'to_status'   => 'Quote Approved',
         'caused_by'   => auth()->id(),
@@ -1622,13 +1632,13 @@ private function rlsScope(string $module): ?array
         $serviceRequest->id,
         SendSrNotifications::QUOTE_CLIENT_APPROVED,
         $this->buildSrRef($serviceRequest),
-        auth()->user()?->name
+        auth()->user()
     );
 
     return response()->json([
         'ok'      => true,
         'success' => true,
-        'message' => 'Client approved the quotation — SR returned to Inquiry Approval for engineer allocation.',
+        'message' => 'Client approved the quotation - SR returned to Inquiry Approval for engineer allocation.',
     ]);
 }
 
@@ -1653,7 +1663,7 @@ private function rlsScope(string $module): ?array
             'event'       => 'status_updated',
             'title'       => 'Status Updated',
             'message'     => $this->buildSrRef($serviceRequest)
-                . ' — quotation rejected by client'
+                . ' - quotation rejected by client'
                 . (!empty($data['reason']) ? ' (' . $data['reason'] . ')' : ''),
             'from_status' => $oldStatus,
             'to_status'   => 'Quote Rejected',
@@ -1662,7 +1672,7 @@ private function rlsScope(string $module): ?array
 
         // quoteReject()
         app(\App\Services\WhatsAppService::class)->notifyServiceStatus($serviceRequest, 'Quote Rejected');
-        app(\App\Services\WhatsAppService::class)->notifyInternalStatusChange($serviceRequest, 'Quote Rejected', auth()->user()?->name);
+        app(\App\Services\WhatsAppService::class)->notifyInternalStatusChange($serviceRequest, 'Quote Rejected', auth()->user());
 
         return response()->json([
             'ok'      => true,
@@ -1692,7 +1702,7 @@ private function rlsScope(string $module): ?array
             $punch = $sr->punches->first();
             $exp   = $punch ? $this->srExpenses($punch) : ['rows' => [], 'total' => 0];
 
-            $duration = '—';
+            $duration = '-';
             if ($punch && $punch->punch_in_at && $punch->punch_out_at) {
                 $mins = abs($punch->punch_in_at->diffInMinutes($punch->punch_out_at));
                 $duration = intdiv($mins, 60) . 'h ' . ($mins % 60) . 'm';
@@ -1701,13 +1711,13 @@ private function rlsScope(string $module): ?array
             return [
                 'id'         => $this->buildSrRef($sr),
                 'dbId'       => $sr->id,
-                'client'     => optional($sr->client)->company_name ?? '—',
-                'site'       => $punch?->site_location ?? optional($sr->project)->site_name ?? '—',
+                'client'     => optional($sr->client)->company_name ?? '-',
+                'site'       => $punch?->site_location ?? optional($sr->project)->site_name ?? '-',
                 'technician' => optional($sr->assignedUser)->name ?? 'Unassigned',
-                'logged'     => $sr->updated_at?->diffForHumans() ?? '—',
+                'logged'     => $sr->updated_at?->diffForHumans() ?? '-',
                 'createdAt'  => $sr->created_at?->format('Y-m-d'),   // <-- add
-                'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '—',
-                'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '—',
+                'punchIn'    => $punch?->punch_in_at?->format('d M · h:i A') ?? '-',
+                'punchOut'   => $punch?->punch_out_at?->format('d M · h:i A') ?? '-',
                 'duration'   => $duration,
                 'expenses'   => collect($exp['rows'])->map(fn($r) => [
                     'cat' => $r['cat'],
@@ -1728,11 +1738,11 @@ private function rlsScope(string $module): ?array
                 'sr'        => $this->buildSrRef($sr),
                 'dbId'      => $sr->id,
                 'createdAt'  => $sr->created_at?->format('Y-m-d'),   // <-- add
-                'client'    => optional($sr->client)->company_name ?? '—',
-                'site'      => optional($sr->project)->site_name ?? '—',
-                'code'      => $sr->invoice_code ?? '—',
-                'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '—',
-                'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '—',
+                'client'    => optional($sr->client)->company_name ?? '-',
+                'site'      => optional($sr->project)->site_name ?? '-',
+                'code'      => $sr->invoice_code ?? '-',
+                'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '-',
+                'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '-',
             ];
         })->values();
 
@@ -1777,7 +1787,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
         'service_request_id' => $serviceRequest->id,
         'event'       => 'status_updated',
         'title'       => 'Status Updated',
-        'message'     => $this->buildSrRef($serviceRequest) . ' invoice submitted — '
+        'message'     => $this->buildSrRef($serviceRequest) . ' invoice submitted - '
             . strtoupper($data['invoice_code'])
             . (isset($data['invoice_total']) ? ' (₹' . number_format($data['invoice_total'], 2) . ')' : ''),
         'from_status' => $oldStatus,   // 'Pending Invoice'
@@ -1818,7 +1828,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
         'service_request_id' => $serviceRequest->id,
         'event'       => 'status_updated',
         'title'       => 'Status Updated',
-        'message'     => $ref . ' — HoP approved invoice, service request completed',
+        'message'     => $ref . ' - HoP approved invoice, service request completed',
         'from_status' => $oldStatus,
         'to_status'   => 'Completed',
         'caused_by'   => Auth::id(),
@@ -1829,7 +1839,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
     return response()->json([
         'ok'      => true,
         'success' => true,
-        'message' => 'HoP approved — service request completed. Client notified.',
+        'message' => 'HoP approved - service request completed. Client notified.',
     ]);
 }
 
@@ -1848,16 +1858,16 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
 
             return [
                 'id'         => $it->id,
-                'sr'         => $sr ? $this->buildSrRef($sr) : '—',
+                'sr'         => $sr ? $this->buildSrRef($sr) : '-',
                 'srId'       => $sr?->id,
                 'tech'       => optional($sr?->assignedUser)->name ?? 'Unassigned',
                 'name'       => $it->name,
-                'cat'        => $it->category ?? '—',
+                'cat'        => $it->category ?? '-',
                 'amt'        => (float) ($it->line_total ?? ($it->qty * $it->rate)),
                 'receiptUrl' => $it->receipt_path
                     ? asset('storage/' . $it->receipt_path)
                     : null,
-                'date'       => $it->created_at?->format('d M Y') ?? '—',
+                'date'       => $it->created_at?->format('d M Y') ?? '-',
             ];
         })->values();
 
@@ -1874,7 +1884,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
             'disputed' => (float) $items->where('recon_status', 'disputed')->sum('line_total'),
         ];
 
-        $lastSaved = $items->max('updated_at')?->format('d M Y · h:i A') ?? '—';
+        $lastSaved = $items->max('updated_at')?->format('d M Y · h:i A') ?? '-';
 
         return view('expense_ledger', compact(
             'ledger',
@@ -1909,7 +1919,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
             $client = $sr->client;
 
             if (!$client) {
-                Log::warning('WhatsApp skipped — no client on SR', ['sr_id' => $sr->id]);
+                Log::warning('WhatsApp skipped - no client on SR', ['sr_id' => $sr->id]);
                 return;
             }
 
@@ -1921,7 +1931,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
             );
 
             if (!$phone) {
-                Log::warning('WhatsApp skipped — no phone for client', [
+                Log::warning('WhatsApp skipped - no phone for client', [
                     'sr_id'     => $sr->id,
                     'client_id' => $client->id,
                 ]);
@@ -1981,7 +1991,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
             : 0;
 
         $raw = $target > 0 ? $elapsed / $target * 100 : 0;
-        $pct = min(100, (int) round($raw));   // bar width only — must be capped
+        $pct = min(100, (int) round($raw));   // bar width only - must be capped
 
         [$cls, $color] = match (true) {
             $raw >= 100 => ['breach', '#ef4444'],
@@ -2049,7 +2059,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
             if ($to = $sr->client?->email) {
                 Mail::to($to)->send(new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink));
             } else {
-                Log::warning('Completion mail skipped — client has no email', ['sr_id' => $sr->id]);
+                Log::warning('Completion mail skipped - client has no email', ['sr_id' => $sr->id]);
             }
         } catch (\Throwable $e) {
             Log::error('Completion mail failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
@@ -2119,16 +2129,20 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
                 : 'QC on this ticket is reserved for the Head of Projects.',
         ], 403);
     }
+    // private function isServiceEngineerId($userId): bool
+    // {
+    //     return DB::table('users')
+    //         ->join('roles', 'roles.id', '=', 'users.role_id')
+    //         ->where('users.id', $userId)
+    //         ->where('roles.code', 'SE')
+    //         ->exists();
+    // }
     private function isServiceEngineerId($userId): bool
-    {
-        return DB::table('users')
-            ->join('roles', 'roles.id', '=', 'users.role_id')
-            ->where('users.id', $userId)
-            ->where('roles.code', 'SE')
-            ->exists();
-    }
+{
+    return $this->serviceEngineerScope()->where('id', $userId)->exists();
+}
 
-    /** When a ticket was actually closed — drives the archive cutoff. */
+    /** When a ticket was actually closed - drives the archive cutoff. */
     private function srClosedAt(ServiceRequest $sr): ?\Carbon\Carbon
     {
         $raw = $sr->hop_approved_at
@@ -2162,7 +2176,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
     /**
      * The signed acceptance sheet for a completed job.
      *
-     * Falls through a few likely column names — a column that doesn't exist
+     * Falls through a few likely column names - a column that doesn't exist
      * on the punches table simply reads as null, so this is safe either way.
      * If your signed sheet lives somewhere else, point the first line at it.
      */
@@ -2189,8 +2203,21 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
         'AC' => 'Accounts / AR',
         'AD' => 'Admin',
         'SA' => 'Super Admin',
-        default => $this->logged_by_role ?? '—',
+        default => $this->logged_by_role ?? '-',
     };
+}
+
+
+/** Users eligible to be assigned as a Service Engineer: real SEs, plus HoPs with the SE toggle on. */
+private function serviceEngineerScope()
+{
+    return User::where(function ($q) {
+        $q->whereHas('role', fn($r) => $r->where('code', 'SE'))
+          ->orWhere(function ($q2) {
+              $q2->whereHas('role', fn($r) => $r->where('code', 'HP'))
+                 ->where('is_se_enabled', true);
+          });
+    });
 }
  
 }

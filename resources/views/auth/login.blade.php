@@ -59,7 +59,7 @@
         }
 
         /* ═══════════════════════════════════════════════════════════
-           LEFT — brand panel, original gold gradient
+           LEFT - brand panel, original gold gradient
            ═══════════════════════════════════════════════════════════ */
         .brand-panel{
             position:relative;
@@ -112,7 +112,7 @@
             transform:translate(-50%,-50%) rotate(45deg);
         }
 
-        /* logo lockup is the only element up here now — no side text,
+        /* logo lockup is the only element up here now - no side text,
            so it just needs to sit clean and scale down gracefully */
         .bp-top{ position:relative; z-index:1; margin-bottom:44px; }
         .bp-mark{ width:200px; }
@@ -158,7 +158,7 @@
         }
 
         /* ═══════════════════════════════════════════════════════════
-           RIGHT — sign-in form, original card white
+           RIGHT - sign-in form, original card white
            ═══════════════════════════════════════════════════════════ */
         .form-panel{
             position:relative;
@@ -169,7 +169,7 @@
             background:var(--card);
         }
 
-        /* hallmark watermark — small, quiet, bottom corner */
+        /* hallmark watermark - small, quiet, bottom corner */
         .fp-hallmark{
             position:absolute;
             width:150px;
@@ -211,7 +211,7 @@
 
         .field-box{ position:relative; }
 
-        /* underline-style inputs — now with real breathing room instead
+        /* underline-style inputs - now with real breathing room instead
            of text sitting flush against the hairline and each edge */
         .field-input{
             width:100%;
@@ -314,7 +314,7 @@
 </head>
 <body>
 
-    {{-- ═══ LEFT — brand geometry ═══ --}}
+    {{-- ═══ LEFT - brand geometry ═══ --}}
     <aside class="brand-panel">
 
         <span class="ring-field" aria-hidden="true">
@@ -335,7 +335,7 @@
             <div class="bp-eyebrow">Operations Portal</div>
             <h1 class="bp-head"><em>Perfection</em> is a state of mind.</h1>
             <div class="bp-rule"></div>
-            <p class="bp-sub">Provision users, route service requests, and keep every operation moving — from one considered workspace.</p>
+            <p class="bp-sub">Provision users, route service requests, and keep every operation moving - from one considered workspace.</p>
         </div>
 
         <div class="bp-foot">
@@ -344,7 +344,7 @@
         </div>
     </aside>
 
-    {{-- ═══ RIGHT — sign in ═══ --}}
+    {{-- ═══ RIGHT - sign in ═══ --}}
     <main class="form-panel">
         <span class="fp-hallmark" aria-hidden="true">
             <img src="{{ asset('assets/images/mattermind-mark-gold.png') }}" alt="">

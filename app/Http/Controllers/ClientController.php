@@ -16,7 +16,7 @@ use App\Services\SrTrackingService;
 class ClientController extends Controller
 {
     /**
-     * Client Directory — searchable, filterable, paginated listing.
+     * Client Directory - searchable, filterable, paginated listing.
      */
 
     public function directory(Request $request)
@@ -182,13 +182,13 @@ class ClientController extends Controller
             ];
         })->values();
 
-        // Project-created events — one per project_code, newest kept
+        // Project-created events - one per project_code, newest kept
         $projectActivity = $projects->sortByDesc('created_at')
             ->unique('project_code')
             ->map(fn($p) => [
                 'type'   => 'project',
                 'status' => 'created',
-                'title'  => "Project {$p->project_code} — Created",
+                'title'  => "Project {$p->project_code} - Created",
                 'sub'    => $p->project_name,
                 'time'   => $p->created_at,
             ]);
@@ -203,8 +203,8 @@ class ClientController extends Controller
                 'sr_id'  => $sr->id,
                 'status' => strtolower($sr->status ?? 'pending'),
                 'title'  => 'SR-' . optional($sr->created_at)->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT)
-                    . ' — ' . ucfirst($sr->status ?? 'Pending'),
-                'sub'    => $sr->project_site ?? $sr->reported_by ?? '—',
+                    . ' - ' . ucfirst($sr->status ?? 'Pending'),
+                'sub'    => $sr->project_site ?? $sr->reported_by ?? '-',
                 'time'   => $sr->created_at,
             ]);
 
@@ -216,7 +216,7 @@ class ClientController extends Controller
             $projectActivity->push([
                 'type'   => 'project',
                 'status' => 'created',
-                'title'  => "Project {$latestProject->project_code} — Created",
+                'title'  => "Project {$latestProject->project_code} - Created",
                 'sub'    => $latestProject->project_name,
                 'time'   => $latestProject->created_at,
             ]);
@@ -233,7 +233,7 @@ class ClientController extends Controller
 
         $lifetimeSrs = 0;
         $activeSrs   = 0;
-        $avgRating   = '—';
+        $avgRating   = '-';
 
         return view('client_view', compact(
             'client',
@@ -273,7 +273,7 @@ class ClientController extends Controller
         if ($client->status !== 'Active') {
             return back()
                 ->withInput()
-                ->with('error', "Cannot create a service request — {$client->company_name} is currently marked Inactive. Please activate the customer account first.");
+                ->with('error', "Cannot create a service request - {$client->company_name} is currently marked Inactive. Please activate the customer account first.");
         }
 
         $client = DB::transaction(function () use ($request, $validated) {
@@ -299,7 +299,7 @@ class ClientController extends Controller
 
         $portalUrl = route('portal.client', ['code' => $client->unique_code]);
 
-       // Welcome email + WhatsApp are slow network calls — queue them so the
+       // Welcome email + WhatsApp are slow network calls - queue them so the
         // redirect fires as soon as the client and projects are written.
         $firstProject = $client->projects()->oldest('id')->first();
 
@@ -316,7 +316,7 @@ class ClientController extends Controller
 
     public function update(Request $request, Client $client)
     {
-        // Firm name + token are locked — ignore any posted changes, keep stored values
+        // Firm name + token are locked - ignore any posted changes, keep stored values
         $validated = $this->validateData($request, $client->id, locked: true);
 
         $newProjectIds = [];
@@ -596,17 +596,17 @@ class ClientController extends Controller
         $punches = $sr->punches->map(function ($pn) {
             return [
                 'id'          => $pn->id,
-                'technician'  => optional($pn->user)->name ?? '—',
-                'punch_in'    => $pn->punch_in_at  ? \Carbon\Carbon::parse($pn->punch_in_at)->format('d M Y, h:i A')  : '—',
-                'punch_out'   => $pn->punch_out_at ? \Carbon\Carbon::parse($pn->punch_out_at)->format('d M Y, h:i A') : '—',
-                'location'    => $pn->site_location ?: '—',
-                'work'        => $pn->work_description ?: '—',
-                'summary'     => $pn->completion_summary ?: '—',
-                'receipt_no'  => $pn->receipt_number ?: '—',
-                'cust_name'   => $pn->customer_name ?: '—',
-                'cust_phone'  => $pn->customer_phone ?: '—',
+                'technician'  => optional($pn->user)->name ?? '-',
+                'punch_in'    => $pn->punch_in_at  ? \Carbon\Carbon::parse($pn->punch_in_at)->format('d M Y, h:i A')  : '-',
+                'punch_out'   => $pn->punch_out_at ? \Carbon\Carbon::parse($pn->punch_out_at)->format('d M Y, h:i A') : '-',
+                'location'    => $pn->site_location ?: '-',
+                'work'        => $pn->work_description ?: '-',
+                'summary'     => $pn->completion_summary ?: '-',
+                'receipt_no'  => $pn->receipt_number ?: '-',
+                'cust_name'   => $pn->customer_name ?: '-',
+                'cust_phone'  => $pn->customer_phone ?: '-',
                 'status'      => $pn->status,
-                'notes'       => $pn->notes ?: '—',
+                'notes'       => $pn->notes ?: '-',
                 'materials'   => number_format((float) $pn->materials_subtotal, 2),
                 'labour'      => number_format((float) $pn->labour_charge, 2),
                 'grand_total' => number_format((float) $pn->grand_total, 2),
@@ -631,21 +631,21 @@ class ClientController extends Controller
             'ref' => 'SR-' . $sr->created_at->format('Y') . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
 
             // clients table
-            'client_company'  => $c->company_name    ?? '—',
-            'client_code'     => $c->unique_code     ?? '—',
-            'client_contact'  => $c->contact_name    ?? '—',
-            'client_phone'    => $c ? trim(($c->primary_country ?? '') . ' ' . ($c->primary_mobile ?? '')) : '—',
-            'client_desig'    => $c->designation     ?? '—',
-            'client_status'   => $c->status          ?? '—',
+            'client_company'  => $c->company_name    ?? '-',
+            'client_code'     => $c->unique_code     ?? '-',
+            'client_contact'  => $c->contact_name    ?? '-',
+            'client_phone'    => $c ? trim(($c->primary_country ?? '') . ' ' . ($c->primary_mobile ?? '')) : '-',
+            'client_desig'    => $c->designation     ?? '-',
+            'client_status'   => $c->status          ?? '-',
 
             // projects table
-            'proj_name'       => $p->project_name        ?? '—',
-            'proj_code'       => $p->project_code        ?? '—',
-            'site_name'       => $p->site_name           ?? ($sr->project_site ?: '—'),
-            'site_address'    => $p->site_address        ?? '—',
-            'proj_status'     => $p->status              ?? '—',
-            'proj_completion' => $p && $p->completion_date   ? \Carbon\Carbon::parse($p->completion_date)->format('d M Y')   : '—',
-            'warranty_end'    => $p && $p->warranty_end_date ? \Carbon\Carbon::parse($p->warranty_end_date)->format('d M Y') : '—',
+            'proj_name'       => $p->project_name        ?? '-',
+            'proj_code'       => $p->project_code        ?? '-',
+            'site_name'       => $p->site_name           ?? ($sr->project_site ?: '-'),
+            'site_address'    => $p->site_address        ?? '-',
+            'proj_status'     => $p->status              ?? '-',
+            'proj_completion' => $p && $p->completion_date   ? \Carbon\Carbon::parse($p->completion_date)->format('d M Y')   : '-',
+            'warranty_end'    => $p && $p->warranty_end_date ? \Carbon\Carbon::parse($p->warranty_end_date)->format('d M Y') : '-',
 
             'warranty'          => ($sr->project
                 && $sr->project->warranty_end_date
@@ -653,14 +653,14 @@ class ClientController extends Controller
                 ? 'In Warranty'
                 : 'Out of Warranty',
             // service_requests table
-            'category'   => optional($sr->category)->category_name ?? '—',
+            'category'   => optional($sr->category)->category_name ?? '-',
             'priority'   => $sr->priority_level,
             'issue'      => $sr->issue_description,
             'reported'   => $sr->reported_by,
             'sr_status'  => $sr->status,
-            'dispatched' => $sr->dispatched_at ? \Carbon\Carbon::parse($sr->dispatched_at)->format('d M Y, h:i A') : '—',
-            'accepted'   => $sr->accepted_at   ? \Carbon\Carbon::parse($sr->accepted_at)->format('d M Y, h:i A')   : '—',
-            'tech'       => optional($sr->assignedUser)->name ?? '—',
+            'dispatched' => $sr->dispatched_at ? \Carbon\Carbon::parse($sr->dispatched_at)->format('d M Y, h:i A') : '-',
+            'accepted'   => $sr->accepted_at   ? \Carbon\Carbon::parse($sr->accepted_at)->format('d M Y, h:i A')   : '-',
+            'tech'       => optional($sr->assignedUser)->name ?? '-',
 
             'punches' => $punches,
             'total' => number_format(
@@ -780,7 +780,7 @@ class ClientController extends Controller
         ][$meta['chip']] ?? 'wait';
 
         $punches = $sr->punches->map(fn($pn) => [
-            'technician' => optional($pn->user)->name ?: '—',
+            'technician' => optional($pn->user)->name ?: '-',
             'duration'   => ($pn->punch_in_at && $pn->punch_out_at)
                 ? Carbon::parse($pn->punch_in_at)->diff(Carbon::parse($pn->punch_out_at))->format('%hh %im')
                 : null,
@@ -835,7 +835,7 @@ class ClientController extends Controller
             if ($pn->customer_signature_path) {
                 $docs[] = [
                     'kind'  => 'Signed job sheet',
-                    'label' => 'Visit ' . ($i + 1) . ' — signed',
+                    'label' => 'Visit ' . ($i + 1) . ' - signed',
                     'icon'  => 'bi-pen',
                     'url'   => asset('storage/' . ltrim($pn->customer_signature_path, '/')),
                 ];
@@ -899,7 +899,7 @@ class ClientController extends Controller
         ])->all();
     }
 
-    /** Public landing page — all projects belonging to one client. */
+    /** Public landing page - all projects belonging to one client. */
     public function portalClient(string $code)
     {
         $client = Client::where('unique_code', $code)

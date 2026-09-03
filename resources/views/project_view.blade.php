@@ -1,5 +1,5 @@
 @extends('layouts.layout')
-@section('title', 'Project View — Digit-Us Portal')
+@section('title', 'Project View - Digit-Us Portal')
 @section('page_title')
   Project View<span class="hide-mobile"> Directory</span>
 @endsection
@@ -472,7 +472,7 @@ textarea.form-control{resize:vertical;min-height:88px;}
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;   /* critical — lets the body actually shrink */
+  min-height: 0;   /* critical - lets the body actually shrink */
   overflow: hidden;
 }
 
@@ -649,7 +649,7 @@ span#cds
   cursor: not-allowed;
 }
 
-/* Prev/Next arrows — slightly narrower, icon-only feel */
+/* Prev/Next arrows - slightly narrower, icon-only feel */
 .cd-pagination-bar .page-item:first-child .page-link,
 .cd-pagination-bar .page-item:last-child .page-link {
   font-size: .85rem;
@@ -709,7 +709,7 @@ span#cds
       <div class="proj-hero-name">{{ $project->project_name }}</div>
       <div class="proj-hero-client">
         <div class="cdot">{{ strtoupper(substr($project->client?->company_name ?? '?', 0, 1)) }}</div>
-        {{ $project->client?->company_name ?? '—' }} &nbsp;·&nbsp; {{ $project->client?->unique_code }}
+        {{ $project->client?->company_name ?? '-' }} &nbsp;·&nbsp; {{ $project->client?->unique_code }}
       </div>
     </div>
   </div>
@@ -718,8 +718,8 @@ span#cds
       <i class="bi bi-check-circle-fill"></i>{{ $project->status }}
     </span>
     <span class="hero-badge"><i class="bi bi-geo-alt-fill"></i>{{ $project->site_name }}</span>
-    <span class="hero-badge"><i class="bi bi-calendar3"></i>Since {{ $project->completion_date?->format('M Y') ?? '—' }}</span>
-    <span class="hero-badge"><i class="bi bi-shield-check"></i>{{ $project->warranty?->name ?? '—' }}</span>
+    <span class="hero-badge"><i class="bi bi-calendar3"></i>Since {{ $project->completion_date?->format('M Y') ?? '-' }}</span>
+    <span class="hero-badge"><i class="bi bi-shield-check"></i>{{ $project->warranty?->name ?? '-' }}</span>
     @if($project->client?->primary_mobile)
       <span class="hero-badge"><i class="bi bi-telephone-fill"></i>{{ $project->client->primary_country }} {{ $project->client->primary_mobile }}</span>
     @endif
@@ -747,7 +747,7 @@ span#cds
     </div>
     <div class="stat-card">
       <div class="stat-icon" style="background:rgba(154,128,83,.12);"><i class="bi bi-star-fill" style="color:#9a8053;"></i></div>
-      <div><div class="stat-num">{{ $stats['rating'] ?: '—' }}</div><div class="stat-lbl">Avg Rating</div></div>
+      <div><div class="stat-num">{{ $stats['rating'] ?: '-' }}</div><div class="stat-lbl">Avg Rating</div></div>
     </div>
   </div>
 
@@ -820,7 +820,7 @@ span#cds
     @forelse($srsPaginated  as $sr)
       @php
         $cfg = $statusCfg[$sr->status] ?? ['cls' => 'sb-pending'];
-        $catName = $sr->category?->category_name ?? '—';
+        $catName = $sr->category?->category_name ?? '-';
         $closed  = in_array($sr->status, ['Completed', 'Rejected']);
         $elapsed = $sr->created_at ? (int) $sr->created_at->diffInHours(now()) : 0;
         $target  = match($sr->priority_level) {
@@ -847,7 +847,7 @@ span#cds
             {{ $sr->code }}
           </span>
         </td>
-        <td class="muted">{{ $sr->created_at?->format('d M Y') ?? '—' }}</td>
+        <td class="muted">{{ $sr->created_at?->format('d M Y') ?? '-' }}</td>
 
         <td style="font-size:.76rem;max-width:105px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
           @if($sr->category)
@@ -937,11 +937,11 @@ span#cds
 
   <div class="info-row"><span class="info-key">Project Code</span><span class="info-val mono">{{ $project->project_code }}</span></div>
   <div class="info-row"><span class="info-key">Project Name</span><span class="info-val">{{ $project->project_name }}</span></div>
-  <div class="info-row"><span class="info-key">Customer</span><span class="info-val">{{ $project->client?->company_name ?? '—' }}</span></div>
-  <div class="info-row"><span class="info-key">Customer Token</span><span class="info-val mono">{{ $project->client?->unique_code ?? '—' }}</span></div>
-  <div class="info-row"><span class="info-key">Contact Person</span><span class="info-val">{{ $project->client?->contact_name ?? '—' }}</span></div>
-  <!-- <div class="info-row"><span class="info-key">Designation</span><span class="info-val">{{ $project->client?->designation ?? '—' }}</span></div> -->
-  <div class="info-row"><span class="info-key">Primary Contact</span><span class="info-val">{{ $project->client?->primary_country }} {{ $project->client?->primary_mobile ?? '—' }}</span></div>
+  <div class="info-row"><span class="info-key">Customer</span><span class="info-val">{{ $project->client?->company_name ?? '-' }}</span></div>
+  <div class="info-row"><span class="info-key">Customer Token</span><span class="info-val mono">{{ $project->client?->unique_code ?? '-' }}</span></div>
+  <div class="info-row"><span class="info-key">Contact Person</span><span class="info-val">{{ $project->client?->contact_name ?? '-' }}</span></div>
+  <!-- <div class="info-row"><span class="info-key">Designation</span><span class="info-val">{{ $project->client?->designation ?? '-' }}</span></div> -->
+  <div class="info-row"><span class="info-key">Primary Contact</span><span class="info-val">{{ $project->client?->primary_country }} {{ $project->client?->primary_mobile ?? '-' }}</span></div>
 
   <div class="info-row"><span class="info-key">Site Name</span><span class="info-val">{{ $project->site_name }}</span></div>
   <div class="info-row"><span class="info-key">Site Address</span><span class="info-val" style="font-size:.72rem;line-height:1.4;">{{ $project->site_address }}</span></div>
@@ -956,9 +956,9 @@ span#cds
       <span class="info-val mono">{{ trim(($project->engineer_country ?? '') . ' ' . $project->engineer_contact) }}</span>
 </div>
 @endif
-  <div class="info-row"><span class="info-key">Project Date</span><span class="info-val">{{ $project->updated_at?->format('d M Y') ?? '—' }}</span></div>
+  <div class="info-row"><span class="info-key">Project Date</span><span class="info-val">{{ $project->updated_at?->format('d M Y') ?? '-' }}</span></div>
 
-  <div class="info-row"><span class="info-key">Completion Date</span><span class="info-val">{{ $project->completion_date?->format('d M Y') ?? '—' }}</span></div>
+  <div class="info-row"><span class="info-key">Completion Date</span><span class="info-val">{{ $project->completion_date?->format('d M Y') ?? '-' }}</span></div>
 
   <div class="info-row">
     <span class="info-key">Status</span>
@@ -967,9 +967,9 @@ span#cds
     </span>
   </div>
 
-    <div class="info-row"><span class="info-key">Warranty Type</span>  <span class="info-val">{{ $project->warranty?->name ?? '—' }}</span></div>
-  <div class="info-row"><span class="info-key">Warranty Start</span><span class="info-val">{{ $project->completion_date?->format('d M Y') ?? '—' }}</span></div>
-  <div class="info-row"><span class="info-key">Warranty End</span><span class="info-val">{{ $project->warranty_end_date?->format('d M Y') ?? '—' }}</span></div>
+    <div class="info-row"><span class="info-key">Warranty Type</span>  <span class="info-val">{{ $project->warranty?->name ?? '-' }}</span></div>
+  <div class="info-row"><span class="info-key">Warranty Start</span><span class="info-val">{{ $project->completion_date?->format('d M Y') ?? '-' }}</span></div>
+  <div class="info-row"><span class="info-key">Warranty End</span><span class="info-val">{{ $project->warranty_end_date?->format('d M Y') ?? '-' }}</span></div>
 
   @if($project->site_address)
     <!-- <div style="padding:11px 16px;">
@@ -1008,7 +1008,7 @@ span#cds
                   stroke-dasharray="{{ $pct }} {{ 100 - $pct }}"
                   stroke-dashoffset="{{ $offset }}"
                   stroke-linecap="butt">
-            <title>{{ $slice['label'] }} — {{ $slice['count'] }}</title>
+            <title>{{ $slice['label'] }} - {{ $slice['count'] }}</title>
           </circle>
           @php $offset -= $pct; @endphp
         @endforeach
@@ -1021,7 +1021,7 @@ span#cds
         @foreach($breakdown as $slice)
           <div class="legend-row">
             <div class="legend-dot" style="background:{{ $slice['color'] }};"></div>
-            {{ $slice['label'] }} — {{ $slice['count'] }} ({{ round($slice['count'] / $stats['total'] * 100) }}%)
+            {{ $slice['label'] }} - {{ $slice['count'] }} ({{ round($slice['count'] / $stats['total'] * 100) }}%)
           </div>
         @endforeach
       </div>
@@ -1077,8 +1077,8 @@ span#cds
       <div class="drawer-hdr-left">
         <div class="dhdr-icon" id="dhdrIcon" style="background:rgba(6,182,212,.1);color:#0891b2;"><i class="bi bi-ticket-detailed"></i></div>
         <div>
-          <div class="drawer-title" id="dTitle">—</div>
-          <div class="drawer-sub" id="dSub">—</div>
+          <div class="drawer-title" id="dTitle">-</div>
+          <div class="drawer-sub" id="dSub">-</div>
         </div>
       </div>
       <button class="drawer-close" onclick="closeDrawer()"><i class="bi bi-x-lg"></i></button>
@@ -1138,7 +1138,7 @@ span#cds
   <div class="inq-body">
 
     <div class="inq-section">
-      <div class="sec-title"><i class="bi bi-lock-fill"></i>Project Context — Auto-filled</div>
+      <div class="sec-title"><i class="bi bi-lock-fill"></i>Project Context - Auto-filled</div>
       <div class="locked-banner">
         <i class="bi bi-diagram-3"></i>
         <div>
@@ -1161,7 +1161,7 @@ span#cds
     <div class="form-group" style="margin-bottom:0;">
       <label class="form-label">Service Category <span class="req">*</span></label>
       <select class="form-select" name="service_type_id" id="inqCat" required>
-        <option value="">— Select category —</option>
+        <option value="">- Select category -</option>
         @foreach($categories as $cat)
           <option value="{{ $cat->id }}" @selected(old('service_type_id') == $cat->id)>{{ $cat->category_name }}</option>
         @endforeach
@@ -1173,7 +1173,7 @@ span#cds
       <label class="form-label">Contact Person <span class="req">*</span></label>
       <div class="ct-input-row">
         <select class="form-select" name="reported_by" id="inqReporter" required>
-          <option value="">— Select contact —</option>
+          <option value="">- Select contact -</option>
           @foreach($contacts as $c)
             <option value="{{ $c['name'] }}" @selected(old('reported_by') === $c['name'])>{{ $c['name'] }}</option>
           @endforeach
@@ -1189,7 +1189,7 @@ span#cds
   <div class="form-group" style="margin-top:12px;">
     <label class="form-label">Issue Description <span class="req">*</span></label>
     <textarea class="form-control" name="issue_description" id="inqDesc" maxlength="500" required
-      placeholder="Describe the issue — what is failing, where, any symptoms observed…"
+      placeholder="Describe the issue - what is failing, where, any symptoms observed…"
       oninput="document.getElementById('inqChar').textContent=this.value.length">{{ old('issue_description') }}</textarea>
     <div class="char-hint">Minimum 20 characters required.  <span id="inqChar">0</span>/500</div>
     @error('issue_description')<div class="field-hint" style="color:#ef4444;">{{ $message }}</div>@enderror
@@ -1307,7 +1307,7 @@ function setInqPriority(el, val) {
   document.getElementById('inqPriorityVal').value = val;
 }
 
-/* FILTERS — operate on server-rendered rows */
+/* FILTERS - operate on server-rendered rows */
 function filterSR() {
   const q  = document.getElementById('sr-search').value.toLowerCase();
   const st = document.getElementById('sr-status').value;
@@ -1446,8 +1446,8 @@ if (items.length) {
       '<div class="det-grid">' +
         '<div class="det-cell"><div class="det-key">SR ID</div><div class="det-val mono sr-ref-trigger" onclick="openSrTracking(' + id + ')">' + sr.code + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Current Status</div><div class="det-val">' + statusBadge(sr.status) + '</div></div>' +
-        '<div class="det-cell"><div class="det-key">Date Raised</div><div class="det-val">' + (sr.date || '—') + '</div></div>' +
-        '<div class="det-cell"><div class="det-key">Priority</div><div class="det-val">' + (sr.priority || '—') + '</div></div>' +
+        '<div class="det-cell"><div class="det-key">Date Raised</div><div class="det-val">' + (sr.date || '-') + '</div></div>' +
+        '<div class="det-cell"><div class="det-key">Priority</div><div class="det-val">' + (sr.priority || '-') + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Warranty Scope</div><div class="det-val">' + (sr.iw
             ? '<span style="color:#059669;font-weight:600;">In-Warranty</span>'
             : '<span style="color:#7c3aed;font-weight:600;">Out-of-Warranty</span>') + '</div></div>' +
@@ -1464,10 +1464,10 @@ if (items.length) {
         '<div class="det-cell"><div class="det-key">Project</div><div class="det-val">' + PROJECT_NAME + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Site</div><div class="det-val">' + PROJECT_SITE + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Technician</div><div class="det-val">' + (sr.tech || '<span style="color:var(--text-light);">Unassigned</span>') + '</div></div>' +
-        '<div class="det-cell"><div class="det-key">Tech ID</div><div class="det-val mono">' + (sr.tech_id ? 'ML-' + String(sr.tech_id).padStart(3, '0') : '—') + '</div></div>' +
+        '<div class="det-cell"><div class="det-key">Tech ID</div><div class="det-val mono">' + (sr.tech_id ? 'ML-' + String(sr.tech_id).padStart(3, '0') : '-') + '</div></div>' +
         '<div class="det-cell"><div class="det-key">Punch-In</div><div class="det-val">' + (sr.punch_in || '<span style="color:var(--text-light);">Not punched in</span>') + '</div></div>' +
         // '<div class="det-cell"><div class="det-key">Punch-Out</div><div class="det-val">' + (sr.punch_out || '<span style="color:var(--text-light);">On site</span>') + '</div></div>' +
-        '<div class="det-cell"><div class="det-key">Duration On-Site</div><div class="det-val">' + (sr.duration || '—') + '</div></div>' +
+        '<div class="det-cell"><div class="det-key">Duration On-Site</div><div class="det-val">' + (sr.duration || '-') + '</div></div>' +
         
         extraRows +
       '</div>' +
@@ -1499,7 +1499,7 @@ if (items.length) {
             '<div class="det-val" style="font-size:.79rem;line-height:1.5;margin-top:3px;">' + escapeHtml(sr.rating_comment) + '</div>'
           : '') +
         (sr.rating
-          ? '<div style="font-size:.71rem;color:var(--text-muted);margin-top:8px;"><i class="bi bi-lock-fill" style="font-size:.65rem;"></i> Feedback locked — submitted ' + (sr.rated_at || 'by client') + '</div>'
+          ? '<div style="font-size:.71rem;color:var(--text-muted);margin-top:8px;"><i class="bi bi-lock-fill" style="font-size:.65rem;"></i> Feedback locked - submitted ' + (sr.rated_at || 'by client') + '</div>'
           : '') +
       '</div>' +
     '</div>';

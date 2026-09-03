@@ -271,7 +271,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
   @if($data['enabled']['ml_ratings'] ?? true)
     <div class="card">
       <div class="card-top">
-        <div class="card-title">Client Ratings — Jobs Closed</div>
+        <div class="card-title">Client Ratings - Jobs Closed</div>
       </div>
       @if($data['ratings']['rated_count'] > 0)
         <div class="rating-stars">{{ $data['ratings']['avg_stars'] }}</div>
@@ -290,7 +290,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
   @if($data['enabled']['ml_rework'] ?? true)
     <div class="card" onclick="openSheet('rework')">
       <div class="card-top">
-        <div class="card-title">Rework — Previous Submissions</div>
+        <div class="card-title">Rework - Previous Submissions</div>
         <div class="card-more-btn">View ›</div>
       </div>
       <div class="card-big" style="color:#6d28d9;margin-bottom:10px;">{{ $data['kpis']['rework']['value'] }}</div>
@@ -314,7 +314,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
   @if($data['enabled']['ml_pending'] ?? true)
     <div class="card" onclick="openSheet('pending')">
       <div class="card-top">
-        <div class="card-title">Pending Jobs — Waiting Today</div>
+        <div class="card-title">Pending Jobs - Waiting Today</div>
         <div class="card-more-btn">View ›</div>
       </div>
       <div class="card-big" style="color:#b45309;margin-bottom:10px;">{{ $data['kpis']['pending']['value'] }}</div>
@@ -329,7 +329,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
         </div>
         @endforeach
         @if(!count($data['sheets']['pending']['rows']))
-        <div style="padding:14px 4px;color:#9a9890;font-size:.75rem;text-align:center;">Nothing waiting — all clear.</div>
+        <div style="padding:14px 4px;color:#9a9890;font-size:.75rem;text-align:center;">Nothing waiting - all clear.</div>
         @endif
       </div>
     </div>

@@ -300,7 +300,7 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
 
   <div class="pg-header">
     <div class="pg-hdr-title">How did we do?</div>
-    <p class="pg-hdr-desc">Your service request has been completed. Please take a moment to rate the technician and share any comments — it helps us serve you better.</p>
+    <p class="pg-hdr-desc">Your service request has been completed. Please take a moment to rate the technician and share any comments - it helps us serve you better.</p>
     <div class="pg-hdr-meta">
       <span class="meta-badge"><i class="bi bi-check-circle-fill"></i> Job Completed</span>
       <span class="meta-badge"><i class="bi bi-shield-lock-fill"></i> Secure Survey</span>
@@ -359,7 +359,7 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
      
 
       <div class="section-label"><i class="bi bi-chat-left-text"></i> Open Evaluation Comments</div>
-      <textarea class="fld-textarea" id="comments" maxlength="500" placeholder="Tell us about your experience — punctuality, quality of work, professionalism, or anything else you'd like us to know…" oninput="updateCount()"></textarea>
+      <textarea class="fld-textarea" id="comments" maxlength="500" placeholder="Tell us about your experience - punctuality, quality of work, professionalism, or anything else you'd like us to know…" oninput="updateCount()"></textarea>
       <div class="char-count"><span id="charCount">0</span> / 500</div>
 
       <!-- <button class="btn-submit" id="submitBtn" onclick="submitFeedback()">
@@ -498,7 +498,7 @@ async function loadPreview() {
 function row(label, val) {
   return `<div class="pv-row">
             <div class="pv-lbl">${esc(label)}</div>
-            <div class="pv-val">${esc(val ?? '—')}</div>
+            <div class="pv-val">${esc(val ?? '-')}</div>
           </div>`;
 }
 
@@ -559,7 +559,7 @@ function punchBlock(p) {
                        ? `<a href="${esc(i.receipt)}" target="_blank" rel="noopener" title="View receipt">
                             <i class="bi ${isPdf(i.receipt) ? 'bi-file-earmark-pdf' : 'bi-paperclip'}"></i>
                           </a>`
-                       : '<span class="muted">—</span>'}</td>
+                       : '<span class="muted">-</span>'}</td>
                </tr>`).join('')}
            </tbody>
          </table>
@@ -593,7 +593,7 @@ function esc(v) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-/* THEME — same mechanism as portal pages, with persistence */
+/* THEME - same mechanism as portal pages, with persistence */
 function applyTheme(dark){document.documentElement.setAttribute('data-bs-theme',dark?'dark':'light');try{localStorage.setItem('mm_theme',dark?'dark':'light');}catch(e){}}
 function toggleTheme(){var isDark=document.documentElement.getAttribute('data-bs-theme')==='dark';applyTheme(!isDark);}
 (function(){try{var s=localStorage.getItem('mm_theme');applyTheme(s?s==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches);}catch(e){}})();
@@ -689,7 +689,7 @@ function submitFeedback(){
   })
   .catch(function(){
     // only genuine network failures reach here now
-    showFbAlert('err','Network error — please check your connection and try again.');
+    showFbAlert('err','Network error - please check your connection and try again.');
     btn.disabled=false;btn.innerHTML=original;
   });
 }

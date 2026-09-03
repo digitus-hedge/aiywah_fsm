@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
 <style>
-/* ===== Invoice Panel — scoped page styles ===== */
+/* ===== Invoice Panel - scoped page styles ===== */
 .inv-wrap{--gold:#9a8053;--gold-2:#b8975e;--queue-width:290px;}
 .inv-wrap h4,.inv-wrap h5,.inv-wrap h6,.inv-wrap .pg-hdr-title,.inv-wrap .card-title,
 .inv-wrap .ws-sr-id,.inv-wrap .qi-id,.inv-wrap .stat-num,.inv-wrap .pa-card-title{letter-spacing:-.01em;}
@@ -347,7 +347,7 @@
     <div class="pa-card-hdr">
       <div class="pa-card-hdr-left">
         <div class="pa-card-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-person-check" style="color:#9a8053;"></i></div>
-        <div><div class="pa-card-title">Submitted — Awaiting Head of Projects</div><div class="pa-card-sub">Invoice committed — mark when HoP confirms final closure</div></div>
+        <div><div class="pa-card-title">Submitted - Awaiting Head of Projects</div><div class="pa-card-sub">Invoice committed - mark when HoP confirms final closure</div></div>
       </div>
       <div style="font-size:.75rem;color:var(--text-muted);display:flex;align-items:center;gap:5px;"><i class="bi bi-bell" style="color:#9a8053;"></i>HoP notified on submission</div>
     </div>
@@ -421,7 +421,7 @@
 @push('scripts')
 <script>
 /* =========================================================
-   Invoice Panel — page scripts
+   Invoice Panel - page scripts
    INV_QUEUE row shape:
    { id, dbId, client, site, technician, logged, createdAt,
      punchIn, punchOut, duration, expenses:[{cat, amt}], totalExp }
@@ -432,7 +432,7 @@ var INV_QUEUE   = @json($invQueue ?? []);
 var PENDING_HOP = @json($pendingHop ?? []);
 var CSRF        = '{{ csrf_token() }}';
 var CAN_HOP_APPROVE = @json($canHopApprove ?? false);
-/* filtered views — what actually gets rendered */
+/* filtered views - what actually gets rendered */
 var INV_FILTERED = INV_QUEUE.slice();
 var PH_FILTERED  = PENDING_HOP.slice();
 
@@ -462,7 +462,7 @@ function dz_process(file,dzId,prefix){
   if(!file.name.toLowerCase().endsWith('.pdf')){
     dz.className = 'dropzone dz-err';
     document.getElementById(prefix+'-dz-icon').className = 'bi bi-x-circle dz-icon';
-    document.getElementById(prefix+'-dz-title').textContent = 'Invalid file — PDF only';
+    document.getElementById(prefix+'-dz-title').textContent = 'Invalid file - PDF only';
     if(errEl)errEl.classList.add('show');
     window[prefix+'_fileOk'] = false;
     if(typeof window[prefix+'_validate']==='function')window[prefix+'_validate']();
@@ -558,21 +558,21 @@ invSrIdEl.onclick = function(){ openSrTracking(selInv.dbId); };
   document.getElementById('inv-sr-client').textContent = selInv.client;
   document.getElementById('inv-sr-site').innerHTML     = '<i class="bi bi-geo-alt" style="color:#9a8053;font-size:.8rem;"></i> '+selInv.site;
   document.getElementById('inv-chips').innerHTML =
-    '<div class="meta-chip"><div class="meta-chip-label">Technician</div><div class="meta-chip-value">'+(selInv.technician||'—')+'</div></div>'+
-    '<div class="meta-chip"><div class="meta-chip-label">Punch In</div><div class="meta-chip-value">'+(selInv.punchIn||'—')+'</div></div>'+
-    '<div class="meta-chip"><div class="meta-chip-label">Punch Out</div><div class="meta-chip-value">'+(selInv.punchOut||'—')+'</div></div>'+
-    '<div class="meta-chip"><div class="meta-chip-label">Duration</div><div class="meta-chip-value">'+(selInv.duration||'—')+'</div></div>';
+    '<div class="meta-chip"><div class="meta-chip-label">Technician</div><div class="meta-chip-value">'+(selInv.technician||'-')+'</div></div>'+
+    '<div class="meta-chip"><div class="meta-chip-label">Punch In</div><div class="meta-chip-value">'+(selInv.punchIn||'-')+'</div></div>'+
+    '<div class="meta-chip"><div class="meta-chip-label">Punch Out</div><div class="meta-chip-value">'+(selInv.punchOut||'-')+'</div></div>'+
+    '<div class="meta-chip"><div class="meta-chip-label">Duration</div><div class="meta-chip-value">'+(selInv.duration||'-')+'</div></div>';
 
   var expenses = selInv.expenses || [];
   var expRows = expenses.length
     ? expenses.map(function(e){return '<div class="rb-row"><span class="rb-key">'+e.cat+'</span><span class="rb-val">AED '+Number(e.amt||0).toLocaleString()+'</span></div>';}).join('')
-    : '<div class="rb-row"><span class="rb-key">No expenses logged</span><span class="rb-val">—</span></div>';
+    : '<div class="rb-row"><span class="rb-key">No expenses logged</span><span class="rb-val">-</span></div>';
 
   document.getElementById('inv-resources').innerHTML =
     '<div class="resource-block"><div class="rb-label"><i class="bi bi-clock"></i>Time on Site</div>'+
-    '<div class="rb-row"><span class="rb-key">Punch In</span><span class="rb-val">'+(selInv.punchIn||'—')+'</span></div>'+
-    '<div class="rb-row"><span class="rb-key">Punch Out</span><span class="rb-val">'+(selInv.punchOut||'—')+'</span></div>'+
-    '<div class="rb-row"><span class="rb-key">Duration</span><span class="rb-total">'+(selInv.duration||'—')+'</span></div></div>'+
+    '<div class="rb-row"><span class="rb-key">Punch In</span><span class="rb-val">'+(selInv.punchIn||'-')+'</span></div>'+
+    '<div class="rb-row"><span class="rb-key">Punch Out</span><span class="rb-val">'+(selInv.punchOut||'-')+'</span></div>'+
+    '<div class="rb-row"><span class="rb-key">Duration</span><span class="rb-total">'+(selInv.duration||'-')+'</span></div></div>'+
     '<div class="resource-block"><div class="rb-label"><i class="bi bi-receipt"></i>Material Expenses</div>'+expRows+
     '<div class="rb-row"><span class="rb-key">Total</span><span class="rb-total">AED '+Number(selInv.totalExp||0).toLocaleString()+'</span></div></div>';
 }
@@ -680,7 +680,7 @@ function execInvSubmit(){
     });
 
     document.getElementById('inv-detail').style.display = 'none';
-    document.getElementById('inv-success-title').textContent = sr.id+' — Invoice Submitted';
+    document.getElementById('inv-success-title').textContent = sr.id+' - Invoice Submitted';
     document.getElementById('inv-success-body').textContent  = 'Invoice committed. Head of Projects notified. Ticket now appears in Pending HoP Approval below.';
     document.getElementById('inv-success').classList.add('show');
     selInv = null; inv_fileOk = false;
@@ -713,7 +713,7 @@ function execHopApproval(){
   .then(function(){
     PENDING_HOP.splice(idx,1);
     invFilter();
-    showToast('ok','SR Closed',item.sr+' — Completed. WhatsApp summary sent to customer.');
+    showToast('ok','SR Closed',item.sr+' - Completed. WhatsApp summary sent to customer.');
   })
   .catch(function(e){ showToast('err','Approval Failed', e.message); });
 }

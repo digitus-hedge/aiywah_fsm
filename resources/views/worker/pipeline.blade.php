@@ -243,7 +243,7 @@
 .info-lbl{font-size:.66rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
 .info-val{font-size:.82rem;font-weight:500;color:var(--text);word-break:break-word;}
 
-/* Two columns once there is room — job list beside nothing else, so cards
+/* Two columns once there is room - job list beside nothing else, so cards
    simply get wider rather than stretching text lines. */
   /* Keep the four terminal action buttons on one visual rhythm */
 #expenseBtn,
@@ -739,7 +739,7 @@ let signatureUploaded = false;
 let activeEtaAt    = null;
 let etaGateTimer   = null;
 
-/* Block sign-out while a punch is open — the layout checks this. */
+/* Block sign-out while a punch is open - the layout checks this. */
 window.beforeSignOut = () => {
   if (punchInTime) {
     showToast('warning', 'Job in progress', 'Finish or hold the current job before signing out.');
@@ -754,7 +754,7 @@ let lastFix = null;                       // { lat, lng, accuracy, address }
 const MAX_ACCEPTABLE_ACCURACY = 100;      // metres
 
 /**
- * Ask the browser for a position. Resolves to null rather than rejecting —
+ * Ask the browser for a position. Resolves to null rather than rejecting -
  * a denied permission must not block the punch.
  */
 function getPosition({ timeout = 12000, highAccuracy = true } = {}) {
@@ -773,7 +773,7 @@ function getPosition({ timeout = 12000, highAccuracy = true } = {}) {
   });
 }
 
-/** Reverse-geocode via OSM. Failure is non-fatal — coords alone are enough. */
+/** Reverse-geocode via OSM. Failure is non-fatal - coords alone are enough. */
 async function reverseGeocode(lat, lng) {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`;
@@ -826,7 +826,7 @@ function renderLocationBadge(fix) {
     `<i class="bi bi-geo-alt-fill" style="color:${fix.coarse ? 'var(--amber)' : 'var(--gold)'};"></i>` +
     `<span class="coords">${fix.lat.toFixed(5)}, ${fix.lng.toFixed(5)}</span>` +
     (fix.accuracy != null ? `<span style="margin-left:auto;">&plusmn;${Math.round(fix.accuracy)}m</span>` : '') +
-    (fix.coarse ? '<div style="flex-basis:100%;margin-top:4px;color:var(--amber);">Approximate — network fix, not GPS. Use the phone on site.</div>' : '') +
+    (fix.coarse ? '<div style="flex-basis:100%;margin-top:4px;color:var(--amber);">Approximate - network fix, not GPS. Use the phone on site.</div>' : '') +
     (fix.address ? `<div style="flex-basis:100%;margin-top:4px;">${esc(fix.address)}</div>` : '');
 }
 
@@ -951,13 +951,13 @@ const statusCls = isRealloc ? 'pill-purple' : badgeClass;
          </div>
          <div class="exp-text" style="margin-bottom:6px;">
            ${job.previousEta ? `<span style="text-decoration:line-through;opacity:.6;">${esc(job.previousEta)}</span> &rarr; ` : ''}
-           <strong>${esc(job.eta ?? '—')}</strong>
+           <strong>${esc(job.eta ?? '-')}</strong>
          </div>
          <div class="rework-note" style="background:var(--blue-bg);border-color:rgba(37,99,235,.2);color:var(--blue);">
            ${esc(job.rescheduleReason)}
          </div>
          <div style="font-size:.66rem;color:var(--muted);margin-top:5px;">
-           Logged ${esc(job.rescheduledAt ?? '—')}
+           Logged ${esc(job.rescheduledAt ?? '-')}
          </div>
        </div>`
     : '';
@@ -1003,7 +1003,7 @@ const statusCls = isRealloc ? 'pill-purple' : badgeClass;
        </div>`
     : isAccepted
     ? `<div class="eta-form">
-         <div class="eta-title"><i class="bi bi-check2-circle" style="color:var(--green);"></i>Accepted &middot; ETA ${esc(job.eta ?? '—')}</div>
+         <div class="eta-title"><i class="bi bi-check2-circle" style="color:var(--green);"></i>Accepted &middot; ETA ${esc(job.eta ?? '-')}</div>
          <button class="accept-btn go" data-activate="${ref}" data-srid="${Number(job.sr_id)}">
            <i class="bi bi-broadcast"></i>Make active
          </button>
@@ -1013,7 +1013,7 @@ const statusCls = isRealloc ? 'pill-purple' : badgeClass;
        </div>`
     : isResched
     ? `<div class="eta-form">
-         <div class="eta-title"><i class="bi bi-calendar2-event" style="color:var(--blue);"></i>Rescheduled &middot; ETA ${esc(job.eta ?? '—')}</div>
+         <div class="eta-title"><i class="bi bi-calendar2-event" style="color:var(--blue);"></i>Rescheduled &middot; ETA ${esc(job.eta ?? '-')}</div>
          <button class="accept-btn blue" data-activate="${ref}" data-srid="${Number(job.sr_id)}">
            <i class="bi bi-broadcast"></i>Make active
          </button>
@@ -1073,7 +1073,7 @@ const statusCls = isRealloc ? 'pill-purple' : badgeClass;
           <span class="jc-sla" style="color:${sla.color};background:${sla.color}1a;border:1px solid ${sla.color}55;font-weight:600;display:inline-flex;align-items:center;gap:4px;"
       title="${job.clockRunning ? 'Awaiting acceptance' : 'Dispatch → Accept'}${sla.next ? ` · ${sla.next.at - sla.hrs}h to ${esc(sla.next.name)}` : ''}">
   <i class="bi ${job.clockRunning ? 'bi-hourglass-split' : 'bi-clock'}"></i>
-  ${job.hasClock ? `${sla.hrs}h · ${esc(sla.name)}` : '—'}
+  ${job.hasClock ? `${sla.hrs}h · ${esc(sla.name)}` : '-'}
 </span>
         </div>
       </div>
@@ -1097,7 +1097,7 @@ const statusCls = isRealloc ? 'pill-purple' : badgeClass;
 }
 
 /**
- * Toggle in place rather than re-rendering the list — a full re-render would
+ * Toggle in place rather than re-rendering the list - a full re-render would
  * discard any ETA the user has typed into a sibling card.
  */
 function toggleExpand(ref) {
@@ -1116,7 +1116,7 @@ function toggleExpand(ref) {
 }
 
 /* ══════════════════════════════════════════════════════
-   DELEGATED EVENTS — PIPELINE
+   DELEGATED EVENTS - PIPELINE
 ══════════════════════════════════════════════════════ */
 $('jobList').addEventListener('click', (e) => {
   const resume = e.target.closest('[data-resume]');
@@ -1494,7 +1494,7 @@ async function punchIn() {
     btn.innerHTML = '<i class="bi bi-check2"></i>Job started';
 
     showToast('success', 'Punched in', 'Job started.');
-    applyEtaGate();     // punch is open now — hides the notice, stops the ticker
+    applyEtaGate();     // punch is open now - hides the notice, stops the ticker
     refreshLock();
     } catch (err) {
     btn.disabled = false;
@@ -1565,7 +1565,7 @@ async function uploadFile(type, input) {
     form.append('sr_id', activeSrId);
     form.append('type', type);
 
-    // Sequential, not Promise.all — parallel decodes are what crash the tab.
+    // Sequential, not Promise.all - parallel decodes are what crash the tab.
     for (const f of input.files) {
       form.append('files[]', await compressImage(f));
     }
@@ -2422,7 +2422,7 @@ function applyEtaGate() {
 
 
 /* ══════════════════════════════════════════════════════
-   SLA BANDS — thresholds come from the matrix, not code
+   SLA BANDS - thresholds come from the matrix, not code
 ══════════════════════════════════════════════════════ */
 function slaBands(stage) {
   const key = stage || 'approve';                 // 'approve' | 'dispatch' | 'qc'
@@ -2436,7 +2436,7 @@ function slaStatus(item, stage) {
   const bands = slaBands(stage);
   const hrs   = Number(item.hrsAgo) || 0;
 
-  if (!bands.length) return { color: '#8a8a8a', name: '—', hrs, at: null, next: null, pct: 0 };
+  if (!bands.length) return { color: '#8a8a8a', name: '-', hrs, at: null, next: null, pct: 0 };
 
   let hit = null;
   for (const b of bands) { if (hrs >= b.at) hit = b; else break; }

@@ -18,10 +18,10 @@ class SendClientWelcomeNotifications implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /** Fired when a client is first onboarded — welcome email + WhatsApp. */
+    /** Fired when a client is first onboarded - welcome email + WhatsApp. */
     public const EVENT_WELCOME = 'welcome';
 
-    /** Fired when a project is added to an existing client — WhatsApp only. */
+    /** Fired when a project is added to an existing client - WhatsApp only. */
     public const EVENT_PROJECT_ADDED = 'project_added';
 
     public $tries   = 3;
@@ -67,12 +67,12 @@ class SendClientWelcomeNotifications implements ShouldQueue
                 ]);
             }
         } else {
-            Log::warning('Client welcome mail skipped — no email', ['client_id' => $this->clientId]);
+            Log::warning('Client welcome mail skipped - no email', ['client_id' => $this->clientId]);
         }
 
         // The WhatsApp welcome template needs project details, so skip without one.
         if (! $project) {
-            Log::warning('Welcome WhatsApp skipped — no project', ['client_id' => $this->clientId]);
+            Log::warning('Welcome WhatsApp skipped - no project', ['client_id' => $this->clientId]);
             return;
         }
 
@@ -90,7 +90,7 @@ class SendClientWelcomeNotifications implements ShouldQueue
     private function projectAdded(WhatsAppService $wa, Client $client, ?Project $project): void
     {
         if (! $project) {
-            Log::warning('Project-added WhatsApp skipped — project missing', [
+            Log::warning('Project-added WhatsApp skipped - project missing', [
                 'client_id'  => $this->clientId,
                 'project_id' => $this->projectId,
             ]);

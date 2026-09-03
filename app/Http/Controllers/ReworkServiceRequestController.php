@@ -171,20 +171,20 @@ class ReworkServiceRequestController extends Controller
         return [
             'id'          => $sr->id,
             'code'        => $srCode,
-            'client'      => optional($sr->client)->company_name ?? '—',
-            'site'        => optional($sr->project)->site_name ?? '—',
+            'client'      => optional($sr->client)->company_name ?? '-',
+            'site'        => optional($sr->project)->site_name ?? '-',
             'worker'      => optional($sr->assignedUser)->name ?? 'Unassigned',
-            'issue'       => $sr->issue_description ?? '—',
-            'status'      => Str::headline($sr->status ?? '—'),
-            'priority'    => $sr->priority_level ?? '—',
+            'issue'       => $sr->issue_description ?? '-',
+            'status'      => Str::headline($sr->status ?? '-'),
+            'priority'    => $sr->priority_level ?? '-',
             'warranty'    => $isOow ? 'Out of Warranty' : 'In Warranty',
             'contact'     => optional($sr->client)->primary_mobile
-                ?? optional($sr->client)->contact_number ?? '—',
+                ?? optional($sr->client)->contact_number ?? '-',
             'scheduled'   => $assignedAt->format('d M Y · h:i A'),
             'assigned'    => $assignedAt->format('d M Y · h:i A'),
             'assigned_h'  => $assignedAt->diffForHumans(),
-            'sla_due'     => $eta ? $eta->format('d M Y · h:i A') : '—',
-            'sla_due_h'   => $eta ? $eta->diffForHumans() : '—',
+            'sla_due'     => $eta ? $eta->format('d M Y · h:i A') : '-',
+            'sla_due_h'   => $eta ? $eta->diffForHumans() : '-',
             'is_overdue'  => $isOverdue,
         ];
     }

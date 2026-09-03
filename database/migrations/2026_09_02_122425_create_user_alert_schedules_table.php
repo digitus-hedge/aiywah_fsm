@@ -8,7 +8,7 @@ return new class extends Migration
 {
     /**
      * Which days of the week a user's daily Summary Alert WhatsApp message
-     * should be sent on. One row per user, all days true by default —
+     * should be sent on. One row per user, all days true by default -
      * Super Admin unchecks e.g. Friday/Sunday from Master Settings.
      */
     public function up(): void

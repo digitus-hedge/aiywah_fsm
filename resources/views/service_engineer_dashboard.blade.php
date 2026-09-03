@@ -262,7 +262,7 @@ a{text-decoration:none;}
 .tm-st{font-size:.62rem;font-weight:700;padding:2px 8px;border-radius:20px;
   white-space:nowrap;display:inline-block;margin-top:5px;}
 
-/* score band — radial ring + numeral, matches proof-ring language */
+/* score band - radial ring + numeral, matches proof-ring language */
 .tm-score{display:flex;align-items:center;gap:10px;
   background:var(--surface-2);border-radius:10px;padding:8px 10px;margin-bottom:10px;}
 .tm-score-ring{position:relative;width:38px;height:38px;flex-shrink:0;}
@@ -275,7 +275,7 @@ a{text-decoration:none;}
   letter-spacing:.07em;color:var(--text-light);margin-bottom:2px;}
 .tm-stars{display:flex;gap:1px;font-size:.66rem;}
 
-/* stat trio — cormorant numerals like fb-stat / act-n elsewhere */
+/* stat trio - cormorant numerals like fb-stat / act-n elsewhere */
 .tm-stats{display:flex;align-items:stretch;justify-content:space-between;
   border-top:1px solid var(--border-color);border-bottom:1px solid var(--border-color);
   padding:9px 0;margin-bottom:11px;}
@@ -825,11 +825,11 @@ a{text-decoration:none;}
             @if ($diff > 0)
                 <span class="trend-up"><i class="bi bi-arrow-up"></i> {{ $diff }} more</span>
                 {{ \Illuminate\Support\Str::plural('SR', $diff) }} completed
-                @if (! is_null($pct)) — a {{ $pct }}% lift @endif
+                @if (! is_null($pct)) - a {{ $pct }}% lift @endif
             @elseif ($diff < 0)
                 <span class="trend-down"><i class="bi bi-arrow-down"></i> {{ abs($diff) }} fewer</span>
                 {{ \Illuminate\Support\Str::plural('SR', abs($diff)) }} completed
-                @if (! is_null($pct)) — a {{ abs($pct) }}% drop @endif
+                @if (! is_null($pct)) - a {{ abs($pct) }}% drop @endif
             @else
                 No change from the previous period.
             @endif
@@ -859,7 +859,7 @@ a{text-decoration:none;}
   <!-- ══ DISPATCH QUEUE ══ -->
   <div class="sec-row" id="pendingSection">
     <div class="sec-line"></div>
-    <div class="sec-ttl"><i class="bi bi-send"></i>Waiting on you to dispatch — {{ $pendingItems->count() }} {{ \Illuminate\Support\Str::plural('SR', $pendingItems->count()) }}
+    <div class="sec-ttl"><i class="bi bi-send"></i>Waiting on you to dispatch - {{ $pendingItems->count() }} {{ \Illuminate\Support\Str::plural('SR', $pendingItems->count()) }}
 </div>
   @if ($pendingItems->count())
 
@@ -879,7 +879,7 @@ a{text-decoration:none;}
   <!-- ══ REWORK ══ -->
   <div class="sec-row" id="reworkSection">
     <div class="sec-line"></div>
-    <div class="sec-ttl" style="color:#dc2626;"><i class="bi bi-arrow-counterclockwise" style="color:#dc2626;"></i>  Sent back by QC — {{ $reworkItems->count() }} {{ \Illuminate\Support\Str::plural('SR', $reworkItems->count()) }} · urgent
+    <div class="sec-ttl" style="color:#dc2626;"><i class="bi bi-arrow-counterclockwise" style="color:#dc2626;"></i>  Sent back by QC - {{ $reworkItems->count() }} {{ \Illuminate\Support\Str::plural('SR', $reworkItems->count()) }} · urgent
 </div>
     <div class="sec-line"></div>
   </div>
@@ -917,13 +917,13 @@ a{text-decoration:none;}
 <div class="modal-overlay" id="rejectModal">
   <div class="reject-modal">
     <div class="rm-hdr">
-      <div class="rm-title cg">Reject QC — Enter Reason</div>
+      <div class="rm-title cg">Reject QC - Enter Reason</div>
       <button class="dm-close" onclick="closeRejectModal()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="rm-body">
       <div class="dm-sec-label" style="margin-bottom:6px;">SR: <span id="rejectSrId" style="color:#9a8053;font-weight:700;"></span></div>
       <div class="dm-sec-label">Rejection reason</div>
-      <textarea class="rm-textarea" id="rejectReason" placeholder="Describe what was incorrect or incomplete in the submitted proof. Be specific — this will be visible to the ML."></textarea>
+      <textarea class="rm-textarea" id="rejectReason" placeholder="Describe what was incorrect or incomplete in the submitted proof. Be specific - this will be visible to the ML."></textarea>
       <button class="btn-reject-confirm" onclick="confirmReject()">
         <i class="bi bi-x-circle"></i>&nbsp;&nbsp;Reject & Return to Field
       </button>
@@ -950,7 +950,7 @@ a{text-decoration:none;}
 @push('scripts')
 <script>
 /* ══════════════════════════════════════════
-   DATA — unchanged from the original dashboard
+   DATA - unchanged from the original dashboard
 ══════════════════════════════════════════ */
 var PENDING_SRS = @json($pendingItems);
 var REWORK_SRS = @json($reworkItems);
@@ -983,7 +983,7 @@ function slaAtRisk(){return fieldAll().filter(function(s){return s.sla==='risk'|
 ══════════════════════════════════════════ */
 function renderActions(){
   var tiles = [
-    {n:REWORK_SRS.length, t:'In rework', s:'QC rejected — needs re-dispatch', c:C.red,   ico:'bi-arrow-counterclockwise', key:'rework'},
+    {n:REWORK_SRS.length, t:'In rework', s:'QC rejected - needs re-dispatch', c:C.red,   ico:'bi-arrow-counterclockwise', key:'rework'},
     {n:PENDING_SRS.length,t:'Pending your dispatch', s:'No ML assigned yet',  c:C.gold,  ico:'bi-send',                   key:'pending'},
     {n:slaAtRisk(),        t:'At SLA breach risk today', s:'Escalate before the window closes', c:C.amber, ico:'bi-speedometer2', key:'slarisk'},
     {n:QC_SRS.length,     t:'Awaiting your QC review', s:'Proof submitted, decision pending', c:C.purple,ico:'bi-patch-check', key:'qc'},
@@ -1029,7 +1029,7 @@ function renderGauges(){
 }
 
 /* ══════════════════════════════════════════
-   DONUT — open workload
+   DONUT - open workload
 ══════════════════════════════════════════ */
 function renderDonut(){
   var segs = [
@@ -1204,7 +1204,7 @@ function renderTeam(){
         '<circle cx="19" cy="19" r="'+r2+'" fill="none" stroke="var(--track)" stroke-width="3.5"/>'+
         '<circle cx="19" cy="19" r="'+r2+'" fill="none" stroke="'+scoreC+'" stroke-width="3.5" '+
           'stroke-linecap="round" stroke-dasharray="'+(circ2*pct).toFixed(1)+' '+circ2.toFixed(1)+'"/>'+
-      '</svg><span style="color:'+scoreC+';">'+(score === null ? '—' : score.toFixed(1))+'</span>';
+      '</svg><span style="color:'+scoreC+';">'+(score === null ? '-' : score.toFixed(1))+'</span>';
 
     var stars = '';
     for (var i = 1; i <= 5; i++) {
@@ -1221,7 +1221,7 @@ function renderTeam(){
         '</div>'+
         '<div class="tm-id-col">'+
           '<div class="tm-name">'+ml.name+'</div>'+
-          '<div class="tm-dom">'+(ml.domain || '—')+'</div>'+
+          '<div class="tm-dom">'+(ml.domain || '-')+'</div>'+
           '<span class="tm-st" style="background:'+c+'1a;color:'+c+';">'+(labels[ml.status] || ml.status)+'</span>'+
         '</div>'+
       '</div>'+
@@ -1265,9 +1265,9 @@ function renderTeam(){
       if (ev.target.closest('.tm-btn')) return;
       var ml = rows[i];
       openSrView(ml.name, [
-        ['Domain', ml.domain||'—'], ['Status', ml.status], ['Active jobs', ml.jobs],
+        ['Domain', ml.domain||'-'], ['Status', ml.status], ['Active jobs', ml.jobs],
         ['Completed', ml.completed], ['Pending', ml.pending], ['Rework', ml.rework],
-        ['Review score', ml.score !== null ? ml.score.toFixed(1)+' / 5' : '—'],
+        ['Review score', ml.score !== null ? ml.score.toFixed(1)+' / 5' : '-'],
       ]);
     });
   });
@@ -1416,7 +1416,7 @@ function renderQC(){
 
   document.querySelectorAll('#qcList .btn-approve').forEach(function(b){
     b.addEventListener('click',function(){
-      toast('ok','QC approved','SR '+this.dataset.srid+' approved — moving to next stage.');
+      toast('ok','QC approved','SR '+this.dataset.srid+' approved - moving to next stage.');
     });
   });
   document.querySelectorAll('#qcList .btn-reject').forEach(function(b){
@@ -1491,7 +1491,7 @@ function closeRejectModal(){el('rejectModal').classList.remove('open');currentRe
 function confirmReject(){
   var reason = el('rejectReason').value.trim();
   if(!reason){toast('warn','Reason required','Add a rejection reason so the ML knows what to fix.');return;}
-  toast('err','QC rejected',currentRejectId+' returned to field — ML notified.');
+  toast('err','QC rejected',currentRejectId+' returned to field - ML notified.');
   closeRejectModal();
 }
 
@@ -1515,9 +1515,9 @@ function panelLists(){
 }
 
 function rowMeta(kind, it){
-  if (kind === 'field')  return [it.client, it.site].filter(Boolean).join(' · ') + ' — ' + it.time;
-  if (kind === 'qc')     return [it.client, it.site].filter(Boolean).join(' · ') + ' — ' + it.ml;
-  return [it.client, it.site].filter(Boolean).join(' · ') + ' — ' + (it.priority || '');
+  if (kind === 'field')  return [it.client, it.site].filter(Boolean).join(' · ') + ' - ' + it.time;
+  if (kind === 'qc')     return [it.client, it.site].filter(Boolean).join(' · ') + ' - ' + it.ml;
+  return [it.client, it.site].filter(Boolean).join(' · ') + ' - ' + (it.priority || '');
 }
 
 function rowsForItem(kind, it){
@@ -1537,7 +1537,7 @@ function rowsForItem(kind, it){
   return [
     ['Client', it.client], ['Site', it.site], ['Category', it.cat],
     ['Priority', it.priority], ['Scope', it.scope],
-    ['Logged', it.logged || '—'],
+    ['Logged', it.logged || '-'],
   ];
 }
 

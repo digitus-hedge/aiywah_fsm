@@ -5,7 +5,7 @@
 | resources/views/front_dashboard.blade.php
 |
 | Structure, spacing and palette mirror Front_desk_executive_dash.html.
-| No placeholder data — every value comes from FrontDashboardController.
+| No placeholder data - every value comes from FrontDashboardController.
 | Variable contract is at the bottom of this file.
 --}}
 
@@ -24,7 +24,7 @@
 
 footer.footer { display: none; }
 
-/* Page canvas — matches --bg in the mock-up. */
+/* Page canvas - matches --bg in the mock-up. */
 body { background: #f4f2ef; }
 [data-theme="dark"] body,
 [data-bs-theme="dark"] body { background: #141210; }
@@ -476,7 +476,7 @@ body { background: #f4f2ef; }
                 @if (($alertCounts['triage'] ?? 0) > 0)
                 <button type="button" class="a-chip a-red" data-list="triage-backlog" data-list-title="Pending triage queue">
                 <i class="bi bi-hourglass-split"></i>
-                {{ $alertCounts['triage'] }} {{ \Illuminate\Support\Str::plural('SR', $alertCounts['triage']) }} awaiting HoP triage — logged by you
+                {{ $alertCounts['triage'] }} {{ \Illuminate\Support\Str::plural('SR', $alertCounts['triage']) }} awaiting HoP triage - logged by you
             </button>
         @endif
 
@@ -560,7 +560,7 @@ body { background: #f4f2ef; }
                     <span class="pill p-red">{{ $alertCounts['triage'] ?? 0 }} awaiting HoP</span>
                 </div>
                 <div style="font-size:.73rem;color:var(--muted);">
-                    SRs you logged that HoP hasn't reviewed yet — oldest first.
+                    SRs you logged that HoP hasn't reviewed yet - oldest first.
                 </div>
             </div>
 
@@ -684,7 +684,7 @@ body { background: #f4f2ef; }
         {{-- Top clients --}}
         <div class="card card-pad">
             <div class="c-hdr">
-                <div class="c-label"><i class="bi bi-buildings"></i>Top clients — my intake</div>
+                <div class="c-label"><i class="bi bi-buildings"></i>Top clients - my intake</div>
                 @if (Route::has('clients.directory'))
                     <a href="{{ route('clients.directory') }}" class="c-more">All clients <i class="bi bi-arrow-right"></i></a>
                 @endif
@@ -797,7 +797,7 @@ body { background: #f4f2ef; }
                 </div>
             </div>
 
-            <div class="wa-sub-ttl">Failed — needs manual follow-up</div>
+            <div class="wa-sub-ttl">Failed - needs manual follow-up</div>
             @forelse (data_get($whatsapp, 'failedList', []) as $failure)
                 <button type="button" class="wa-fail"
                         data-sr-code="{{ data_get($failure, 'code') }}"
@@ -821,14 +821,14 @@ body { background: #f4f2ef; }
     {{-- ── SECTION 4 · LIVE KANBAN ────────────────────────────────────── --}}
     <div class="sec-row">
         <span class="sec-line"></span>
-        <span class="sec-ttl"><i class="bi bi-kanban"></i>My SR kanban — live board</span>
+        <span class="sec-ttl"><i class="bi bi-kanban"></i>My SR kanban - live board</span>
         <span class="sec-line"></span>
     </div>
 
     <div class="card mb-block">
         <div class="card-pad" style="padding-bottom:10px;">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-                <div class="c-label"><i class="bi bi-kanban"></i>SRs you logged — across all stages</div>
+                <div class="c-label"><i class="bi bi-kanban"></i>SRs you logged - across all stages</div>
                 @if (Route::has('kanban_view'))
                     <a href="{{ route('kanban_view') }}" class="pill p-gold" style="padding:5px 12px;font-size:.73rem;">
                         <i class="bi bi-fullscreen"></i> Open full board
@@ -957,7 +957,7 @@ window.FDE_TOAST = @json($fdeToast);
         if (typeof Chart === 'undefined') return;
         const C = palette();
 
-        /* KPI sparklines — gold / blue / red / green, matching each card */
+        /* KPI sparklines - gold / blue / red / green, matching each card */
         (DATA.sparks || []).forEach((series, i) => {
             const canvas = document.getElementById('fdeSpark' + i);
             if (!canvas || !series || !series.length) return;
@@ -1164,14 +1164,14 @@ window.FDE_TOAST = @json($fdeToast);
 
     function buildTimeline(card) {
         const events = [{ dot: '#64748b', event: 'SR logged by you', time: card.logged + ' ago' }];
-        if (card.scope === 'OoW') events.push({ dot: '#7c3aed', event: 'Routed to Accounts — out-of-warranty scope confirmed', time: 'HoP reviewed' });
+        if (card.scope === 'OoW') events.push({ dot: '#7c3aed', event: 'Routed to Accounts - out-of-warranty scope confirmed', time: 'HoP reviewed' });
         if (card.erp)      events.push({ dot: '#9a8053', event: 'Quote uploaded · ' + card.erp, time: 'Awaiting client approval' });
         if (card.tech)     events.push({ dot: '#2563eb', event: 'Assigned to ' + card.tech, time: 'Dispatched by HoP' });
         if (card.punched)  events.push({ dot: '#d97706', event: 'Technician punched in on-site', time: card.punched });
-        if (card.punchout) events.push({ dot: '#ea580c', event: 'Punch-out — submitted for QC review', time: card.punchout });
-        if (card.amount && !card.invoice) events.push({ dot: '#7c3aed', event: 'QC approved — invoice pending upload', time: 'Est. ' + card.amount });
+        if (card.punchout) events.push({ dot: '#ea580c', event: 'Punch-out - submitted for QC review', time: card.punchout });
+        if (card.amount && !card.invoice) events.push({ dot: '#7c3aed', event: 'QC approved - invoice pending upload', time: 'Est. ' + card.amount });
         if (card.invoice)  events.push({ dot: '#059669', event: 'Invoice finalised · ' + card.invoice, time: 'Client notified via WhatsApp' });
-        if (card.rating)   events.push({ dot: '#f59e0b', event: 'Client submitted feedback — ' + card.rating + '\u2605', time: 'SR fully closed' });
+        if (card.rating)   events.push({ dot: '#f59e0b', event: 'Client submitted feedback - ' + card.rating + '\u2605', time: 'SR fully closed' });
 
         return events.map((e, i) =>
             '<div class="tl-item">'
@@ -1251,7 +1251,7 @@ window.FDE_TOAST = @json($fdeToast);
         var body = '<div class="dp-sec">'
           +   (client ? '<div class="dp-cell" style="margin-bottom:9px;"><div class="dp-cell-lbl">Client</div><div class="dp-cell-val">' + esc(client) + '</div></div>' : '')
           +   (meta ? '<div class="dp-cell"><div class="dp-cell-lbl">Detail</div><div class="dp-cell-val">' + esc(meta) + '</div></div>' : '')
-          +   '<p style="margin-top:12px;font-size:.74rem;color:var(--muted);">Full record details aren\'t loaded on this dashboard for older/closed SRs — open the SR explorer for the complete history.</p>'
+          +   '<p style="margin-top:12px;font-size:.74rem;color:var(--muted);">Full record details aren\'t loaded on this dashboard for older/closed SRs - open the SR explorer for the complete history.</p>'
           + '</div>';
 
         document.getElementById('fdePanelBody').innerHTML = body;

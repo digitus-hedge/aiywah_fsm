@@ -13,9 +13,9 @@ use Illuminate\Support\Facades\URL;
 use App\Models\AlertType;
 use App\Models\UserAlertPermission;
 /**
- * Public "view page" for the Admin & HoP Daily Summaries — the pages the
+ * Public "view page" for the Admin & HoP Daily Summaries - the pages the
  * WhatsApp button opens. No login required (signed-URL protected, see
- * routes/web.php notes), but each is gated to specific roles — anyone
+ * routes/web.php notes), but each is gated to specific roles - anyone
  * else with a technically-valid signed link gets a 403.
  */
 class SummaryViewController extends Controller
@@ -27,7 +27,7 @@ class SummaryViewController extends Controller
      *  Admin/Super Admin oversight). */
     private const HOP_ALLOWED_ROLE_CODES = ['HP'];
 
-    /** Terminal statuses — never "open/carried forward". */
+    /** Terminal statuses - never "open/carried forward". */
     private const CLOSED_STATUSES = ['Completed', 'Rejected', 'Quote Rejected'];
 
     /** Only these roles may view the SE summary (SE themselves, plus HoP/Admin oversight). */
@@ -62,7 +62,7 @@ class SummaryViewController extends Controller
      *
      * The 'signed' route middleware already verified the signature +
      * expiry before this method runs. This method additionally checks
-     * the ROLE of the user the link was generated for — a signed link
+     * the ROLE of the user the link was generated for - a signed link
      * only ever proves "this URL wasn't tampered with", not "this
      * person should see an Admin summary".
      */
@@ -189,7 +189,7 @@ public function ml(User $user)
 }
     /**
      * Assembles every number/list the admin summary page needs, from real
-     * data. The one exception is 'wa_failures' — I don't have your
+     * data. The one exception is 'wa_failures' - I don't have your
      * WhatsApp delivery-log model (the one WhatsappLogController /
      * wa_notification_log reads), so that block is wrapped in a
      * try/catch against a guessed `App\Models\WhatsappLog` shape and
@@ -226,7 +226,7 @@ public function ml(User $user)
         $newClients  = Client::whereDate('created_at', $summaryDate)->count();
         $newProjects = Project::whereDate('created_at', $summaryDate)->count();
 
-        // ── SRs Logged — warranty split (as of creation time) ──────────
+        // ── SRs Logged - warranty split (as of creation time) ──────────
         $loggedIw = 0;
         $loggedWe = 0;
         foreach ($srsLoggedYesterday as $sr) {
@@ -235,7 +235,7 @@ public function ml(User $user)
             $inWarranty ? $loggedIw++ : $loggedWe++;
         }
 
-        // ── Open SRs — bucketed like the Kanban board ───────────────────
+        // ── Open SRs - bucketed like the Kanban board ───────────────────
         $openByGroup = collect(self::STATUS_GROUPS)->map(function ($group) use ($openSrs) {
             return $openSrs->whereIn('status', $group['statuses'])->count();
         });
@@ -271,9 +271,9 @@ public function ml(User $user)
                     $hasMissingReceipt = true;
                 }
                 $expenseRows[] = [
-                    $punch->serviceRequest ? $this->srRef($punch->serviceRequest) : '—',
+                    $punch->serviceRequest ? $this->srRef($punch->serviceRequest) : '-',
                     $mlName,
-                    $item->category ?? $item->name ?? '—',
+                    $item->category ?? $item->name ?? '-',
                     'AED ' . number_format($amt, 0),
                     empty($item->receipt_path) ? 'Pending' : 'Submitted',
                 ];
@@ -302,7 +302,7 @@ public function ml(User $user)
             ? (int) round((($expenseSubmissions - $expensePending) / $expenseSubmissions) * 100)
             : 0;
 
-        // ── WA Failures — needs your WhatsApp log model to be real ──────
+        // ── WA Failures - needs your WhatsApp log model to be real ──────
         $waFailures = $this->attemptWaFailures($summaryDate);
 
         return [
@@ -364,61 +364,61 @@ public function ml(User $user)
 
             'cancelled' => $cancelledYesterday->map(fn ($sr) => [
                 'sr'     => $this->srRef($sr),
-                'client' => optional($sr->client)->company_name ?? '—',
+                'client' => optional($sr->client)->company_name ?? '-',
                 'reason' => $this->extractCancelReason($sr->internal_remark),
             ])->values()->all(),
 
             'sheets' => [
                 'logged' => [
-                    'title' => "SRs Logged Yesterday — {$srsLoggedYesterday->count()} Total",
+                    'title' => "SRs Logged Yesterday - {$srsLoggedYesterday->count()} Total",
                     'rows'  => $srsLoggedYesterday->map(fn ($sr) => [
                         $this->srRef($sr),
-                        optional($sr->client)->company_name ?? '—',
-                        optional($sr->category)->category_name ?? '—',
+                        optional($sr->client)->company_name ?? '-',
+                        optional($sr->category)->category_name ?? '-',
                         $sr->status,
-                        $sr->created_at?->format('d M · h:i A') ?? '—',
+                        $sr->created_at?->format('d M · h:i A') ?? '-',
                     ])->values()->all(),
                 ],
                 'completed' => [
-                    'title' => "SRs Completed Yesterday — {$srsCompletedYesterday->count()} Total",
+                    'title' => "SRs Completed Yesterday - {$srsCompletedYesterday->count()} Total",
                     'rows'  => $srsCompletedYesterday->map(fn ($sr) => [
                         $this->srRef($sr),
-                        optional($sr->client)->company_name ?? '—',
-                        optional($sr->project)->site_name ?? '—',
-                        $sr->invoice_total ? 'AED ' . number_format($sr->invoice_total, 0) : '—',
-                        $sr->updated_at?->format('d M · h:i A') ?? '—',
+                        optional($sr->client)->company_name ?? '-',
+                        optional($sr->project)->site_name ?? '-',
+                        $sr->invoice_total ? 'AED ' . number_format($sr->invoice_total, 0) : '-',
+                        $sr->updated_at?->format('d M · h:i A') ?? '-',
                     ])->values()->all(),
                 ],
                 'open' => [
-                    'title' => "Open SRs Carried Forward — {$openSrs->count()} Total",
-                    'rows'  => collect(self::STATUS_GROUPS)->map(function ($group, $key) use ($openByGroup) {
-                        return [$group['label'], implode(', ', $group['statuses']), $openByGroup[$key], '', ''];
-                    })->values()->all(),
-                ],
+                        'title' => "Open SRs Carried Forward - {$openSrs->count()} Total",
+                        'rows'  => collect(self::STATUS_GROUPS)->map(function ($group, $key) use ($openByGroup) {
+                            return [$group['label'], implode(', ', $group['statuses']), (string) $openByGroup[$key]];
+                        })->values()->all(),
+                    ],
                 'wa' => [
-                    'title' => 'WhatsApp Notification Failures — ' . count($waFailures),
+                    'title' => 'WhatsApp Notification Failures - ' . count($waFailures),
                     'rows'  => collect($waFailures)->map(fn ($f) => [
-                        $f['sr'], $f['client'], '—', $f['reason'], 'Retry',
+                        $f['sr'], $f['client'], '-', $f['reason'], 'Retry',
                     ])->values()->all(),
                 ],
                 'rework' => [
-                    'title' => "Return Works (QC Rejected) — {$reworkYesterday->count()} Cases",
+                    'title' => "Return Works (QC Rejected) - {$reworkYesterday->count()} Cases",
                     'rows'  => $reworkYesterday->map(fn ($sr) => [
                         $this->srRef($sr),
-                        optional($sr->client)->company_name ?? '—',
-                        optional($sr->assignedUser)->name ?? optional($sr->assignedSe)->name ?? '—',
-                        \Illuminate\Support\Str::limit($sr->rework_notes ?? '—', 80),
+                        optional($sr->client)->company_name ?? '-',
+                        optional($sr->assignedUser)->name ?? optional($sr->assignedSe)->name ?? '-',
+                        \Illuminate\Support\Str::limit($sr->rework_notes ?? '-', 80),
                         $sr->reallocate ? 'Reassigned' : 'Pending SE action',
                     ])->values()->all(),
                 ],
                 'hours' => [
-                    'title' => "Technician Field Hours — {$totalFieldHours}h Total",
+                    'title' => "Technician Field Hours - {$totalFieldHours}h Total",
                     'rows'  => collect($mlAgg)->map(fn ($row, $name) => [
                         $name, $row['hours'] . 'h', $row['jobs'] . ' jobs', 'AED ' . number_format($row['expense'], 0), 'Logged',
                     ])->values()->all(),
                 ],
                 'expenses' => [
-                    'title' => 'Expense Submissions — AED ' . number_format($expenseTotal, 0),
+                    'title' => 'Expense Submissions - AED ' . number_format($expenseTotal, 0),
                     'rows'  => $expenseRows,
                 ],
                 'new' => [
@@ -429,13 +429,13 @@ public function ml(User $user)
                     ],
                 ],
                 'cancelled' => [
-                    'title' => "Cancelled SRs Yesterday — {$cancelledYesterday->count()}",
+                    'title' => "Cancelled SRs Yesterday - {$cancelledYesterday->count()}",
                     'rows'  => $cancelledYesterday->map(fn ($sr) => [
                         $this->srRef($sr),
-                        optional($sr->client)->company_name ?? '—',
-                        optional($sr->category)->category_name ?? '—',
+                        optional($sr->client)->company_name ?? '-',
+                        optional($sr->category)->category_name ?? '-',
                         $this->extractCancelReason($sr->internal_remark),
-                        '—',
+                        '-',
                     ])->values()->all(),
                 ],
             ],
@@ -447,14 +447,14 @@ public function ml(User $user)
      * best-effort, both wrapped so they can never crash the page:
      *
      * - 'realloc' (category re-allocations): ServiceRequestController's
-     *   reallocate() re-assigns the ML, not the category — I don't see a
+     *   reallocate() re-assigns the ML, not the category - I don't see a
      *   column or log tracking "category corrected from X to Y" anywhere
      *   in what you shared. Returns empty until you tell me where that's
      *   actually tracked.
      * - 'completed' ratings: guesses at a `client_rating` column on
      *   service_requests (or a related feedback model). Falls back to
-     *   "no rating yet" — which the original design already handles
-     *   gracefully — if that guess is wrong.
+     *   "no rating yet" - which the original design already handles
+     *   gracefully - if that guess is wrong.
      */
     private function buildHopSummaryData(Carbon $summaryDate): array
     {
@@ -481,7 +481,7 @@ public function ml(User $user)
             ->whereDate('updated_at', $summaryDate)
             ->get();
 
-        // ── Pending Review rows — priority + waiting time ───────────────
+        // ── Pending Review rows - priority + waiting time ───────────────
         $pendingRows = $pendingReview->map(function ($sr) {
             $hrsAgo = abs((int) $sr->created_at->diffInHours(now(), false));
             $priority = $sr->priority_level ?? 'Medium';
@@ -495,8 +495,8 @@ public function ml(User $user)
 
             return [
                 'sr'             => $this->srRef($sr),
-                'client'         => optional($sr->client)->company_name ?? '—',
-                'category'       => optional($sr->category)->category_name ?? '—',
+                'client'         => optional($sr->client)->company_name ?? '-',
+                'category'       => optional($sr->category)->category_name ?? '-',
                 'hrs_ago'        => $hrsAgo . 'h ago',
                 'priority'       => $priority,
                 'priority_class' => $priorityClass,
@@ -507,7 +507,7 @@ public function ml(User $user)
             ];
         })->values();
 
-        // ── Approved — forward-progress funnel ──────────────────────────
+        // ── Approved - forward-progress funnel ──────────────────────────
         $dispatchedStatuses = ['Assigned', 'Accepted', 'In Progress', 'Reschedule', 'On Hold', 'Qc Review', 'Rework', 'Pending Invoice', 'Invoice Submitted', 'Completed'];
         $dispatched = $approvedYesterday->whereIn('status', $dispatchedStatuses)->count();
         $awaiting   = $approvedYesterday->where('status', 'Approved')->count();
@@ -521,14 +521,14 @@ public function ml(User $user)
 
             return [
                 $this->srRef($sr),
-                optional($sr->client)->company_name ?? '—',
+                optional($sr->client)->company_name ?? '-',
                 $this->srScope($sr),
-                optional($sr->assignedSe)->name ?? '—',
+                optional($sr->assignedSe)->name ?? '-',
                 $next,
             ];
         })->values()->all();
 
-        // ── QC Pending — breakdown by whether the SE holds QC rights ────
+        // ── QC Pending - breakdown by whether the SE holds QC rights ────
         $awaitingHop = 0;
         $seQcOn = 0;
         foreach ($qcPending as $sr) {
@@ -542,11 +542,11 @@ public function ml(User $user)
             $punch = $sr->punches()->latest('punch_out_at')->first();
             return [
                 $this->srRef($sr),
-                optional($sr->client)->company_name ?? '—',
-                optional($sr->category)->category_name ?? '—',
-                optional($sr->assignedUser)->name ?? '—',
-                $sr->updated_at?->format('d M · h:i A') ?? '—',
-                $punch ? 'Submitted' : '—',
+                optional($sr->client)->company_name ?? '-',
+                optional($sr->category)->category_name ?? '-',
+                optional($sr->assignedUser)->name ?? '-',
+                $sr->updated_at?->format('d M · h:i A') ?? '-',
+                $punch ? 'Submitted' : '-',
             ];
         })->values()->all();
 
@@ -556,16 +556,16 @@ public function ml(User $user)
             $actionClass = $sr->reallocate ? 'ps-amb' : 'ps-red';
             return [
                 'sr'            => $this->srRef($sr),
-                'client'        => optional($sr->client)->company_name ?? '—',
-                'ml'            => optional($sr->assignedUser)->name ?? '—',
-                'reason'        => $sr->rework_notes ?? '—',
+                'client'        => optional($sr->client)->company_name ?? '-',
+                'ml'            => optional($sr->assignedUser)->name ?? '-',
+                'reason'        => $sr->rework_notes ?? '-',
                 'action'        => $action,
                 'action_class'  => $actionClass,
-                'time'          => $sr->qc_reviewed_at?->format('h:i A') ?? '—',
+                'time'          => $sr->qc_reviewed_at?->format('h:i A') ?? '-',
             ];
         })->values();
 
-        // ── Category Re-allocations — no tracked source, honest empty ──
+        // ── Category Re-allocations - no tracked source, honest empty ──
         $reallocRows = collect(); // see method docblock
 
         // ── Completed + ratings (best-effort) ───────────────────────────
@@ -575,9 +575,9 @@ public function ml(User $user)
             $rating = $ratings[$sr->id] ?? null;
             return [
                 'sr'       => $this->srRef($sr),
-                'client'   => optional($sr->client)->company_name ?? '—',
-                'ml'       => optional($sr->assignedUser)->name ?? '—',
-                'category' => optional($sr->category)->category_name ?? '—',
+                'client'   => optional($sr->client)->company_name ?? '-',
+                'ml'       => optional($sr->assignedUser)->name ?? '-',
+                'category' => optional($sr->category)->category_name ?? '-',
                 'scope'    => $this->srScope($sr),
                 'stars'    => $rating ? str_repeat('★', $rating) : '',
                 'rework'   => 'No', // this cohort is status=Completed, so by definition not currently in rework
@@ -653,31 +653,31 @@ public function ml(User $user)
 
             'sheets' => [
                 'pending' => [
-                    'title' => "Pending Review — {$pendingReview->count()} SRs Awaiting Triage",
+                    'title' => "Pending Review - {$pendingReview->count()} SRs Awaiting Triage",
                     'rows'  => $pendingRows->map(fn ($r) => [
                         $r['sr'], $r['client'], $r['category'], $r['scope'], $r['priority'], $r['logged_by'], $r['hrs_ago'],
                     ])->all(),
                 ],
                 'approved' => [
-                    'title' => "Approved SRs Yesterday — {$approvedTotal} Total",
+                    'title' => "Approved SRs Yesterday - {$approvedTotal} Total",
                     'rows'  => $approvedRows,
                 ],
                 'qc' => [
-                    'title' => "QC Reviews Pending — {$qcPending->count()} Carried Forward",
+                    'title' => "QC Reviews Pending - {$qcPending->count()} Carried Forward",
                     'rows'  => $qcRows,
                 ],
                 'rework' => [
-                    'title' => "Rework Cases Yesterday — {$reworkYesterday->count()} Rejected",
+                    'title' => "Rework Cases Yesterday - {$reworkYesterday->count()} Rejected",
                     'rows'  => $reworkRows->map(fn ($r) => [
                         $r['sr'], $r['client'], $r['ml'], $r['reason'], $r['action'], $r['time'],
                     ])->all(),
                 ],
                 'realloc' => [
-                    'title' => "Category Re-allocations — {$reallocRows->count()} Corrections",
+                    'title' => "Category Re-allocations - {$reallocRows->count()} Corrections",
                     'rows'  => $reallocRows->all(),
                 ],
                 'completed' => [
-                    'title' => "Completed SRs Yesterday — {$completedYesterday->count()} Total",
+                    'title' => "Completed SRs Yesterday - {$completedYesterday->count()} Total",
                     'rows'  => $completedRows->map(fn ($r) => [
                         $r['sr'], $r['client'], $r['ml'], $r['scope'], $r['stars'] ?: 'No rating yet', $r['rework'],
                     ])->all(),
@@ -692,7 +692,7 @@ public function ml(User $user)
      * related `feedback`/`clientFeedback` relation with a `rating` column.
      * Returns [sr_id => int(1-5)] for whichever SRs actually have one;
      * anything that doesn't resolve (wrong guess, or genuinely no rating
-     * yet) is simply absent from the map — never throws.
+     * yet) is simply absent from the map - never throws.
      */
     private function attemptRatings($completedSrs): array
     {
@@ -705,7 +705,7 @@ public function ml(User $user)
                     continue;
                 }
             } catch (\Throwable $e) {
-                // column doesn't exist — fall through to relation attempt
+                // column doesn't exist - fall through to relation attempt
             }
 
             foreach (['feedback', 'clientFeedback'] as $relation) {
@@ -718,7 +718,7 @@ public function ml(User $user)
                         }
                     }
                 } catch (\Throwable $e) {
-                    // relation/column doesn't exist — leave unrated
+                    // relation/column doesn't exist - leave unrated
                 }
             }
         }
@@ -736,7 +736,7 @@ public function ml(User $user)
             'AC' => 'Accounts / AR',
             'AD' => 'Admin',
             'SA' => 'Super Admin',
-            default => $code ?? '—',
+            default => $code ?? '-',
         };
     }
 
@@ -753,7 +753,7 @@ public function ml(User $user)
      * Best-effort WhatsApp failure lookup. Guesses at a WhatsappLog model
      * shaped like: service_request_id, status ('failed'), reason/error
      * message, created_at. If that model/columns don't exist, this just
-     * logs a warning and returns an empty list — it will NEVER break the
+     * logs a warning and returns an empty list - it will NEVER break the
      * page. Tell me the real model and I'll replace this with a proper
      * query (and drop the try/catch).
      */
@@ -772,7 +772,7 @@ public function ml(User $user)
                     $sr = $log->serviceRequest;
                     return [
                         'sr'     => $sr ? $this->srRef($sr) : ('#' . $log->service_request_id),
-                        'client' => optional(optional($sr)->client)->company_name ?? '—',
+                        'client' => optional(optional($sr)->client)->company_name ?? '-',
                         'reason' => $log->reason ?? $log->error_message ?? 'Delivery failed',
                     ];
                 })
@@ -803,7 +803,7 @@ public function ml(User $user)
     /**
  * Enabled alert-type keys for this user, keyed by AlertType 'key'
  * (e.g. 'admin_logged', 'se_rework'). A missing row in
- * user_alert_permissions defaults to enabled=true — same convention
+ * user_alert_permissions defaults to enabled=true - same convention
  * UserAlertPermissionSeeder and MasterController::summaryAlertPermissions()
  * already use, so a user who's never touched Master Settings still gets
  * everything.
@@ -859,7 +859,7 @@ private function enabledAlertKeys(User $user, string $roleSlug): array
         ->orderBy('qc_reviewed_at')
         ->get();
 
-    // ── Average dispatch time yesterday — approved_at → dispatched_at ─
+    // ── Average dispatch time yesterday - approved_at → dispatched_at ─
     $durations = [];
     foreach ($assignedYesterday->whereNotNull('dispatched_at') as $sr) {
         if ($sr->approved_at) {
@@ -873,7 +873,7 @@ private function enabledAlertKeys(User $user, string $roleSlug): array
         ? (int) round(array_sum($durations) / count($durations))
         : null;
 
-    // ── SRs currently in field — live carry-forward count ────────────
+    // ── SRs currently in field - live carry-forward count ────────────
     $inField = ServiceRequest::where('assigned_se', $seUser->id)
         ->whereIn('status', $fieldStatuses)
         ->get(['id', 'status']);
@@ -907,7 +907,7 @@ private function enabledAlertKeys(User $user, string $roleSlug): array
                 : 'No SRs assigned'],
             'pending'    => ['value' => $pendingCount, 'sub' => 'Not yet dispatched'],
             'rework'     => ['value' => $reworkQueue->count(), 'sub' => 'In queue'],
-            'avg_time'   => ['value' => $avgDispatchMinutes !== null ? $this->formatMinutes($avgDispatchMinutes) : '—', 'sub' => 'Avg dispatch time'],
+            'avg_time'   => ['value' => $avgDispatchMinutes !== null ? $this->formatMinutes($avgDispatchMinutes) : '-', 'sub' => 'Avg dispatch time'],
             'in_field'   => ['value' => $inField->count(), 'sub' => 'Carried forward'],
         ],
 
@@ -920,27 +920,27 @@ private function enabledAlertKeys(User $user, string $roleSlug): array
 
         'sheets' => [
             'assigned' => [
-                'title' => "SRs Assigned Yesterday — {$assignedYesterday->count()} Total",
+                'title' => "SRs Assigned Yesterday - {$assignedYesterday->count()} Total",
                 'rows'  => $assignedYesterday->map(fn ($sr) => [
                     $this->srRef($sr),
-                    optional($sr->client)->company_name ?? '—',
-                    optional($sr->category)->category_name ?? '—',
-                    $sr->dispatched_at ? 'Dispatched — ' . optional($sr->assignedUser)->name : 'Pending Dispatch',
-                    $sr->approved_at?->format('d M · h:i A') ?? '—',
+                    optional($sr->client)->company_name ?? '-',
+                    optional($sr->category)->category_name ?? '-',
+                    $sr->dispatched_at ? 'Dispatched - ' . optional($sr->assignedUser)->name : 'Pending Dispatch',
+                    $sr->approved_at?->format('d M · h:i A') ?? '-',
                 ])->values()->all(),
             ],
             'rework' => [
-                'title' => "Rework Queue — {$reworkQueue->count()} Cases",
+                'title' => "Rework Queue - {$reworkQueue->count()} Cases",
                 'rows'  => $reworkQueue->map(fn ($sr) => [
                     $this->srRef($sr),
-                    optional($sr->client)->company_name ?? '—',
-                    optional($sr->assignedUser)->name ?? '—',
-                    \Illuminate\Support\Str::limit($sr->rework_notes ?? '—', 80),
-                    $sr->qc_reviewed_at?->format('d M · h:i A') ?? '—',
+                    optional($sr->client)->company_name ?? '-',
+                    optional($sr->assignedUser)->name ?? '-',
+                    \Illuminate\Support\Str::limit($sr->rework_notes ?? '-', 80),
+                    $sr->qc_reviewed_at?->format('d M · h:i A') ?? '-',
                 ])->values()->all(),
             ],
             'in_field' => [
-                'title' => "SRs Currently In Field — {$inField->count()}",
+                'title' => "SRs Currently In Field - {$inField->count()}",
                 'rows'  => $inField->map(fn ($sr) => [
                     $this->srRef($sr), $sr->status, '', '', '',
                 ])->values()->all(),
@@ -981,14 +981,14 @@ private function buildMlSummaryData(Carbon $summaryDate, User $mlUser): array
         ->whereDate('qc_reviewed_at', $summaryDate)
         ->get();
 
-    // ── Pending jobs — live carry-forward, waiting today ──────────
+    // ── Pending jobs - live carry-forward, waiting today ──────────
     $pendingToday = ServiceRequest::with('client', 'category')
         ->where('assigned_user_id', $mlUser->id)
         ->whereIn('status', $waitingStatuses)
         ->orderBy('eta_at')
         ->get();
 
-    // ── Expenses — submitted vs pending receipts ────────────────────
+    // ── Expenses - submitted vs pending receipts ────────────────────
     $expenseSubmissions = 0;
     $expensePending     = 0;
     $expenseTotal       = 0.0;
@@ -1005,8 +1005,8 @@ private function buildMlSummaryData(Carbon $summaryDate, User $mlUser): array
                 $hasMissingReceipt = true;
             }
             $expenseRows[] = [
-                $punch->serviceRequest ? $this->srRef($punch->serviceRequest) : '—',
-                $item->category ?? $item->name ?? '—',
+                $punch->serviceRequest ? $this->srRef($punch->serviceRequest) : '-',
+                $item->category ?? $item->name ?? '-',
                 'AED ' . number_format($amt, 0),
                 empty($item->receipt_path) ? 'Pending' : 'Submitted',
             ];
@@ -1053,7 +1053,7 @@ private function buildMlSummaryData(Carbon $summaryDate, User $mlUser): array
             'rework'    => ['value' => $reworkYesterday->count(), 'sub' => 'QC rejected'],
             'pending'   => ['value' => $pendingToday->count(), 'sub' => 'Waiting today'],
             'expenses'  => ['value' => $expenseSubmissions, 'sub' => $submissionRate . '% receipts in'],
-            'rating'    => ['value' => $avgRating ?: '—', 'sub' => $ratedValues->count() . ' rated'],
+            'rating'    => ['value' => $avgRating ?: '-', 'sub' => $ratedValues->count() . ' rated'],
         ],
 
         'expenses' => [
@@ -1071,51 +1071,51 @@ private function buildMlSummaryData(Carbon $summaryDate, User $mlUser): array
 
         'sheets' => [
             'completed' => [
-                'title' => "Jobs Completed Yesterday — {$completedYesterday->count()} Total",
+                'title' => "Jobs Completed Yesterday - {$completedYesterday->count()} Total",
                 'rows'  => $completedYesterday->map(function ($sr) use ($ratings) {
                     $rating = $ratings[$sr->id] ?? null;
                     return [
                         $this->srRef($sr),
-                        optional($sr->client)->company_name ?? '—',
-                        optional($sr->category)->category_name ?? '—',
+                        optional($sr->client)->company_name ?? '-',
+                        optional($sr->category)->category_name ?? '-',
                         $rating ? str_repeat('★', $rating) : 'No rating yet',
-                        $sr->updated_at?->format('d M · h:i A') ?? '—',
+                        $sr->updated_at?->format('d M · h:i A') ?? '-',
                     ];
                 })->values()->all(),
             ],
             'punches' => [
-                'title' => "Jobs Punched In/Out Yesterday — {$punchesYesterday->count()} Total",
+                'title' => "Jobs Punched In/Out Yesterday - {$punchesYesterday->count()} Total",
                 'rows'  => $punchesYesterday->map(function ($punch) {
                     $sr = $punch->serviceRequest;
                     return [
-                        $sr ? $this->srRef($sr) : '—',
-                        $sr ? (optional($sr->client)->company_name ?? '—') : '—',
-                        $punch->punch_in_at?->format('h:i A') ?? '—',
-                        $punch->punch_out_at?->format('h:i A') ?? '—',
+                        $sr ? $this->srRef($sr) : '-',
+                        $sr ? (optional($sr->client)->company_name ?? '-') : '-',
+                        $punch->punch_in_at?->format('h:i A') ?? '-',
+                        $punch->punch_out_at?->format('h:i A') ?? '-',
                     ];
                 })->values()->all(),
             ],
             'rework' => [
-                'title' => "Rework — Previous Submissions Rejected — {$reworkYesterday->count()}",
+                'title' => "Rework - Previous Submissions Rejected - {$reworkYesterday->count()}",
                 'rows'  => $reworkYesterday->map(fn ($sr) => [
                     $this->srRef($sr),
-                    optional($sr->client)->company_name ?? '—',
-                    \Illuminate\Support\Str::limit($sr->rework_notes ?? '—', 80),
-                    $sr->qc_reviewed_at?->format('d M · h:i A') ?? '—',
+                    optional($sr->client)->company_name ?? '-',
+                    \Illuminate\Support\Str::limit($sr->rework_notes ?? '-', 80),
+                    $sr->qc_reviewed_at?->format('d M · h:i A') ?? '-',
                 ])->values()->all(),
             ],
             'pending' => [
-                'title' => "Pending Jobs — {$pendingToday->count()} Waiting Today",
+                'title' => "Pending Jobs - {$pendingToday->count()} Waiting Today",
                 'rows'  => $pendingToday->map(fn ($sr) => [
                     $this->srRef($sr),
-                    optional($sr->client)->company_name ?? '—',
-                    optional($sr->category)->category_name ?? '—',
+                    optional($sr->client)->company_name ?? '-',
+                    optional($sr->category)->category_name ?? '-',
                     $sr->status,
                     $sr->eta_at?->format('d M · h:i A') ?? 'Not scheduled',
                 ])->values()->all(),
             ],
             'expenses' => [
-                'title' => 'Expense Submissions — AED ' . number_format($expenseTotal, 0),
+                'title' => 'Expense Submissions - AED ' . number_format($expenseTotal, 0),
                 'rows'  => $expenseRows,
             ],
         ],

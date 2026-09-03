@@ -10,6 +10,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::job(new SendDailySummaryNotifications)
-    ->timezone('Asia/Dubai')
-    ->dailyAt('08:00')
-    ->days([0, 1, 6]); // Sun, Mon, Sat
+    ->timezone('Asia/Kolkata')
+    ->dailyAt('17:34');

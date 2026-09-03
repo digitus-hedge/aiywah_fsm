@@ -23,7 +23,7 @@ class DashboardController extends Controller
 
     /**
      * Per-stage SLA targets in hours. A breach is one stage running long,
-     * not the request as a whole — so a single SR can breach more than once.
+     * not the request as a whole - so a single SR can breach more than once.
      *
      * Tune these to your actual commitments; the numbers below are
      * placeholders that produce sensible output, nothing more.
@@ -233,7 +233,7 @@ class DashboardController extends Controller
                     ?: 'SR-' . ($sr->created_at?->format('Y') ?? date('Y'))
                     . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
                 'dbId'   => $sr->id,   // ← ADD THIS
-                'client' => $sr->client->company_name ?? '—',
+                'client' => $sr->client->company_name ?? '-',
                 'meta'   => implode(' · ', $meta),
                 'badge'  => $sr->status ?: 'Unknown',
                 'bc'     => self::STATUS_COLORS[$sr->status] ?? '#64748b',
@@ -438,7 +438,7 @@ class DashboardController extends Controller
             ->get();
 
         // Denominator: completed SRs in the window (by created_at, like the rest
-        // of the dashboard). Status dropdown is ignored here — "completed" is fixed.
+        // of the dashboard). Status dropdown is ignored here - "completed" is fixed.
         $completedCount = ServiceRequest::query()
             ->where('status', 'Completed')
             ->whereBetween('created_at', [$start, $end])
@@ -456,10 +456,10 @@ class DashboardController extends Controller
 
         return [
             'avg'           => $avgScore,
-            'avg_display'   => $fbCount ? number_format($avgScore, 1) : '—',
+            'avg_display'   => $fbCount ? number_format($avgScore, 1) : '-',
             'stars'         => $this->starIcons($avgScore),
             'responses'     => $fbCount,
-            'response_rate' => min(100, $respRate),   // clamp — feedback can outpace the window
+            'response_rate' => min(100, $respRate),   // clamp - feedback can outpace the window
             'completed'     => $completedCount,
             'rows'          => $rated,                // consumed by the two methods below
             'flagged'       => $flagged ? [
@@ -497,7 +497,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Rows for PANEL_DATA['feedback'] — mirrors your srItems() shape.
+     * Rows for PANEL_DATA['feedback'] - mirrors your srItems() shape.
      */
     private function feedbackItems2(Collection $rated, array $buckets, array $sat): array
     {
@@ -525,7 +525,7 @@ class DashboardController extends Controller
                 return [
                         'id'     => $this->srCode($sr),
                         'dbId'   => $sr->id,   // ← ADD THIS
-                        'client' => optional($sr->client)->company_name ?: ($sr->project_site ?: '—'),
+                        'client' => optional($sr->client)->company_name ?: ($sr->project_site ?: '-'),
                         'badge'  => $score . '★',
                         'bc'     => $this->ratingColor($score),
                         'meta'   => implode(' · ', $meta),
@@ -544,7 +544,7 @@ class DashboardController extends Controller
             ]
             : [
                 'id'     => 'No feedback yet',
-                'client' => '—',
+                'client' => '-',
                 'badge'  => '0',
                 'bc'     => '#94a3b8',
                 'meta'   => 'No ratings match the current filters',
@@ -641,12 +641,12 @@ class DashboardController extends Controller
         $freeSrs  = $rows->filter(fn($r) => empty($r->assigned_user_id))->count();
         $takenSrs = $totalSrs - $freeSrs;
 
-        // Live technician state (unfiltered — this is "right now")
+        // Live technician state (unfiltered - this is "right now")
         $assigned = $rows->filter(fn($r) => !empty($r->assigned_user_id));
         $onSite   = $assigned->where('status', 'In Progress')->count();
         $enRoute  = $assigned->where('status', 'Assigned')->count();
 
-        // Job volume per trade — feeds the "Jobs by Trade" donut
+        // Job volume per trade - feeds the "Jobs by Trade" donut
         $trades = $rows->filter(fn($r) => $r->category_name)
             ->countBy('category_name')
             ->map(fn($n, $name) => ['n' => $name, 'v' => $n])
@@ -817,7 +817,7 @@ class DashboardController extends Controller
      *
      * There is no completed_at column, so this approximates: an invoice
      * timestamp if one exists, otherwise the last time the row was touched.
-     * Add a real completed_at and change this to return it — the fourth
+     * Add a real completed_at and change this to return it - the fourth
      * stage SLA is only as accurate as this method.
      */
     private function closedAt(ServiceRequest $sr): ?Carbon
@@ -855,7 +855,7 @@ class DashboardController extends Controller
      | Stage SLAs
      |
      | Each stage is a pair of timestamps. A stage with either end missing
-     | is not judged — an SR still awaiting approval hasn't breached the
+     | is not judged - an SR still awaiting approval hasn't breached the
      | approval SLA, it simply hasn't finished that stage yet.
      --------------------------------------------------------------------- */
 
@@ -927,7 +927,7 @@ class DashboardController extends Controller
     }
 
     /* ---------------------------------------------------------------------
-     | Field hours — drives SLA compliance
+     | Field hours - drives SLA compliance
      --------------------------------------------------------------------- */
 
     /** Total time an ML spent on site for this SR, across all punches. */
@@ -1034,11 +1034,11 @@ class DashboardController extends Controller
                 'spark'      => $this->spark($filters, fn(Collection $srs) => $srs->filter(fn($sr) => $this->isOpen($sr))->count()),
             ],
             'sla' => [
-                'value'      => $sla ? $sla . '%' : '—',
+                'value'      => $sla !== null ? $sla . '%' : '-',
                 'breach_count' => $breaches,                              // ← ADD THIS
 
                 'sub'        => $breaches . ' ' . Str::plural('breach', $breaches) . ' over ' . self::SLA_TARGET_HOURS . 'h',
-                'delta'      => $prevSla ? $this->pointLabel($sla, $prevSla) : null,
+                'delta'      => $prevSla !== null ? $this->pointLabel($sla, $prevSla) : null,
                 'delta_tone' => $this->tone($sla, $prevSla),
                 'spark'        => $this->spark($filters, fn(Collection $srs) => $this->slaCompliance2($srs) ?? 0),
 
@@ -1051,7 +1051,7 @@ class DashboardController extends Controller
                 'spark'      => [],   // invoicing is not a per-day series
             ],
             'turnaround' => [
-                'value'      => $turnaround ? $turnaround . 'h' : '—',
+                'value'      => $turnaround ? $turnaround . 'h' : '-',
                 'sub'        => 'Logged to punch-out',
                 'delta'      => $turnaround && $prevTurnaround ? round($turnaround - $prevTurnaround, 1) . 'h' : null,
                 // faster is better, so the comparison is deliberately inverted
@@ -1075,7 +1075,7 @@ class DashboardController extends Controller
     /**
      * SLA outcome measured from created_at (inquiry time) against SLA_HOURS.
      * true  = resolved within SLA_HOURS
-     * false = breached — either resolved late, or still open past SLA_HOURS
+     * false = breached - either resolved late, or still open past SLA_HOURS
      * null  = still open and still inside the window, not yet judged
      */
     private function slaOutcome(ServiceRequest $sr): ?bool
@@ -1094,7 +1094,7 @@ class DashboardController extends Controller
             return $hours <= self::SLA_HOURS;
         }
 
-        // Not resolved yet — only a breach once it has overrun the window.
+        // Not resolved yet - only a breach once it has overrun the window.
         $elapsed = abs($sr->created_at->diffInMinutes(now())) / 60;
 
         return $elapsed > self::SLA_HOURS ? false : null;
@@ -1144,7 +1144,7 @@ class DashboardController extends Controller
 {
     $breached = $srs->filter(fn($sr) => $this->hasBreach($sr));
 
-    // Live technician state — NOT windowed by created_at. A tech can be on-site
+    // Live technician state - NOT windowed by created_at. A tech can be on-site
     // right now on a ticket that was raised days ago; "on-site" describes what's
     // happening this second, not when the SR was logged.
     $onSite = ServiceRequest::query()
@@ -1332,13 +1332,13 @@ class DashboardController extends Controller
     /**
      * QC & quality.
      *
-     * The gauge now shows QC throughput — reviewed against everything that
-     * has reached QC — instead of SLA compliance, which moved to the KPI row.
+     * The gauge now shows QC throughput - reviewed against everything that
+     * has reached QC - instead of SLA compliance, which moved to the KPI row.
      * First-pass rate is replaced by the pending queue.
      */
     private function qc(Collection $srs, array $filters, Carbon $start, Carbon $end): array
 {
-    // Live queue snapshot — deliberately NOT windowed by created_at, same pattern as
+    // Live queue snapshot - deliberately NOT windowed by created_at, same pattern as
     // the "technicians currently on-site" alert chip: these are current-state counts.
     // A ticket created last week that's sitting in QC review right now still belongs
     // in "Pending QC" today.
@@ -1354,7 +1354,7 @@ class DashboardController extends Controller
         ->when($filters['service'] ?? null, fn($q, $v) => $q->where('service_type_id', $v))
         ->count();
 
-    // Throughput — reviewed WITHIN the selected date window, keyed on qc_reviewed_at
+    // Throughput - reviewed WITHIN the selected date window, keyed on qc_reviewed_at
     // (when the review happened), not created_at (when the SR was raised).
     $reviewed = ServiceRequest::query()
         ->whereNotNull('qc_reviewed_at')
@@ -1372,7 +1372,7 @@ class DashboardController extends Controller
 
     // SLA breach count intentionally stays scoped to $srs (the selected-period
     // collection) so it matches the "X SLA breaches this period" KPI card and the
-    // alert strip above — same definition of "this period" everywhere on the page.
+    // alert strip above - same definition of "this period" everywhere on the page.
     $breached = $srs->filter(fn($sr) => $this->slaOutcome($sr) === false);
 
     return [
@@ -1434,20 +1434,17 @@ class DashboardController extends Controller
                     'id'                 => $tech->id,
                     'name'               => $tech->name,
                     'initials'           => $this->initials($tech->name),
-                    'department'         => $jobs->first()->category?->category_name ?? '—',
+                    'department'         => $jobs->first()->category?->category_name ?? '-',
                     'jobs'               => $jobs->count(),
                     'hours'              => round($minutes / 60),
                     'rating'             => $rated->isEmpty() ? 0 : round($rated->avg('performance_score'), 1),
-                    'rework'             => $jobs->filter(fn($sr) => ! empty($sr->rework_notes))->count(),
-                    'expenses_formatted' => self::CURRENCY . ' ' . number_format($jobs->sum(fn($sr) => $this->expenseFor($sr))),
-
-                    // Pending work — count for the cell, list for the hover
+                    // Pending work - count for the cell, list for the hover
                     'pending'       => $open->count(),
                     'pending_items' => $open
                         ->sortBy('created_at')
                         ->take(6)
                         ->map(fn($sr) => $sr->code . ' · ' . $sr->status
-                            . ' · ' . ($sr->client?->company_name ?? '—'))
+                            . ' · ' . ($sr->client?->company_name ?? '-'))
                         ->values()
                         ->all(),
 
@@ -1496,7 +1493,7 @@ class DashboardController extends Controller
 
         //         return [
         //             'id'     => (int) $clientId,
-        //             'n'      => optional($first->client)->company_name ?: '—',
+        //             'n'      => optional($first->client)->company_name ?: '-',
         //             'srs'    => $group->count(),
         //             'iw'     => $iw,
         //             'oow'    => $group->count() - $iw,
@@ -1530,7 +1527,7 @@ class DashboardController extends Controller
 
                 return [
                     'id'     => (int) $clientId,
-                    'n'      => optional($first->client)->company_name ?: '—',
+                    'n'      => optional($first->client)->company_name ?: '-',
                     'srs'    => $group->count(),
                     'iw'     => $iw,
                     'oow'    => $group->count() - $iw,
@@ -1541,9 +1538,9 @@ class DashboardController extends Controller
                         'ref' => 'SR-' . ($sr->created_at ? $sr->created_at->year : now()->year)
                             . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT),
                         'dbId'     => $sr->id,
-                        'site'     => optional($sr->project)->site_name ?: '—',
-                        'project'  => optional($sr->project)->project_name ?: '—',
-                        'category' => optional($sr->category)->category_name ?: '—',
+                        'site'     => optional($sr->project)->site_name ?: '-',
+                        'project'  => optional($sr->project)->project_name ?: '-',
+                        'category' => optional($sr->category)->category_name ?: '-',
                         'priority' => ucfirst((string) $sr->priority_level),
                         'status'   => $sr->status,
                         'created'  => $sr->created_at?->format('d M Y'),
@@ -1596,7 +1593,7 @@ class DashboardController extends Controller
             'response_rate' => $completed > 0 ? round($rated->count() / $completed * 100) : null,
             'completed_srs' => $completed,
             'flagged'       => $lowest
-                ? $lowest->code . " rated {$lowest->performance_score} stars — flagged for review"
+                ? $lowest->code . " rated {$lowest->performance_score} stars - flagged for review"
                 : null,
         ];
     }
@@ -1622,8 +1619,8 @@ class DashboardController extends Controller
                 return [
                     'id'       => $sr->id,
                     'code'     => $sr->code,
-                    'client'   => $sr->client?->company_name ?? '—',
-                    'ml'       => $ml ?? '—',
+                    'client'   => $sr->client?->company_name ?? '-',
+                    'ml'       => $ml ?? '-',
                     'initials' => $this->initials($ml),
                     'stars'    => (int) $sr->performance_score,
                     'comment'  => $sr->evaluation_comment,
@@ -1651,7 +1648,7 @@ class DashboardController extends Controller
     }
 
     /* =====================================================================
-     | WhatsApp — activates once WHATSAPP_TABLE is set
+     | WhatsApp - activates once WHATSAPP_TABLE is set
      ===================================================================== */
 
     private function whatsapp(Carbon $start, Carbon $end): array
@@ -1840,7 +1837,7 @@ class DashboardController extends Controller
                 if ($type === 'sla-breach') {
                     $stages = $this->stageBreaches($sr);
                     $meta = collect($stages)
-                        ->map(fn($hours, $stage) => (self::STAGE_LABELS[$stage] ?? $stage) . ' — ' . $hours . 'h')
+                        ->map(fn($hours, $stage) => (self::STAGE_LABELS[$stage] ?? $stage) . ' - ' . $hours . 'h')
                         ->values()
                         ->push($sr->assignedUser?->name);
                 } else {
@@ -1857,7 +1854,7 @@ class DashboardController extends Controller
                     'dbId'      => $sr->id,   // ← ADD THIS
                     'badge'     => $isCritical ? 'Critical' : $sr->status,
                     'color'     => $isCritical ? '#dc2626' : (self::STATUS_COLORS[$sr->status] ?? '#9a8053'),
-                    'title'     => $sr->client?->company_name ?? '—',
+                    'title'     => $sr->client?->company_name ?? '-',
                     'meta'      => $meta->filter()->implode(' · '),
                 ];
             })
@@ -1887,28 +1884,28 @@ class DashboardController extends Controller
             // ->limit(100)
             ->get()
             ->map(fn($row) => [
-                'ref'    => $row->sr_reference ?: '—',
+                'ref'    => $row->sr_reference ?: '-',
                 'name'   => ucwords(str_replace('_', ' ', (string) $row->event)),
                 'title'  => ucwords(str_replace('_', ' ', (string) $row->event)),
                 'sub'    => ($row->sr_reference ?: 'No SR')
-                    . ' · ' . ($row->client_name ?: '—')
+                    . ' · ' . ($row->client_name ?: '-')
                     . ' · ' . $row->recipient,
                 'meta'   => ($row->sr_reference ?: 'No SR')
-                    . ' · ' . ($row->client_name ?: '—')
+                    . ' · ' . ($row->client_name ?: '-')
                     . ' · ' . $row->recipient,
-                'client' => $row->client_name ?: '—',
+                'client' => $row->client_name ?: '-',
                 'status' => 'Failed',
                 'note'   => Str::limit((string) $row->error, 140) ?: 'No error detail',
                 'when'   => $row->created_at
                     ? Carbon::parse($row->created_at)->format('d M Y H:i')
-                    : '—',
+                    : '-',
             ])
             ->all();
     }
 
     private function activeSrs(array $filters, $start, $end)
     {
-        // "Active" means "not rejected" — it ignores the status dropdown
+        // "Active" means "not rejected" - it ignores the status dropdown
         $f = $filters;
         unset($f['status']);
 
@@ -1938,7 +1935,7 @@ class DashboardController extends Controller
             ->sum('invoice_total');
     }
 
-    /** Field expense actually incurred in the window — scoped by punch_out_at, not SR created_at. */
+    /** Field expense actually incurred in the window - scoped by punch_out_at, not SR created_at. */
 private function expenseTotal(array $filters, Carbon $start, Carbon $end): float
 {
     return (float) Punch::query()
@@ -2051,7 +2048,7 @@ private function expenseTotal(array $filters, Carbon $start, Carbon $end): float
     private function initials(?string $name): string
     {
         if (! $name) {
-            return '—';
+            return '-';
         }
 
         $parts = preg_split('/\s+/', trim($name)) ?: [];

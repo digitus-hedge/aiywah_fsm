@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('permission_role', function (Blueprint $table) {
             // Reads follow `access`; writes are additionally narrowed to rows
-            // the user owns. Only meaningful when access = 'yes' — under 'rls'
+            // the user owns. Only meaningful when access = 'yes' - under 'rls'
             // the read scope already restricts them to their own rows.
             $table->boolean('write_own_only')
                 ->default(false)

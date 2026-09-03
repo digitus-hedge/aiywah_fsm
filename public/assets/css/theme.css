@@ -1,6 +1,6 @@
 /* ─────────────────────────────────────────
    0. BRAND TOKENS  (Matter Mind brand kit)
-   These are theme-independent — same in light & dark.
+   These are theme-independent - same in light & dark.
    fonts.css must be linked BEFORE this file in the layout:
      <link rel="stylesheet" href="{{ asset('assets/fonts/fonts.css') }}">
      <link rel="stylesheet" href="{{ asset('assets/css/theme.css') }}">
@@ -168,7 +168,7 @@ html[data-theme="dark"] {
 }
 
 /* ─────────────────────────────────────────
-   3. BASE RESETS  — apply to every page
+   3. BASE RESETS  - apply to every page
 ───────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
@@ -186,7 +186,7 @@ body {
 }
 a { text-decoration: none; color: inherit; }
 
-/* Global heading font — Cormorant Garamond via --font-header.
+/* Global heading font - Cormorant Garamond via --font-header.
    Weight 600 + slight tracking: Cormorant renders lighter and
    narrower than SF Pro, so 700 is not needed for the same presence. */
 h1, h2, h3, h4, h5, h6,
@@ -199,7 +199,7 @@ h1, h2, h3, h4, h5, h6,
   letter-spacing: .01em;
 }
 
-/* Small UI headers (~13px) stay in the body face — Cormorant
+/* Small UI headers (~13px) stay in the body face - Cormorant
    gets weak and hard to read at these sizes. */
 .card-hdr h6, .chdr h6, .fc-head h6,
 .m-hdr h6 {
@@ -468,7 +468,7 @@ table tbody td        { color: var(--text-primary) !important; }
    12. BADGES / CHIPS
 ───────────────────────────────────────── */
 /* Status-specific chip colours are intentionally kept vivid
-   in both modes — only neutral chips need a dark override. */
+   in both modes - only neutral chips need a dark override. */
 html[data-theme="dark"] .chip-gray {
   background: rgba(90,106,126,.18) !important;
   color: #8aa0be !important;
@@ -596,7 +596,7 @@ html[data-theme="dark"] .client-reveal {
 
 /* ─────────────────────────────────────────
    21. PAGE HEADER GRADIENT
-   (intentionally stays vivid — no override)
+   (intentionally stays vivid - no override)
 ───────────────────────────────────────── */
 
 /* ─────────────────────────────────────────

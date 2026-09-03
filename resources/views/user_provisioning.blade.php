@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'User Provisioning — Digit-Us Portal')
+@section('title', 'User Provisioning - Digit-Us Portal')
 @section('page_title', 'User Provisioning')
 @section('page_icon', 'building-add')
 
@@ -296,15 +296,15 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
 @media(max-width:575.98px){.twrap{left:12px;right:12px;max-width:none;}}
 
 /* ════════════════════════════════
-   RESPONSIVE — ALL DEVICES
+   RESPONSIVE - ALL DEVICES
 ════════════════════════════════ */
 
-/* Small/standard desktop — slightly narrower side panel */
+/* Small/standard desktop - slightly narrower side panel */
 @media(max-width:1299.98px){
   .workspace{grid-template-columns:1fr 280px;}
 }
 
-/* Tablet landscape — side panel becomes full-width row below the form */
+/* Tablet landscape - side panel becomes full-width row below the form */
 @media(max-width:991.98px){
   .workspace{grid-template-columns:1fr;}
   .rp{position:static;}
@@ -400,7 +400,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
       <div class="msum" id="msum"></div>
       <div style="background:rgba(37,211,102,.07);border:1px solid rgba(37,211,102,.2);border-radius:7px;padding:9px 12px;font-size:.72rem;color:var(--text-muted);display:flex;align-items:center;gap:7px;">
         <i class="bi bi-envelope-check-fill" style="color:#05a34a;flex-shrink:0;"></i>
-        Initialisation email dispatched to <strong id="mEmail">—</strong>
+        Initialisation email dispatched to <strong id="mEmail">-</strong>
       </div>
     </div>
     <div class="mftr">
@@ -510,7 +510,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
       <div class="card">
         <div class="chdr">
           <div class="chdr-ico" style="background:rgba(154,128,83,.1);"><i class="bi bi-person-gear" style="color:#9a8053;"></i></div>
-          <div><h6>Operational Security Role</h6><span class="csub">Select role — permission matrix auto-populates below</span></div>
+          <div><h6>Operational Security Role</h6><span class="csub">Select role - permission matrix auto-populates below</span></div>
         </div>
         <div class="cbody">
           <div class="fg">
@@ -518,7 +518,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
             <div class="role-select-row">
               <div class="role-select-wrap">
                <select class="form-select" id="roleSelect" onchange="onRoleChange(this.value)">
-                <option value="">— Select operational role —</option>
+                <option value="">- Select operational role -</option>
                 @foreach ($rolesData as $r)
                     <option value="{{ $r['code'] }}">{{ $r['name'] }}</option>
                 @endforeach
@@ -540,17 +540,17 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
         </div>
       </div>
 
-      <!-- SECTION 3: Domain Expertise — ML only -->
+      <!-- SECTION 3: Domain Expertise - ML only -->
       <div class="domain-card-wrap" id="domainCardWrap">
         <div class="card">
           <div class="chdr">
             <div class="chdr-ico" style="background:rgba(16,185,129,.1);"><i class="bi bi-tags-fill" style="color:#10b981;"></i></div>
-            <div><h6>Technical Domain Expertise</h6><span class="csub">Maintenance Lead — select skill domains across any category</span></div>
+            <div><h6>Technical Domain Expertise</h6><span class="csub">Maintenance Lead - select skill domains across any category</span></div>
           </div>
           <div class="cbody">
             <div class="ml-domain-note">
               <i class="bi bi-info-circle-fill"></i>
-              Skills are grouped under categories for clarity. A Maintenance Lead can hold skills across multiple categories — select all that apply regardless of category. These determine which tickets get routed to this technician.
+              Skills are grouped under categories for clarity. A Maintenance Lead can hold skills across multiple categories - select all that apply regardless of category. These determine which tickets get routed to this technician.
             </div>
             <div class="dom-toolbar">
               <div class="dom-toolbar-btns">
@@ -572,7 +572,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
   <div class="card">
     <div class="chdr">
       <div class="chdr-ico" style="background:rgba(37,99,235,.1);"><i class="bi bi-diagram-3-fill" style="color:#2563eb;"></i></div>
-      <div><h6>Service Category Responsibility</h6><span class="csub">Service Engineer — select categories this SE covers</span></div>
+      <div><h6>Service Category Responsibility</h6><span class="csub">Service Engineer - select categories this SE covers</span></div>
     </div>
     <div class="cbody">
       <div class="ml-domain-note">
@@ -585,7 +585,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
   <div style="flex:1;">
     <div style="font-weight:600;font-size:.84rem;color:var(--text-heading);">Enable QC Review for this SE</div>
     <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">
-      ON — this Service Engineer performs QC. OFF — QC stays with Head of Projects. Can be changed anytime.
+      ON - this Service Engineer performs QC. OFF - QC stays with Head of Projects. Can be changed anytime.
     </div>
   </div>
   <label class="qc-switch" style="position:relative;display:inline-block;width:46px;height:25px;flex-shrink:0;">
@@ -599,7 +599,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
   <div>
     <div style="font-weight:600;font-size:.78rem;color:#ef4444;">Head of Projects loses QC approval on this SE's tickets</div>
     <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;line-height:1.5;">
-      Once enabled, only this Service Engineer can pass or fail QC on their own service requests — HoP will no longer be able to approve or reject them.
+      Once enabled, only this Service Engineer can pass or fail QC on their own service requests - HoP will no longer be able to approve or reject them.
     </div>
   </div>
 </div>
@@ -607,19 +607,19 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
   </div>
 </div>
 
-      {{-- CR-02: HoP dual-role toggle — shown only when role = Head of Projects --}}
+      {{-- CR-02: HoP dual-role toggle - shown only when role = Head of Projects --}}
       <div class="domain-card-wrap" id="hopSeCardWrap">
         <div class="card">
           <div class="chdr">
             <div class="chdr-ico" style="background:rgba(124,58,237,.1);"><i class="bi bi-arrow-left-right" style="color:#7c3aed;"></i></div>
-            <div><h6>Dual Role — Service Engineer</h6><span class="csub">Extend this Head of Projects account with SE dispatch authority</span></div>
+            <div><h6>Dual Role - Service Engineer</h6><span class="csub">Extend this Head of Projects account with SE dispatch authority</span></div>
           </div>
           <div class="cbody">
             <div class="qc-toggle-row" style="padding:14px;border-radius:9px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.18);display:flex;align-items:center;gap:12px;">
               <div style="flex:1;">
                 <div style="font-weight:600;font-size:.84rem;color:var(--text-heading);">Also acts as Service Engineer</div>
                 <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">
-                  ON — this HoP account gets SE permissions and a dashboard tab switcher. OFF by default. Only Admin can change this.
+                  ON - this HoP account gets SE permissions and a dashboard tab switcher. OFF by default. Only Admin can change this.
                 </div>
               </div>
               <label class="qc-switch" style="position:relative;display:inline-block;width:46px;height:25px;flex-shrink:0;">
@@ -662,7 +662,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
               <div class="pp-av" id="ppAv">?</div>
               <div style="flex:1;min-width:0;">
                 <div class="pp-name" id="ppName" style="color:var(--text-light);font-style:italic;">Not entered</div>
-                <div class="pp-email" id="ppEmail">—</div>
+                <div class="pp-email" id="ppEmail">-</div>
                 <div id="ppRp"></div>
               </div>
             </div>
@@ -692,7 +692,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
   <div class="card" style="margin-top:20px;">
     <div class="chdr">
       <div class="chdr-ico" style="background:rgba(154,128,83,.1);"><i class="bi bi-table" style="color:#9a8053;"></i></div>
-      <div><h6>All Provisioned Users</h6><span class="csub">Full directory — click any row to load profile into form</span></div>
+      <div><h6>All Provisioned Users</h6><span class="csub">Full directory - click any row to load profile into form</span></div>
     </div>
     <div class="cbody" style="padding-bottom:0;">
       <div class="tblsearch">
@@ -749,12 +749,12 @@ let accountPermissions = new Set();
 
 /* Cross-role permission extensions, chosen for the user being created/edited.
    Map<permission_key, access_token ('yes'|'rls')>. Populated dynamically
-   from PERM_SECTIONS — not from any fixed seeder whitelist. */
+   from PERM_SECTIONS - not from any fixed seeder whitelist. */
 let extGrants = new Map();
 
 const SUPERSET_ROLES = new Set(['SA', 'AD']);
 /* ════════════════════════════════
-   DOMAIN MASTER — fully dynamic, sourced from service_categories / service_domains
+   DOMAIN MASTER - fully dynamic, sourced from service_categories / service_domains
 ════════════════════════════════ */
 const DOMAIN_CATS = @json($domainCats);
 
@@ -838,7 +838,7 @@ function onRoleChange(val){
   }
 
   // Extended Permissions block (cross-role grants) stays unchecked by
-  // default — admin must actively opt in per permission.
+  // default - admin must actively opt in per permission.
 
   renderPermTable(val);
   box.className='role-desc-box show';
@@ -850,7 +850,7 @@ function onRoleChange(val){
 
 function renderPermTable(roleId) {
 
-     // ML never shows a permission matrix at all — just role info + note.
+     // ML never shows a permission matrix at all - just role info + note.
     if (roleId === 'ML') {
         document.getElementById('permTableWrap').innerHTML = `
             <div class="perm-note">
@@ -1035,7 +1035,7 @@ function renderPermTable(roleId) {
                                     color:var(--text-light);
                                     font-size:.75rem;
                                 ">
-                                    —
+                                    -
                                 </span>
                               `
                         }
@@ -1072,7 +1072,7 @@ function renderPermTable(roleId) {
                                     color:var(--text-light);
                                     font-size:.75rem;
                                 ">
-                                    —
+                                    -
                                 </span>
                               `
                         }
@@ -1111,7 +1111,7 @@ function renderPermTable(roleId) {
         </div>
     `;
 
-    html += renderExtensionBlocks(roleId);   // ← MOVED HERE — right after the matrix table
+    html += renderExtensionBlocks(roleId);   // ← MOVED HERE - right after the matrix table
 
     /*
      * Role notes
@@ -1133,7 +1133,7 @@ function renderPermTable(roleId) {
         html += `
             <div class="perm-note">
                 <i class="bi bi-info-circle-fill"></i>
-                Full operational control — includes all Head of Projects
+                Full operational control - includes all Head of Projects
                 access plus user and system management.
             </div>
         `;
@@ -1143,7 +1143,7 @@ function renderPermTable(roleId) {
         html += `
             <div class="perm-note">
                 <i class="bi bi-info-circle-fill"></i>
-                Head of Projects has full operational scope — approvals,
+                Head of Projects has full operational scope - approvals,
                 dispatch, QC, and a filtered analytics view. Financial flows
                 (quotation/invoice) route through Accounts.
             </div>
@@ -1176,7 +1176,7 @@ function renderPermTable(roleId) {
             <div class="perm-note">
                 <i class="bi bi-info-circle-fill"></i>
                 Accounts / AR is scoped to out-of-warranty financial flows
-                only — quotations, invoices, and expense reconciliation.
+                only - quotations, invoices, and expense reconciliation.
                 Select the modules this Account user is allowed to access.
             </div>
         `;
@@ -1195,7 +1195,7 @@ function renderPermTable(roleId) {
 function computeExtensionBlocks(roleId){
   if(!roleId) return [];
 
-  // ML never gets extension blocks — its access is intentionally locked
+  // ML never gets extension blocks - its access is intentionally locked
   // to its own base permissions (own pipeline only), regardless of what
   // other roles have.
   if(roleId === 'ML') return [];
@@ -1347,7 +1347,7 @@ function toggleFdGrant(key,checked){
 }
 
 /* ════════════════════════════════
-   DOMAIN EXPERTISE — nested, fully dynamic
+   DOMAIN EXPERTISE - nested, fully dynamic
 ════════════════════════════════ */
 function renderDomains(){
   const wrap=document.getElementById('domainCardWrap');
@@ -1425,7 +1425,7 @@ function clearAllDomains(){
 }
 
 // Only real, known domain ids (as validated against VALID_DOMAIN_IDS) can ever
-// enter selectedDomains — this is what prevents a bad "0" or stale id from
+// enter selectedDomains - this is what prevents a bad "0" or stale id from
 // ever reaching the save payload.
 function toggleDomain(id){
   id = Number(id);
@@ -1488,7 +1488,7 @@ function syncAll(){
 
   const pn=document.getElementById('ppName');
   pn.textContent=name||'Not entered';pn.style.color=name?'var(--text-heading)':'var(--text-light)';pn.style.fontStyle=name?'':'italic';
-  document.getElementById('ppEmail').textContent=email||'—';
+  document.getElementById('ppEmail').textContent=email||'-';
 
   const rp=document.getElementById('ppRp');
   rp.innerHTML=m?`<span class="pp-rp" style="background:${m.bg};color:${m.color};"><i class="bi ${m.icon} me-1"></i>${m.name}</span>`:'';
@@ -1734,7 +1734,7 @@ function commitSavedUser(saved,m,email){
     <div class="msr"><div class="ml">Full Name</div><div class="mv">${saved.name}</div></div>
     <div class="msr"><div class="ml">Role</div><div class="mv" style="color:${m.color};font-weight:700;">${saved.role||m.name}</div></div>
     <div class="msr full"><div class="ml">Email</div><div class="mv">${saved.email||email}</div></div>
-    <div class="msr full"><div class="ml">Domains</div><div class="mv">${domainLabels.join(', ')||'—'}</div></div>
+    <div class="msr full"><div class="ml">Domains</div><div class="mv">${domainLabels.join(', ')||'-'}</div></div>
     ${(saved.fdGrants&&saved.fdGrants.length)?`<div class="msr full"><div class="ml">Extended FD Permissions</div><div class="mv" style="color:#f97316;">${saved.fdGrants.join(', ')}</div></div>`:''}`;
   document.getElementById('successModal').classList.add('show');
 }
@@ -1805,7 +1805,7 @@ function renderFull(){
     <tr onclick="loadUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">
       <td><div class="u-cell"><div class="uav" style="background:linear-gradient(135deg,${RC[u.roleId]},${RC[u.roleId]}99);">${u.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()}</div><div><div class="uname">${u.name}</div><div class="uemail">${u.email}</div></div></div></td>
       <td><span class="rpill" style="background:${RC[u.roleId]}1a;color:${RC[u.roleId]};">${u.role}</span></td>
-      <td><div class="dchips">${u.domains.length?u.domains.map(id=>`<span class="dch">${DOMAINS_FLAT.find(d=>d.id===Number(id))?.label||id}</span>`).join(''):'<span style="font-size:.7rem;color:var(--text-muted);">—</span>'}</div></td>
+      <td><div class="dchips">${u.domains.length?u.domains.map(id=>`<span class="dch">${DOMAINS_FLAT.find(d=>d.id===Number(id))?.label||id}</span>`).join(''):'<span style="font-size:.7rem;color:var(--text-muted);">-</span>'}</div></td>
       <td style="font-size:.72rem;color:var(--text-muted);">${u.created}</td>
       <td><span class="sdot ${u.status==='active'?'dot-a':u.status==='pending'?'dot-p':'dot-i'}"></span><span style="font-size:.72rem;color:var(--text-muted);">${u.status==='pending'?'Pending invite':'Active'}</span></td>
     </tr>`).join('');
@@ -1833,7 +1833,7 @@ function loadUser(u){
       .filter(id => VALID_DOMAIN_IDS.has(id))
   );
 
-   // categories + QC (SE only) — set AFTER onRoleChange, which resets them
+   // categories + QC (SE only) - set AFTER onRoleChange, which resets them
   selectedCats = new Set();
   hopSeCats    = new Set();
 
@@ -1887,7 +1887,7 @@ renderDomains();syncAll();
 fFull=[...USERS];
 renderFull();
 
-/* Deep-link editing — arrived via ?edit={id} from User Directory */
+/* Deep-link editing - arrived via ?edit={id} from User Directory */
 if (EDIT_USER_ID) {
   const targetUser = USERS.find(u => Number(u.id) === Number(EDIT_USER_ID));
   if (targetUser) {
@@ -1897,7 +1897,7 @@ if (EDIT_USER_ID) {
   }
 }
 
-/* Ensure the create form always starts empty — clears any browser-restored
+/* Ensure the create form always starts empty - clears any browser-restored
    values (e.g. admin@demo.com / password) after a refresh or bfcache restore. */
 function clearCreateForm(){
   if(editingUserId!==null) return;

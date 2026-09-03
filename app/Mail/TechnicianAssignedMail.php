@@ -37,13 +37,13 @@ class TechnicianAssignedMail extends Mailable
             view: 'emails.technician_assigned',
             with: [
                 'customerName' => $this->sr->client?->company_name ?? 'Customer',
-                'projectName'  => $this->sr->project?->project_name ?? '—',
+                'projectName'  => $this->sr->project?->project_name ?? '-',
                 'location'     => $this->sr->project?->site_name
                                   ?? $this->sr->project_site
-                                  ?? '—',
-                'issue'        => $this->sr->issue_description ?? '—',
+                                  ?? '-',
+                'issue'        => $this->sr->issue_description ?? '-',
                 'technician'   => $tech?->name ?? 'To be confirmed',
-                'techPhone'    => $tech?->mobile ?? $tech?->phone ?? '—',
+                'techPhone'    => $tech?->mobile ?? $tech?->phone ?? '-',
                 'visitDate'    => $eta?->format('d M Y') ?? 'To be confirmed',
                 'visitTime'    => $eta?->format('h:i A') ?? 'To be confirmed',
             ],

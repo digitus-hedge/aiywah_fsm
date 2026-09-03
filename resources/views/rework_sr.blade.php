@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Rework SRs — Digit-Us Portal')
+@section('title', 'Rework SRs - Digit-Us Portal')
 @section('page_title', 'Rework SRs')
 @section('page_icon', 'person-check')
 
@@ -939,9 +939,9 @@
 
                 $isOow = ($sr->warranty_scope ?? '') === 'Out of Warranty';
 
-                $status = $sr->status ?? '—';
+                $status = $sr->status ?? '-';
                 $statusLbl = \Illuminate\Support\Str::headline($status);
-                $priority = $sr->priority_level ?? '—';
+                $priority = $sr->priority_level ?? '-';
                 $priKey = strtolower($priority);
 
                 $statusClass = match($status){
@@ -966,10 +966,10 @@
                 $srPayload = [
                 'code' => $srCode,
                 'dbId' => $sr->id,
-                'client' => optional($sr->client)->company_name ?? '—',
-                'site' => optional($sr->project)->site_name ?? '—',
+                'client' => optional($sr->client)->company_name ?? '-',
+                'site' => optional($sr->project)->site_name ?? '-',
                 'worker' => $worker,
-                'issue' => $sr->issue_description ?? '—',
+                'issue' => $sr->issue_description ?? '-',
                 'status' => $statusLbl,
                 'priority' => $priority,
                 'realloc_remarks' => $sr->relocation_remarks ?? null,
@@ -979,21 +979,21 @@
                 && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
                 ? 'In Warranty'
                 : 'Out of Warranty',
-                // 'contact' => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
+                // 'contact' => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '-',
 
                 'contact' => (function () use ($sr) {
                 $c = $sr->client;
-                if (! $c) return '—';
+                if (! $c) return '-';
                 $num = $c->primary_mobile ?? $c->contact_number ?? null;
-                if (! $num) return '—';
+                if (! $num) return '-';
                 return trim(($c->primary_country ?? '') . ' ' . $num);
                 })(),
 
                 'scheduled' => $assignedAt->format('d M Y · h:i A'),
                 'assigned' => $assignedAt->format('d M Y · h:i A'),
                 'assigned_h' => $assignedAt->diffForHumans(),
-                'sla_due' => $eta ? $eta->format('d M Y · h:i A') : '—',
-                'sla_due_h' => $eta ? $eta->diffForHumans() : '—',
+                'sla_due' => $eta ? $eta->format('d M Y · h:i A') : '-',
+                'sla_due_h' => $eta ? $eta->diffForHumans() : '-',
                 'is_overdue' => $isOverdue,
                 ];
                 @endphp
@@ -1003,8 +1003,8 @@
                             {{ $srCode }}
                         </span>
                     </td>
-                    <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name ?? '—' }}</strong></td>
-                    <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
+                    <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name ?? '-' }}</strong></td>
+                    <td class="muted">{{ optional($sr->project)->site_name ?? '-' }}</td>
                     <td>
                         <div class="worker-cell">
                             <span class="w-av {{ $worker === 'Unassigned' ? 'unassigned' : '' }}">
@@ -1035,7 +1035,7 @@
                     <td><span class="sbadge {{ $statusClass }}"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $statusLbl }}</span></td>
                     <!-- <td>
                         <span class="cell-sla {{ $isOverdue ? 'overdue' : '' }}">
-                            <i class="bi {{ $isOverdue ? 'bi-exclamation-triangle-fill' : 'bi-hourglass-split' }}"></i>{{ $eta ? $eta->diffForHumans() : '—' }}
+                            <i class="bi {{ $isOverdue ? 'bi-exclamation-triangle-fill' : 'bi-hourglass-split' }}"></i>{{ $eta ? $eta->diffForHumans() : '-' }}
                         </span>
                     </td> -->
 
@@ -1088,50 +1088,50 @@
         <div class="sr-modal-hdr">
             <div class="sr-modal-hdr-banner">
                 <button class="sr-modal-close" onclick="closeSrModal()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
-                <div class="sr-modal-id" id="sr-m-id">—</div>
-                <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client">—</span></div>
+                <div class="sr-modal-id" id="sr-m-id">-</div>
+                <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client">-</span></div>
             </div>
         </div>
         <div class="sr-modal-body">
             <div class="sr-detail-grid">
                 <div class="sr-detail-item">
                     <span class="sr-detail-label"><i class="bi bi-flag"></i>Status</span>
-                    <span class="sr-detail-value"><span class="sbadge sb-assigned" id="sr-m-status-badge"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i> <span id="sr-m-status">—</span></span></span>
+                    <span class="sr-detail-value"><span class="sbadge sb-assigned" id="sr-m-status-badge"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i> <span id="sr-m-status">-</span></span></span>
                 </div>
                 <div class="sr-detail-item">
                     <span class="sr-detail-label"><i class="bi bi-flag-fill"></i>Priority</span>
-                    <span class="sr-detail-value" id="sr-m-priority">—</span>
+                    <span class="sr-detail-value" id="sr-m-priority">-</span>
                 </div>
 
                 <div class="sr-detail-divider"></div>
 
                 <div class="sr-detail-item">
                     <span class="sr-detail-label"><i class="bi bi-geo-alt"></i>Site / Location</span>
-                    <span class="sr-detail-value" id="sr-m-site">—</span>
+                    <span class="sr-detail-value" id="sr-m-site">-</span>
                 </div>
                 <div class="sr-detail-item">
                     <span class="sr-detail-label"><i class="bi bi-person-workspace"></i>Assigned Worker</span>
-                    <span class="sr-detail-value" id="sr-m-worker">—</span>
+                    <span class="sr-detail-value" id="sr-m-worker">-</span>
                 </div>
                 <div class="sr-detail-item">
                     <span class="sr-detail-label"><i class="bi bi-telephone"></i>Customer Contact</span>
-                    <span class="sr-detail-value" id="sr-m-contact">—</span>
+                    <span class="sr-detail-value" id="sr-m-contact">-</span>
                 </div>
                 <div class="sr-detail-item">
                     <span class="sr-detail-label"><i class="bi bi-shield-check"></i>Warranty Scope</span>
-                    <span class="sr-detail-value" id="sr-m-warranty">—</span>
+                    <span class="sr-detail-value" id="sr-m-warranty">-</span>
                 </div>
 
                 <div class="sr-detail-item full">
                     <span class="sr-detail-label"><i class="bi bi-card-text"></i>Reported Issue</span>
-                    <span class="sr-detail-value muted" id="sr-m-issue">—</span>
+                    <span class="sr-detail-value muted" id="sr-m-issue">-</span>
                 </div>
 
 
 
                 <div class="sr-detail-item full" id="sr-m-remarks-wrap" style="display:none;">
                     <span class="sr-detail-label"><i class="bi bi-arrow-left-right"></i>Reallocation Remarks</span>
-                    <span class="sr-detail-value muted" id="sr-m-remarks">—</span>
+                    <span class="sr-detail-value muted" id="sr-m-remarks">-</span>
                 </div>
 
 
@@ -1139,17 +1139,17 @@
 
                 <div class="sr-detail-item">
                     <span class="sr-detail-label"><i class="bi bi-calendar-event"></i>Updated On</span>
-                    <span class="sr-detail-value muted" id="sr-m-scheduled">—</span>
+                    <span class="sr-detail-value muted" id="sr-m-scheduled">-</span>
                 </div>
                 <!-- <div class="sr-detail-item">
                     <span class="sr-detail-label"><i class="bi bi-person-check"></i>Assigned On</span>
-                    <span class="sr-detail-value muted" id="sr-m-assigned">—</span>
+                    <span class="sr-detail-value muted" id="sr-m-assigned">-</span>
                 </div> -->
 
 
                 <!-- <div class="sr-detail-item full">
                     <span class="sr-detail-label"><i class="bi bi-hourglass-split"></i>SLA Due</span>
-                    <span class="sr-detail-value" id="sr-m-sla" style="font-size:1.05rem;font-weight:700;">—</span>
+                    <span class="sr-detail-value" id="sr-m-sla" style="font-size:1.05rem;font-weight:700;">-</span>
                 </div> -->
 
 
@@ -1196,7 +1196,7 @@
 
     function _set(id, val) {
         var el = document.getElementById(id);
-        if (el) el.textContent = (val === null || val === undefined || val === '') ? '—' : val;
+        if (el) el.textContent = (val === null || val === undefined || val === '') ? '-' : val;
     }
 
     // ══════════════ ASSIGNMENT MODAL ══════════════
@@ -1212,7 +1212,7 @@
 
         var idEl = document.getElementById('sr-m-id');
         if (idEl) {
-            idEl.textContent = data.code || '—';
+            idEl.textContent = data.code || '-';
             if (data.dbId) {
                 idEl.classList.add('sr-ref-trigger');
                 idEl.style.cursor = 'pointer';
@@ -1230,15 +1230,15 @@
         _set('sr-m-scheduled', data.scheduled);
         _set('sr-m-assigned', data.assigned);
 
-        // SLA due — colour red when overdue.
+        // SLA due - colour red when overdue.
         var sla = document.getElementById('sr-m-sla');
         if (sla) {
-            sla.textContent = (data.sla_due || '—') + (data.sla_due_h && data.sla_due_h !== '—' ? '  ·  ' + data.sla_due_h : '');
+            sla.textContent = (data.sla_due || '-') + (data.sla_due_h && data.sla_due_h !== '-' ? '  ·  ' + data.sla_due_h : '');
             sla.style.color = data.is_overdue ? '#ef4444' : 'var(--text-heading)';
         }
 
 
-        // Reallocation remarks — only render when the SR actually has them
+        // Reallocation remarks - only render when the SR actually has them
         var rmWrap = document.getElementById('sr-m-remarks-wrap');
         if (rmWrap) {
             var rm = (data.realloc_remarks || '').trim();

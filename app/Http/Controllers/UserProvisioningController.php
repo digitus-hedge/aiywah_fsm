@@ -14,7 +14,7 @@ use App\Jobs\SendUserWelcomeMail;
 
 class UserProvisioningController extends Controller
 {
-    /** Roles that are never shown as "source" blocks — they're superset roles. */
+    /** Roles that are never shown as "source" blocks - they're superset roles. */
     private const SUPERSET_ROLES = ['SA', 'AD'];
 
     public function index(Request $request)
@@ -102,7 +102,7 @@ class UserProvisioningController extends Controller
      */
     private function validExtensionsForRole(string $roleCode): array
     {
-         // ML never gets extensions — same rule as the client-side matrix.
+         // ML never gets extensions - same rule as the client-side matrix.
         if ($roleCode === 'ML') {
             return [];
         }
@@ -168,7 +168,7 @@ class UserProvisioningController extends Controller
             'fdGrants.*' => 'string',
             'acGrants'   => 'array',
             'acGrants.*' => 'string',
-            'extGrants'  => 'array',    // ← add: { key: access } — access value is a hint, server recomputes it
+            'extGrants'  => 'array',    // ← add: { key: access } - access value is a hint, server recomputes it
         ]);
 
         $isSE = $data['roleId'] === 'SE';
@@ -197,7 +197,7 @@ class UserProvisioningController extends Controller
         ]);
 
         $this->syncDomains($user, $data['domains'] ?? []);
-        $user->serviceCategories()->sync($isSE ? ($data['categories'] ?? []) : []);
+        $user->serviceCategories()->sync($grantsSeCategories ? ($data['categories'] ?? []) : []);
 
         SendUserWelcomeMail::dispatch($user->id, $data['password'], $data['role']);
 

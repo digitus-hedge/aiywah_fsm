@@ -106,14 +106,14 @@ class WorkerPipelineController extends Controller
 ->map(fn (ServiceRequest $sr) => [
     'ref'        => $sr->ref,
     'srId'       => $sr->id,
-    'project'    => optional($sr->project)->project_name ?? '—',
-    'site'       => optional($sr->project)->site_name ?? '—',
-    'client'     => optional($sr->client)->company_name ?? '—',
+    'project'    => optional($sr->project)->project_name ?? '-',
+    'site'       => optional($sr->project)->site_name ?? '-',
+    'client'     => optional($sr->client)->company_name ?? '-',
     'status'     => $sr->status,
-    'ownerName'  => optional($sr->assignedUser)->name ?? '—',
-    'reallocateUser' => optional($sr->reallocateUser)->name ?? '—',
+    'ownerName'  => optional($sr->assignedUser)->name ?? '-',
+    'reallocateUser' => optional($sr->reallocateUser)->name ?? '-',
     'reallocate' => 'Yes',
-    'eta'        => optional($sr->eta_at)->format('d M Y, H:i') ?? '—',
+    'eta'        => optional($sr->eta_at)->format('d M Y, H:i') ?? '-',
 ])
 ->values();
 
@@ -197,15 +197,15 @@ class WorkerPipelineController extends Controller
                 'expenses' => number_format((float) $punches->sum('materials_subtotal'), 2, '.', ''),
             ],
             'items' => $punches->map(fn(Punch $p) => [
-                'ref'       => optional($p->serviceRequest)->ref ?? '—',
+                'ref'       => optional($p->serviceRequest)->ref ?? '-',
                 'sr_id'     => $p->service_request_id,
-                'client'    => optional(optional($p->serviceRequest)->client)->company_name ?? '—',
-                'domain'    => optional(optional($p->serviceRequest)->domain)->domain_name ?? '—',
-                'site'      => optional(optional($p->serviceRequest)->project)->site_address ?? '—',
+                'client'    => optional(optional($p->serviceRequest)->client)->company_name ?? '-',
+                'domain'    => optional(optional($p->serviceRequest)->domain)->domain_name ?? '-',
+                'site'      => optional(optional($p->serviceRequest)->project)->site_address ?? '-',
                 'date'      => $p->punch_out_at->format('d M Y'),
                 'in'        => $p->punch_in_at->format('H:i'),
                 'out'       => $p->punch_out_at->format('H:i'),
-                'duration'  => $p->duration_label ?? '—',
+                'duration'  => $p->duration_label ?? '-',
                 'materials' => number_format((float) $p->materials_subtotal, 2, '.', ''),
                 'total'     => number_format((float) $p->grand_total, 2, '.', ''),
                 'itemCount' => $p->items->count(),
@@ -279,8 +279,8 @@ class WorkerPipelineController extends Controller
                 'role'     => optional($user->role)->name ?? 'Maintenance Lead',
                 'code'     => optional($user->role)->code,
                 'email'    => $user->email,
-                'phone'    => $user->phone ?? '—',
-                'joined'   => optional($user->created_at)->format('M Y') ?? '—',
+                'phone'    => $user->phone ?? '-',
+                'joined'   => optional($user->created_at)->format('M Y') ?? '-',
             ],
             'stats' => [
                 'open'      => $open,
@@ -471,7 +471,7 @@ class WorkerPipelineController extends Controller
             'service_request_id' => $sr->id,
             'event'       => 'status_updated',
             'title'       => 'Status Updated',
-            'message'     => $this->buildSrRef($sr) . ' put on hold — ' . $data['remark'],
+            'message'     => $this->buildSrRef($sr) . ' put on hold - ' . $data['remark'],
             'from_status' => $oldStatus,
             'to_status'   => 'On Hold',
             'caused_by'   => auth()->id(),
@@ -578,7 +578,7 @@ class WorkerPipelineController extends Controller
 
     /**
      * The job the worker is mid-punch on, if any. Rehydrates the terminal
-     * across a page reload — otherwise an open punch is invisible to the UI.
+     * across a page reload - otherwise an open punch is invisible to the UI.
      */
     private function activeJob(User $user): ?array
     {
@@ -634,7 +634,7 @@ class WorkerPipelineController extends Controller
                     'category'   => $i->category,
                     'name'       => $i->name,
                     'amount'     => number_format((float) $i->line_total, 2, '.', ''),
-                    'time'       => optional($i->created_at)->format('H:i') ?? '—',
+                    'time'       => optional($i->created_at)->format('H:i') ?? '-',
                     'receiptUrl' => $i->receipt_url,
                 ])->values()
                 : collect(),
@@ -681,16 +681,16 @@ class WorkerPipelineController extends Controller
             'source' => ($user && (int) $sr->reallocate_user_id === (int) $user->id && (int) $sr->reallocate === 1)
     ? 'reallocated' : 'own',
 
-            'ownerName' => optional($sr->assignedUser)->name ?? '—',
+            'ownerName' => optional($sr->assignedUser)->name ?? '-',
 
-            'client'      => optional($sr->client)->company_name ?? '—',
-            'contract'    => optional($sr->project)->project_name ?? ($sr->invoice_code ?? '—'),
+            'client'      => optional($sr->client)->company_name ?? '-',
+            'contract'    => optional($sr->project)->project_name ?? ($sr->invoice_code ?? '-'),
             'domain'      => optional($sr->domain)->domain_name
                 ?? optional($sr->category)->name
-                ?? '—',
-            'site'        => optional($sr->project)->site_address ?? '—',
-            'siteName'    => optional($sr->project)->site_name ?? '—',
-            'description' => $sr->issue_description ?? '—',
+                ?? '-',
+            'site'        => optional($sr->project)->site_address ?? '-',
+            'siteName'    => optional($sr->project)->site_name ?? '-',
+            'description' => $sr->issue_description ?? '-',
             'priority'    => ucfirst($sr->priority_level ?? 'Normal'),
 
             // --- Dispatch → Accept clock (whole hours) ---
@@ -698,8 +698,8 @@ class WorkerPipelineController extends Controller
             'hasClock'      => (bool) $dispatched,
             'clockRunning'  => (bool) ($dispatched && !$accepted),
             'clockFrom'     => $sr->dispatched_at ? 'dispatch' : 'created',
-            'dispatchedStr' => optional($sr->dispatched_at)->format('d M Y, h:i A') ?? '—',
-            'acceptedStr'   => optional($accepted)->format('d M Y, h:i A') ?? '—',
+            'dispatchedStr' => optional($sr->dispatched_at)->format('d M Y, h:i A') ?? '-',
+            'acceptedStr'   => optional($accepted)->format('d M Y, h:i A') ?? '-',
 
             'reworkNote'  => $sr->rework_notes,
 
@@ -736,12 +736,12 @@ class WorkerPipelineController extends Controller
             $who  = optional($r->user)->name ?? 'Worker';
             $from = $r->previous_eta_at ? $r->previous_eta_at->format('d M Y, H:i') : 'unset';
             $log[] = "Rescheduled by {$who} on " . $fmt($r->created_at)
-                . " — ETA {$from} → " . $r->new_eta_at->format('d M Y, H:i')
-                . ' — ' . $r->reason;
+                . " - ETA {$from} → " . $r->new_eta_at->format('d M Y, H:i')
+                . ' - ' . $r->reason;
         }
         if ($sr->held_at) {
             $log[] = 'On hold on ' . $fmt($sr->held_at)
-                . ($sr->hold_reason ? ' — ' . $sr->hold_reason : '');
+                . ($sr->hold_reason ? ' - ' . $sr->hold_reason : '');
         }
 
         foreach ($sr->punches->sortBy('id') as $p) {

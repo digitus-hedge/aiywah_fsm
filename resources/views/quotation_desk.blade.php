@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
 <style>
-/* ===== Quotation Desk — scoped page styles ===== */
+/* ===== Quotation Desk - scoped page styles ===== */
 .qd-wrap{--gold:#9a8053;--gold-2:#b8975e;--queue-width:290px;}
 .qd-wrap h4,.qd-wrap h5,.qd-wrap h6,.qd-wrap .pg-hdr-title,.qd-wrap .card-title,
 .qd-wrap .ws-sr-id,.qd-wrap .qi-id,.qd-wrap .stat-num,.qd-wrap .pa-card-title{letter-spacing:-.01em;}
@@ -295,7 +295,7 @@
             <div class="form-group">
               <label class="form-label-sm">ERP Quotation Reference Token <span class="req">*</span></label>
               <input type="text" class="fc" id="q-ref" placeholder="e.g. QT-2025-ERP-00441" oninput="q_validate()" style="text-transform:uppercase;letter-spacing:.03em;"/>
-              <div class="field-hint">Alphanumeric ERP reference — links the PDF to the external quotation record.</div>
+              <div class="field-hint">Alphanumeric ERP reference - links the PDF to the external quotation record.</div>
             </div>
             <div class="form-group">
               <label class="form-label-sm">Quotation Package PDF <span class="req">*</span></label>
@@ -346,7 +346,7 @@
       <div class="pa-card-hdr">
         <div class="pa-card-hdr-left">
           <div class="pa-card-icon" style="background:rgba(245,158,11,.1);"><i class="bi bi-hourglass-split" style="color:#d97706;"></i></div>
-          <div><div class="pa-card-title">Awaiting Customer Response</div><div class="pa-card-sub">Quote sent to customer — mark approved or rejected when customer responds</div></div>
+          <div><div class="pa-card-title">Awaiting Customer Response</div><div class="pa-card-sub">Quote sent to customer - mark approved or rejected when customer responds</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-muted);">
           <i class="bi bi-whatsapp" style="color:#25d366;"></i>Customer notified via WhatsApp on submission
@@ -369,7 +369,7 @@
       <div class="pa-card-hdr">
         <div class="pa-card-hdr-left">
           <div class="pa-card-icon" style="background:rgba(239,68,68,.1);"><i class="bi bi-x-circle" style="color:#ef4444;"></i></div>
-          <div><div class="pa-card-title">Quotations Rejected by Customer</div><div class="pa-card-sub">Quotes the customer declined — revise and re-submit if required</div></div>
+          <div><div class="pa-card-title">Quotations Rejected by Customer</div><div class="pa-card-sub">Quotes the customer declined - revise and re-submit if required</div></div>
         </div>
       </div>
       <div class="pa-scroll">
@@ -420,7 +420,7 @@
 @push('scripts')
 <script>
 /* =========================================================
-   Quotation Desk — page scripts
+   Quotation Desk - page scripts
    Q_QUEUE row shape:
    { id, dbId, client, site, logged, createdAt, issue }
    PENDING_APPROVAL row shape:
@@ -430,7 +430,7 @@ var Q_QUEUE          = @json($qQueue ?? []);
 var PENDING_APPROVAL = @json($pendingApproval ?? []);
 var CSRF             = '{{ csrf_token() }}';
 var USER_ROLE        = '{{ auth()->user()?->role?->code }}';   // ← add this
-/* filtered views — what actually gets rendered */
+/* filtered views - what actually gets rendered */
 var Q_FILTERED  = Q_QUEUE.slice();
 var PA_FILTERED = PENDING_APPROVAL.slice();
 
@@ -463,7 +463,7 @@ function dz_process(file,dzId,prefix){
   if(!file.name.toLowerCase().endsWith('.pdf')){
     dz.className = 'dropzone dz-err';
     document.getElementById(prefix+'-dz-icon').className = 'bi bi-x-circle dz-icon';
-    document.getElementById(prefix+'-dz-title').textContent = 'Invalid file — PDF only';
+    document.getElementById(prefix+'-dz-title').textContent = 'Invalid file - PDF only';
     if(errEl)errEl.classList.add('show');
     window[prefix+'_fileOk'] = false;
     if(typeof window[prefix+'_validate']==='function')window[prefix+'_validate']();
@@ -549,8 +549,8 @@ qSrIdEl.onclick = function(){ openSrTracking(selQ.dbId); };
   document.getElementById('q-sr-client').textContent = selQ.client;
   document.getElementById('q-sr-site').innerHTML     = '<i class="bi bi-geo-alt" style="color:#9a8053;font-size:.8rem;"></i> '+selQ.site;
   document.getElementById('q-chips').innerHTML =
-    '<div class="meta-chip"><div class="meta-chip-label">Issue</div><div class="meta-chip-value" style="font-size:.78rem;font-weight:400;">'+(selQ.issue||'—')+'</div></div>'+
-    '<div class="meta-chip"><div class="meta-chip-label">Logged</div><div class="meta-chip-value">'+(selQ.logged||'—')+'</div></div>'+
+    '<div class="meta-chip"><div class="meta-chip-label">Issue</div><div class="meta-chip-value" style="font-size:.78rem;font-weight:400;">'+(selQ.issue||'-')+'</div></div>'+
+    '<div class="meta-chip"><div class="meta-chip-label">Logged</div><div class="meta-chip-value">'+(selQ.logged||'-')+'</div></div>'+
     '<div class="meta-chip"><div class="meta-chip-label">Scope</div><div class="meta-chip-value" style="color:#ef4444;">Out of Warranty</div></div>';
 }
 
@@ -568,7 +568,7 @@ function renderPA(list){
   tbody.innerHTML = list.map(function(item){
     var actionCell = canDecide
       ? '<button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Record Decision</button>'
-      : '<span class="muted" style="font-size:.75rem;">—</span>';
+      : '<span class="muted" style="font-size:.75rem;">-</span>';
     return '<tr>'+
       '<td class="mono"><span class="sr-ref-trigger" data-sr-id="'+item.dbId+'" onclick="openSrTracking('+item.dbId+');">'+item.sr+'</span></td>'+
       '<td style="font-weight:500;">'+item.client+'</td>'+
@@ -647,7 +647,7 @@ function submitQuote(){
     });
 
     document.getElementById('q-detail').style.display = 'none';
-    document.getElementById('q-success-title').textContent = sr.id+' — Quote Submitted';
+    document.getElementById('q-success-title').textContent = sr.id+' - Quote Submitted';
     document.getElementById('q-success-body').textContent  = 'Quote PDF uploaded with ERP ref '+ref+'. Client notified via WhatsApp.';
     document.getElementById('q-success').classList.add('show');
     selQ = null; q_fileOk = false;
@@ -675,7 +675,7 @@ function execQApproval(){
   .then(function(){
     PENDING_APPROVAL.splice(idx,1);
     qdFilter();
-    showToast('ok','Client Approved',item.sr+' — status set to Approved.');
+    showToast('ok','Client Approved',item.sr+' - status set to Approved.');
   })
   .catch(function(e){ showToast('err','Approval Failed', e.message); });
 }
@@ -700,7 +700,7 @@ function execQRejection(){
     });
     qdFilter();
     qdTab('rejected');
-    showToast('warn','Quotation Rejected',item.sr+' — status set to Quote Rejected.');
+    showToast('warn','Quotation Rejected',item.sr+' - status set to Quote Rejected.');
   })
   .catch(function(e){ showToast('err','Rejection Failed', e.message); });
 }
@@ -737,9 +737,9 @@ function renderRJ(list){
       '<td class="mono"><span class="sr-ref-trigger" data-sr-id="'+item.dbId+'" onclick="openSrTracking('+item.dbId+');">'+item.sr+'</span></td>'+
       '<td style="font-weight:500;">'+item.client+'</td>'+
       '<td class="muted">'+item.site+'</td>'+
-      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+(item.ref||'—')+'</span></td>'+
-      '<td class="muted">'+(item.rejected||'—')+'</td>'+
-      '<td class="muted">'+(item.ago||'—')+'</td>'+
+      '<td><span style="font-size:.77rem;font-weight:600;color:#9a8053;background:rgba(154,128,83,.08);padding:2px 7px;border-radius:4px;">'+(item.ref||'-')+'</span></td>'+
+      '<td class="muted">'+(item.rejected||'-')+'</td>'+
+      '<td class="muted">'+(item.ago||'-')+'</td>'+
       '<td style="text-align:center;"><span class="sbadge sb-rej"><i class="bi bi-x-circle-fill" style="font-size:.65rem;"></i>Rejected</span></td>'+
     '</tr>';
   }).join('');

@@ -85,7 +85,7 @@ class ProjectController extends Controller
         $client = $project->client;
 
         if (! $client) {
-            \Log::warning('Project-added notify skipped — no client', ['project_id' => $project->id]);
+            \Log::warning('Project-added notify skipped - no client', ['project_id' => $project->id]);
             return;
         }
 
@@ -137,7 +137,7 @@ class ProjectController extends Controller
     public function show(Project $project)
     {
         $project->load(['client', 'warranty']);
-         // ── Contact Person options — mirrors ServiceRequestController::lookup() ──
+         // ── Contact Person options - mirrors ServiceRequestController::lookup() ──
         $contacts = $project->client
             ? $project->client->mobiles->map(fn($m) => [
                 'id'     => $m->id,
@@ -163,7 +163,7 @@ class ProjectController extends Controller
             ->latest()
             ->get();
 
-        // Bucket definitions — single source of truth
+        // Bucket definitions - single source of truth
         $activeStatuses    = ['Approved', 'Forwarded', 'Assigned', 'Quoted', 'Accepted', 'In Progress', 'Qc Review', 'Rework', 'Reschedule', 'On Hold'];
         $completedStatuses = ['Completed', 'Pending Invoice', 'Invoice Submitted'];
         $cancelledStatuses = ['Rejected', 'Quote Rejected'];
@@ -209,7 +209,7 @@ class ProjectController extends Controller
             return [
                 'id'          => $s->id,
                 'code'        => $s->code,
-                'category'    => $s->category?->category_name ?? '—',
+                'category'    => $s->category?->category_name ?? '-',
                 'cat_color'   => $s->category?->color_code ?? '#6b7280',
                 'cat_icon'    => $s->category?->icon ?? 'bi-tools',
                 'desc'        => $s->issue_description,
@@ -268,7 +268,7 @@ class ProjectController extends Controller
             ];
         });
 
-        // Paginated slice — only for the table
+        // Paginated slice - only for the table
         $srsPaginated = $project->serviceRequests()
             ->with(['assignedUser', 'category', 'project'])
             ->latest()
@@ -281,7 +281,7 @@ class ProjectController extends Controller
         foreach ($srs as $s) {
             $activities->push([
                 'sr_id' => $s->id,
-                'title' => $s->code . ' — New Inquiry Raised',
+                'title' => $s->code . ' - New Inquiry Raised',
                 'by'    => $s->reported_by ?? 'System',
                 'icon'  => 'bi-plus',
                 'color' => '#9a8053',
@@ -292,7 +292,7 @@ class ProjectController extends Controller
             if ($s->dispatched_at) {
                 $activities->push([
                     'sr_id' => $s->id,
-                    'title' => $s->code . ' — Dispatched to ' . ('Technician'),
+                    'title' => $s->code . ' - Dispatched to ' . ('Technician'),
                     'by'    => $s->assignedUser?->name ?? 'Unassigned',
                     'icon'  => 'bi-send',
                     'color' => '#2563eb',
@@ -305,7 +305,7 @@ class ProjectController extends Controller
                 $isRework = ! empty($s->rework_notes);
                 $activities->push([
                      'sr_id' => $s->id,
-                    'title' => $s->code . ($isRework ? ' — Returned for Rework' : ' — QC Passed & Closed'),
+                    'title' => $s->code . ($isRework ? ' - Returned for Rework' : ' - QC Passed & Closed'),
                     'by'    => optional(User::find($s->qc_reviewed_by))->name ?? 'QC Team',
                     'icon'  => $isRework ? 'bi-arrow-repeat' : 'bi-check-lg',
                     'color' => $isRework ? '#d97706' : '#10b981',
@@ -331,7 +331,7 @@ class ProjectController extends Controller
         return view('project_view', compact(
             'project',
             'srs',
-            'srsPaginated',    // paginated — used by the table
+            'srsPaginated',    // paginated - used by the table
             'stats',
             'breakdown',
             'srMap',

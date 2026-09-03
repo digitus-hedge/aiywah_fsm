@@ -57,7 +57,7 @@ class InquiryController extends Controller
                 'title'     => 'New Service Request',
                 'message'   => $this->buildSrRef($sr) . ' created'
                     . ' by ' . (auth()->user()->name ?? 'Unknown')
-                    . ' (' . (optional(auth()->user()->role)->code ?? '—') . ')',
+                    . ' (' . (optional(auth()->user()->role)->code ?? '-') . ')',
                 'to_status' => 'Pending',
                 'caused_by' => auth()->id(),
             ]);

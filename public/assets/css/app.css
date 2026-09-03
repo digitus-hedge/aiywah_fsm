@@ -628,7 +628,7 @@ body {
     inset: 0;
     background: rgba(0,0,0,0.4);
    
-      z-index: 1040;          /* was 999 — same as .topbar, causes flicker */
+      z-index: 1040;          /* was 999 - same as .topbar, causes flicker */
     backdrop-filter: blur(2px);
 }
 

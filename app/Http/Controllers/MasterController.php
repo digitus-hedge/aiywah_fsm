@@ -490,7 +490,7 @@ public function updateWarrantyCategory(Request $request, $id)
     /* ============================================================
      |  SLA MATRIX
      ============================================================ */
-        /** Shared rules — all times are HOURS now. */
+        /** Shared rules - all times are HOURS now. */
 private function slaRules(string $prefix = ''): array
 {
     return [
@@ -590,16 +590,14 @@ public function saveAllSla(Request $request)
     
 // ---- class constant ----
 private const SUMMARY_ALERT_ROLES = [
-    ['slug' => 'admin',  'code' => 'AD',  'label' => 'Admin'],                  // confirmed via RoleSeeder
-    ['slug' => 'hop',    'code' => 'HP',  'label' => 'HoP'],                    // confirmed via RoleSeeder
-    ['slug' => 'se',     'code' => 'SE',  'label' => 'Service Engineer'],       // confirmed via RoleSeeder
-    ['slug' => 'ml',     'code' => 'ML',  'label' => 'Maintenance Lead'],       // confirmed via RoleSeeder
-    ['slug' => 'fd',     'code' => 'FD',  'label' => 'Front Desk Executive'],   // confirmed via RoleSeeder
-    ['slug' => 'acc',    'code' => 'AC',  'label' => 'Accounts'],               // confirmed via RoleSeeder — was wrongly 'ACC'
+    ['slug' => 'admin', 'codes' => ['AD', 'SA'], 'label' => 'Admin'],
+    ['slug' => 'hop',   'codes' => ['HP'],       'label' => 'HoP'],
+    ['slug' => 'se',    'codes' => ['SE'],       'label' => 'Service Engineer'],
+    ['slug' => 'ml',    'codes' => ['ML'],       'label' => 'Maintenance Lead'],
 ];
  
 /* ============================================================
- |  SUMMARY ALERT — MASTER SETTINGS
+ |  SUMMARY ALERT - MASTER SETTINGS
  |  Select Role -> Select User -> checklist of that role's
  |  Daily Summary alert headings (AlertType), stored per-user
  |  in UserAlertPermission. Everything defaults to checked
@@ -613,17 +611,24 @@ private const SUMMARY_ALERT_ROLES = [
 public function summaryAlertUsers(string $roleSlug)
 {
     $role = collect(self::SUMMARY_ALERT_ROLES)->firstWhere('slug', $roleSlug);
- 
+
     if (!$role) {
         return response()->json(['status' => false, 'message' => 'Unknown role.'], 422);
     }
- 
-    $users = User::whereHas('role', fn ($q) => $q->where('code', $role['code']))
+
+    $users = User::whereHas('role', fn ($q) => $q->whereIn('code', $role['codes']))
         ->orderBy('name')
-        // Adjust these columns to whatever your users table actually has
-        // (e.g. add 'phone' if that's where the WhatsApp number lives).
         ->get(['id', 'name', 'email', 'phone']);
- 
+
+    // Pull enabled state for all these users in one query, not N+1.
+    $enabledMap = UserAlertSchedule::whereIn('user_id', $users->pluck('id'))
+        ->pluck('is_enabled', 'user_id');
+
+    $users = $users->map(function ($u) use ($enabledMap) {
+        $u->summary_enabled = (bool) ($enabledMap[$u->id] ?? false);
+        return $u;
+    });
+
     return response()->json(['status' => true, 'data' => $users]);
 }
  
@@ -637,21 +642,22 @@ public function summaryAlertUsers(string $roleSlug)
 public function summaryAlertPermissions(int $userId)
 {
     $user = User::with('role')->findOrFail($userId);
- 
-    $roleEntry = collect(self::SUMMARY_ALERT_ROLES)->firstWhere('code', $user->role?->code);
- 
+
+    $roleEntry = collect(self::SUMMARY_ALERT_ROLES)
+        ->first(fn ($r) => in_array($user->role?->code, $r['codes'], true));
+
     if (!$roleEntry) {
         return response()->json([
             'status'  => false,
             'message' => 'This user\'s role has no Summary Alert items configured.',
         ], 422);
     }
- 
+
     $alertTypes = AlertType::forRole($roleEntry['slug'])->get();
- 
+
     $existing = UserAlertPermission::where('user_id', $userId)
         ->pluck('is_enabled', 'alert_type_id');
- 
+
     $items = $alertTypes->map(function ($type) use ($existing) {
         return [
             'id'          => $type->id,
@@ -661,18 +667,20 @@ public function summaryAlertPermissions(int $userId)
             'is_enabled'  => $existing->has($type->id) ? (bool) $existing[$type->id] : true,
         ];
     })->values();
- 
+
     $schedule = UserAlertSchedule::where('user_id', $userId)->first();
+
     $days = [];
     foreach (UserAlertSchedule::DAYS as $day) {
         $days[$day] = $schedule ? (bool) $schedule->{$day} : true; // default: every day
     }
- 
+
     return response()->json([
         'status' => true,
         'data'   => [
-            'items' => $items,
-            'days'  => $days,
+            'items'   => $items,
+            'days'    => $days,
+            'enabled' => $schedule ? (bool) $schedule->is_enabled : false, // ← NEW: defaults OFF until explicitly turned on
         ],
     ]);
 }
@@ -700,8 +708,9 @@ public function summaryAlertSave(Request $request)
         'days.friday'           => 'nullable|boolean',
         'days.saturday'         => 'nullable|boolean',
         'days.sunday'           => 'nullable|boolean',
+        'enabled'                => 'required|boolean',   // ← NEW
     ]);
- 
+
     foreach ($data['items'] as $item) {
         UserAlertPermission::updateOrCreate(
             [
@@ -713,19 +722,17 @@ public function summaryAlertSave(Request $request)
             ]
         );
     }
- 
-    if (!empty($data['days'])) {
-        $dayValues = [];
-        foreach (UserAlertSchedule::DAYS as $day) {
-            $dayValues[$day] = $data['days'][$day] ?? true;
-        }
- 
-        UserAlertSchedule::updateOrCreate(
-            ['user_id' => $data['user_id']],
-            $dayValues
-        );
+
+    $dayValues = [];
+    foreach (UserAlertSchedule::DAYS as $day) {
+        $dayValues[$day] = $data['days'][$day] ?? true;
     }
- 
+
+    UserAlertSchedule::updateOrCreate(
+        ['user_id' => $data['user_id']],
+        array_merge($dayValues, ['is_enabled' => $data['enabled']])   // ← NEW
+    );
+
     return response()->json([
         'status'  => true,
         'message' => 'Summary Alert preferences saved.',

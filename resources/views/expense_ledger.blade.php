@@ -10,7 +10,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════
-   EXPENSE LEDGER — scoped page styles
+   EXPENSE LEDGER - scoped page styles
    Brand: #9a8053 gold · #b8975e gold-2
 ═══════════════════════════════════════ */
 .exl-wrap { --gold:#9a8053; --gold-2:#b8975e; }
@@ -428,7 +428,7 @@
    Expected row shape from the controller:
      { id, sr, tech, name, cat, amt, receiptUrl, date }
 
-   `receiptUrl` is the presence check *and* the image source — a
+   `receiptUrl` is the presence check *and* the image source - a
    separate `receipt` boolean would let the two drift apart.
    ========================================================= */
 (function () {
@@ -498,7 +498,7 @@ function render(list) {
             : esc(e.sr)
         }</td>
       <td class="tech">${esc(e.tech)}</td>
-      <td>${esc(e.name ?? '—')}</td>
+      <td>${esc(e.name ?? '-')}</td>
       <td class="muted">${esc(e.cat)}</td>
       <td class="amt">${money(e.amt)}</td>
       <td>${receipt}</td>

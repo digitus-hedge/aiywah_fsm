@@ -46,7 +46,7 @@ abstract class PermissionPolicy
 
     public function create(User $user): bool
     {
-        // Nothing to own yet — page-level write capability is the whole test.
+        // Nothing to own yet - page-level write capability is the whole test.
         return $user->canWrite($this->permissionKey);
     }
 
