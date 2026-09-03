@@ -299,6 +299,11 @@ textarea.form-control{resize:vertical;min-height:72px;}
       <span class="trb-label">SLA Matrix</span>
       <span class="trb-count" id="cnt-sla">{{ $counts['sla'] ?? 0 }}</span>
     </button>
+
+    <button class="trb" onclick="switchTab('summary-alert')" data-tab="summary-alert">
+      <i class="bi bi-whatsapp"></i>
+      <span class="trb-label">Summary Alerts</span>
+    </button>
   </div>
  
   <!-- ════════════════════════════════
@@ -629,6 +634,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
   </div>
 </div>
  
+ @include('summary_alert')
 <!-- ════ MODAL: SERVICE CATEGORY ════ -->
 <div class="modal-overlay" id="modal-cat" onclick="handleOverlayClick(event,'modal-cat')">
   <div class="modal-box">

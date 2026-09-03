@@ -308,6 +308,9 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
   <th style="width:80px;">Actions</th>
   <th style="width:80px;">Status</th>
 @endif
+@if($canDeleteUsers)
+      <th style="width:60px;">Delete</th>
+    @endif
   </tr>
 </thead>
         <tbody>
@@ -417,12 +420,20 @@ html[data-theme="dark"] .ud-filter .form-select-sm option{background:#101e33;col
                 </div>
               </td>
             @endif
-
+          @if($canDeleteUsers)
+  <td data-label="Delete">
+    <button type="button"
+            class="ud-xs ud-xs-off"
+            onclick="udConfirmDelete('{{ route('user_directory.destroy', $user->id) }}', '{{ addslashes($user->name) }}')">
+      <i class="bi bi-trash"></i>
+    </button>
+  </td>
+@endif
 
             </tr>
           @empty
             <tr>
-              <td colspan="{{ $showCategory ? ($canProvisionUsers ? 6 : 4) : ($canProvisionUsers ? 5 : 3) }}">
+              <td colspan="{{ $showCategory ? ($canProvisionUsers ? 6 : 4) : ($canProvisionUsers ? 5 : 3) + ($canDeleteUsers ? 1 : 0) }}">
                 <div class="ud-empty"><i class="bi bi-inbox"></i>No users match your filter.</div>
               </td>
             </tr>
@@ -547,7 +558,7 @@ let udPendingToggle = null; // holds { url, el }
 
 function udConfirmToggle(url, currentStatus, name, el){
   udPendingToggle = { url, el };
-
+  document.getElementById('udConfirmBtn').dataset.mode = 'toggle';
   const icon  = document.getElementById('udConfirmIcon');
   const title = document.getElementById('udConfirmTitle');
   const msg   = document.getElementById('udConfirmMsg');
@@ -578,6 +589,33 @@ function udCloseConfirm(){
 }
 
 document.getElementById('udConfirmBtn').addEventListener('click', function(){
+  if (this.dataset.mode === 'delete' && udPendingDelete) {
+    const { url } = udPendingDelete;
+    udCloseConfirm();
+
+    fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        'Accept': 'application/json',
+      }
+    }).then(async res => {
+      if (res.ok) {
+        udToast('success', 'User Deleted', 'The user has been removed.');
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        udToast('error', 'Failed', body.message || `Something went wrong (${res.status}).`);
+      }
+    }).catch(() => {
+      udToast('error', 'Network Error', 'Could not reach the server.');
+    });
+
+    udPendingDelete = null;
+    this.dataset.mode = '';
+    return;
+  }
+
   if (!udPendingToggle) return;
   const { url, el } = udPendingToggle;
   const wasActive = el.classList.contains('on');
@@ -754,7 +792,28 @@ function udToggleChipPopover(e, chip){
 
   if (!isOpen) popover.classList.add('show');
 }
+let udPendingDelete = null;
 
+function udConfirmDelete(url, name){
+  udPendingDelete = { url };
+
+  const icon  = document.getElementById('udConfirmIcon');
+  const title = document.getElementById('udConfirmTitle');
+  const msg   = document.getElementById('udConfirmMsg');
+  const btn   = document.getElementById('udConfirmBtn');
+
+  icon.className = 'bi bi-trash';
+  icon.style.color = '#ff3366';
+  title.textContent = 'Delete User';
+  msg.textContent = `Delete ${name}? This can be restored later by an administrator, but they will immediately lose access.`;
+  btn.className = 'ud-btn ud-btn-danger';
+  btn.textContent = 'Delete';
+
+  // mark that this confirm click should delete, not toggle
+  btn.dataset.mode = 'delete';
+
+  document.getElementById('udConfirmOverlay').classList.add('show');
+}
 // click anywhere else closes any open popover
 document.addEventListener('click', function(){
   document.querySelectorAll('.ud-chip-popover.show').forEach(p => p.classList.remove('show'));

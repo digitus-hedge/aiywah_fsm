@@ -11,6 +11,10 @@ use App\Models\ExpenseCategory;
 use App\Models\Warranty;
 use App\Models\Priority;
 use App\Models\SlaMatrix;
+use App\Models\AlertType;
+use App\Models\UserAlertPermission;
+use App\Models\User;
+use App\Models\UserAlertSchedule;
 
 class MasterController extends Controller
 {
@@ -582,7 +586,154 @@ public function saveAllSla(Request $request)
         return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
     }
 }
+
     
+// ---- class constant ----
+private const SUMMARY_ALERT_ROLES = [
+    ['slug' => 'admin',  'code' => 'AD',  'label' => 'Admin'],                  // confirmed via RoleSeeder
+    ['slug' => 'hop',    'code' => 'HP',  'label' => 'HoP'],                    // confirmed via RoleSeeder
+    ['slug' => 'se',     'code' => 'SE',  'label' => 'Service Engineer'],       // confirmed via RoleSeeder
+    ['slug' => 'ml',     'code' => 'ML',  'label' => 'Maintenance Lead'],       // confirmed via RoleSeeder
+    ['slug' => 'fd',     'code' => 'FD',  'label' => 'Front Desk Executive'],   // confirmed via RoleSeeder
+    ['slug' => 'acc',    'code' => 'AC',  'label' => 'Accounts'],               // confirmed via RoleSeeder — was wrongly 'ACC'
+];
+ 
+/* ============================================================
+ |  SUMMARY ALERT — MASTER SETTINGS
+ |  Select Role -> Select User -> checklist of that role's
+ |  Daily Summary alert headings (AlertType), stored per-user
+ |  in UserAlertPermission. Everything defaults to checked
+ |  (is_enabled = true) until a Super Admin unchecks it here.
+ ============================================================ */
+ 
+/**
+ * GET /masters/summary-alert/users/{roleSlug}
+ * List users belonging to the given role slug (admin|hop|se|ml).
+ */
+public function summaryAlertUsers(string $roleSlug)
+{
+    $role = collect(self::SUMMARY_ALERT_ROLES)->firstWhere('slug', $roleSlug);
+ 
+    if (!$role) {
+        return response()->json(['status' => false, 'message' => 'Unknown role.'], 422);
+    }
+ 
+    $users = User::whereHas('role', fn ($q) => $q->where('code', $role['code']))
+        ->orderBy('name')
+        // Adjust these columns to whatever your users table actually has
+        // (e.g. add 'phone' if that's where the WhatsApp number lives).
+        ->get(['id', 'name', 'email', 'phone']);
+ 
+    return response()->json(['status' => true, 'data' => $users]);
+}
+ 
+/**
+ * GET /masters/summary-alert/permissions/{user}
+ * The checklist for one user: every AlertType for their role (is_enabled
+ * from user_alert_permissions, defaulting to true when no row exists yet)
+ * PLUS their send-days schedule (from user_alert_schedules, defaulting to
+ * every day true when no row exists yet).
+ */
+public function summaryAlertPermissions(int $userId)
+{
+    $user = User::with('role')->findOrFail($userId);
+ 
+    $roleEntry = collect(self::SUMMARY_ALERT_ROLES)->firstWhere('code', $user->role?->code);
+ 
+    if (!$roleEntry) {
+        return response()->json([
+            'status'  => false,
+            'message' => 'This user\'s role has no Summary Alert items configured.',
+        ], 422);
+    }
+ 
+    $alertTypes = AlertType::forRole($roleEntry['slug'])->get();
+ 
+    $existing = UserAlertPermission::where('user_id', $userId)
+        ->pluck('is_enabled', 'alert_type_id');
+ 
+    $items = $alertTypes->map(function ($type) use ($existing) {
+        return [
+            'id'          => $type->id,
+            'key'         => $type->key,
+            'title'       => $type->title,
+            'description' => $type->description,
+            'is_enabled'  => $existing->has($type->id) ? (bool) $existing[$type->id] : true,
+        ];
+    })->values();
+ 
+    $schedule = UserAlertSchedule::where('user_id', $userId)->first();
+    $days = [];
+    foreach (UserAlertSchedule::DAYS as $day) {
+        $days[$day] = $schedule ? (bool) $schedule->{$day} : true; // default: every day
+    }
+ 
+    return response()->json([
+        'status' => true,
+        'data'   => [
+            'items' => $items,
+            'days'  => $days,
+        ],
+    ]);
+}
+ 
+/**
+ * POST /masters/summary-alert/save
+ * Body: {
+ *   user_id: 12,
+ *   items: [{alert_type_id: 3, is_enabled: false}, ...],
+ *   days: {monday: true, tuesday: true, ..., sunday: false}
+ * }
+ */
+public function summaryAlertSave(Request $request)
+{
+    $data = $request->validate([
+        'user_id'               => 'required|exists:users,id',
+        'items'                 => 'required|array|min:1',
+        'items.*.alert_type_id' => 'required|exists:alert_types,id',
+        'items.*.is_enabled'    => 'required|boolean',
+        'days'                  => 'nullable|array',
+        'days.monday'           => 'nullable|boolean',
+        'days.tuesday'          => 'nullable|boolean',
+        'days.wednesday'        => 'nullable|boolean',
+        'days.thursday'         => 'nullable|boolean',
+        'days.friday'           => 'nullable|boolean',
+        'days.saturday'         => 'nullable|boolean',
+        'days.sunday'           => 'nullable|boolean',
+    ]);
+ 
+    foreach ($data['items'] as $item) {
+        UserAlertPermission::updateOrCreate(
+            [
+                'user_id'       => $data['user_id'],
+                'alert_type_id' => $item['alert_type_id'],
+            ],
+            [
+                'is_enabled' => $item['is_enabled'],
+            ]
+        );
+    }
+ 
+    if (!empty($data['days'])) {
+        $dayValues = [];
+        foreach (UserAlertSchedule::DAYS as $day) {
+            $dayValues[$day] = $data['days'][$day] ?? true;
+        }
+ 
+        UserAlertSchedule::updateOrCreate(
+            ['user_id' => $data['user_id']],
+            $dayValues
+        );
+    }
+ 
+    return response()->json([
+        'status'  => true,
+        'message' => 'Summary Alert preferences saved.',
+    ]);
+}
+ 
+ 
+
     /* ============================================================
      |  AJAX READ ENDPOINTS
      ============================================================ */
@@ -634,4 +785,6 @@ public function saveAllSla(Request $request)
             'data'   => WhatsappTemplate::orderBy('template_name')->get(),
         ]);
     }
+
+    
 }

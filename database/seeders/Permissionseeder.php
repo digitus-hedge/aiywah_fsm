@@ -68,12 +68,14 @@ class PermissionSeeder extends Seeder
 
             // System
             ['analytics',              'Analytics',              'System',            'bar-chart-2',    null,                    17],
-            ['invoice_hop_approve',    'Invoice HoP Approval',   'Finance',           null,             null,                    23], 
-            ['user_directory',         'User Directory',         'System',            'users',          'user_directory',        18],
-            ['user_provisioning',      'User Provisioning',      'System',            'shield',         'user_provisioning',     19],
-            ['master_data',            'Master Data',            'System',            'database',       'masters.index',         20],
-            ['wa_notification_log',    'WhatsApp Notifications', 'System',            'message-circle', 'wa_notification_log',   21],
-            ['activity-log',           'Activity Log',           'System',            'activity',       'activity-log',          22],
+            ['invoice_hop_approve',    'Invoice HoP Approval',   'Finance',           null,             null,                    18], 
+            ['user_directory',         'User Directory',         'System',            'users',          'user_directory',        19],
+            ['user_provisioning',      'User Provisioning',      'System',            'shield',         'user_provisioning',     20],
+            ['master_data',            'Master Data',            'System',            'database',       'masters.index',         21],
+            ['wa_notification_log',    'WhatsApp Notifications', 'System',            'message-circle', 'wa_notification_log',   22],
+            ['activity-log',           'Activity Log',           'System',            'activity',       'activity-log',          23],
+            ['user_delete',            'Delete Users',           'System',             'trash-2',        null,                   24],
+            ['client_delete',          'Delete Customers',       'Customer',           'trash-2',        null,                   25],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -130,6 +132,8 @@ class PermissionSeeder extends Seeder
                 'master_data'            => 'view',   // admin owns config
                 'user_directory'         => 'view',
                 'user_provisioning'      => 'view',
+                'client_delete'          => 'yes',
+                'user_delete'            => 'yes',
             ]),
 
             // Service Engineer — own tickets only.
