@@ -9,9 +9,9 @@ namespace App\Models\Concerns;
  *   4. Key present in fd_grants / ac_grants → allowed (Admin-granted extension).
  *   5. Key present in ext_grants → allowed at whatever access level ('yes'/'rls')
  *      was computed when the extension was saved. This lets a user borrow a
- *      specific permission from a role other than their own — e.g. an FD
+ *      specific permission from a role other than their own - e.g. an FD
  *      account extended with an HP permission, or an SE extended with an
- *      AC permission — while still respecting whether that borrowed access
+ *      AC permission - while still respecting whether that borrowed access
  *      was full ('yes') or record-filtered ('rls').
  */
 trait HasPermissions
@@ -51,7 +51,7 @@ trait HasPermissions
     /**
      * Raw access level for a key: 'yes' | 'rls' | 'no'.
      * Falls back to ext_grants when the role's own pivot has no access
-     * at all for this key — a cross-role extension only kicks in where
+     * at all for this key - a cross-role extension only kicks in where
      * the role wasn't already granted something of its own.
      */
     public function accessFor(?string $key): string
@@ -105,7 +105,7 @@ trait HasPermissions
         }
 
         // An ext_grants extension carries write capability too, same as
-        // fd_grants/ac_grants — it's an extension of capability, not a peek.
+        // fd_grants/ac_grants - it's an extension of capability, not a peek.
         if ($this->extAccessFor($key) !== 'no') {
             return false;
         }
@@ -207,7 +207,7 @@ trait HasPermissions
  * Can this user reach the User Directory page at all?
  *
  * True if they have direct access to user_directory, OR if they have
- * user_provisioning access — provisioning lives inside the directory
+ * user_provisioning access - provisioning lives inside the directory
  * page (the "New User" button), so a user granted provisioning rights
  * must be able to open the page even without separate directory access.
  */

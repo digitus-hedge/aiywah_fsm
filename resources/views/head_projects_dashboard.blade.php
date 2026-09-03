@@ -1006,7 +1006,7 @@ font-weight:700;
       <div class="ch-half" style="width:180px;"><canvas id="slaG"></canvas></div>
       <div style="text-align:center;margin-top:-14px;">
         <div style="font-size:1.6rem;font-weight:700;color:var(--muted);line-height:1;">
-            {{ $qc['qc_rate'] !== null ? $qc['qc_rate'].'%' : '—' }}
+            {{ $qc['qc_rate'] !== null ? $qc['qc_rate'].'%' : '-' }}
           </div>
           <div style="font-size:.7rem;color:var(--muted);">
             QC reviewed · {{ $qc['qc_reviewed'] }} of {{ $qc['qc_reached'] }}
@@ -1024,7 +1024,7 @@ font-weight:700;
       <div class="mini-metric" style="margin-bottom:8px;">
         <div class="mm-label">First-Pass QC</div>
         <div class="mm-val" style="color:#15803d;">
-          {{ $qc['first_pass_rate'] !== null ? $qc['first_pass_rate'].'%' : '—' }}
+          {{ $qc['first_pass_rate'] !== null ? $qc['first_pass_rate'].'%' : '-' }}
         </div>
         <div class="mm-sub">{{ $qc['first_pass_sub'] }}</div>
       </div>
@@ -1206,7 +1206,7 @@ font-weight:700;
     font-size:.74rem;color:#d97706;display:flex;align-items:center;gap:6px;cursor:pointer;"
     onclick="openPanel('qc-queue',{{ $satisfaction2['flagged']['id'] }})">
     <i class="bi bi-exclamation-triangle-fill"></i>
-    {{ $satisfaction2['flagged']['code'] }} rated {{ $satisfaction2['flagged']['score'] }}★ — flagged for QC review
+    {{ $satisfaction2['flagged']['code'] }} rated {{ $satisfaction2['flagged']['score'] }}★ - flagged for QC review
     </div>
     @endif
     </div>
@@ -1266,7 +1266,7 @@ var SR_INQ    = @json($srTrend2['inquiries']);
 
 var STATUS_DATA = @json($statusBreakdown);
 var QC_SLA = {{ $qc['qc_rate'] !== null ? $qc['qc_rate'] : 0 }};
-/* MAINTENANCE LEADS — each supervises a technician team */
+/* MAINTENANCE LEADS - each supervises a technician team */
 var LEADS=[
   {i:'RH',n:'Rashid Al-Habsi', zone:'Electrical · Dubai',    team:5,jobs:34,sla:92,r:4.7,rw:2,resp:'38m'},
   {i:'YR',n:'Yousuf Rahman',   zone:'HVAC · Dubai',          team:4,jobs:21,sla:95,r:4.6,rw:1,resp:'41m'},
@@ -1275,7 +1275,7 @@ var LEADS=[
   {i:'KA',n:'Kareem Adel',     zone:'Plumbing · Sharjah',    team:3,jobs:15,sla:84,r:4.2,rw:4,resp:'58m'},
 ];
 
-/* TECHNICIANS — each reports to a lead (leadIdx) */
+/* TECHNICIANS - each reports to a lead (leadIdx) */
 var TECHS = @json($technicians);
 
 /* techs per lead index */
@@ -1755,7 +1755,7 @@ function renderTechTable(){
     return '<tr data-ti="'+i+'" style="cursor:pointer;">'+
       '<td style="color:var(--light);font-size:.78rem;">'+(i+1)+'</td>'+
       '<td><div style="display:flex;align-items:center;gap:9px;"><div class="t-av">'+(t.initials||'')+'</div>'+
-        '<div><div class="t-name">'+(t.name||'—')+'</div>'+
+        '<div><div class="t-name">'+(t.name||'-')+'</div>'+
         '<div class="t-domain">'+(t.department||'')+'</div></div></div></td>'+
       '<td><div class="t-bar-wrap"><div class="t-bar-fill" data-w="'+bw+'%" style="width:0"></div></div>'+
         '<div style="font-size:.69rem;color:var(--muted);margin-top:2px;">'+jobs+' jobs</div></td>'+
@@ -1765,7 +1765,7 @@ function renderTechTable(){
       '<td><span class="t-pill '+rc+'"><i class="bi bi-arrow-counterclockwise"></i>'+rw+'</span></td>'+
       '<td style="font-size:.8rem;font-weight:600;color:'+(pr >= 95 ? '#15803d' : '#d97706')+';">'+
         Math.round(pr)+'%</td>'+
-      '<td style="font-size:.78rem;color:var(--muted);">'+(t.expenses_formatted||'—')+'</td></tr>';
+      '<td style="font-size:.78rem;color:var(--muted);">'+(t.expenses_formatted||'-')+'</td></tr>';
   }).join('');
 
   setTimeout(function(){
@@ -1931,7 +1931,7 @@ function openPanel(type,id){
     var t=TECHS[id];
     heading=t.name;
     icon='bi-person-badge';
-    sub=(t.department||'—')+(t.critical ? ' · Critical breach on file' : '');
+    sub=(t.department||'-')+(t.critical ? ' · Critical breach on file' : '');
 
     var stars='';for(var s=1;s<=5;s++)stars+='<i class="bi bi-star'+(s<=Math.round(t.rating)?'-fill':'')+'" style="color:#f59e0b;font-size:.8rem;"></i>';
 
@@ -1939,10 +1939,10 @@ function openPanel(type,id){
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px;">'+
         '<div class="mini-metric"><div class="mm-label">Jobs Completed</div><div class="mm-val">'+t.jobs+'</div><div class="mm-sub">This period</div></div>'+
         '<div class="mini-metric"><div class="mm-label">Field Hours</div><div class="mm-val">'+t.hours+'h</div><div class="mm-sub">On-site total</div></div>'+
-        '<div class="mini-metric"><div class="mm-label">Client Rating</div><div class="mm-val" style="color:#f59e0b;">'+(t.rating||'—')+'</div><div class="mm-sub" style="display:flex;gap:1px;">'+stars+'</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Client Rating</div><div class="mm-val" style="color:#f59e0b;">'+(t.rating||'-')+'</div><div class="mm-sub" style="display:flex;gap:1px;">'+stars+'</div></div>'+
         '<div class="mini-metric"><div class="mm-label">Rework Count</div><div class="mm-val" style="color:'+(t.rework===0?'#15803d':'#dc2626')+';">'+t.rework+'</div><div class="mm-sub">'+(t.rework===0?'Clean record':'Needs attention')+'</div></div>'+
         '<div class="mini-metric"><div class="mm-label">Punch-in Rate</div><div class="mm-val" style="color:'+(t.punch_rate>=95?'#15803d':'#d97706')+';">'+t.punch_rate+'%</div><div class="mm-sub">'+(t.punch_rate>=95?'Excellent':'Monitor')+'</div></div>'+
-        '<div class="mini-metric"><div class="mm-label">Field Expenses</div><div class="mm-val" style="font-size:.95rem;">'+(t.expenses_formatted||'—')+'</div><div class="mm-sub">This period</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Field Expenses</div><div class="mm-val" style="font-size:.95rem;">'+(t.expenses_formatted||'-')+'</div><div class="mm-sub">This period</div></div>'+
       '</div><div class="dp-sec">Open Assignments</div>';
 
     var pending = t.pending_items || [];
@@ -1974,7 +1974,7 @@ else if(type==='client'){
         '<div class="mini-metric"><div class="mm-label">Total SRs</div><div class="mm-val">'+c.srs+'</div><div class="mm-sub">This period</div></div>'+
         '<div class="mini-metric"><div class="mm-label">In-warranty</div><div class="mm-val" style="color:#9a8053;">'+c.iw+'</div><div class="mm-sub">Covered</div></div>'+
         '<div class="mini-metric"><div class="mm-label">Out-of-warranty</div><div class="mm-val">'+c.oow+'</div><div class="mm-sub">Billable</div></div>'+
-        '<div class="mini-metric"><div class="mm-label">Avg Rating</div><div class="mm-val" style="color:#f59e0b;">'+(c.rating||'—')+'</div><div class="mm-sub">Client feedback</div></div>'+
+        '<div class="mini-metric"><div class="mm-label">Avg Rating</div><div class="mm-val" style="color:#f59e0b;">'+(c.rating||'-')+'</div><div class="mm-sub">Client feedback</div></div>'+
         '<div class="mini-metric"><div class="mm-label">Invoiced</div><div class="mm-val" style="font-size:.95rem;">'+c.exp+'</div><div class="mm-sub">Period total</div></div>'+
       '</div><div class="dp-sec">Service Requests</div>';
 

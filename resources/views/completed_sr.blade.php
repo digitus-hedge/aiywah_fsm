@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Completed SRs — Digit-Us Portal')
+@section('title', 'Completed SRs - Digit-Us Portal')
 @section('page_title', 'Completed SRs')
 @section('page_icon', 'check2-circle')
 
@@ -69,7 +69,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
   border-radius: 20px;
   font-size: .74rem;
 }
-/* Quiet, low-key styling for "within target" rows — no border, no bg,
+/* Quiet, low-key styling for "within target" rows - no border, no bg,
    just muted text so they don't visually compete with real breaches */
 .cell-dur.sla-ok {
   background: transparent;
@@ -78,7 +78,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
   font-weight: 400;
 }
 .cell-dur.sla-ok .sla-band-lbl {
-  display: none; /* hide "Within target" text entirely — the quiet style already says it */
+  display: none; /* hide "Within target" text entirely - the quiet style already says it */
 }
 
 /* Genuine breach/critical rows keep the loud badge treatment */
@@ -278,7 +278,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
               ? \Carbon\Carbon::parse($punch->punch_out_at)
               : \Carbon\Carbon::parse($sr->updated_at);
 
-            // Invoice total lives on service_requests.invoice_total — only show it
+            // Invoice total lives on service_requests.invoice_total - only show it
             // when it's actually been recorded, no fallback to punch grand_total.
             $hasInvoiceTotal = $sr->invoice_total !== null;
             $materialsAmt    = $punch->materials_subtotal ?? 0;
@@ -287,7 +287,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
             $worker          = optional($punch?->user)->name ?? 'Unassigned';
 
             // Duration computed directly from punch in/out timestamps.
-            $duration = '—';
+            $duration = '-';
             if ($punch && $punch->punch_in_at && $punch->punch_out_at) {
                 $pin  = \Carbon\Carbon::parse($punch->punch_in_at);
                 $pout = \Carbon\Carbon::parse($punch->punch_out_at);
@@ -328,32 +328,32 @@ $qc        = $qcFor($qcHrs);
             $srPayload = [
               'code'        => $srCode,
                'dbId'        => $sr->id,
-              'client'      => optional($sr->client)->company_name ?? '—',
-              'site'        => optional($sr->project)->site_name ?? '—',
+              'client'      => optional($sr->client)->company_name ?? '-',
+              'site'        => optional($sr->project)->site_name ?? '-',
               'worker'      => $worker,
-              'issue'       => $sr->issue_description ?? '—',
+              'issue'       => $sr->issue_description ?? '-',
                 'warranty'    => $isInWarranty ? 'In Warranty' : 'Out of Warranty',
 
-              // 'contact'     => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '—',
+              // 'contact'     => optional($sr->client)->primary_mobile ?? optional($sr->client)->contact_number ?? '-',
 
               'contact' => (function () use ($sr) {
     $c = $sr->client;
-    if (! $c) return '—';
+    if (! $c) return '-';
     $num = $c->primary_mobile ?? $c->contact_number ?? null;
-    if (! $num) return '—';
+    if (! $num) return '-';
     return trim(($c->primary_country ?? '') . ' ' . $num);
 })(),
-              'cust_name'   => $punch->customer_name ?? '—',
-              'summary'     => $punch->completion_summary ?? '—',
-              'punch_in'    => $punch && $punch->punch_in_at  ? \Carbon\Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A')  : '—',
-              'punch_out'   => $punch && $punch->punch_out_at ? \Carbon\Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '—',
+              'cust_name'   => $punch->customer_name ?? '-',
+              'summary'     => $punch->completion_summary ?? '-',
+              'punch_in'    => $punch && $punch->punch_in_at  ? \Carbon\Carbon::parse($punch->punch_in_at)->format('d M Y · h:i A')  : '-',
+              'punch_out'   => $punch && $punch->punch_out_at ? \Carbon\Carbon::parse($punch->punch_out_at)->format('d M Y · h:i A') : '-',
               'duration'    => $duration,
 
             
 
 
-            'qc_from'  => optional($qcFrom)->format('d M Y · h:i A') ?? '—',
-            'qc_to'    => optional($qcTo)->format('d M Y · h:i A') ?? '—',
+            'qc_from'  => optional($qcFrom)->format('d M Y · h:i A') ?? '-',
+            'qc_to'    => optional($qcTo)->format('d M Y · h:i A') ?? '-',
             'qc_hrs'   => $qcHrs,
             'qc_band'  => $qc['name'],
             'qc_color' => $qc['color'],
@@ -379,8 +379,8 @@ $qc        = $qcFor($qcHrs);
                 {{ $srCode }}
               </span>
             </td>
-            <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name ?? '—' }}</strong></td>
-            <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
+            <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name ?? '-' }}</strong></td>
+            <td class="muted">{{ optional($sr->project)->site_name ?? '-' }}</td>
             <td>
               <div class="worker-cell">
                 <span class="w-av">{{ strtoupper(\Illuminate\Support\Str::substr($worker, 0, 2)) }}</span>
@@ -393,7 +393,7 @@ $qc        = $qcFor($qcHrs);
          <td>
             @if($qcHrs === null)
               <span class="cell-dur" style="color:#8a8a8a;background:#8a8a8a1a;border:1px solid #8a8a8a55;">
-                <i class="bi bi-dash-circle"></i>—
+                <i class="bi bi-dash-circle"></i>-
               </span>
             @else
               @php
@@ -418,7 +418,7 @@ $qc        = $qcFor($qcHrs);
               @if($hasInvoiceTotal)
                 {{ number_format($invoiceAmt, 2) }}
               @else
-                <span class="muted">—</span>
+                <span class="muted">-</span>
               @endif
             </td>
             <td class="muted">{{ $completedAt->diffForHumans() }}</td>
@@ -463,8 +463,8 @@ $qc        = $qcFor($qcHrs);
     <div class="sr-modal-hdr">
       <div class="sr-modal-hdr-banner">
         <button class="sr-modal-close" onclick="closeSrModal()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
-        <div class="sr-modal-id" id="sr-m-id">—</div>
-        <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client">—</span></div>
+        <div class="sr-modal-id" id="sr-m-id">-</div>
+        <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client">-</span></div>
       </div>
     </div>
     <div class="sr-modal-body">
@@ -475,65 +475,65 @@ $qc        = $qcFor($qcHrs);
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-shield-check"></i>Warranty Scope</span>
-          <span class="sr-detail-value" id="sr-m-warranty">—</span>
+          <span class="sr-detail-value" id="sr-m-warranty">-</span>
         </div>
 
         <div class="sr-detail-divider"></div>
 
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-geo-alt"></i>Site / Location</span>
-          <span class="sr-detail-value" id="sr-m-site">—</span>
+          <span class="sr-detail-value" id="sr-m-site">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-person-workspace"></i>Worker</span>
-          <span class="sr-detail-value" id="sr-m-worker">—</span>
+          <span class="sr-detail-value" id="sr-m-worker">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-telephone"></i>Customer Contact</span>
-          <span class="sr-detail-value" id="sr-m-contact">—</span>
+          <span class="sr-detail-value" id="sr-m-contact">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-person-check"></i>Signed By</span>
-          <span class="sr-detail-value" id="sr-m-custname">—</span>
+          <span class="sr-detail-value" id="sr-m-custname">-</span>
         </div>
 
         <div class="sr-detail-item full">
           <span class="sr-detail-label"><i class="bi bi-card-text"></i>Reported Issue</span>
-          <span class="sr-detail-value muted" id="sr-m-issue">—</span>
+          <span class="sr-detail-value muted" id="sr-m-issue">-</span>
         </div>
         <div class="sr-detail-item full">
           <span class="sr-detail-label"><i class="bi bi-clipboard-check"></i>Completion Summary</span>
-          <span class="sr-detail-value muted" id="sr-m-summary">—</span>
+          <span class="sr-detail-value muted" id="sr-m-summary">-</span>
         </div>
 
         <div class="sr-detail-divider"></div>
 
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-box-arrow-in-right"></i>Punch In</span>
-          <span class="sr-detail-value muted" id="sr-m-in">—</span>
+          <span class="sr-detail-value muted" id="sr-m-in">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-box-arrow-right"></i>Punch Out</span>
-          <span class="sr-detail-value muted" id="sr-m-out">—</span>
+          <span class="sr-detail-value muted" id="sr-m-out">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-stopwatch"></i>Duration</span>
-          <span class="sr-detail-value" id="sr-m-dur">—</span>
+          <span class="sr-detail-value" id="sr-m-dur">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-calendar-check"></i>Completed</span>
-          <span class="sr-detail-value muted" id="sr-m-completed">—</span>
+          <span class="sr-detail-value muted" id="sr-m-completed">-</span>
         </div>
 
         <div class="sr-detail-divider"></div>
 
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-boxes"></i>Materials Amount</span>
-          <span class="sr-detail-value" id="sr-m-materials">—</span>
+          <span class="sr-detail-value" id="sr-m-materials">-</span>
         </div>
         <div class="sr-detail-item" id="sr-m-total-wrap">
           <span class="sr-detail-label"><i class="bi bi-cash-coin"></i>Invoice Total</span>
-          <span class="sr-detail-value" id="sr-m-total" style="font-size:1.05rem;font-weight:700;color:#059669;">—</span>
+          <span class="sr-detail-value" id="sr-m-total" style="font-size:1.05rem;font-weight:700;color:#059669;">-</span>
         </div>
 
         <div class="sr-detail-divider"></div>
@@ -569,7 +569,7 @@ $qc        = $qcFor($qcHrs);
   <div class="lb-bar">
     <div>
       <div class="lb-title" id="lb-title">Preview</div>
-      <div class="lb-file" id="lb-file">—</div>
+      <div class="lb-file" id="lb-file">-</div>
     </div>
     <div class="lb-actions">
       <a class="lb-btn gold" id="lb-download" href="#" target="_blank"><i class="bi bi-download"></i>Download</a>
@@ -612,7 +612,7 @@ function showToast(type, title, body){
 
 function _set(id, val){
   var el = document.getElementById(id);
-  if (el) el.textContent = (val === null || val === undefined || val === '') ? '—' : val;
+  if (el) el.textContent = (val === null || val === undefined || val === '') ? '-' : val;
 }
 
 // ══════════════ COMPLETION MODAL ══════════════
@@ -624,7 +624,7 @@ function openSrModal(row){
   currentSr = data;
 var idEl = document.getElementById('sr-m-id');
 if (idEl) {
-  idEl.textContent = data.code || '—';
+  idEl.textContent = data.code || '-';
   if (data.dbId) {
     idEl.classList.add('sr-ref-trigger');
     idEl.style.cursor = 'pointer';

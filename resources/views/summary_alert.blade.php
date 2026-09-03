@@ -30,6 +30,10 @@
 
 .sa-link-btn{background:none;border:none;color:#9A7B4F;font-size:.72rem;font-weight:600;cursor:pointer;padding:2px 4px;}
 .sa-link-btn:hover{text-decoration:underline;}
+
+.sa-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-left:6px;}
+.sa-status-dot.on{background:#10b981;}
+.sa-status-dot.off{background:#9ca3af;}
 </style>
 
 <div class="master-panel" id="panel-summary-alert">
@@ -76,24 +80,44 @@
           </div>
         </div>
         <div class="md-right-body">
-          <div class="info-banner green" style="margin-bottom:6px;">
-            <i class="bi bi-whatsapp"></i>
-            <span>These are the sections included in this user's daily-morning WhatsApp summary. Everything starts checked — untick anything they don't need.</span>
-          </div>
 
-          <div class="sa-days-card">
-            <div class="sa-days-hdr">
-              <span class="sa-days-title"><i class="bi bi-calendar-week"></i>&nbsp; Days to Send</span>
-              <span>
-                <button class="sa-link-btn" onclick="saDaysToggleAll(true)">All days</button>
-                <button class="sa-link-btn" onclick="saDaysToggleAll(false)">None</button>
-              </span>
-            </div>
-            <div class="sa-days-row" id="sa-days-row"><!-- rendered by JS --></div>
-          </div>
+  <div class="sa-days-card" id="sa-enable-card" style="border-color:#9A7B4F;margin-bottom:14px;">
+    <div class="sa-days-hdr">
+      <span class="sa-days-title"><i class="bi bi-power"></i>&nbsp; Summary Alerts</span>
+    </div>
+    <div class="tog-wrap" onclick="saToggleEnabled()">
+      <div class="tog-track" id="sa-enable-track"><div class="tog-thumb"></div></div>
+      <span class="tog-label" id="sa-enable-label">Disabled - no summary will be sent to this user</span>
+    </div>
+  </div>
 
-          <div id="sa-item-list"><!-- rendered by JS --></div>
-        </div>
+  <div class="info-banner green" style="margin-bottom:6px;">
+    <i class="bi bi-whatsapp"></i>
+    <span>These are the sections included in this user's daily-morning WhatsApp summary. Everything starts checked - untick anything they don't need.</span>
+  </div>
+
+  <div id="sa-configured-block" style="display:none;">
+    <div class="sa-days-card">
+      <div class="sa-days-hdr">
+        <span class="sa-days-title"><i class="bi bi-calendar-week"></i>&nbsp; Days to Send</span>
+        <span>
+          <button class="sa-link-btn" onclick="saDaysToggleAll(true)">All days</button>
+          <button class="sa-link-btn" onclick="saDaysToggleAll(false)">None</button>
+        </span>
+      </div>
+      <div class="sa-days-row" id="sa-days-row"><!-- rendered by JS --></div>
+    </div>
+
+    <div id="sa-item-list"><!-- rendered by JS --></div>
+  </div>
+
+  <div class="no-sel" id="sa-disabled-hint" style="padding:32px 16px;">
+    <div class="no-sel-icon"><i class="bi bi-toggle-off"></i></div>
+    <h6>Summary Alerts are off for this user</h6>
+    <p>Turn on the switch above to configure which days and sections they receive.</p>
+  </div>
+
+</div>
       </div>
     </div>
 
@@ -106,10 +130,8 @@
 const SA_ROLES = [
   { slug: 'admin', label: 'Admin',              icon: 'bi-shield-fill-check' },
   { slug: 'hop',   label: 'HoP',                icon: 'bi-person-badge' },
-  { slug: 'se',    label: 'Service Engineer',   icon: 'bi-truck' },
+  { slug: 'se',    label: 'Service Engineer',   icon: 'bi-person-gear' },
   { slug: 'ml',    label: 'Maintenance Lead',   icon: 'bi-tools' },
-  { slug: 'fd',    label: 'Front Desk',         icon: 'bi-telephone' },
-  { slug: 'acc',   label: 'Accounts',           icon: 'bi-cash-coin' },
 ];
 
 window.SA_ROUTES = {
@@ -186,14 +208,15 @@ async function saSelectRole(slug){
       return;
     }
     listEl.innerHTML = users.map(u => `
-      <div class="sa-user-row" id="sa-user-row-${u.id}" onclick="saSelectUser(${u.id}, '${(u.name||'').replace(/'/g,"\\'")}')">
-        <div class="sa-user-av">${saInitials(u.name)}</div>
-        <div style="flex:1;min-width:0;">
-          <div class="sa-user-name">${u.name || 'Unnamed user'}</div>
-          <div class="sa-user-sub">${u.phone || u.email || ''}</div>
-        </div>
-      </div>
-    `).join('');
+  <div class="sa-user-row" id="sa-user-row-${u.id}" onclick="saSelectUser(${u.id}, '${(u.name||'').replace(/'/g,"\\'")}')">
+    <div class="sa-user-av">${saInitials(u.name)}</div>
+    <div style="flex:1;min-width:0;">
+      <div class="sa-user-name">${u.name || 'Unnamed user'}</div>
+      <div class="sa-user-sub">${u.phone || u.email || ''}</div>
+    </div>
+    <span class="sa-status-dot ${u.summary_enabled ? 'on' : 'off'}" id="sa-status-dot-${u.id}" title="${u.summary_enabled ? 'Enabled' : 'Disabled'}"></span>
+  </div>
+`).join('');
   } catch(e) {
     listEl.innerHTML = `<div style="padding:20px;color:#ef4444;font-size:.78rem;">${e.message}</div>`;
   }
@@ -214,8 +237,11 @@ async function saSelectUser(userId, name){
 
   try {
     const r = await api(window.SA_ROUTES.permissionsByUser(userId), 'GET');
-    saItems = (r.data && r.data.items) || [];
-    saDays  = (r.data && r.data.days) || {};
+    saItems   = (r.data && r.data.items) || [];
+    saDays    = (r.data && r.data.days) || {};
+    saEnabled = !!(r.data && r.data.enabled);
+
+    updateEnabledUI();   // ← replaces the inline toggle code
     renderSaDays();
     renderSaItems();
   } catch(e) {
@@ -251,17 +277,49 @@ function saToggleAll(state){
   saItems.forEach(i => i.is_enabled = state);
   renderSaItems();
 }
+let saEnabled = false; // NEW: gates whether this user actually receives the WhatsApp send
 
+function saToggleEnabled(){
+  saEnabled = !saEnabled;
+  updateEnabledUI();
+}
+
+function updateEnabledUI(){
+  const track = document.getElementById('sa-enable-track');
+  const label = document.getElementById('sa-enable-label');
+  const configuredBlock = document.getElementById('sa-configured-block');
+  const disabledHint = document.getElementById('sa-disabled-hint');
+
+  track.classList.toggle('on', saEnabled);
+  label.textContent = saEnabled
+    ? 'Enabled - this user will receive their daily summary'
+    : 'Disabled - no summary will be sent to this user';
+
+  configuredBlock.style.display = saEnabled ? 'block' : 'none';
+  disabledHint.style.display    = saEnabled ? 'none'  : 'flex';
+}
 async function saveSummaryAlert(){
   if(!saSelectedUser){ showToast('err','No User Selected','Pick a user first.'); return; }
   const payload = {
     user_id: saSelectedUser,
     items: saItems.map(i => ({ alert_type_id: i.id, is_enabled: i.is_enabled })),
     days: saDays,
+    enabled: saEnabled,
   };
   try {
     await api(window.SA_ROUTES.save, 'POST', payload);
     showToast('ok','Saved','Summary alert preferences updated.');
+
+    // Reflect the saved state immediately - both in the checklist panel
+    // and in the user-list dot - without waiting for a re-fetch.
+    updateEnabledUI();
+
+    const dot = document.getElementById(`sa-status-dot-${saSelectedUser}`);
+    if (dot) {
+      dot.classList.toggle('on', saEnabled);
+      dot.classList.toggle('off', !saEnabled);
+      dot.title = saEnabled ? 'Enabled' : 'Disabled';
+    }
   } catch(e) {
     showToast('err','Error', e.message);
   }

@@ -29,7 +29,7 @@ class RoleSeeder extends Seeder
             [
                 'code'         => 'AD',
                 'name'         => 'Admin',
-                'tagline'      => 'Full operational control — includes all Head of Projects access plus user and system management.',
+                'tagline'      => 'Full operational control - includes all Head of Projects access plus user and system management.',
                 'icon'         => 'bi-person-gear',
                 'color'        => '#9A7B4F',
                 'bg'           => 'rgba(154,123,79,.1)',
@@ -49,7 +49,7 @@ class RoleSeeder extends Seeder
             [
                 'code'         => 'ML',
                 'name'         => 'Maintenance Lead',
-                'tagline'      => 'Field execution only — own pipeline, punch in/out, and expense logging.',
+                'tagline'      => 'Field execution only - own pipeline, punch in/out, and expense logging.',
                 'icon'         => 'bi-tools',
                 'color'        => '#10b981',
                 'bg'           => 'rgba(16,185,129,.1)',
@@ -71,7 +71,7 @@ class RoleSeeder extends Seeder
             [
                 'code'         => 'AC',
                 'name'         => 'Accounts / AR',
-                'tagline'      => 'Restricted to out-of-warranty financial flows — quotations, invoices, and expense reconciliation.',
+                'tagline'      => 'Restricted to out-of-warranty financial flows - quotations, invoices, and expense reconciliation.',
                 'icon'         => 'bi-calculator-fill',
                 'color'        => '#a8802a',
                 'bg'           => 'rgba(251,188,6,.1)',
@@ -83,7 +83,7 @@ class RoleSeeder extends Seeder
                  [
     'code'         => 'SE',
     'name'         => 'Service Engineer',
-    'tagline'      => 'Field execution only — own pipeline, punch in/out, and expense logging.',
+    'tagline'      => 'Field execution only - own pipeline, punch in/out, and expense logging.',
     'icon'         => 'bi-wrench-adjustable',
     'color'        => '#2563eb',
     'bg'           => 'rgba(37,99,235,.1)',
@@ -94,7 +94,7 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($roles as $role) {
-            // Idempotent — safe to re-run without duplicating rows.
+            // Idempotent - safe to re-run without duplicating rows.
             DB::table('roles')->updateOrInsert(
                 ['code' => $role['code']],
                 array_merge($role, [

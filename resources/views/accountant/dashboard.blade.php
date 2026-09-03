@@ -287,7 +287,7 @@ footer.footer { display: none; }
             <div class="c-label"><i class="bi bi-receipt"></i>Invoice Panel</div>
             <div class="c-sub">
                 <strong>{{ $invoiceCount ?? 0 }}</strong> {{ \Illuminate\Support\Str::plural('invoice', $invoiceCount ?? 0) }}
-                &nbsp;·&nbsp; <strong>{{ $invoiceTotalFormatted ?? '—' }}</strong> total, {{ $rangeLabel ?? 'this month' }}
+                &nbsp;·&nbsp; <strong>{{ $invoiceTotalFormatted ?? '-' }}</strong> total, {{ $rangeLabel ?? 'this month' }}
                 @if (($invoiceCount ?? 0) > count($invoiceItems))
                     <div class="c-sub-limit">Showing latest {{ count($invoiceItems) }}</div>
                 @endif
@@ -330,7 +330,7 @@ footer.footer { display: none; }
             <div class="c-label"><i class="bi bi-wallet2"></i>Expense Ledger</div>
             <div class="c-sub">
                 <strong>{{ $expenseCount ?? 0 }}</strong> {{ \Illuminate\Support\Str::plural('entry', $expenseCount ?? 0) }}
-                &nbsp;·&nbsp; <strong>{{ $expenseTotalFormatted ?? '—' }}</strong> total, {{ $rangeLabel ?? 'this month' }}
+                &nbsp;·&nbsp; <strong>{{ $expenseTotalFormatted ?? '-' }}</strong> total, {{ $rangeLabel ?? 'this month' }}
                 @if (($expenseCount ?? 0) > count($expenseItems))
                     <div class="c-sub-limit">Showing latest {{ count($expenseItems) }}</div>
                 @endif

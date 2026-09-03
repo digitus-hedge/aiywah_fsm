@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
 <style>
-/* ===== WA Notification Log — scoped page styles ===== */
+/* ===== WA Notification Log - scoped page styles ===== */
 .wa-wrap{--gold:#9a8053;--gold-2:#b8975e;
   --table-header:#f7f9fd;
   --row-ok:rgba(16,185,129,.06);--row-warn:rgba(245,158,11,.07);--row-breach:rgba(239,68,68,.07);}
@@ -134,7 +134,7 @@
     </div>
     <div class="stat-card">
       <div class="stat-icon" style="background:rgba(239,68,68,.1);"><i class="bi bi-send-x" style="color:#ef4444;"></i></div>
-      <div><div class="stat-num">{{ $stats['failed'] ?? 0 }}</div><div class="stat-lbl">Failed — Action Needed</div></div>
+      <div><div class="stat-num">{{ $stats['failed'] ?? 0 }}</div><div class="stat-lbl">Failed - Action Needed</div></div>
     </div>
     <div class="stat-card">
       <div class="stat-icon" style="background:rgba(37,99,235,.1);"><i class="bi bi-chat-dots" style="color:#3b82f6;"></i></div>

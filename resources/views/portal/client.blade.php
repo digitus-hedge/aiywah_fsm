@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#0c1a20">
-<title>{{ $client->company_name }} — Service portal</title>
+<title>{{ $client->company_name }} - Service portal</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
 <style>
@@ -13,9 +13,9 @@
     --ink:#132029; --ink-deep:#0c1a20; --ink-soft:#41535e; --muted:#78909c;
     --paper:#f3f6f7; --card:#ffffff; --line:#dde5e9; --line-soft:#e9eff2;
 
-    /* primary — petrol */
+    /* primary - petrol */
     --accent:#9a8053; --accent-deep:#9a8053; --accent-soft:#9a8053; --accent-line:#9a8053;
-    /* secondary — brass, used only for warranty + ratings */
+    /* secondary - brass, used only for warranty + ratings */
     --brass:#a97c2c; --brass-bg:#fbf2e0; --brass-line:#e0c58d;
 
     --ok:#12704a;   --ok-bg:#e4f2eb;   --ok-line:#a8d4c1;

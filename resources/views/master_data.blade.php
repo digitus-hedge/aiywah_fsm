@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Master Data Management — Digit-Us Portal')
+@section('title', 'Master Data Management - Digit-Us Portal')
 @section('page_title', 'Master Data')
 @section('page_icon', 'building')
 
@@ -261,7 +261,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
  
   <div class="pg-header">
     <h4><i class="bi bi-table me-2"></i>Master Data Management</h4>
-    <p>Configure system-wide lookup tables — service categories &amp; domains, expense categories, SR priority levels, SLA targets, and WhatsApp notification templates.</p>
+    <p>Configure system-wide lookup tables - service categories &amp; domains, expense categories, SR priority levels, SLA targets, and WhatsApp notification templates.</p>
     <div class="meta-row">
       <span class="meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
       <span class="meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
@@ -303,6 +303,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
     <button class="trb" onclick="switchTab('summary-alert')" data-tab="summary-alert">
       <i class="bi bi-whatsapp"></i>
       <span class="trb-label">Summary Alerts</span>
+      <span class="trb-count" id="cnt-summary-alert">4</span>
     </button>
   </div>
  
@@ -396,7 +397,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
               <tr>
                 <td class="muted">{{ $loop->iteration }}</td>
                 <td><strong>{{ $exp->name }}</strong></td>
-                <td class="muted">{{ $exp->description ?: '—' }}</td>
+                <td class="muted">{{ $exp->description ?: '-' }}</td>
                 <td>
                   <span class="spill {{ $exp->status ? 'spill-on' : 'spill-off' }}" id="exp-status-{{ $exp->id }}">
                     <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $exp->status ? 'Active' : 'Inactive' }}
@@ -467,7 +468,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
               <tr>
                 <td class="muted">{{ $loop->iteration }}</td>
                 <td><strong>{{ $war->name }}</strong></td>
-                <td class="muted">{{ $war->value ?: '—' }}</td>
+                <td class="muted">{{ $war->value ?: '-' }}</td>
                 <td>
                   <span class="spill {{ $war->status ? 'spill-on' : 'spill-off' }}" id="exp-status-{{ $war->id }}">
                     <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $war->status ? 'Active' : 'Inactive' }}
@@ -595,7 +596,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
     <div style="padding:14px 18px 4px;">
       <div class="info-banner blue">
         <i class="bi bi-info-circle"></i>
-        <span>Each stage clock starts when the previous one closes — <strong>Approve</strong> from SR creation, <strong>Dispatch</strong> from approval, <strong>QC</strong> from job completion. Values are whole hours (1–8760).</span>
+        <span>Each stage clock starts when the previous one closes - <strong>Approve</strong> from SR creation, <strong>Dispatch</strong> from approval, <strong>QC</strong> from job completion. Values are whole hours (1–8760).</span>
       </div>
     </div>
 
@@ -694,7 +695,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
       <div class="form-group" style="margin-bottom:0;">
         <div class="tog-wrap" onclick="toggleTog('cat-tog-track',this)">
           <div class="tog-track on" id="cat-tog-track"><div class="tog-thumb"></div></div>
-          <span class="tog-label">Active — visible to Dispatch Engine and User Provisioning</span>
+          <span class="tog-label">Active - visible to Dispatch Engine and User Provisioning</span>
         </div>
       </div>
     </div>
@@ -718,7 +719,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
     <div class="modal-body">
       <div class="info-banner blue" style="margin-bottom:14px;">
         <i class="bi bi-folder2"></i>
-        <span>Adding under category: <strong id="domain-cat-label">—</strong></span>
+        <span>Adding under category: <strong id="domain-cat-label">-</strong></span>
       </div>
       <div class="form-group">
         <label class="form-label">Domain Name <span class="req">*</span></label>
@@ -972,7 +973,7 @@ function renderCats(){
       <div class="cat-icon" style="background:${c.color}18;"><i class="bi ${c.icon}" style="color:${c.color};"></i></div>
       <div style="flex:1;min-width:0;">
         <div class="cat-name">${c.name}</div>
-        <div style="font-size:.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.desc||'—'}</div>
+        <div style="font-size:.7rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.desc||'-'}</div>
       </div>
       <span class="cat-count-badge">${c.domains.length}</span>
       <span class="cat-status-dot" style="background:${c.active?'#10b981':'#9ca3af'};"></span>
@@ -1013,7 +1014,7 @@ function renderDomains(cat){
       <div class="domain-card-icon" style="background:${cat.color}18;"><i class="bi bi-tools" style="color:${cat.color};font-size:.8rem;"></i></div>
       <div class="domain-card-body">
         <div class="domain-card-name">${d.name}</div>
-        <div class="domain-card-desc">${d.desc||'—'}</div>
+        <div class="domain-card-desc">${d.desc||'-'}</div>
         <div class="domain-card-foot">
           <span class="spill ${d.active?'spill-on':'spill-off'}" style="font-size:.65rem;padding:2px 8px;">
             <i class="bi bi-circle-fill" style="font-size:.35rem;"></i>${d.active?'Active':'Inactive'}
@@ -1036,7 +1037,7 @@ function openModal(id,mode,data){
   if(id==='modal-domain'){
     editMode.domain = (mode==='edit' && data) ? data.id : null;
     const cat=CATS.find(c=>c.id===selectedCatId);
-    document.getElementById('domain-cat-label').textContent=cat?cat.name:'—';
+    document.getElementById('domain-cat-label').textContent=cat?cat.name:'-';
     document.getElementById('modal-domain-title').textContent = mode==='edit'?'Edit Service Domain':'Add Service Domain';
     document.getElementById('dom-name').value = data?.name || '';
     document.getElementById('dom-desc').value = data?.desc || '';
@@ -1131,14 +1132,14 @@ function toggleTog(trackId,wrap){
   const t=document.getElementById(trackId);
   t.classList.toggle('on');
   const lbl=wrap.querySelector('.tog-label');
-  if(lbl && lbl.textContent.includes('Active')) lbl.textContent=t.classList.contains('on')?(trackId==='cat-tog-track'?'Active — visible to Dispatch Engine and User Provisioning':'Active'):'Inactive';
+  if(lbl && lbl.textContent.includes('Active')) lbl.textContent=t.classList.contains('on')?(trackId==='cat-tog-track'?'Active - visible to Dispatch Engine and User Provisioning':'Active'):'Inactive';
 }
 function setTog(trackId,on){
   const t=document.getElementById(trackId);
   t.classList.toggle('on', !!on);
   const lbl=t.parentElement.querySelector('.tog-label');
   if(lbl && lbl.textContent.includes('Active') || lbl && lbl.textContent.includes('Inactive'))
-    lbl.textContent = on ? (trackId==='cat-tog-track'?'Active — visible to Dispatch Engine and User Provisioning':'Active') : 'Inactive';
+    lbl.textContent = on ? (trackId==='cat-tog-track'?'Active - visible to Dispatch Engine and User Provisioning':'Active') : 'Inactive';
 }
  
 /* ─── SAVE CATEGORY (create OR update) ─── */

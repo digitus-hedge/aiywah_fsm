@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'SR Registration — Digit-Us Portal')
+@section('title', 'SR Registration - Digit-Us Portal')
 @section('page_title', 'SR Registration')
 @section('page_icon', 'building-add')
 
@@ -1092,7 +1092,7 @@ body.modal-open .topbar { pointer-events: none; }
             </div>
             <div>
               <h6>Customer Verification</h6>
-              <span class="fc-sub">Search by customer name, code or mobile — details load automatically</span>
+              <span class="fc-sub">Search by customer name, code or mobile - details load automatically</span>
             </div>
             <div class="fc-step" style="background:#9A7B4F;">1</div>
           </div>
@@ -1120,10 +1120,10 @@ body.modal-open .topbar { pointer-events: none; }
                 <input type="hidden" id="customerId" name="customer_id" />
                 <input type="hidden" id="customerName" name="customer_name" />
                 <div class="client-reveal" id="clientReveal">
-                  <div><span class="ci-lbl">Customer Name</span><span class="ci-val" id="cName">—</span></div>
-                  <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">—</span></div>
-                  <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">—</span></div>
-                  <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">—</span></div>
+                  <div><span class="ci-lbl">Customer Name</span><span class="ci-val" id="cName">-</span></div>
+                  <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">-</span></div>
+                  <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">-</span></div>
+                  <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">-</span></div>
                 </div>
               </div>
 
@@ -1133,7 +1133,7 @@ body.modal-open .topbar { pointer-events: none; }
                 <div class="iw">
                   <span class="ii"><i class="bi bi-folder2-open"></i></span>
                   <select class="form-select" id="projSel" name="project_id" disabled onchange="onProject(this.value)">
-                    <option value="">— Select project —</option>
+                    <option value="">- Select project -</option>
                   </select>
                 </div>
                 <div class="form-hint"><i class="bi bi-info-circle"></i>All projects for the customer load after verification</div>
@@ -1177,7 +1177,7 @@ body.modal-open .topbar { pointer-events: none; }
 
                   <select class="form-select" id="svcType" name="service_type_id"
                     onchange="pv('pvType', this.options[this.selectedIndex].text)">
-                    <option value="">— Select Category —</option>
+                    <option value="">- Select Category -</option>
 
                     @foreach($categories as $category)
                     <option value="{{ $category->id }}">
@@ -1290,7 +1290,7 @@ body.modal-open .topbar { pointer-events: none; }
             <!-- <div>
               <label class="form-label">Internal Remark <span class="opt">(Optional)</span></label>
               <textarea class="form-control" id="remark" name="internal_remark" rows="3"
-                placeholder="Notes for the service team — not visible to client..."></textarea>
+                placeholder="Notes for the service team - not visible to client..."></textarea>
               <div class="form-hint"><i class="bi bi-eye-slash"></i>Not shared with client</div>
             </div> -->
 
@@ -1326,27 +1326,27 @@ body.modal-open .topbar { pointer-events: none; }
               <span class="ms-auto rp-badge" style="background:rgba(251,188,6,.12);color:#b88b00;">● Draft</span>
             </div>
             <div class="rp-body">
-              <div class="pv-row"><span class="pv-k">Customer</span><span class="pv-v" id="pvCode">—</span></div>
-              <div class="pv-row"><span class="pv-k">Project</span><span class="pv-v" id="pvProject">—</span></div>
-              <div class="pv-row"><span class="pv-k">Site</span><span class="pv-v" id="pvSite">—</span></div>
+              <div class="pv-row"><span class="pv-k">Customer</span><span class="pv-v" id="pvCode">-</span></div>
+              <div class="pv-row"><span class="pv-k">Project</span><span class="pv-v" id="pvProject">-</span></div>
+              <div class="pv-row"><span class="pv-k">Site</span><span class="pv-v" id="pvSite">-</span></div>
               <hr class="rp-hr">
-              <div class="pv-row"><span class="pv-k">Type</span><span class="pv-v" id="pvType">—</span></div>
-              <div class="pv-row"><span class="pv-k">Reporter</span><span class="pv-v" id="pvReporter">—</span></div>
-              <div class="pv-row"><span class="pv-k">Priority</span><span class="pv-v" id="pvPriority">—</span></div>
+              <div class="pv-row"><span class="pv-k">Type</span><span class="pv-v" id="pvType">-</span></div>
+              <div class="pv-row"><span class="pv-k">Reporter</span><span class="pv-v" id="pvReporter">-</span></div>
+              <div class="pv-row"><span class="pv-k">Priority</span><span class="pv-v" id="pvPriority">-</span></div>
               <hr class="rp-hr">
               <div class="pv-row"><span class="pv-k">Files</span><span class="pv-v" id="pvFiles">0 files</span></div>
-              <div class="pv-row" style="margin:0;"><span class="pv-k">Description</span><span class="pv-v" id="pvDesc">—</span></div>
+              <div class="pv-row" style="margin:0;"><span class="pv-k">Description</span><span class="pv-v" id="pvDesc">-</span></div>
             </div>
           </div>
 
           {{-- RIGHT CARD 2 · Tips --}}
           <div class="tips-card">
             <div class="tips-lbl">How to fill this form</div>
-            <div class="tip"><i class="bi bi-1-circle-fill"></i>Search the customer by name, code or mobile — details load automatically.</div>
-            <div class="tip"><i class="bi bi-2-circle-fill"></i>Select a project — the site auto-fills.</div>
+            <div class="tip"><i class="bi bi-1-circle-fill"></i>Search the customer by name, code or mobile - details load automatically.</div>
+            <div class="tip"><i class="bi bi-2-circle-fill"></i>Select a project - the site auto-fills.</div>
             <div class="tip"><i class="bi bi-3-circle-fill"></i>Pick a service type, add the reporter name, and set priority.</div>
             <div class="tip"><i class="bi bi-4-circle-fill"></i>Write a clear description (min 20 characters).</div>
-            <div class="tip"><i class="bi bi-5-circle-fill"></i>Attach photos or PDFs if needed — up to 10 MB each.</div>
+            <div class="tip"><i class="bi bi-5-circle-fill"></i>Attach photos or PDFs if needed - up to 10 MB each.</div>
           </div>
 
           {{-- RIGHT CARD 3 · Attachments --}}
@@ -1540,11 +1540,11 @@ function fillReporters(contacts) {
     sel.appendChild(o);
   });
   document.getElementById('addCtBtn').disabled = false;
-  pv('pvReporter', '—');
+  pv('pvReporter', '-');
 }
 
 function onReporterChange(sel) {
-  pv('pvReporter', sel.value || '—');
+  pv('pvReporter', sel.value || '-');
 }
 
   let lastVerifiedTerm = null;
@@ -1562,9 +1562,9 @@ function onReporterChange(sel) {
   document.getElementById('customerName').value = '';
   resetSel('projSel', 'project');
   document.getElementById('siteField').value = '';
-  pv('pvCode', '—');
-  pv('pvProject', '—');
-  pv('pvSite', '—');
+  pv('pvCode', '-');
+  pv('pvProject', '-');
+  pv('pvSite', '-');
   setAlert('warning', '⏳ Search by customer name, code or mobile.');
 
   lastVerifiedTerm = null;
@@ -1590,7 +1590,7 @@ async function verify(val) {
       return;
     }
 
-    // Already verified this exact value — don't re-run or re-toast
+    // Already verified this exact value - don't re-run or re-toast
     if (term === lastVerifiedTerm) return;
 
     try {
@@ -1614,14 +1614,14 @@ async function verify(val) {
         const box = document.getElementById('clientReveal');
         box.style.gridTemplateColumns = '';   // back to the 4-column grid
         box.innerHTML = `
-          <div><span class="ci-lbl">Customer Name</span><span class="ci-val" id="cName">—</span></div>
-          <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">—</span></div>
-          <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">—</span></div>
-          <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">—</span></div>`;
-        document.getElementById('cName').textContent = c.name ?? '—';
-        document.getElementById('cStatus').textContent = c.status ?? '—';
-        document.getElementById('cFlag').textContent = c.flag ?? '—';
-        document.getElementById('cContact').textContent = c.contact ?? '—';
+          <div><span class="ci-lbl">Customer Name</span><span class="ci-val" id="cName">-</span></div>
+          <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">-</span></div>
+          <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">-</span></div>
+          <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">-</span></div>`;
+        document.getElementById('cName').textContent = c.name ?? '-';
+        document.getElementById('cStatus').textContent = c.status ?? '-';
+        document.getElementById('cFlag').textContent = c.flag ?? '-';
+        document.getElementById('cContact').textContent = c.contact ?? '-';
         document.getElementById('customerId').value = c.id ?? '';
         document.getElementById('customerName').value = c.name ?? '';
         window.__clientId = c.id;
@@ -1631,7 +1631,7 @@ async function verify(val) {
 
 
         const ps = document.getElementById('projSel');
-        ps.innerHTML = '<option value="">— Select project —</option>';
+        ps.innerHTML = '<option value="">- Select project -</option>';
 
         // Normalize to an array of { id, name, sites }
         let raw = c.projects || [];
@@ -1653,10 +1653,10 @@ async function verify(val) {
         ps.disabled = false;
 
         document.getElementById('siteField').value = '';
-        pv('pvSite', '—');
+        pv('pvSite', '-');
 
         pv('pvCode', c.name ?? term);
-        setAlert('success', `✅ Verified: <strong>${c.name}</strong> — select a project to continue.`);
+        setAlert('success', `✅ Verified: <strong>${c.name}</strong> - select a project to continue.`);
         toast('success', 'Customer Verified', c.name);
       } else {
         lastVerifiedTerm = null;
@@ -1687,7 +1687,7 @@ async function verify(val) {
       box.appendChild(row);
     });
     box.classList.add('show');
-    setAlert('primary', `ℹ️ ${list.length} matches — click the customer you want.`);
+    setAlert('primary', `ℹ️ ${list.length} matches - click the customer you want.`);
   }
 
   /* Click a match → fill the input with the name, then verify it */
@@ -1704,16 +1704,16 @@ async function verify(val) {
   function onProject(val) {
   const projects = window.__projects || [];
   const proj = projects.find(p => String(p.id) === String(val));
-  pv('pvProject', proj ? proj.name : '—');
+  pv('pvProject', proj ? proj.name : '-');
   const sites = proj && proj.sites ? proj.sites : [];
   const firstSite = sites.length ? sites[0] : '';
   document.getElementById('siteField').value = firstSite;   // auto-fill first site (read-only)
-  pv('pvSite', firstSite || '—');
+  pv('pvSite', firstSite || '-');
 }
 
   function resetSel(id, lbl) {
     const el = document.getElementById(id);
-    el.innerHTML = `<option value="">— Select ${lbl} —</option>`;
+    el.innerHTML = `<option value="">- Select ${lbl} -</option>`;
     el.disabled = true;
   }
 
@@ -1731,7 +1731,7 @@ async function verify(val) {
     const cc = document.getElementById('ccCount');
     cc.textContent = len < 20 ? `${len} / 20` : `${len} ✓`;
     cc.className = 'cc ' + (len < 20 ? 'warn' : 'ok');
-    pv('pvDesc', len > 0 ? el.value.substring(0, 28) + (len > 28 ? '…' : '') : '—');
+    pv('pvDesc', len > 0 ? el.value.substring(0, 28) + (len > 28 ? '…' : '') : '-');
   }
 
   /* ── Files ── */
@@ -1875,7 +1875,7 @@ async function verify(val) {
       if (!res.ok) throw new Error('Server error ' + res.status);
 
       const data = await res.json(); // expected: { sr_reference: "SR-2025-00001" }
-      document.getElementById('srIdOut').textContent = data.sr_reference || '—';
+      document.getElementById('srIdOut').textContent = data.sr_reference || '-';
       document.getElementById('srOverlay').classList.add('show');
     } catch (e) {
       toast('error', 'Save Failed', e.message || 'Could not save the request.');
@@ -1909,7 +1909,7 @@ function goHub() {
   function newTicket() {
     document.getElementById('srOverlay').classList.remove('show');
     clearAll();
-    toast('primary', 'Ready', 'Form cleared — register a new SR.');
+    toast('primary', 'Ready', 'Form cleared - register a new SR.');
   }
 
 
@@ -1932,7 +1932,7 @@ function goHub() {
     document.querySelectorAll('#prGroup .pr-pill').forEach(p => p.classList.remove('on'));
     uploads = [];
     renderFiles();
-    ['pvCode', 'pvProject', 'pvSite', 'pvType', 'pvReporter', 'pvPriority', 'pvDesc'].forEach(id => pv(id, '—'));
+    ['pvCode', 'pvProject', 'pvSite', 'pvType', 'pvReporter', 'pvPriority', 'pvDesc'].forEach(id => pv(id, '-'));
     pv('pvFiles', '0 files');
     setAlert('warning', '⏳ Search a customer to begin.');
   }

@@ -9,7 +9,7 @@ class UserAlertSchedule extends Model
     public const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
     protected $fillable = [
-        'user_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+        'user_id','is_enabled', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
     ];
 
     protected $casts = [

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Mail;
 /**
  * All service-request notifications, keyed by event.
  *
- * Replaces SendSrCreatedNotifications — the 'created' event behaves exactly as
+ * Replaces SendSrCreatedNotifications - the 'created' event behaves exactly as
  * that class did, so the only change at the call site is the class name.
  *
  * Engineer recipients are NOT resolved here. WhatsAppService::internalRecipients()
@@ -56,7 +56,7 @@ class SendSrNotifications implements ShouldQueue
         public int $srId,
         public string $event = self::CREATED,
         public ?string $ref = null,
-        public ?string $actor = null,
+        public \App\Models\User|string|null $actor = null,
     ) {}
 
     public function handle(WhatsAppService $wa): void
@@ -194,7 +194,7 @@ class SendSrNotifications implements ShouldQueue
             Mail::to($to)->send(new \App\Mail\TechnicianAssignedMail($sr, $ref))
         );
     } else {
-        Log::warning('Tech-assigned mail skipped — client has no email', ['sr_id' => $this->srId]);
+        Log::warning('Tech-assigned mail skipped - client has no email', ['sr_id' => $this->srId]);
     }
 
     // The Maintenance Lead doing the work
@@ -203,11 +203,11 @@ class SendSrNotifications implements ShouldQueue
             Mail::to($techEmail)->send(new \App\Mail\TechnicianAssignedMail($sr, $ref, true))
         );
     } else {
-        Log::warning('Tech-assigned mail skipped — ML has no email', ['sr_id' => $this->srId]);
+        Log::warning('Tech-assigned mail skipped - ML has no email', ['sr_id' => $this->srId]);
     }
 
     $this->safely('wa.dispatched', function () use ($wa, $sr) {
-        $wa->notifyServiceStatus($sr, 'Technician Assigned — awaiting confirmation'); // customer  → status_change
+        $wa->notifyServiceStatus($sr, 'Technician Assigned - awaiting confirmation'); // customer  → status_change
         $wa->notifyMlJobAssigned($sr);               // ML        → ml_job_assigned
         $wa->notifyInternalTechnicianAssigned($sr);  // SA/HP/SE/PE → internal_technician_assigned
     });
@@ -226,7 +226,7 @@ class SendSrNotifications implements ShouldQueue
             Mail::to($to)->send(new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink))
         );
     } else {
-        Log::warning('Completion mail skipped — client has no email', ['sr_id' => $this->srId]);
+        Log::warning('Completion mail skipped - client has no email', ['sr_id' => $this->srId]);
     }
 
     $this->safely('wa.completed.customer', fn() =>
@@ -247,12 +247,13 @@ private function visitScheduled(WhatsAppService $wa, ServiceRequest $sr): void
         $wa->notifyTechnicianAssigned($sr);        // customer  → technician_assigned
         $wa->notifyInternalVisitScheduled($sr);    // SA/HP/SE/PE → internal_visit_scheduled
     });
+    
 }
 private function qcSubmitted(WhatsAppService $wa, ServiceRequest $sr): void
 {
     $this->safely('wa.qc_submitted', function () use ($wa, $sr) {
-        $wa->notifyServiceStatus($sr, 'QC Review');                                   // customer
-        $wa->notifyInternalStatusChange($sr, 'QC Review', optional($sr->assignedUser)->name); // internal
+        $wa->notifyServiceStatus($sr, 'QC Review');
+        $wa->notifyInternalStatusChange($sr, 'QC Review', $sr->assignedUser); // was: optional($sr->assignedUser)->name
     });
 }
 private function maintenanceStarted(WhatsAppService $wa, ServiceRequest $sr): void

@@ -283,7 +283,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
     <div class="kpi k-blue" onclick="openSheet('open')">
       <div class="kpi-ico ki-blue">📂</div>
       <div class="kpi-val kv-blue">{{ $data['kpis']['open']['value'] }}</div>
-      <div class="kpi-lbl">Open — Carried</div>
+      <div class="kpi-lbl">Open - Carried</div>
       <div class="kpi-sub">{{ $data['kpis']['open']['sub'] }}</div>
       <div class="kpi-more">View breakdown ›</div>
     </div>
@@ -314,7 +314,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
   @if($data['enabled']['admin_logged'] ?? true)
     <div class="card" onclick="openSheet('logged')">
       <div class="card-top">
-        <div class="card-title">SRs Logged — Split</div>
+        <div class="card-title">SRs Logged - Split</div>
         <div class="card-more-btn">View all ›</div>
       </div>
       <div class="donut-wrap" style="height:180px;">
@@ -325,8 +325,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
         </div>
       </div>
       <div class="legend">
-        <div class="leg-item"><div class="leg-dot" style="background:#4a8a6a;"></div>In-Warranty — {{ $data['logged_split']['in_warranty'] }}</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#e8a030;"></div>Warranty Expired — {{ $data['logged_split']['warranty_expired'] }}</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#4a8a6a;"></div>In-Warranty - {{ $data['logged_split']['in_warranty'] }}</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#e8a030;"></div>Warranty Expired - {{ $data['logged_split']['warranty_expired'] }}</div>
       </div>
     </div>
   @endif
@@ -462,7 +462,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
 
 </div>
 
-<!-- CTA — no dashboard access without logging in, so this always sends to /login -->
+<!-- CTA - no dashboard access without logging in, so this always sends to /login -->
 <div class="cta-wrap">
   <a class="cta-btn" href="{{ $loginUrl }}">Open Portal Dashboard →</a>
 </div>
@@ -551,6 +551,7 @@ var SHEET_COLUMNS = {
   hours:     ['ML','Hours','Jobs Done','Expenses','Status'],
   expenses:  ['SR ID','ML','Category','Amount','Receipt'],
   cancelled: ['SR ID','Client','Category','Reason','Logged By'],
+  open:      ['Status Group','Statuses Included','SR Count'],
 };
 
 function renderGenericTable(key){

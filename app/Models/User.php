@@ -87,7 +87,7 @@ class User extends Authenticatable
         $parts = preg_split('/\s+/', trim((string) $this->name));
         $first = mb_substr($parts[0] ?? '', 0, 1);
         $last  = count($parts) > 1 ? mb_substr(end($parts), 0, 1) : '';
-        return mb_strtoupper($first . $last) ?: '—';
+        return mb_strtoupper($first . $last) ?: '-';
     }
 
     // "Trade" label derived from the worker's service domains

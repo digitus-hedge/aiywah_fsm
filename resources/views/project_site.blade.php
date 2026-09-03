@@ -701,7 +701,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
     font-weight: 500;
   }
 
-  /* Hide Laravel's built-in "Showing X to Y of Z results" text —
+  /* Hide Laravel's built-in "Showing X to Y of Z results" text -
      keep only our own .cd-page-info text on the left */
   .cd-pager p {
     display: none;
@@ -926,7 +926,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
   inset: 0;
   background: rgba(15, 23, 42, .6);
   backdrop-filter: blur(6px);
-  z-index: 1100;          /* was 900 — now above sidebar's 1000 */
+  z-index: 1100;          /* was 900 - now above sidebar's 1000 */
   align-items: flex-start;
   justify-content: center;
   padding: 40px 16px 24px;
@@ -1403,7 +1403,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
   position: fixed;
   inset: 0;
   background: var(--overlay-bg);
-  z-index: 1100;            /* was 1000 — match modal-overlay */
+  z-index: 1100;            /* was 1000 - match modal-overlay */
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(3px);
@@ -1695,7 +1695,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
               <div style="display:flex;align-items:center;gap:7px;">
                 <div style="width:22px;height:22px;border-radius:5px;background:#9A7B4F;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;color:#fff;">{{ strtoupper(substr(optional($cl)->company_name ?? '?',0,1)) }}</div>
                 <div>
-                  <div style="font-size:.8rem;font-weight:500;">{{ optional($cl)->company_name ?? '—' }}</div>
+                  <div style="font-size:.8rem;font-weight:500;">{{ optional($cl)->company_name ?? '-' }}</div>
                   <div style="font-size:.7rem;color:var(--text-muted);">{{ optional($cl)->unique_code }}</div>
                 </div>
               </div>
@@ -1862,7 +1862,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
     <label class="form-label">Engineer Contact</label>
     <div style="display:grid;grid-template-columns:112px 1fr;gap:6px;align-items:center;">
       <select class="form-control" id="proj-engineer-country" style="min-width:0;padding-left:8px;padding-right:6px;">
-        <option value="">— Code —</option>
+        <option value="">- Code -</option>
         <option value="+971" selected>UAE +971</option>
         <option value="+91">India +91</option>
         <option value="+1">USA +1</option>
@@ -1903,7 +1903,7 @@ Project &amp; Site<span class="hide-mobile"> Directory</span>
               <div class="tog-track on" id="status-tog">
                 <div class="tog-thumb"></div>
               </div>
-              <span class="tog-label">Active — project visible across SR Registration and Dispatch</span>
+              <span class="tog-label">Active - project visible across SR Registration and Dispatch</span>
             </div>
           </div>
         </div>
@@ -2165,7 +2165,7 @@ $clientsJs = $clients->map(fn($c) => [
     const t = document.getElementById(trackId);
     t.classList.toggle('on');
     const lbl = wrap.querySelector('.tog-label');
-    if (lbl) lbl.textContent = t.classList.contains('on') ? 'Active — project visible across SR Registration and Dispatch' : 'Inactive — hidden from SR Registration';
+    if (lbl) lbl.textContent = t.classList.contains('on') ? 'Active - project visible across SR Registration and Dispatch' : 'Inactive - hidden from SR Registration';
   }
 
   function enableSaveBtn() {
@@ -2222,7 +2222,7 @@ $clientsJs = $clients->map(fn($c) => [
   }
   
 
-  // optional field — warn, but allow proceeding
+  // optional field - warn, but allow proceeding
   if (!payload.project_engineer) {
     if (typeof Swal === 'undefined') {
       if (confirm('Project engineer field is empty.\n\nDo you want to proceed?')) doSaveProject(payload);

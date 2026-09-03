@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
 <style>
-/* ===== Analytics Dashboard — scoped page styles ===== */
+/* ===== Analytics Dashboard - scoped page styles ===== */
 .an-wrap{--gold:#9a8053;--gold-2:#b8975e;--grid-line:#eef1f7;--track:#eef1f7;}
 [data-bs-theme="dark"] .an-wrap{--grid-line:#302f2e;--track:#302f2e;}
 .an-wrap h4,.an-wrap h5,.an-wrap h6,.an-wrap .pg-hdr-title,.an-wrap .stat-num,
@@ -164,7 +164,7 @@
   {{-- PAGE HEADER --}}
   <div class="pg-header">
     <h4 class="pg-hdr-title"><i class="bi bi-bar-chart-line me-2"></i>Analytics &amp; Performance Intelligence</h4>
-    <p class="pg-hdr-desc">Executive monitoring station — system throughput, SLA health, technician performance, and financial reconciliation across the service lifecycle. Click any chart segment to drill into the filtered SR view.</p>
+    <p class="pg-hdr-desc">Executive monitoring station - system throughput, SLA health, technician performance, and financial reconciliation across the service lifecycle. Click any chart segment to drill into the filtered SR view.</p>
     <div class="pg-hdr-meta">
       <span class="meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
       <span class="meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
@@ -290,7 +290,7 @@
     <div class="card">
       <div class="card-hdr"><div class="card-hdr-left">
         <div class="card-hdr-ico" style="background:rgba(124,58,237,.1);"><i class="bi bi-funnel" style="color:#7c3aed;"></i></div>
-        <div><div class="card-title">Lifecycle Stage Duration</div><div class="card-sub">Avg time spent per stage — spot the bottleneck</div></div>
+        <div><div class="card-title">Lifecycle Stage Duration</div><div class="card-sub">Avg time spent per stage - spot the bottleneck</div></div>
       </div></div>
       <div class="card-body" id="funnelChart"></div>
     </div>
@@ -345,7 +345,7 @@
     <div class="card">
       <div class="card-hdr"><div class="card-hdr-left">
         <div class="card-hdr-ico" style="background:rgba(37,99,235,.1);"><i class="bi bi-bezier2" style="color:#2563eb;"></i></div>
-        <div><div class="card-title">Skill Domain — Demand vs Supply</div><div class="card-sub">Open tickets vs available technicians per domain</div></div>
+        <div><div class="card-title">Skill Domain - Demand vs Supply</div><div class="card-sub">Open tickets vs available technicians per domain</div></div>
       </div></div>
       <div class="card-body">
         <div id="domainChart"></div>
@@ -436,7 +436,7 @@
 @push('scripts')
 <script>
 /* =========================================================
-   Analytics Dashboard — page scripts
+   Analytics Dashboard - page scripts
    NOTE: DATA is server-provided. Connect to DB later, e.g.:
    var DATA = @json($data ?? []);
    The ?? {} default below keeps every chart from erroring

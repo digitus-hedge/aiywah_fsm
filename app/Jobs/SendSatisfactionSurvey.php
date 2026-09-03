@@ -34,7 +34,7 @@ class SendSatisfactionSurvey implements ShouldQueue
 
         // The SR may have gone back to rework/hold since the job was queued.
         if (!in_array($sr->status, ['Completed', 'Pending Invoice', 'Invoice Submitted'], true)) {
-            Log::info('Survey skipped — SR no longer completed', [
+            Log::info('Survey skipped - SR no longer completed', [
                 'sr_id'  => $sr->id,
                 'status' => $sr->status,
             ]);
@@ -57,7 +57,7 @@ class SendSatisfactionSurvey implements ShouldQueue
                 Mail::to($to)->send(new SatisfactionSurveyMail($sr, $ref, $link));
                 Log::info('Survey mail sent', ['sr_id' => $sr->id, 'to' => $to]);
             } else {
-                Log::warning('Survey mail skipped — client has no email', ['sr_id' => $sr->id]);
+                Log::warning('Survey mail skipped - client has no email', ['sr_id' => $sr->id]);
             }
         } catch (\Throwable $e) {
             Log::error('Survey mail failed', [
@@ -73,7 +73,7 @@ class SendSatisfactionSurvey implements ShouldQueue
             ->exists();
 
         if ($already) {
-            Log::info('Survey WhatsApp skipped — already sent', ['sr_id' => $sr->id]);
+            Log::info('Survey WhatsApp skipped - already sent', ['sr_id' => $sr->id]);
             return;
         }
 

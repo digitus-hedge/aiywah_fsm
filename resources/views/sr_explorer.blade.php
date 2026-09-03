@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'SR Explorer — Digit-Us Portal')
+@section('title', 'SR Explorer - Digit-Us Portal')
 @section('page_title', 'SR Explorer')
 @section('page_icon', 'clipboard-check')
 
@@ -249,7 +249,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 @section('content')
 
 <div class="pg-header" style="background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);">
-  <h4><i class="bi bi-ticket-detailed me-2"></i>SR Explorer — Service Request Listing</h4>
+  <h4><i class="bi bi-ticket-detailed me-2"></i>SR Explorer - Service Request Listing</h4>
   <p>Centralised grid for monitoring, filtering and drilling into service tickets across their full lifecycle.</p>
   <div class="meta-row">
     <span class="meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
@@ -262,7 +262,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 
 <div id="rls-banner" class="rls-banner" style="display:none;">
   <i class="bi bi-funnel-fill"></i>
-  <span id="rls-msg">Row-level filter active — showing filtered view.</span>
+  <span id="rls-msg">Row-level filter active - showing filtered view.</span>
 </div>
 
 <div class="stats-strip">
@@ -396,10 +396,10 @@ $srPayload = [
   'code'      => $srCode,
   'status'    => $sr->status,
   'badge'     => $badge,
-  'client'    => optional($sr->client)->company_name ?? '—',
-  'site'      => optional($sr->project)->site_name ?? '—',
+  'client'    => optional($sr->client)->company_name ?? '-',
+  'site'      => optional($sr->project)->site_name ?? '-',
   'assigned'  => $sr->assignedUser->name ?? 'Unassigned',
-  'issue'     => $sr->issue_description ?? '—',
+  'issue'     => $sr->issue_description ?? '-',
 'warranty' => ($sr->project
                 && $sr->project->warranty_end_date
                 && \Carbon\Carbon::parse($sr->project->warranty_end_date)->endOfDay()->isFuture())
@@ -407,15 +407,15 @@ $srPayload = [
                     : 'Out of Warranty',
 'contact' => (function () use ($sr) {
     $c = $sr->client;
-    if (! $c) return '—';
+    if (! $c) return '-';
     $num = $c->primary_mobile ?? $c->contact_number ?? null;
-    if (! $num) return '—';
+    if (! $num) return '-';
     return trim(($c->primary_country ?? '') . ' ' . $num);
 })(),
   'created'   => \Carbon\Carbon::parse($sr->created_at)->format('d M Y · h:i A'),
   'created_h' => \Carbon\Carbon::parse($sr->created_at)->diffForHumans(),
-  'updated'   => $sr->updated_at ? \Carbon\Carbon::parse($sr->updated_at)->diffForHumans() : '—',
-  'contact_person'     => $sr->reported_by ?? '—',
+  'updated'   => $sr->updated_at ? \Carbon\Carbon::parse($sr->updated_at)->diffForHumans() : '-',
+  'contact_person'     => $sr->reported_by ?? '-',
   'files'     => $srFiles,
   'files_n'   => count($srFiles),
 ];
@@ -429,7 +429,7 @@ $srPayload = [
               </span>
             </td>
             <td><strong style="font-size:.82rem">{{ optional($sr->client)->company_name }}</strong></td>
-           <td class="muted">{{ optional($sr->project)->site_name ?? '—' }}</td>
+           <td class="muted">{{ optional($sr->project)->site_name ?? '-' }}</td>
 
             <td>
               @if($sr->assignedUser){{ $sr->assignedUser->name }}
@@ -437,7 +437,7 @@ $srPayload = [
             </td>
 
 
-              <td>{{ optional($sr->category)->category_name ?? '—' }}</td>
+              <td>{{ optional($sr->category)->category_name ?? '-' }}</td>
 
               
             <td>
@@ -495,52 +495,52 @@ $srPayload = [
     <div class="sr-modal-hdr">
       <div class="sr-modal-hdr-banner">
         <button class="sr-modal-close" onclick="closeSrModal()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
-        <div class="sr-modal-id" id="sr-m-id">—</div>
-        <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client" style="font-size: 15px;">—</span></div>
+        <div class="sr-modal-id" id="sr-m-id">-</div>
+        <div class="sr-modal-client"><i class="bi bi-building"></i><span id="sr-m-client" style="font-size: 15px;">-</span></div>
       </div>
     </div>
     <div class="sr-modal-body">
       <div class="sr-detail-grid">
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-flag"></i>Status</span>
-          <span class="sr-detail-value" id="sr-m-status">—</span>
+          <span class="sr-detail-value" id="sr-m-status">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-shield-check"></i>Warranty Scope</span>
-          <span class="sr-detail-value" id="sr-m-warranty">—</span>
+          <span class="sr-detail-value" id="sr-m-warranty">-</span>
         </div>
 
         <div class="sr-detail-divider"></div>
 
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-geo-alt"></i>Site / Location</span>
-          <span class="sr-detail-value" id="sr-m-site">—</span>
+          <span class="sr-detail-value" id="sr-m-site">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-person-workspace"></i>Assigned To</span>
-          <span class="sr-detail-value" id="sr-m-assigned">—</span>
+          <span class="sr-detail-value" id="sr-m-assigned">-</span>
         </div>
 
         
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-telephone"></i>Customer Contact</span>
-          <span class="sr-detail-value" id="sr-m-contact">—</span>
+          <span class="sr-detail-value" id="sr-m-contact">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-clock-history"></i>Last Updated</span>
-          <span class="sr-detail-value muted" id="sr-m-updated">—</span>
+          <span class="sr-detail-value muted" id="sr-m-updated">-</span>
         </div>
 
 
           <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-card-text"></i>Contact Person</span>
-          <span class="sr-detail-value muted" id="sr-m-person">—</span>
+          <span class="sr-detail-value muted" id="sr-m-person">-</span>
         </div>
 
 
           <div class="sr-detail-item full" style="text-align: justify;">
           <span class="sr-detail-label"><i class="bi bi-card-text"></i>Reported Issue</span>
-          <span class="sr-detail-value muted" id="sr-m-issue">—</span>
+          <span class="sr-detail-value muted" id="sr-m-issue">-</span>
         </div>
 
 
@@ -555,11 +555,11 @@ $srPayload = [
 
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-calendar-plus"></i>Created On</span>
-          <span class="sr-detail-value" id="sr-m-created">—</span>
+          <span class="sr-detail-value" id="sr-m-created">-</span>
         </div>
         <div class="sr-detail-item">
           <span class="sr-detail-label"><i class="bi bi-hourglass-split"></i>Age</span>
-          <span class="sr-detail-value muted" id="sr-m-created-h">—</span>
+          <span class="sr-detail-value muted" id="sr-m-created-h">-</span>
         </div>
       </div>
     </div>
@@ -622,7 +622,7 @@ function showToast(type, title, body){
 // ══════════════ SR DETAIL MODAL ══════════════
 function _set(id, val){
   var el = document.getElementById(id);
-  if (el) el.textContent = (val === null || val === undefined || val === '') ? '—' : val;
+  if (el) el.textContent = (val === null || val === undefined || val === '') ? '-' : val;
 }
 
 // Opens the modal from a <tr> that carries a data-sr JSON payload.
@@ -683,7 +683,7 @@ function esc(s){
   var statusEl = document.getElementById('sr-m-status');
   if (statusEl){
     var badge = data.badge || 'sb-pending';
-    statusEl.innerHTML = '<span class="sbadge '+badge+'"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i> '+(data.status || '—')+'</span>';
+    statusEl.innerHTML = '<span class="sbadge '+badge+'"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i> '+(data.status || '-')+'</span>';
   }
 
   var overlay = document.getElementById('srModal');

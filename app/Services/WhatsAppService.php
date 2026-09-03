@@ -79,7 +79,7 @@ public function sendTemplate($phone, $template, $lang = 'en_US', $components = [
             . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
     }
 
-    /** Collapse whitespace — Meta rejects params containing newlines or tabs. */
+    /** Collapse whitespace - Meta rejects params containing newlines or tabs. */
     private function cleanParam($value): string
     {
         return trim(preg_replace('/\s+/', ' ', (string) $value));
@@ -280,14 +280,14 @@ public function sendTemplate($phone, $template, $lang = 'en_US', $components = [
         ?string $refOverride = null
     ): void {
         if (!$client) {
-            Log::warning('WhatsApp skipped — no client', ['sr_id' => $sr?->id]);
+            Log::warning('WhatsApp skipped - no client', ['sr_id' => $sr?->id]);
             return;
         }
 
         $recipients = $this->recipients($client);
 
         if (!$recipients) {
-            Log::warning('WhatsApp skipped — no usable phone', [
+            Log::warning('WhatsApp skipped - no usable phone', [
                 'sr_id'     => $sr?->id,
                 'client_id' => $client->id ?? null,
             ]);
@@ -366,16 +366,25 @@ public function sendTemplate($phone, $template, $lang = 'en_US', $components = [
  * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer,
  * {{5}} status, {{6}} updated by, {{7}} date & time
  */
+/**
+ * Internal status-change alert → internal_status_change
+ * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer,
+ * {{5}} status, {{6}} updated by, {{7}} date & time, {{8}} phone
+ *
+ * $updatedBy accepts EITHER a User model (populates {{8}} with their
+ * phone + country code) OR a plain string name (existing call sites
+ * keep working, {{8}} just comes back 'N/A').
+ */
 public function notifyInternalStatusChange(
     \App\Models\ServiceRequest $sr,
     string $status,
-    ?string $updatedBy = null,
+    \App\Models\User|string|null $updatedBy = null,
     string $event = 'Internal - Status Update'
 ): void {
     $recipients = $this->internalRecipients($sr);
 
     if (!$recipients) {
-        Log::warning('Internal status-change alert skipped — no recipients', ['sr_id' => $sr->id]);
+        Log::warning('Internal status-change alert skipped - no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
@@ -384,23 +393,31 @@ public function notifyInternalStatusChange(
 
     $customer  = $this->cleanParam(optional($sr->client)->company_name) ?: 'N/A';
     $statusLbl = $this->cleanParam($status) ?: 'Updated';
-    $by        = $this->cleanParam($updatedBy) ?: 'System';
     $when      = now()->format('d M Y, h:i A');
+
+    if ($updatedBy instanceof \App\Models\User) {
+        $by      = $this->cleanParam($updatedBy->name) ?: 'System';
+        $byPhone = $this->formatDisplayPhone($updatedBy->country_code, $updatedBy->phone);
+    } else {
+        $by      = $this->cleanParam($updatedBy) ?: 'System';
+        $byPhone = 'N/A';
+    }
 
     $components = [[
         "type" => "body",
         "parameters" => [
-            $this->txt($c['project']),
-            $this->txt($c['location']),
-            $this->txt($c['ref']),
-            $this->txt($customer),
-            $this->txt($statusLbl),
-            $this->txt($by),
-            $this->txt($when),
+            $this->txt($c['project']),    // {{1}}
+            $this->txt($c['location']),   // {{2}}
+            $this->txt($c['ref']),        // {{3}}
+            $this->txt($customer),        // {{4}}
+            $this->txt($statusLbl),       // {{5}}
+            $this->txt($by),              // {{6}}
+            $this->txt($when),            // {{7}}
+            $this->txt($byPhone),         // {{8}}
         ],
     ]];
 
-    $preview = "Status update — {$c['ref']} | {$customer} | {$statusLbl} | by {$by}";
+    $preview = "Status update - {$c['ref']} | {$customer} | {$statusLbl} | by {$by} ({$byPhone})";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -475,7 +492,7 @@ public function notifyInternalStatusChange(
     /** Out-of-warranty → outside_warranty_quotation */
     public function notifyOutsideWarranty(
         \App\Models\ServiceRequest $sr,
-        string $event = 'Outside Warranty — Quotation'
+        string $event = 'Outside Warranty - Quotation'
     ): void {
         $this->sendWarrantyScopeMessage($sr, 'outside_warranty_quotation', $event,
             fn ($name, $c) =>
@@ -509,7 +526,7 @@ public function notifyOutsideScope(
         string $event = 'Quotation Approved'
     ): void {
         if (!$sr->quote_path) {
-            Log::warning('Quotation-approved skipped — no quote_path, falling back', ['sr_id' => $sr->id]);
+            Log::warning('Quotation-approved skipped - no quote_path, falling back', ['sr_id' => $sr->id]);
             $this->notifyServiceStatus($sr, 'Pending Invoice');
             return;
         }
@@ -582,7 +599,7 @@ public function notifyOutsideScope(
             fn ($name) =>
                 "Hi {$name}, a technician has been assigned to request {$c['ref']}. "
                 . "Project: {$c['project']} | Location: {$c['location']} | Issue: {$c['issue']}. "
-                . "Technician: {$tech['name']} ({$tech['phone']}) — visiting {$visitDate} at {$visitTime}."
+                . "Technician: {$tech['name']} ({$tech['phone']}) - visiting {$visitDate} at {$visitTime}."
         );
     }
 
@@ -621,7 +638,7 @@ public function notifyOutsideScope(
             ]],
             fn ($name) =>
                 "Hi {$name}, our technician has arrived and started work on request {$c['ref']}. "
-                . "Technician: {$tech['name']} ({$tech['phone']}) — arrived {$arrival}."
+                . "Technician: {$tech['name']} ({$tech['phone']}) - arrived {$arrival}."
         );
     }
 
@@ -669,7 +686,7 @@ public function notifyOutsideScope(
  * Button (index 0, url): the template's registered URL is a static base
  * (https://maintenance.mattermind.ae/portal/project/) plus {{1}}. Meta appends
  * whatever we send here directly onto that base, so we must send the FULL
- * remainder — code, query string, signature — not just the trailing segment,
+ * remainder - code, query string, signature - not just the trailing segment,
  * or the signed portal link loses its signature and 404s / fails validation.
  */
 public function notifyMaintenanceCompleted(
@@ -686,22 +703,22 @@ public function notifyMaintenanceCompleted(
     $out  = $punch?->punch_out_at ? Carbon::parse($punch->punch_out_at) : now();
     $link = $photosLink ?: \App\Support\PortalLink::project($sr->project, $sr);
 
-    // in notifyMaintenanceCompleted()
     $buttonValue = $this->buttonSuffix($link, config('app.url') . '/portal/project/');
-    
+
     $this->fanOut($sr, $sr->client, $event, 'maintenance_completed',
         fn ($name) => [
             [
                 "type" => "body",
                 "parameters" => [
-                    $this->txt($this->cleanParam($name) ?: 'Customer'),
-                    $this->txt($c['project']),
-                    $this->txt($c['location']),
-                    $this->txt($c['ref']),
-                    $this->txt($c['issue']),
-                    $this->txt($tech['name']),
-                    $this->txt($out->format('d M Y')),
-                    $this->txt($out->format('h:i A')),
+                    $this->txt($this->cleanParam($name) ?: 'Customer'), // {{1}}
+                    $this->txt($c['project']),                         // {{2}}
+                    $this->txt($c['location']),                        // {{3}}
+                    $this->txt($c['ref']),                             // {{4}}
+                    $this->txt($c['issue']),                           // {{5}}
+                    $this->txt($tech['name']),                         // {{6}}
+                    $this->txt($out->format('d M Y')),                 // {{7}}
+                    $this->txt($out->format('h:i A')),                 // {{8}}
+                    $this->txt($tech['phone']),                        // {{9}}
                 ],
             ],
             [
@@ -715,14 +732,14 @@ public function notifyMaintenanceCompleted(
         ],
         fn ($name) =>
             "Hi {$name}, your maintenance request {$c['ref']} has been successfully completed. "
-            . "Technician: {$tech['name']} — completed {$out->format('d M Y')} at {$out->format('h:i A')}. "
+            . "Technician: {$tech['name']} ({$tech['phone']}) - completed {$out->format('d M Y')} at {$out->format('h:i A')}. "
             . "Photos: {$link}"
     );
 }
 
     /**
      * Strip a template's static base URL from a full link, leaving exactly
-     * what Meta needs for a dynamic {{1}} button parameter — code, query
+     * what Meta needs for a dynamic {{1}} button parameter - code, query
      * string, signature all preserved. Falls back to the full link if the
      * prefix doesn't match, so a differently-shaped fallback URL still sends
      * something usable rather than nothing.
@@ -730,7 +747,7 @@ public function notifyMaintenanceCompleted(
     private function buttonSuffix(string $link, string $prefix): string
 {
     if (!str_starts_with($link, $prefix)) {
-        Log::warning('WhatsApp button URL prefix mismatch — sending full link, check for domain doubling', [
+        Log::warning('WhatsApp button URL prefix mismatch - sending full link, check for domain doubling', [
             'link'   => $link,
             'prefix' => $prefix,
         ]);
@@ -744,7 +761,7 @@ public function notifyMaintenanceCompleted(
  * Post-completion survey → satisfaction_survey
  * {{1}} name, {{2}} project, {{3}} location, {{4}} SR ref, {{5}} completion date
  * Button (index 0, url): dynamic suffix appended to the template's static
- * base (https://portal.mattermind.ae/client_feedback/) — send ONLY the
+ * base (https://portal.mattermind.ae/client_feedback/) - send ONLY the
  * feedback id, not the full link, or the button URL doubles up and 404s.
  */
     public function notifySatisfactionSurvey(
@@ -935,7 +952,7 @@ private function internalRecipients(\App\Models\ServiceRequest $sr): array
     foreach ($staff as $u) {
         $add($u->name, $u->country_code, $u->phone);
     }
-    // 4. Project engineer — stored on the project row, not a user account
+    // 4. Project engineer - stored on the project row, not a user account
     if ($sr->project?->engineer_contact) {
         $add(
             $sr->project->project_engineer ?: 'Project Engineer',
@@ -953,7 +970,7 @@ private function internalRecipients(\App\Models\ServiceRequest $sr): array
 }
 
 /**
- * Accounts / quotation-handling recipients — distinct from internalRecipients
+ * Accounts / quotation-handling recipients - distinct from internalRecipients
  * (SA/HP/PE/SE), since quote prep is a separate role, not a general FYI list.
  */
 private function accountsRecipients(): array
@@ -992,7 +1009,7 @@ private function sendInternalSrAlert(
     $recipients = $this->internalRecipients($sr);
 
     if (!$recipients) {
-        Log::warning('Internal alert skipped — no recipients resolved', [
+        Log::warning('Internal alert skipped - no recipients resolved', [
             'sr_id'    => $sr->id,
             'template' => $template,
         ]);
@@ -1021,7 +1038,7 @@ private function sendInternalSrAlert(
         ],
     ]];
 
-    $preview = "{$headline} {$c['ref']} — {$customer} | {$c['project']} | Priority: {$priority} | {$when}";
+    $preview = "{$headline} {$c['ref']} - {$customer} | {$c['project']} | Priority: {$priority} | {$when}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -1068,7 +1085,7 @@ public function notifyInternalTechnicianAssigned(
     $recipients = $this->internalRecipients($sr);
 
     if (!$recipients) {
-        Log::warning('Internal tech-assigned alert skipped — no recipients', ['sr_id' => $sr->id]);
+        Log::warning('Internal tech-assigned alert skipped - no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
@@ -1097,7 +1114,7 @@ public function notifyInternalTechnicianAssigned(
         ],
     ]];
 
-    $preview = "Technician assigned — {$c['ref']} | {$customer} | "
+    $preview = "Technician assigned - {$c['ref']} | {$customer} | "
         . "{$tech['name']} ({$tech['phone']})";
 
     foreach ($recipients as $r) {
@@ -1121,7 +1138,7 @@ public function notifyInternalMaintenanceStarted(
     $recipients = $this->internalRecipients($sr);
 
     if (!$recipients) {
-        Log::warning('Internal started alert skipped — no recipients', ['sr_id' => $sr->id]);
+        Log::warning('Internal started alert skipped - no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
@@ -1138,15 +1155,16 @@ public function notifyInternalMaintenanceStarted(
     $components = [[
         "type" => "body",
         "parameters" => [
-            $this->txt($c['project']),
-            $this->txt($c['location']),
-            $this->txt($c['ref']),
-            $this->txt($tech['name']),
-            $this->txt($arrival),
+            $this->txt($c['project']),    // {{1}}
+            $this->txt($c['location']),   // {{2}}
+            $this->txt($c['ref']),        // {{3}}
+            $this->txt($tech['name']),    // {{4}}
+            $this->txt($arrival),         // {{5}}
+            $this->txt($tech['phone']),   // {{6}}
         ],
     ]];
 
-    $preview = "Work started — {$c['ref']} | {$tech['name']} | arrived {$arrival}";
+    $preview = "Work started - {$c['ref']} | {$tech['name']} ({$tech['phone']}) | arrived {$arrival}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -1170,7 +1188,7 @@ public function notifyInternalMaintenanceOnHold(
     $recipients = $this->internalRecipients($sr);
 
     if (!$recipients) {
-        Log::warning('Internal on-hold alert skipped — no recipients', ['sr_id' => $sr->id]);
+        Log::warning('Internal on-hold alert skipped - no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
@@ -1197,7 +1215,7 @@ public function notifyInternalMaintenanceOnHold(
         ],
     ]];
 
-    $preview = "On hold — {$c['ref']} | {$statusLabel} | {$reasonText} | next: {$visitDate} {$visitTime}";
+    $preview = "On hold - {$c['ref']} | {$statusLabel} | {$reasonText} | next: {$visitDate} {$visitTime}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -1212,7 +1230,7 @@ public function notifyInternalMaintenanceOnHold(
  * maintenance_completed template (no internal-specific template exists).
  * {{1}} recipient name, {{2}} project, {{3}} location, {{4}} SR ref,
  * {{5}} issue, {{6}} technician, {{7}} completed date, {{8}} completed time
- * Button (index 0, url): dynamic suffix only — same rule as above.
+ * Button (index 0, url): dynamic suffix only - same rule as above.
  */
 public function notifyInternalMaintenanceCompleted(
     \App\Models\ServiceRequest $sr,
@@ -1223,7 +1241,7 @@ public function notifyInternalMaintenanceCompleted(
     $recipients = $this->internalRecipients($sr);
 
     if (!$recipients) {
-        Log::warning('Internal completed alert skipped — no recipients', ['sr_id' => $sr->id]);
+        Log::warning('Internal completed alert skipped - no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
@@ -1236,39 +1254,37 @@ public function notifyInternalMaintenanceCompleted(
     $out  = Carbon::parse($punch?->punch_out_at ?? now());
     $link = $photosLink ?: \App\Support\PortalLink::project($sr->project, $sr);
     $buttonValue = $this->buttonSuffix($link, config('app.url') . '/portal/project/');
-    // (removed the stray one-arg buttonSuffix() call that was here — it would
-    // have thrown a TypeError, since buttonSuffix() now requires a prefix)
+
+    $components = [
+        [
+            "type" => "body",
+            "parameters" => [
+                $this->txt($c['project']),                // {{1}}
+                $this->txt($c['location']),                // {{2}}
+                $this->txt($c['ref']),                      // {{3}}
+                $this->txt($c['issue']),                    // {{4}}
+                $this->txt($tech['name']),                  // {{5}}
+                $this->txt($tech['phone']),                 // {{6}}
+                $this->txt($out->format('d M Y')),          // {{7}}
+                $this->txt($out->format('h:i A')),          // {{8}}
+            ],
+        ],
+        [
+            "type"     => "button",
+            "sub_type" => "url",
+            "index"    => "0",
+            "parameters" => [
+                ["type" => "text", "text" => $buttonValue],
+            ],
+        ],
+    ];
+
+    $preview = "Completed - {$c['ref']} | {$tech['name']} ({$tech['phone']}) | {$out->format('d M Y, h:i A')}";
 
     foreach ($recipients as $r) {
-        $components = [
-            [
-                "type" => "body",
-                "parameters" => [
-                    $this->txt($this->cleanParam($r['name']) ?: 'Team'),
-                    $this->txt($c['project']),
-                    $this->txt($c['location']),
-                    $this->txt($c['ref']),
-                    $this->txt($c['issue']),
-                    $this->txt($tech['name']),
-                    $this->txt($out->format('d M Y')),
-                    $this->txt($out->format('h:i A')),
-                ],
-            ],
-            [
-                "type"     => "button",
-                "sub_type" => "url",
-                "index"    => "0",
-                "parameters" => [
-                    ["type" => "text", "text" => $buttonValue],
-                ],
-            ],
-        ];
-
-        $preview = "Completed — {$c['ref']} | {$tech['name']} | {$out->format('d M Y, h:i A')}";
-
         $this->sendLogged(
             $sr, $sr->client, $r['phone'], $event,
-            'maintenance_completed', $components, $preview
+            'internal_maintenance_completed', $components, $preview   // ← new template name, was 'maintenance_completed'
         );
     }
 }
@@ -1276,7 +1292,7 @@ public function notifyInternalMaintenanceCompleted(
 
 /**
  * Job assigned to the Maintenance Lead → ml_job_assigned
- * Dedicated ML-facing template — separate from internal_technician_assigned
+ * Dedicated ML-facing template - separate from internal_technician_assigned
  * (which goes to SA/HP/PE/SE staff). Sent to the ML alone via sendToOne().
  * {{1}} project, {{2}} location, {{3}} SR ref, {{4}} customer, {{5}} issue,
  * {{6}} priority, {{7}} assigned on, {{8}} technician name, {{9}} technician phone
@@ -1290,7 +1306,7 @@ public function notifyMlJobAssigned(
     $ml = $sr->assignedUser;
 
     if (!$ml) {
-        Log::warning('ML job alert skipped — no technician assigned', ['sr_id' => $sr->id]);
+        Log::warning('ML job alert skipped - no technician assigned', ['sr_id' => $sr->id]);
         return;
     }
 
@@ -1316,7 +1332,7 @@ public function notifyMlJobAssigned(
         ],
     ]];
 
-    $preview = "Job assigned — {$c['ref']} | {$customer} | {$c['location']} | "
+    $preview = "Job assigned - {$c['ref']} | {$customer} | {$c['location']} | "
         . "Priority: {$priority}";
 
     $this->sendToOne(
@@ -1331,9 +1347,9 @@ public function notifyMlJobAssigned(
  * {{1}} created by, {{2}} customer, {{3}} project, {{4}} location,
  * {{5}} handover, {{6}} warranty expiry, {{7}} SR ref, {{8}} issue,
  * {{9}} priority, {{10}} sent date, {{11}} sent time
- * No survey link in this template — it's purely an internal FYI, not a
+ * No survey link in this template - it's purely an internal FYI, not a
  * click-through. (Previously sent a 12th param for the link with nowhere
- * for Meta to put it — that's what caused every send to fail.)
+ * for Meta to put it - that's what caused every send to fail.)
  */
 public function notifyInternalSurveySent(
     \App\Models\ServiceRequest $sr,
@@ -1343,7 +1359,7 @@ public function notifyInternalSurveySent(
     $recipients = $this->internalRecipients($sr);
 
     if (!$recipients) {
-        Log::warning('Internal survey-sent alert skipped — no recipients', ['sr_id' => $sr->id]);
+        Log::warning('Internal survey-sent alert skipped - no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
@@ -1380,9 +1396,9 @@ public function notifyInternalSurveySent(
     ]];
 
     // $link is kept only for the preview text (visible in the WhatsApp
-    // Notification Log), not sent to Meta — the approved template has no
+    // Notification Log), not sent to Meta - the approved template has no
     // slot for it.
-    $preview = "Survey sent — {$c['ref']} | {$customer} | {$now->format('d M Y, h:i A')} | Link: {$link}";
+    $preview = "Survey sent - {$c['ref']} | {$customer} | {$now->format('d M Y, h:i A')} | Link: {$link}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -1399,7 +1415,7 @@ public function notifyServiceCompleted(ServiceRequest $sr): void
     $to = PortalLink::customerNumber($sr);
  
     if (! $to) {
-        \Log::warning('Completion WhatsApp skipped — no contact number', ['sr_id' => $sr->id]);
+        \Log::warning('Completion WhatsApp skipped - no contact number', ['sr_id' => $sr->id]);
         return;
     }
  
@@ -1411,8 +1427,8 @@ public function notifyServiceCompleted(ServiceRequest $sr): void
         '',
         "Work on {$ref} at {$sr->project->site_name} is complete.",
         '',
-        'You can view the full record — before and after photos, what the '
-            . 'technician did, and the progress log — and download it as a PDF here:',
+        'You can view the full record - before and after photos, what the '
+            . 'technician did, and the progress log - and download it as a PDF here:',
         $link,
         '',
         'The link is private to you. Please keep it if you need the record later.',
@@ -1422,7 +1438,7 @@ public function notifyServiceCompleted(ServiceRequest $sr): void
     $this->send($to, $body);
  
     // If you send approved templates instead of free text, the link is the
-    // only dynamic part that matters — pass $link as the button URL suffix or
+    // only dynamic part that matters - pass $link as the button URL suffix or
     // as a body variable, depending on how the template is registered.
 }
 
@@ -1437,7 +1453,7 @@ public function notifyInternalVisitScheduled(
     $recipients = $this->internalRecipients($sr);
 
     if (!$recipients) {
-        Log::warning('Visit-scheduled alert skipped — no recipients', ['sr_id' => $sr->id]);
+        Log::warning('Visit-scheduled alert skipped - no recipients', ['sr_id' => $sr->id]);
         return;
     }
 
@@ -1452,16 +1468,17 @@ public function notifyInternalVisitScheduled(
     $components = [[
         "type" => "body",
         "parameters" => [
-            $this->txt($c['project']),
-            $this->txt($c['location']),
-            $this->txt($c['ref']),
-            $this->txt($tech['name']),
-            $this->txt($visitDate),
-            $this->txt($visitTime),
+            $this->txt($c['project']),    // {{1}}
+            $this->txt($c['location']),   // {{2}}
+            $this->txt($c['ref']),        // {{3}}
+            $this->txt($tech['name']),    // {{4}}
+            $this->txt($visitDate),       // {{5}}
+            $this->txt($visitTime),       // {{6}}
+            $this->txt($tech['phone']),   // {{7}}
         ],
     ]];
 
-    $preview = "Visit scheduled — {$c['ref']} | {$tech['name']} | {$visitDate} {$visitTime}";
+    $preview = "Visit scheduled - {$c['ref']} | {$tech['name']} ({$tech['phone']}) | {$visitDate} {$visitTime}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -1485,7 +1502,7 @@ public function notifyQuotePendingAccounts(
     $recipients = $this->accountsRecipients();
 
     if (!$recipients) {
-        Log::warning('Quote-pending alert skipped — no Accounts recipients resolved', [
+        Log::warning('Quote-pending alert skipped - no Accounts recipients resolved', [
             'sr_id' => $sr->id,
         ]);
         return;
@@ -1519,7 +1536,7 @@ public function notifyQuotePendingAccounts(
         ],
     ]];
 
-    $preview = "Quote pending — {$c['ref']} | {$customer} | {$c['project']} | Scope: {$scope}";
+    $preview = "Quote pending - {$c['ref']} | {$customer} | {$c['project']} | Scope: {$scope}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -1546,7 +1563,7 @@ public function notifyInvoiceRequiredAccounts(
     $recipients = $this->accountsRecipients();
 
     if (!$recipients) {
-        Log::warning('Invoice-required alert skipped — no Accounts recipients resolved', [
+        Log::warning('Invoice-required alert skipped - no Accounts recipients resolved', [
             'sr_id' => $sr->id,
         ]);
         return;
@@ -1585,7 +1602,7 @@ public function notifyInvoiceRequiredAccounts(
         ],
     ]];
 
-    $preview = "Invoice required — {$c['ref']} | {$customer} | Quote: {$quoteRef}";
+    $preview = "Invoice required - {$c['ref']} | {$customer} | Quote: {$quoteRef}";
 
     foreach ($recipients as $r) {
         $this->sendLogged(
@@ -1597,7 +1614,7 @@ public function notifyInvoiceRequiredAccounts(
 /**
      * Send one template to a single named person, bypassing the client fan-out
      * and the internal staff list. Use for recipients who need their own
-     * wording — a technician getting a job, not a manager getting an alert.
+     * wording - a technician getting a job, not a manager getting an alert.
      */
     private function sendToOne(
         ?\App\Models\ServiceRequest $sr,
@@ -1613,7 +1630,7 @@ public function notifyInvoiceRequiredAccounts(
         $phone = $this->formatWhatsAppNumber($country, $mobile);
 
         if (!$phone) {
-            Log::warning("WhatsApp skipped — no usable number [{$label}]", [
+            Log::warning("WhatsApp skipped - no usable number [{$label}]", [
                 'sr_id'  => $sr?->id,
                 'name'   => $name,
                 'mobile' => $mobile,
@@ -1637,7 +1654,7 @@ public function notifyInvoiceRequiredAccounts(
  * Daily summary "Good Morning" push → daily_summary
  * {{1}} name, {{2}} date
  * Button (index 0, url): dynamic suffix appended to the template's static
- * base. Registered base is assumed to be config('app.url').'/' — i.e. we
+ * base. Registered base is assumed to be config('app.url').'/' - i.e. we
  * send the FULL path+query (signature included) as the suffix, same
  * pattern as notifyMaintenanceCompleted(). Confirm the exact base URL
  * you registered in Meta and adjust the prefix below if it differs.
@@ -1686,7 +1703,7 @@ private function sendDailySummary(
     $phone = $this->formatWhatsAppNumber($user->country_code, $user->phone);
 
     if (!$phone) {
-        Log::warning('Daily summary WhatsApp skipped — no usable number', ['user_id' => $user->id]);
+        Log::warning('Daily summary WhatsApp skipped - no usable number', ['user_id' => $user->id]);
         return;
     }
 
@@ -1710,9 +1727,9 @@ private function sendDailySummary(
         ],
     ];
 
-    $preview = "Daily summary sent — {$user->name} | {$summaryDate->format('d M Y')}";
+    $preview = "Daily summary sent - {$user->name} | {$summaryDate->format('d M Y')}";
 
-    // No ServiceRequest/Client context for this one — user-only send.
+    // No ServiceRequest/Client context for this one - user-only send.
     $this->sendLogged(null, null, $phone, $event, 'daily_summary', $components, $preview);
 }
 

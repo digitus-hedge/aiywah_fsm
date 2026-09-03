@@ -267,7 +267,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
 }
 .ps-phone .ps-code,
 .ps-phone .ps-input{
-  min-width:0;      /* required — grid items default to auto and blow out the row */
+  min-width:0;      /* required - grid items default to auto and blow out the row */
   margin:0;         /* kills any inherited bottom margin that breaks the baseline */
 }
 .ps-code{
@@ -296,7 +296,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="modal-icon-ring"><i class="bi bi-person-check-fill"></i></div>
       <div class="modal-title-t">Saved Successfully</div>
       <div class="modal-sub-t">The customer account has been saved and the lookup index refreshed.</div>
-      <div class="modal-token-box">{{ session('saved_token', 'CUST-——') }}</div>
+      <div class="modal-token-box">{{ session('saved_token', 'CUST---') }}</div>
     </div>
     <div class="modal-ftr">
       <a href="{{ route('clients.directory') }}" class="btn-modal-close">Close</a>
@@ -330,7 +330,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="card">
         <div class="card-hdr">
           <div class="card-hdr-icon" style="background:rgba(154,123,79,.1);"><i class="bi bi-building" style="color:#9A7B4F;"></i></div>
-          <div><h6>Customer Identity</h6><span class="csub">{{ $isEdit ? 'Firm name editable — unique code locked' : 'Firm name and unique identification token' }}</span></div>
+          <div><h6>Customer Identity</h6><span class="csub">{{ $isEdit ? 'Firm name editable - unique code locked' : 'Firm name and unique identification token' }}</span></div>
         </div>
         <div class="card-body">
 
@@ -539,7 +539,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
         </div>
         <div class="sum-body">
           <div class="sum-row"><span class="sk">Firm Name</span><span class="sv placeholder" id="sumFirm">Not entered</span></div>
-          <div class="sum-row"><span class="sk">Token</span><span class="sv placeholder" id="sumToken">—</span></div>
+          <div class="sum-row"><span class="sk">Token</span><span class="sv placeholder" id="sumToken">-</span></div>
           <div class="sum-row"><span class="sk">Contact</span><span class="sv placeholder" id="sumContact">Not entered</span></div>
           <hr class="sum-hr"/>
           <div class="sum-row"><span class="sk">Projects</span><span class="sv" id="sumProjects"><span class="project-count-pill">0</span></span></div>
@@ -571,7 +571,7 @@ hr.sum-hr{border-color:var(--card-border);margin:10px 0;}
       <div class="summary-card">
         <div class="sum-hdr">
           <div class="sum-hdr-ico" style="background:rgba(154,123,79,.1);"><i class="bi bi-buildings" style="color:#9A7B4F;"></i></div>
-          <div><h6>Recent Customers</h6><span class="ssub">Click to edit — last 5</span></div>
+          <div><h6>Recent Customers</h6><span class="ssub">Click to edit - last 5</span></div>
         </div>
         <div class="tbl-wrap">
           <table class="clients-tbl">
@@ -650,7 +650,7 @@ function onFirmNameInput() {
   syncSummary();
   updateChecklist();
 
-  if (IS_EDIT) return; // already editing a specific record — don't auto-switch
+  if (IS_EDIT) return; // already editing a specific record - don't auto-switch
 
   clearTimeout(companyLookupTimer);
   companyLookupTimer = setTimeout(lookupByCompanyName, 450);
@@ -694,14 +694,14 @@ function applyMatchedClient(data) {
 
   document.getElementById('stakeholderList').innerHTML = '';
   shCount = 0;
-  (data.mobiles || []).forEach(m => addStakeholder(m)); // no slice(1) — these are all stakeholders
+  (data.mobiles || []).forEach(m => addStakeholder(m)); // no slice(1) - these are all stakeholders
 
   document.getElementById('psGrid').innerHTML = '';
   psCount = 0;
   (data.projects || []).forEach(p => addProject(p, true)); // project_code stays readonly
   if (!data.projects || !data.projects.length) addProject();
 
-  showToast('primary', 'Existing Customer Found', 'Saved details loaded — fields are editable except the token and project codes.');
+  showToast('primary', 'Existing Customer Found', 'Saved details loaded - fields are editable except the token and project codes.');
   syncSummary();
   updateChecklist();
 }
@@ -1061,7 +1061,7 @@ function syncSummary() {
   sumFirm.className   = firm ? 'sv' : 'sv placeholder';
 
   const sumToken = document.getElementById('sumToken');
-  sumToken.textContent = token || '—';
+  sumToken.textContent = token || '-';
   sumToken.className   = token ? 'sv' : 'sv placeholder';
 
   const sumContact = document.getElementById('sumContact');
@@ -1081,8 +1081,8 @@ function syncSummary() {
   sumSh.innerHTML = Array.from(shList).map(row => {
     const nameEl = row.querySelector('input:not([type="tel"])');
     const telEl  = row.querySelector('input[type="tel"]');
-    const name   = nameEl ? nameEl.value || '—' : '—';
-    const num    = telEl  ? telEl.value  || '—' : '—';
+    const name   = nameEl ? nameEl.value || '-' : '-';
+    const num    = telEl  ? telEl.value  || '-' : '-';
     return `<div class="sh-pill"><i class="bi bi-whatsapp"></i><span>${name}: <strong>${num}</strong></span></div>`;
   }).join('');
 }

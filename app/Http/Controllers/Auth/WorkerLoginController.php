@@ -66,7 +66,7 @@ class WorkerLoginController extends Controller
         $request->session()->regenerate();
 
         // Honor a stashed redirect (e.g. from the WhatsApp "Open My Jobs"
-        // button) — only if it's a same-app path, never an external URL.
+        // button) - only if it's a same-app path, never an external URL.
         $redirect = $request->session()->pull('worker.redirect_after_login');
 
         if ($redirect && $this->isSafeRedirect($redirect)) {
@@ -128,7 +128,7 @@ class WorkerLoginController extends Controller
     }
 
     /**
-     * ADJUST THIS to match your schema — see notes below.
+     * ADJUST THIS to match your schema - see notes below.
      */
     private function isWorker($user): bool
     {
@@ -136,18 +136,18 @@ class WorkerLoginController extends Controller
     }
 
     /**
-     * Only allow redirecting to a path within this app — an open redirect
+     * Only allow redirecting to a path within this app - an open redirect
      * (sending the user to an attacker-controlled external URL right after
      * login) is a real vulnerability if we trust the ?redirect= param blindly.
      */
     private function isSafeRedirect(string $url): bool
     {
-        // Relative path ("/worker/pipeline?filter=Pending") — always safe.
+        // Relative path ("/worker/pipeline?filter=Pending") - always safe.
         if (!str_contains($url, '://')) {
             return true;
         }
 
-        // Absolute URL — only allow it if it points at this same app's host.
+        // Absolute URL - only allow it if it points at this same app's host.
         $host = parse_url($url, PHP_URL_HOST);
 
         return $host !== null && $host === parse_url(config('app.url'), PHP_URL_HOST);

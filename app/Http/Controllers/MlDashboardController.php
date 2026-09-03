@@ -28,7 +28,7 @@ class MlDashboardController extends Controller
     /** Statuses that mean the technician is done with it. */
     private const CLOSED = ['Completed', 'Pending Invoice', 'Invoice Submitted'];
 
-    /** Chart palette — matches the swatches used in the dashboard CSS. */
+    /** Chart palette - matches the swatches used in the dashboard CSS. */
     private const PALETTE = [
         '#9a8053', '#2563eb', '#0891b2', '#15803d', '#d97706', '#7c3aed', '#dc2626', '#64748b',
     ];
@@ -41,7 +41,7 @@ class MlDashboardController extends Controller
         $user = $this->worker($request);
         $user->loadMissing('role');
 
-        // One pass over the worker's jobs — every block below reads from this.
+        // One pass over the worker's jobs - every block below reads from this.
         $requests = ServiceRequest::with(['client', 'project', 'domain', 'category'])
             ->where('assigned_user_id', $user->id)
             ->orderBy('eta_at')
@@ -199,7 +199,7 @@ class MlDashboardController extends Controller
             ->map(fn (ServiceRequest $sr) => [
                 'ref'    => $sr->ref,
                 'sr_id'  => $sr->id,
-                'client' => optional($sr->client)->company_name ?? '—',
+                'client' => optional($sr->client)->company_name ?? '-',
                 'site'   => $this->shortSite(optional($sr->project)->site_address),
                 'note'   => strtolower((string) $sr->status) === 'rework'
                     ? ($sr->rework_notes ?: 'Returned by QC. Open the job for the full instruction.')
@@ -225,7 +225,7 @@ class MlDashboardController extends Controller
      * In-warranty vs out-of-warranty split.
      *
      * The column name differs between installs, so probe for it and return null
-     * when there is nothing to read — the view hides the card in that case.
+     * when there is nothing to read - the view hides the card in that case.
      */
     private function scopeSplit(Collection $requests): ?array
     {
@@ -311,7 +311,7 @@ class MlDashboardController extends Controller
             'hours'       => $hours,
             'avgDuration' => $thisMonth->count()
                 ? $this->humanGap((int) round(($hours * 60) / $thisMonth->count()))
-                : '—',
+                : '-',
             'trend'      => ['labels' => $labels, 'data' => $series],
             'categories' => [
                 'labels' => $categories->keys()->all(),
@@ -386,10 +386,10 @@ class MlDashboardController extends Controller
             ->map(fn (ServiceRequest $sr) => [
                 'ref'    => $sr->ref,
                 'sr_id'  => $sr->id,
-                'client' => optional($sr->client)->company_name ?? '—',
+                'client' => optional($sr->client)->company_name ?? '-',
                 'site'   => $this->shortSite(optional($sr->project)->site_address),
                 'note'   => $sr->issue_description ?: 'Submitted with proof documents. Waiting on the QC reviewer.',
-                'since'  => optional($sr->updated_at)->diffForHumans() ?? '—',
+                'since'  => optional($sr->updated_at)->diffForHumans() ?? '-',
             ])->values()->all();
 
         $rework = $requests->where('status', 'Rework')
@@ -397,11 +397,11 @@ class MlDashboardController extends Controller
             ->map(fn (ServiceRequest $sr) => [
                 'ref'    => $sr->ref,
                 'sr_id'  => $sr->id,
-                'client' => optional($sr->client)->company_name ?? '—',
+                'client' => optional($sr->client)->company_name ?? '-',
                 'site'   => $this->shortSite(optional($sr->project)->site_address),
-                'note'   => $sr->issue_description ?: '—',
+                'note'   => $sr->issue_description ?: '-',
                 'reason' => $sr->rework_notes ?: 'No instruction was recorded. Check with the reviewer before revisiting.',
-                'since'  => optional($sr->updated_at)->diffForHumans() ?? '—',
+                'since'  => optional($sr->updated_at)->diffForHumans() ?? '-',
             ])->values()->all();
 
         return [
@@ -428,8 +428,8 @@ class MlDashboardController extends Controller
                 'name'     => $item->name,
                 'amount'   => (float) $item->line_total,
                 'receipt'  => (bool) $item->receipt_url,
-                'ref'      => optional($p->serviceRequest)->ref ?? '—',
-                'client'   => optional(optional($p->serviceRequest)->client)->company_name ?? '—',
+                'ref'      => optional($p->serviceRequest)->ref ?? '-',
+                'client'   => optional(optional($p->serviceRequest)->client)->company_name ?? '-',
                 'sr_id'    => $p->service_request_id,
             ];
         }));
@@ -454,7 +454,7 @@ class MlDashboardController extends Controller
             ->sortDesc()
             ->take(5);
 
-        // Rolling months, oldest first — same window as the scorecard trend.
+        // Rolling months, oldest first - same window as the scorecard trend.
         $labels = [];
         $series = [];
 
@@ -501,11 +501,11 @@ class MlDashboardController extends Controller
         return [
             'ref'      => $sr->ref,
             'sr_id'    => $sr->id,
-            'client'   => optional($sr->client)->company_name ?? '—',
-            'site'     => optional($sr->project)->site_address ?? '—',
-            'siteName' => optional($sr->project)->site_name ?? '—',
+            'client'   => optional($sr->client)->company_name ?? '-',
+            'site'     => optional($sr->project)->site_address ?? '-',
+            'siteName' => optional($sr->project)->site_name ?? '-',
             'issue'    => $sr->issue_description ?: 'No description was recorded on this job.',
-            'domain'   => optional($sr->domain)->domain_name ?? optional($sr->category)->name ?? '—',
+            'domain'   => optional($sr->domain)->domain_name ?? optional($sr->category)->name ?? '-',
             'priority' => ucfirst($sr->priority_level ?? 'Normal'),
             'status'   => $ui,
             'eta'      => optional($sr->eta_at)->format('d M, h:i A'),
@@ -610,7 +610,7 @@ class MlDashboardController extends Controller
 
     private function shortSite(?string $site): string
     {
-        return trim(explode(',', (string) $site)[0]) ?: '—';
+        return trim(explode(',', (string) $site)[0]) ?: '-';
     }
 
     private function shortName(?string $name): string

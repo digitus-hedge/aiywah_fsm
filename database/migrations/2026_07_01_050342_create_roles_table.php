@@ -26,7 +26,7 @@ return new class extends Migration
             $table->string('color', 9)->nullable();  // hex, e.g. #7A6140
             $table->string('bg')->nullable();        // rgba background token
 
-            // Whether this role can receive extended (grantable) permissions — FD only, by default
+            // Whether this role can receive extended (grantable) permissions - FD only, by default
             $table->boolean('is_grantable')->default(false);
 
             // Ordering for the dropdown / listings

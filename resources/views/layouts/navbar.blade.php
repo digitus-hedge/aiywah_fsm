@@ -3,7 +3,7 @@
     {{-- ── Left: hamburger · page title · breadcrumb ── --}}
     <div class="topbar-left">
 
-        {{-- Hamburger — id="sidebarToggle" is wired in layout.blade.php --}}
+        {{-- Hamburger - id="sidebarToggle" is wired in layout.blade.php --}}
         <button class="topbar-toggle" id="sidebarToggle"
                 type="button" aria-label="Toggle sidebar">
             <i class="bi bi-list"></i>
@@ -87,7 +87,7 @@
 
 
 
-        {{-- Live clock — filled by layout.blade.php tickClock() --}}
+        {{-- Live clock - filled by layout.blade.php tickClock() --}}
         <span class="topbar-clock" id="topbarClock"></span>
 
         {{-- Theme toggle: sun · track · moon

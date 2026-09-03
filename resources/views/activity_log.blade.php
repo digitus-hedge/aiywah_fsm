@@ -7,7 +7,7 @@
 @push('styles')
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
 <style>
-/* ===== Activity Log — scoped page styles ===== */
+/* ===== Activity Log - scoped page styles ===== */
 .al-wrap{--gold:#9a8053;--gold-2:#b8975e;--table-header:#f7f9fd;}
 [data-bs-theme="dark"] .al-wrap{--table-header:#2a2928;}
 .al-wrap h4,.al-wrap h5,.al-wrap h6,.al-wrap .tbl-card-title,.al-wrap .stat-num{letter-spacing:-.01em;}
@@ -130,7 +130,7 @@
   {{-- PAGE HEADER --}}
   <div class="pg-header">
     <h4><i class="bi bi-clock-history me-2"></i>Activity Log</h4>
-    <p>Complete audit trail of every record created, updated or deleted across the portal — who did it, when, and exactly what changed.</p>
+    <p>Complete audit trail of every record created, updated or deleted across the portal - who did it, when, and exactly what changed.</p>
     <div class="meta-row">
       <span class="meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
       <span class="meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
@@ -236,7 +236,7 @@
             $cls = ['created'=>'act-created','updated'=>'act-updated','deleted'=>'act-deleted'][$act] ?? 'act-other';
             $chg = is_array($log->new_values) ? count($log->new_values) : 0;
             $nm  = $log->user->name ?? null;
-            $ini = $nm ? strtoupper(mb_substr($nm, 0, 1)) : '—';
+            $ini = $nm ? strtoupper(mb_substr($nm, 0, 1)) : '-';
           @endphp
           <tr onclick="alView({{ $log->id }})">
             <td class="mono">{{ $log->created_at?->format('d M Y') }}<br>
@@ -248,19 +248,19 @@
                 <span class="u-name">{{ $nm ?? 'System' }}</span>
               </span>
             </td>
-            <td><span class="mod-pill">{{ $log->module ?? '—' }}</span></td>
+            <td><span class="mod-pill">{{ $log->module ?? '-' }}</span></td>
             <td><span class="sbadge {{ $cls }}"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $act }}</span></td>
             <td class="mono">
               @if($log->module === 'ServiceRequest' && $log->subject_id)
                 <span class="sr-ref-trigger" data-sr-id="{{ $log->subject_id }}" onclick="event.stopPropagation(); openSrTracking({{ $log->subject_id }});">
-                  {{ $log->record_label ?? '—' }}
+                  {{ $log->record_label ?? '-' }}
                 </span>
               @else
-                {{ $log->record_label ?? '—' }}
+                {{ $log->record_label ?? '-' }}
               @endif
             </td>
-            <td><div class="desc-txt">{{ $log->description ?? '—' }}</div></td>
-            <td>@if($chg)<span class="chg-count">{{ $chg }} field{{ $chg > 1 ? 's' : '' }}</span>@else<span class="muted">—</span>@endif</td>
+            <td><div class="desc-txt">{{ $log->description ?? '-' }}</div></td>
+            <td>@if($chg)<span class="chg-count">{{ $chg }} field{{ $chg > 1 ? 's' : '' }}</span>@else<span class="muted">-</span>@endif</td>
             <td>
               <button class="btn-xs-view" onclick="event.stopPropagation();alView({{ $log->id }})"><i class="bi bi-eye"></i></button>
             </td>
@@ -312,7 +312,7 @@ function alEsc(s){
   });
 }
 function alFmt(v){
-  if(v===null||v===undefined||v==='') return '—';
+  if(v===null||v===undefined||v==='') return '-';
   if(typeof v==='object') return JSON.stringify(v);
   return String(v);
 }
@@ -350,22 +350,22 @@ function alView(id){
       b.innerHTML =
         '<div class="al-meta-grid">'+
           '<div class="al-meta-item"><div class="al-meta-lbl">User</div><div class="al-meta-val">'+alEsc(d.user && d.user.name ? d.user.name : 'System')+'</div></div>'+
-          '<div class="al-meta-item"><div class="al-meta-lbl">When</div><div class="al-meta-val">'+alEsc(d.created_at_human || d.created_at || '—')+'</div></div>'+
-          '<div class="al-meta-item"><div class="al-meta-lbl">Module</div><div class="al-meta-val">'+alEsc(d.module||'—')+'</div></div>'+
-          '<div class="al-meta-item"><div class="al-meta-lbl">Action</div><div class="al-meta-val"><span class="sbadge '+cls+'">'+alEsc(act||'—')+'</span></div></div>'+
+          '<div class="al-meta-item"><div class="al-meta-lbl">When</div><div class="al-meta-val">'+alEsc(d.created_at_human || d.created_at || '-')+'</div></div>'+
+          '<div class="al-meta-item"><div class="al-meta-lbl">Module</div><div class="al-meta-val">'+alEsc(d.module||'-')+'</div></div>'+
+          '<div class="al-meta-item"><div class="al-meta-lbl">Action</div><div class="al-meta-val"><span class="sbadge '+cls+'">'+alEsc(act||'-')+'</span></div></div>'+
           '<div class="al-meta-item"><div class="al-meta-lbl">Record</div><div class="al-meta-val">'+
   (d.module === 'ServiceRequest' && d.srId
-    ? '<span class="sr-ref-trigger" data-sr-id="'+d.srId+'" onclick="openSrTracking('+d.srId+');">'+alEsc(d.record_label||'—')+'</span>'
-    : alEsc(d.record_label || '—'))+
+    ? '<span class="sr-ref-trigger" data-sr-id="'+d.srId+'" onclick="openSrTracking('+d.srId+');">'+alEsc(d.record_label||'-')+'</span>'
+    : alEsc(d.record_label || '-'))+
 '</div></div>'+
-          '<div class="al-meta-item"><div class="al-meta-lbl">IP Address</div><div class="al-meta-val">'+alEsc(d.ip_address||'—')+'</div></div>'+
+          '<div class="al-meta-item"><div class="al-meta-lbl">IP Address</div><div class="al-meta-val">'+alEsc(d.ip_address||'-')+'</div></div>'+
         '</div>'+
         '<p class="al-sec-title">Description</p>'+
-        '<div class="al-empty-sm" style="text-align:left;">'+alEsc(d.description||'—')+'</div>'+
+        '<div class="al-empty-sm" style="text-align:left;">'+alEsc(d.description||'-')+'</div>'+
         '<p class="al-sec-title" style="margin-top:18px;">Field Changes</p>'+
         diff+
         '<p class="al-sec-title" style="margin-top:18px;">User Agent</p>'+
-        '<div class="al-ua">'+alEsc(d.user_agent||'—')+'</div>';
+        '<div class="al-ua">'+alEsc(d.user_agent||'-')+'</div>';
     })
     .catch(function(){
       b.innerHTML = '<div class="al-empty-sm">Could not load this entry.</div>';

@@ -742,7 +742,7 @@
     to   { opacity: 1; transform: none; }
   }
 
-  /* Modal header — gold gradient to match page */
+  /* Modal header - gold gradient to match page */
   .cd-modal-hdr {
     background: linear-gradient(135deg, #9A7B4F 0%, #7A6140 100%);
     color: #fff;
@@ -963,12 +963,12 @@
             <div class="cd-client-name">{{ $client->company_name }}</div>
             <div class="cd-client-token">{{ $client->unique_code }}</div>
           </td>
-          <td class="muted">{{ $client->contact_name ?: '—' }}</td>
+          <td class="muted">{{ $client->contact_name ?: '-' }}</td>
           <td class="muted">
             @if($client->primary_country || $client->primary_mobile)
             {{ trim(($client->primary_country ? '+'.ltrim($client->primary_country,'+').' ' : '').$client->primary_mobile) }}
             @else
-            —
+            -
             @endif
           </td>
           <td style="text-align:center;">{{ $client->email}}</td>
@@ -1050,12 +1050,12 @@
       <div class="cd-modal-section">
         <div class="cd-modal-section-title"><i class="bi bi-building"></i>Account</div>
         <div class="cd-detail-grid">
-          <div class="cd-detail-item"><div class="cd-detail-lbl">Company Name</div><div class="cd-detail-val" id="cdmCompany">—</div></div>
-          <div class="cd-detail-item"><div class="cd-detail-lbl">Customer Token</div><div class="cd-detail-val" id="cdmToken">—</div></div>
-          <div class="cd-detail-item"><div class="cd-detail-lbl">Primary Contact</div><div class="cd-detail-val" id="cdmContact">—</div></div>
-          <div class="cd-detail-item"><div class="cd-detail-lbl">Designation</div><div class="cd-detail-val" id="cdmDesignation">—</div></div>
-          <div class="cd-detail-item"><div class="cd-detail-lbl">Primary Mobile</div><div class="cd-detail-val" id="cdmMobile">—</div></div>
-          <div class="cd-detail-item"><div class="cd-detail-lbl">Status</div><div class="cd-detail-val" id="cdmStatus">—</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Company Name</div><div class="cd-detail-val" id="cdmCompany">-</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Customer Token</div><div class="cd-detail-val" id="cdmToken">-</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Primary Contact</div><div class="cd-detail-val" id="cdmContact">-</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Designation</div><div class="cd-detail-val" id="cdmDesignation">-</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Primary Mobile</div><div class="cd-detail-val" id="cdmMobile">-</div></div>
+          <div class="cd-detail-item"><div class="cd-detail-lbl">Status</div><div class="cd-detail-val" id="cdmStatus">-</div></div>
         </div>
       </div>
 
@@ -1186,16 +1186,16 @@
 
     const initials = (c.company_name || '?').trim().charAt(0).toUpperCase();
     document.getElementById('cdmAvatar').textContent = initials;
-    document.getElementById('cdmTitle').textContent  = c.company_name || '—';
+    document.getElementById('cdmTitle').textContent  = c.company_name || '-';
     document.getElementById('cdmSub').textContent    = c.unique_code || 'Customer account details';
 
-    document.getElementById('cdmCompany').textContent     = c.company_name || '—';
-    document.getElementById('cdmToken').textContent       = c.unique_code || '—';
-    document.getElementById('cdmContact').textContent     = c.contact_name || '—';
-    document.getElementById('cdmDesignation').textContent = c.designation || '—';
+    document.getElementById('cdmCompany').textContent     = c.company_name || '-';
+    document.getElementById('cdmToken').textContent       = c.unique_code || '-';
+    document.getElementById('cdmContact').textContent     = c.contact_name || '-';
+    document.getElementById('cdmDesignation').textContent = c.designation || '-';
 
     const dial = c.primary_country ? '+' + String(c.primary_country).replace(/^\+/, '') + ' ' : '';
-    document.getElementById('cdmMobile').textContent = (dial + (c.primary_mobile || '')).trim() || '—';
+    document.getElementById('cdmMobile').textContent = (dial + (c.primary_mobile || '')).trim() || '-';
 
     document.getElementById('cdmStatus').innerHTML =
       c.status === 'Active'
@@ -1209,7 +1209,7 @@
         const d = m.country ? '+' + String(m.country).replace(/^\+/, '') + ' ' : '';
         return `<div class="cd-modal-list-item">
             <div class="cd-mli-top"><span class="cd-mli-name">${cdEsc(m.name || 'Unnamed contact')}</span></div>
-            <div class="cd-mli-meta"><i class="bi bi-telephone"></i> ${cdEsc((d + (m.mobile || '')).trim() || '—')}</div>
+            <div class="cd-mli-meta"><i class="bi bi-telephone"></i> ${cdEsc((d + (m.mobile || '')).trim() || '-')}</div>
           </div>`;
       }).join('');
     } else {
@@ -1222,7 +1222,7 @@
       projEl.innerHTML = c.projects.map(p => `
         <div class="cd-modal-list-item">
           <div class="cd-mli-top">
-            <span class="cd-mli-name">${cdEsc(p.project_name || '—')}</span>
+            <span class="cd-mli-name">${cdEsc(p.project_name || '-')}</span>
             <span class="cd-mli-code">${cdEsc(p.project_code || '')}</span>
           </div>
           ${p.site_name ? `<div class="cd-mli-meta"><i class="bi bi-geo-alt"></i> ${cdEsc(p.site_name)}</div>` : ''}

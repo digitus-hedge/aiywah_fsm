@@ -15,10 +15,10 @@ $roleCode = $u?->role?->code;
 
 /**
  * Sidebar visibility: show the link if the user has ANY access to the
- * page — including 'rls' (own-record-only) — not just full 'yes' access.
+ * page - including 'rls' (own-record-only) - not just full 'yes' access.
  * Whether they can actually WRITE anything on that page is enforced
  * separately, per-page via isReadonly()/canWrite() and per-record via
- * the Policy — this flag only controls whether the link renders.
+ * the Policy - this flag only controls whether the link renders.
  */
 $can = fn ($key) => $u && $u->hasAnyAccess($key);
 
@@ -216,7 +216,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
        {{-- ══════════ SYSTEM ══════════ --}}
         @php
             // A user with only user_provisioning (no direct user_directory access)
-            // must still see this link — provisioning lives inside the directory
+            // must still see this link - provisioning lives inside the directory
             // page, so provisioning rights imply reaching the directory.
             $showSystem = $u?->canAccessUserDirectory()
                     || $can('master_data') || $can('wa_notification_log')
@@ -263,7 +263,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
 
 <style>
 /* ═══════════════════════════════════════════════
-   SIDEBAR — scoped so nothing leaks into the page
+   SIDEBAR - scoped so nothing leaks into the page
 ═══════════════════════════════════════════════ */
 .sidebar{
   --sb-brand:#9a8053;
@@ -302,7 +302,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
 /* ── Nav list ── */
 .sidebar-nav{list-style:none;margin:0;padding:8px 0 24px;}
 
-/* Section headings — fixed height so nothing reflows on load */
+/* Section headings - fixed height so nothing reflows on load */
 .sidebar-heading{
   font-size:.625rem;font-weight:700;
   text-transform:uppercase;letter-spacing:.13em;
@@ -326,7 +326,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
   transition:background .16s ease,color .16s ease,transform .16s ease;
 }
 
-/* Reserve icon space BEFORE feather swaps <i> for <svg> — stops the shift */
+/* Reserve icon space BEFORE feather swaps <i> for <svg> - stops the shift */
 .sidebar-nav a > i[data-feather],
 .sidebar-nav a > svg{
   flex:0 0 18px;width:18px;height:18px;
@@ -347,7 +347,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
 .sidebar-nav a:hover > svg,
 .sidebar-nav a:hover > i[data-feather]{color:var(--sb-brand);}
 
-/* Active — tinted pill plus a flush accent bar on the rail */
+/* Active - tinted pill plus a flush accent bar on the rail */
 .sidebar-nav a.active{
   background:var(--sb-brand-soft);
   color:var(--sb-brand);
@@ -367,7 +367,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
   background:var(--sb-brand);
 }
 
-/* Keyboard focus — visible without being loud */
+/* Keyboard focus - visible without being loud */
 .sidebar-nav a:focus-visible{
   outline:none;
   box-shadow:0 0 0 2px rgba(154,128,83,.35);

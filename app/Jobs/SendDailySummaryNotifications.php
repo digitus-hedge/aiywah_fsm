@@ -11,6 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class SendDailySummaryNotifications implements ShouldQueue
 {
@@ -18,46 +19,57 @@ class SendDailySummaryNotifications implements ShouldQueue
 
     public function handle(WhatsAppService $wa): void
     {
-        $summaryDate = Carbon::yesterday();
+        Log::info('SendDailySummaryNotifications: STARTED', ['at' => now()->toDateTimeString()]);
 
-        // 'monday', 'tuesday', ... matches UserAlertSchedule::DAYS column names.
+        $summaryDate = Carbon::yesterday();
         $today = strtolower(now()->format('l'));
 
-        $scheduledFor = function (User $user) use ($today): bool {
+        $shouldSend = function (User $user) use ($today): bool {
             $schedule = UserAlertSchedule::where('user_id', $user->id)->first();
-            return $schedule ? (bool) $schedule->{$today} : true; // default: every day
+
+            $result = $schedule && $schedule->is_enabled && (bool) $schedule->{$today};
+
+            Log::info('SendDailySummaryNotifications: shouldSend check', [
+                'user_id'    => $user->id,
+                'user_name'  => $user->name,
+                'has_schedule' => (bool) $schedule,
+                'is_enabled' => $schedule->is_enabled ?? null,
+                'today'      => $today,
+                'today_flag' => $schedule->{$today} ?? null,
+                'result'     => $result,
+            ]);
+
+            return $result;
         };
 
-        User::whereHas('role', fn ($q) => $q->whereIn('code', ['AD', 'SA']))
-            ->get()
-            ->each(function (User $user) use ($wa, $summaryDate, $scheduledFor) {
-                if ($scheduledFor($user)) {
-                    $wa->notifyDailySummaryAdmin($user, $summaryDate);
-                }
-            });
+        $roleBatches = [
+            'admin' => [['AD', 'SA'], 'notifyDailySummaryAdmin'],
+            'hop'   => [['HP'], 'notifyDailySummaryHop'],
+            'se'    => [['SE'], 'notifyDailySummarySe'],
+            'ml'    => [['ML'], 'notifyDailySummaryMl'],
+        ];
 
-        User::whereHas('role', fn ($q) => $q->where('code', 'HP'))
-            ->get()
-            ->each(function (User $user) use ($wa, $summaryDate, $scheduledFor) {
-                if ($scheduledFor($user)) {
-                    $wa->notifyDailySummaryHop($user, $summaryDate);
-                }
-            });
+        foreach ($roleBatches as $label => [$codes, $method]) {
+            $users = User::whereHas('role', fn ($q) => $q->whereIn('code', $codes))->get();
 
-        User::whereHas('role', fn ($q) => $q->where('code', 'SE'))
-            ->get()
-            ->each(function (User $user) use ($wa, $summaryDate, $scheduledFor) {
-                if ($scheduledFor($user)) {
-                    $wa->notifyDailySummarySe($user, $summaryDate);
-                }
-            });
+            Log::info("SendDailySummaryNotifications: {$label} users found", ['count' => $users->count()]);
 
-        User::whereHas('role', fn ($q) => $q->where('code', 'ML'))
-            ->get()
-            ->each(function (User $user) use ($wa, $summaryDate, $scheduledFor) {
-                if ($scheduledFor($user)) {
-                    $wa->notifyDailySummaryMl($user, $summaryDate);
+            foreach ($users as $user) {
+                if ($shouldSend($user)) {
+                    try {
+                        $wa->{$method}($user, $summaryDate);
+                        Log::info("SendDailySummaryNotifications: sent to {$label}", ['user_id' => $user->id]);
+                    } catch (\Throwable $e) {
+                        Log::error("SendDailySummaryNotifications: FAILED sending to {$label}", [
+                            'user_id' => $user->id,
+                            'error'   => $e->getMessage(),
+                            'trace'   => $e->getTraceAsString(),
+                        ]);
+                    }
                 }
-            });
+            }
+        }
+
+        Log::info('SendDailySummaryNotifications: FINISHED', ['at' => now()->toDateTimeString()]);
     }
 }

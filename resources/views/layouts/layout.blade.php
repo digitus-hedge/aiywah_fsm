@@ -10,13 +10,13 @@
 
     <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
     
-    {{-- ① theme.js FIRST — sets data-theme before any paint, prevents flash --}}
+    {{-- ① theme.js FIRST - sets data-theme before any paint, prevents flash --}}
     <script src="{{ asset('assets/js/theme.js') }}"></script>
 
     {{-- Fonts (self-hosted) --}}
     <link rel="stylesheet" href="{{ asset('assets/fonts/fonts.css') }}">
 
-    {{-- Google Fonts Roboto — can now remove, or keep as a fallback --}}
+    {{-- Google Fonts Roboto - can now remove, or keep as a fallback --}}
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,7 +29,7 @@
     {{-- Bootstrap Icons --}}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-    {{-- Feather Icons (JS — render after DOM) --}}
+    {{-- Feather Icons (JS - render after DOM) --}}
     <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.29.1/dist/feather.min.js"></script>
 
     {{-- ApexCharts --}}
@@ -84,9 +84,9 @@
 
         /* ── 3. Sidebar toggle (mobile hamburger) ──────────────────
            Looks for:
-             #sidebarToggle  — the hamburger button in navbar.blade.php
-             #sidebar        — the <aside> in sidebar.blade.php
-             #sidebarOverlay — the backdrop div above
+             #sidebarToggle  - the hamburger button in navbar.blade.php
+             #sidebar        - the <aside> in sidebar.blade.php
+             #sidebarOverlay - the backdrop div above
            Adds/removes .show class on sidebar and overlay.
         ─────────────────────────────────────────────────────────── */
         var sidebar   = document.getElementById('sidebar');

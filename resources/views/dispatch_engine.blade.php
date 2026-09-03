@@ -962,7 +962,7 @@
     <h5>Dispatched Successfully!</h5>
     <p>The ticket has been assigned and the technician will be notified immediately.</p>
     <div class="sr-id-badge" id="successSrId">SR-2024-0000</div>
-    <p id="successDetail" style="font-size:.78rem;color:var(--text-muted);margin-bottom:20px;">—</p>
+    <p id="successDetail" style="font-size:.78rem;color:var(--text-muted);margin-bottom:20px;">-</p>
     <button class="btn-ok" onclick="closeSuccess()">Done</button>
   </div>
 </div> -->
@@ -981,7 +981,7 @@
       <div class="m-summary" id="modalSummary"></div>
       <div class="push-note">
         <i class="bi bi-bell-fill"></i>
-        <span>A real-time push notification will be fired to <strong id="notifTechName">—</strong>'s mobile application immediately upon confirmation.</span>
+        <span>A real-time push notification will be fired to <strong id="notifTechName">-</strong>'s mobile application immediately upon confirmation.</span>
       </div>
     </div>
     <div class="m-ftr">
@@ -997,7 +997,7 @@
 
 {{-- ── PAGE HEADER ── --}}
 <div class="pg-hdr">
-  <h4><i class="bi bi-person-gear me-2"></i>Dispatch Engine — Assign Technicians</h4>
+  <h4><i class="bi bi-person-gear me-2"></i>Dispatch Engine - Assign Technicians</h4>
   <p>Select an approved ticket, pick a technician, and dispatch in one click.</p>
   <div class="mrow">
     <span class="mbadge"><i class="bi bi-briefcase me-1"></i>Head of Projects</span>
@@ -1057,7 +1057,7 @@
           <i class="bi bi-table" style="color:#0ea5e9;"></i>
         </div>
         <div>
-          <h6>Approved Tickets — Awaiting Dispatch</h6>
+          <h6>Approved Tickets - Awaiting Dispatch</h6>
           <span class="csub">Click a row to select a ticket, then assign a technician on the right</span>
         </div>
       </div>
@@ -1169,21 +1169,21 @@
        <div class="mb-3">
   <label class="form-label">Service Category</label>
   <select class="form-select" id="dispCategory" onchange="onDispCategory(this.value)">
-    <option value="">— Select a ticket first —</option>
+    <option value="">- Select a ticket first -</option>
   </select>
 </div>
 
         <div class="mb-3">
           <label class="form-label">Service Domain</label>
           <select class="form-select" id="dispDomain" disabled onchange="onDispDomain(this.value)">
-            <option value="">— Select Domain First —</option>
+            <option value="">- Select Domain First -</option>
           </select>
         </div>
 
         <div class="mb-3">
           <label class="form-label">Assign To (Technician)</label>
           <select class="form-select" id="dispTech" disabled onchange="onDispTech(this.value)">
-            <option value="">— Select Technician First —</option>
+            <option value="">- Select Technician First -</option>
           </select>
         </div>
 
@@ -1195,7 +1195,7 @@
     </div>
     <div style="flex:1;min-width:0;">
       <h6 style="margin:0;">Technician Workload</h6>
-      <span class="csub" id="availSub">Requests due today — by ETA</span>
+      <span class="csub" id="availSub">Requests due today - by ETA</span>
     </div>
   </div>
   <div class="cbody">
@@ -1248,11 +1248,11 @@
 
       <!-- <div class="cbody">
         <div class="assign-summary" id="assignSummary">
-          <div class="as-row"><span class="as-k">Ticket</span><span class="as-v" id="asSrId" style="color:#6571ff;">—</span></div>
-          <div class="as-row"><span class="as-k">Customer</span><span class="as-v" id="asClient">—</span></div>
-          <div class="as-row"><span class="as-k">Category</span><span class="as-v" id="asDomain">—</span></div>
-          <div class="as-row"><span class="as-k">Technician</span><span class="as-v" id="asTech">—</span></div>
-          <div class="as-row" style="margin-bottom:0;"><span class="as-k">Priority</span><span class="as-v" id="asPriority">—</span></div>
+          <div class="as-row"><span class="as-k">Ticket</span><span class="as-v" id="asSrId" style="color:#6571ff;">-</span></div>
+          <div class="as-row"><span class="as-k">Customer</span><span class="as-v" id="asClient">-</span></div>
+          <div class="as-row"><span class="as-k">Category</span><span class="as-v" id="asDomain">-</span></div>
+          <div class="as-row"><span class="as-k">Technician</span><span class="as-v" id="asTech">-</span></div>
+          <div class="as-row" style="margin-bottom:0;"><span class="as-k">Priority</span><span class="as-v" id="asPriority">-</span></div>
         </div> -->
 
 
@@ -1333,7 +1333,7 @@
 
 
 const TL_HOURS = ['8a','9a','10a','11a','12p','1p','2p','3p','4p'];
-const TL_NOW = 3; // "11a" column index — set from server time if you want it live
+const TL_NOW = 3; // "11a" column index - set from server time if you want it live
 
 const TL_CLR = {
   free:     { bg:'#c8e6d4', bd:'#9ac9ac' },
@@ -1355,7 +1355,7 @@ function buildCategoryOptions(t){
   if(!sel) return;
 
   if(!t){
-    sel.innerHTML = '<option value="">— Select a ticket first —</option>';
+    sel.innerHTML = '<option value="">- Select a ticket first -</option>';
     sel.disabled = true;
     return;
   }
@@ -1370,7 +1370,7 @@ function buildCategoryOptions(t){
   }
 
   sel.disabled = false;
-  sel.innerHTML = '<option value="">— Select Category —</option>' +
+  sel.innerHTML = '<option value="">- Select Category -</option>' +
     list.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 
     if (list.length === 1) sel.value = String(list[0].id);
@@ -1427,7 +1427,7 @@ function renderTable() {
     const sla = slaStatus(t);
     const pc  = t.prioColor || '#8a8a8a';
     const sel = t.id === selTkId;
-    const siteShort = (t.site||'').split(' — ')[0];
+    const siteShort = (t.site||'').split(' - ')[0];
 
     return `<tr class="${sel?'sel':''}" onclick="selectTicket('${t.id}')">
       <td><input type="radio" ${sel?'checked':''} onclick="event.stopPropagation();selectTicket('${t.id}')" style="accent-color:#6571ff;"/></td>
@@ -1516,7 +1516,7 @@ function renderSnapshot(t) {
         </span>
       </div></div>
     <div class="tk-row full"><div class="tk-l">Customer</div><div class="tk-v">${t.client}</div></div>
-    <div class="tk-row full"><div class="tk-l">Project</div><div class="tk-v">${t.contract || '—'}</div></div>
+    <div class="tk-row full"><div class="tk-l">Project</div><div class="tk-v">${t.contract || '-'}</div></div>
     <div class="tk-row"><div class="tk-l">Category</div><div class="tk-v">${t.domain}</div></div>
     <div class="tk-row"><div class="tk-l">Warranty</div><div class="tk-v">${t.warranty}</div></div>
     <div class="tk-row"><div class="tk-l">SLA Elapsed</div>
@@ -1536,7 +1536,7 @@ function renderSnapshot(t) {
 }
 
 
-// Matrix rows sorted by approve hours, ascending — these are the bands
+// Matrix rows sorted by approve hours, ascending - these are the bands
 function slaBands(){
   return (SLA_MATRIX || [])
     .filter(r => Number(r.approve) > 0)
@@ -1549,7 +1549,7 @@ function slaStatus(t){
   const hrs   = Number(t.hrsAgo) || 0;
 
   if(!bands.length){
-    return { color:'#8a8a8a', name:'—', hrs, at:null, next:null, pct:0 };
+    return { color:'#8a8a8a', name:'-', hrs, at:null, next:null, pct:0 };
   }
 
   // Highest band whose threshold the elapsed time has reached
@@ -1605,7 +1605,7 @@ function slaStatus(t){
     const dd = document.getElementById('dispDomain');
     const entry = DOMAIN_MAP[catId];
     const domains = entry ? entry.domains : [];
-    dd.innerHTML = '<option value="">— All domains —</option>';
+    dd.innerHTML = '<option value="">- All domains -</option>';
     domains.forEach(d => {
       const o = document.createElement('option');
       o.value = d.id; o.textContent = d.name;
@@ -1630,20 +1630,20 @@ function slaStatus(t){
     const seen = new Set();
     techs = techs.filter(t => (seen.has(t.id) ? false : seen.add(t.id)));
 
-    // >>> render the timeline here — fires on category & domain change <
+    // >>> render the timeline here - fires on category & domain change <
 
     // renderAvailabilityTimeline(techs);
 
     renderWorkloadBars(techs);
 
     if (!catId) {
-      ts.innerHTML = '<option value="">— Select Category First —</option>';
+      ts.innerHTML = '<option value="">- Select Category First -</option>';
       ts.disabled = true;
     } else if (!techs.length) {
       ts.innerHTML = '<option value="">No Technicians for this category</option>';
       ts.disabled = true;
     } else {
-      ts.innerHTML = '<option value="">— Select Technician —</option>';
+      ts.innerHTML = '<option value="">- Select Technician -</option>';
       techs.forEach(t => {
         const code = 'ML-' + String(t.id).padStart(3, '0');
         const o = document.createElement('option');
@@ -1734,8 +1734,8 @@ function openDispatchModal(){
 
   const catSel = document.getElementById('dispCategory');
   const domSel = document.getElementById('dispDomain');
-  const categoryName = catSel.value ? catSel.options[catSel.selectedIndex].text : (t.domain || '—');
-  const domainName   = domSel.value ? domSel.options[domSel.selectedIndex].text : '—';
+  const categoryName = catSel.value ? catSel.options[catSel.selectedIndex].text : (t.domain || '-');
+  const domainName   = domSel.value ? domSel.options[domSel.selectedIndex].text : '-';
 
   const code='ML-'+String(tech.id).padStart(3,'0');
   const initials=(tech.name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
@@ -1820,8 +1820,8 @@ const domainId     = domainSelect.value || null;
 
       const domSel=document.getElementById('dispDomain'), techSel=document.getElementById('dispTech'), catSel=document.getElementById('dispCategory');
       if(catSel) catSel.value='';
-      if(domSel){ domSel.innerHTML='<option value="">— Select Domain First —</option>'; domSel.disabled=true; }
-      if(techSel){ techSel.innerHTML='<option value="">— Select Technician First —</option>'; techSel.disabled=true; }
+      if(domSel){ domSel.innerHTML='<option value="">- Select Domain First -</option>'; domSel.disabled=true; }
+      if(techSel){ techSel.innerHTML='<option value="">- Select Technician First -</option>'; techSel.disabled=true; }
       updateDispatchBtn();
     } else {
       showToast('error','Dispatch failed', j.message || 'Something went wrong.');

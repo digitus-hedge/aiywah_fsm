@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Front Desk Executive dashboard.
  *
- * Every figure is scoped to the logged-in FDE — service requests where
+ * Every figure is scoped to the logged-in FDE - service requests where
  * `created_by` is the current user ("SRs I logged"). Nothing here shows another
  * executive's intake.
  *
@@ -186,7 +186,7 @@ class FrontDashboardController extends Controller
 
         /**
      * JSON endpoint for the slide-in drill-down panels. Mirrors the scoping
-     * rules of the KPI/status cards it's opened from — some lists are
+     * rules of the KPI/status cards it's opened from - some lists are
      * windowed to the selected period, one (the triage backlog) deliberately
      * isn't, matching openTriageCount()'s own comment on why.
      */
@@ -222,13 +222,13 @@ class FrontDashboardController extends Controller
         $periodScoped = true;
 
         if ($type === 'triage-backlog') {
-            $periodScoped = false; // matches openTriageCount() — old ones still matter
+            $periodScoped = false; // matches openTriageCount() - old ones still matter
             $raw = $this->rawFor(self::TRIAGE_STAGES);
             $query->whereIn('status', $raw ?: ['__none__']);
         } elseif ($type === 'client' && $id) {
             $query->where('client_id', $id);
         } elseif ($type === 'scope' && $id) {
-            // filtered after fetch below — scopeCode() needs the project relation loaded
+            // filtered after fetch below - scopeCode() needs the project relation loaded
         } elseif ($type === 'completed') {
             $raw = $this->rawFor(self::COMPLETED_STAGES);
             $query->whereIn('status', $raw ?: ['__none__']);
@@ -257,8 +257,8 @@ class FrontDashboardController extends Controller
 
             return [
                 'code'       => $sr->code,
-                'client'     => $sr->client?->company_name ?? '—',
-                'meta'       => ($sr->category?->category_name ?? '—').' · '.$stageLabel,
+                'client'     => $sr->client?->company_name ?? '-',
+                'meta'       => ($sr->category?->category_name ?? '-').' · '.$stageLabel,
                 'badgeText'  => $priority,
                 'badgeColor' => ['High' => '#dc2626', 'Medium' => '#d97706', 'Low' => '#15803d'][$priority] ?? '#9a8053',
             ];
@@ -284,7 +284,7 @@ class FrontDashboardController extends Controller
         };
     }
 
-    /** "vs 16 last month" — the phrasing used on the first KPI card. */
+    /** "vs 16 last month" - the phrasing used on the first KPI card. */
     private function previousLabel(string $period): string
     {
         return match ($period) {
@@ -379,7 +379,7 @@ class FrontDashboardController extends Controller
         return $counts;
     }
 
-    /** Triage backlog is deliberately NOT period-scoped — old ones still matter. */
+    /** Triage backlog is deliberately NOT period-scoped - old ones still matter. */
     private function openTriageCount(int $userId): int
     {
         $raw = $this->rawFor(self::TRIAGE_STAGES);
@@ -510,8 +510,8 @@ class FrontDashboardController extends Controller
             ->get()
             ->map(fn (ServiceRequest $sr) => [
                 'code'     => $sr->code,
-                'client'   => $sr->client?->company_name ?? '—',
-                'category' => $sr->category?->category_name ?? '—',
+                'client'   => $sr->client?->company_name ?? '-',
+                'category' => $sr->category?->category_name ?? '-',
                 'priority' => $this->priority($sr->priority_level),
                 'wait'     => $this->shortAge($sr->created_at),
                 'stale'    => $sr->created_at && abs($sr->created_at->diffInHours(now())) >= 5,
@@ -519,11 +519,11 @@ class FrontDashboardController extends Controller
             ->all();
     }
 
-    /** "18h" / "3d" — the compact style used across the mock-up. */
+    /** "18h" / "3d" - the compact style used across the mock-up. */
     private function shortAge(?CarbonInterface $when): string
     {
         if (! $when) {
-            return '—';
+            return '-';
         }
 
         $mins = (int) abs($when->diffInMinutes(now()));
@@ -640,7 +640,7 @@ private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
 
             return [
                 'id'     => $r->client_id,
-                'name'   => $client->company_name ?? '—',
+                'name'   => $client->company_name ?? '-',
                 'srs'    => (int) $r->aggregate,
                 'is_new' => (bool) ($client && $client->created_at && $client->created_at->between($from, $to)),
             ];
@@ -655,7 +655,7 @@ private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
             return $query->where('created_by', $userId)->count();
         }
 
-        // No direct authorship column — fall back to new clients this executive
+        // No direct authorship column - fall back to new clients this executive
         // actually logged a service request against in this window.
         $clientIds = $this->mine($userId)
             ->whereBetween('created_at', [$from, $to])
@@ -674,7 +674,7 @@ private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
             return $query->where('created_by', $userId)->count();
         }
 
-        // No direct authorship column on projects — fall back to sites under
+        // No direct authorship column on projects - fall back to sites under
         // clients this executive actually raised a service request for.
         $clientIds = $this->mine($userId)->whereNotNull('client_id')->distinct()->pluck('client_id');
 
@@ -699,7 +699,7 @@ private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
             ->get()
             ->map(fn (ServiceRequest $sr) => [
                 'code'   => $sr->code,
-                'client' => $sr->client?->company_name ?? '—',
+                'client' => $sr->client?->company_name ?? '-',
                 'reason' => $sr->hold_reason ?: ucfirst(str_replace('_', ' ', (string) $sr->status)),
             ])
             ->all();
@@ -710,7 +710,7 @@ private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
     /**
      * Reads the WhatsApp log table directly and degrades to zeros when it is
      * absent or shaped differently. Point TABLE at your real table and adjust
-     * the column names once confirmed — WhatsappLogController owns that schema.
+     * the column names once confirmed - WhatsappLogController owns that schema.
      */
     private function whatsappStats(int $userId, Carbon $from, Carbon $to): array
     {
@@ -761,7 +761,7 @@ private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
             ]))
             ->map(fn ($r) => [
                 'code'   => 'SR-'.Carbon::parse($r->sr_created)->format('Y').'-'.str_pad((string) $r->sr_id, 5, '0', STR_PAD_LEFT),
-                'client' => $r->company_name ?? '—',
+                'client' => $r->company_name ?? '-',
                 'reason' => ($r->reason ?? null) ?: 'Delivery failed',
             ])
             ->all();
@@ -831,12 +831,12 @@ private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
 
         return [
             'code'      => $sr->code,
-            'client'    => $sr->client?->company_name ?? '—',
+            'client'    => $sr->client?->company_name ?? '-',
             'client_id' => $sr->client_id,
-            'site'     => $sr->project?->site_name ?: ($sr->project?->site_address ?: '—'),
+            'site'     => $sr->project?->site_name ?: ($sr->project?->site_address ?: '-'),
             'priority' => $this->priority($sr->priority_level),
             'scope'    => $this->scopeCode($sr),
-            'category' => $sr->category?->category_name ?? '—',
+            'category' => $sr->category?->category_name ?? '-',
             'logged'   => $this->shortAge($sr->created_at),
             'tech'     => $tech?->name,
             'initials' => $tech ? $this->initials($tech->name) : null,
@@ -870,7 +870,7 @@ private function scopeSplit(int $userId, Carbon $from, Carbon $to): array
     private function initials(?string $name): string
     {
         if (! $name) {
-            return '—';
+            return '-';
         }
 
         $parts = preg_split('/\s+/', trim($name)) ?: [];

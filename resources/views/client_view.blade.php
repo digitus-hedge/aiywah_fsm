@@ -1592,7 +1592,7 @@
     <div style="position:relative;z-index:1;min-width:0;">
       <div class="hero-token"><i class="bi bi-building-fill"></i>{{ $client->unique_code }}</div>
       <div class="hero-name">{{ $client->company_name }}</div>
-      <div class="hero-tag"><i class="bi bi-person-fill"></i>{{ $client->contact_name ?? '—' }} · Primary Contact</div>
+      <div class="hero-tag"><i class="bi bi-person-fill"></i>{{ $client->contact_name ?? '-' }} · Primary Contact</div>
     </div>
 
     <div class="hero-actions">
@@ -1659,7 +1659,7 @@
   <div class="stat-card">
     <div class="stat-icon" style="background:rgba(154,128,83,.12);"><i class="bi bi-star-fill" style="color:#9a8053;"></i></div>
     <div>
-      <div class="stat-num">{{ $avgRating ?? '—' }}</div>
+      <div class="stat-num">{{ $avgRating ?? '-' }}</div>
       <div class="stat-lbl">Avg Rating</div>
     </div>
   </div>
@@ -1742,10 +1742,10 @@
       <div class="info-card-hdr"><i class="bi bi-info-circle-fill"></i><span class="info-card-title">Customer Details</span></div>
       <div class="info-row"><span class="info-key">Customer Token</span><span class="info-val mono">{{ $client->unique_code }}</span></div>
       <div class="info-row"><span class="info-key">Trade Name</span><span class="info-val">{{ $client->company_name }}</span></div>
-      <div class="info-row"><span class="info-key">Primary Contact</span><span class="info-val">{{ $client->contact_name ?? '—' }}</span></div>
+      <div class="info-row"><span class="info-key">Primary Contact</span><span class="info-val">{{ $client->contact_name ?? '-' }}</span></div>
       <div class="info-row"><span class="info-key">Phone</span><span class="info-val mono">{{ $client->primary_country }} {{ $client->primary_mobile }}</span></div>
-      <div class="info-row"><span class="info-key">Email</span><span class="info-val" style="font-size:.72rem;">{{ $client->email ?? '—' }}</span></div>
-      <div class="info-row"><span class="info-key">HQ Address</span><span class="info-val" style="font-size:.72rem;line-height:1.4;">{{ $client->address ?? '—' }}</span></div>
+      <div class="info-row"><span class="info-key">Email</span><span class="info-val" style="font-size:.72rem;">{{ $client->email ?? '-' }}</span></div>
+      <div class="info-row"><span class="info-key">HQ Address</span><span class="info-val" style="font-size:.72rem;line-height:1.4;">{{ $client->address ?? '-' }}</span></div>
       <div class="info-row"><span class="info-key">Status</span><span class="info-val">
           @if($client->status === 'Active' || $client->status === 'active')
           <span class="sbadge sb-active-g" style="font-size:.68rem;"><i class="bi bi-circle-fill" style="font-size:.32rem;"></i>Active</span>
@@ -1753,7 +1753,7 @@
           <span class="sbadge sb-inactive" style="font-size:.68rem;"><i class="bi bi-circle-fill" style="font-size:.32rem;"></i>{{ ucfirst($client->status ?? 'Inactive') }}</span>
           @endif
         </span></div>
-      <div class="info-row"><span class="info-key">Designation</span><span class="info-val">{{ $client->designation ?? '—' }}</span></div>
+      <div class="info-row"><span class="info-key">Designation</span><span class="info-val">{{ $client->designation ?? '-' }}</span></div>
       <div class="info-row"><span class="info-key">Onboarded</span><span class="info-val">{{ optional($client->created_at)->format('d M Y') }}</span></div>
     </div>
 
@@ -1791,7 +1791,7 @@
         <div class="tl-item">
           <div class="tl-dot" style="background:rgba(154,128,83,.12);border-color:rgba(154,128,83,.3);"><i class="bi bi-plus" style="color:#9a8053;font-size:.72rem;"></i></div>
           <div class="tl-content">
-            <div class="tl-action">Project PRJ-AF004 — Created</div>
+            <div class="tl-action">Project PRJ-AF004 - Created</div>
             <div class="tl-by">by Priya Nair (FD)</div>
             <div class="tl-time">Today, 10:34 AM</div>
           </div>
@@ -1799,7 +1799,7 @@
         <div class="tl-item">
           <div class="tl-dot" style="background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.3);"><i class="bi bi-check-lg" style="color:#10b981;font-size:.66rem;"></i></div>
           <div class="tl-content">
-            <div class="tl-action">SR-2024-0198 — QC Passed &amp; Closed</div>
+            <div class="tl-action">SR-2024-0198 - QC Passed &amp; Closed</div>
             <div class="tl-by">Downtown Retail Portfolio</div>
             <div class="tl-time">Yesterday, 09:14 AM</div>
           </div>
@@ -1807,7 +1807,7 @@
         <div class="tl-item">
           <div class="tl-dot" style="background:rgba(6,182,212,.1);border-color:rgba(6,182,212,.3);"><i class="bi bi-person-fill" style="color:#0891b2;font-size:.62rem;"></i></div>
           <div class="tl-content">
-            <div class="tl-action">SR-2024-0201 — Technician Punched In</div>
+            <div class="tl-action">SR-2024-0201 - Technician Punched In</div>
             <div class="tl-by">Festival City Operations</div>
             <div class="tl-time">2 days ago</div>
           </div>
@@ -1815,7 +1815,7 @@
         <div class="tl-item">
           <div class="tl-dot" style="background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.3);"><i class="bi bi-pencil" style="color:#2563eb;font-size:.62rem;"></i></div>
           <div class="tl-content">
-            <div class="tl-action">Contact updated — James Harrington</div>
+            <div class="tl-action">Contact updated - James Harrington</div>
             <div class="tl-by">by Ahmed Al Rashid (Admin)</div>
             <div class="tl-time">5 days ago</div>
           </div>
@@ -2020,7 +2020,7 @@
             <div class="tog-track on" id="statusTog">
               <div class="tog-thumb"></div>
             </div>
-            <span class="tog-label">Active — project visible across SR Registration and Dispatch</span>
+            <span class="tog-label">Active - project visible across SR Registration and Dispatch</span>
           </div>
         </div>
       </div>
@@ -2109,7 +2109,7 @@ function exportProjects() {
   var list = filteredProjects;
   if (!list.length) { showToast('err', 'Nothing to export', 'No projects match the current filters.'); return; }
 
-  var dash = function (v) { return (v === null || v === undefined || v === '') ? '—' : v; };
+  var dash = function (v) { return (v === null || v === undefined || v === '') ? '-' : v; };
 
   var rows = [
     ['Customer Details'],
@@ -2201,7 +2201,7 @@ function exportProjects() {
     var tog = document.getElementById('statusTog');
     tog.classList.add('on');
     var togLbl = tog.parentElement.querySelector('.tog-label');
-    if (togLbl) togLbl.textContent = 'Active — project visible across SR Registration and Dispatch';
+    if (togLbl) togLbl.textContent = 'Active - project visible across SR Registration and Dispatch';
     regenCode();
     document.querySelector('#projectModal .modal-hdr h6').textContent = 'Create New Project';
     document.getElementById('pn-save-btn').innerHTML = '<i class="bi bi-floppy"></i>Save Project';
@@ -2225,7 +2225,7 @@ function exportProjects() {
   document.getElementById('pn-completion').value = p.completionDate || '';
   document.getElementById('pn-warranty').value = p.warrantyId ? String(p.warrantyId) : '';
 
-  // Country code — fall back safely if value isn't a valid option
+  // Country code - fall back safely if value isn't a valid option
   var countrySel = document.getElementById('pn-engineer-country');
   var wantedCountry = p.engineer_country || '+971';
   var hasOption = Array.from(countrySel.options).some(function(o){ return o.value === wantedCountry; });
@@ -2238,8 +2238,8 @@ function exportProjects() {
   tog.classList.toggle('on', !!p.active);
   var togLbl = tog.parentElement.querySelector('.tog-label');
   if (togLbl) togLbl.textContent = p.active ?
-    'Active — project visible across SR Registration and Dispatch' :
-    'Inactive — hidden from SR Registration';
+    'Active - project visible across SR Registration and Dispatch' :
+    'Inactive - hidden from SR Registration';
 
   document.querySelector('#projectModal .modal-hdr h6').textContent = 'Edit Project';
   document.getElementById('pn-save-btn').innerHTML = '<i class="bi bi-floppy"></i>Update Project';
@@ -2307,8 +2307,8 @@ function exportProjects() {
     t.classList.toggle('on');
     var lbl = wrap.querySelector('.tog-label');
     if (lbl) lbl.textContent = t.classList.contains('on') ?
-      'Active — project visible across SR Registration and Dispatch' :
-      'Inactive — hidden from SR Registration';
+      'Active - project visible across SR Registration and Dispatch' :
+      'Inactive - hidden from SR Registration';
   }
 
   /* ── SAVE (create or update) ── */

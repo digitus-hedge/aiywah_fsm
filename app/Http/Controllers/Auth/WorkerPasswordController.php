@@ -132,7 +132,7 @@ public function resendOtp(Request $request)
         $user = User::where('email', $email)->firstOrFail();
         $user->forceFill(['must_reset_password' => true])->save();
 
-        // Log them in — middleware will pin them to the reset screen.
+        // Log them in - middleware will pin them to the reset screen.
         Auth::guard('worker')->login($user);
         $request->session()->regenerate();
         $request->session()->forget('worker_otp_email');

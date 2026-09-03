@@ -1,7 +1,7 @@
 {{--
     resources/views/emails/client_welcome.blade.php
 
-    Standalone HTML — deliberately not @component('mail::message'), so the
+    Standalone HTML - deliberately not @component('mail::message'), so the
     layout carries Matter Mind branding rather than Laravel's default chrome.
     Table-based with inline styles: Outlook and Gmail strip <style> blocks.
 
@@ -168,7 +168,7 @@
     </tr>
     <tr>
       <td align="center" style="padding:0 32px 8px;font-family:Arial,Helvetica,sans-serif;font-size:11.5px;color:#8a7f6d;">
-        This link is private to your organization — please keep it safe.
+        This link is private to your organization - please keep it safe.
       </td>
     </tr>
     <tr>

@@ -26,7 +26,7 @@
         <tr><td style="color:#666;">Completion Time</td><td>{{ $completionTime }}</td></tr>
     </table>
 
-    <p>You can view the complete record of this service request online — including
+    <p>You can view the complete record of this service request online - including
        the before &amp; after photos, technician notes and the signed work completion
        report:</p>
 

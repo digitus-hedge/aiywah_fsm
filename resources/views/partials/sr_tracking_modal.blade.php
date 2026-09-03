@@ -34,6 +34,7 @@
 .srtm-tl-label.pending{color:#a09890;font-weight:500;}
 .srtm-tl-time{font-size:.72rem;color:#9a8053;font-weight:600;}
 .srtm-tl-desc{font-size:.72rem;color:#a09890;margin-top:2px;}
+.srtm-tl-item.srtm-tl-last .srtm-tl-line{display:none;}
 .srtm-hist-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #f0ece6;}
 .srtm-hist-item:last-child{border-bottom:none;}
 .srtm-hist-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;}
@@ -55,9 +56,9 @@
   <div class="srtm-box">
     <div class="srtm-hdr">
       <div>
-        <div class="srtm-ref" id="srtm-ref">—</div>
-        <div class="srtm-sub" id="srtm-sub">—</div>
-        <div class="srtm-chip" id="srtm-chip"><i class="bi bi-circle"></i><span id="srtm-chip-text">—</span></div>
+        <div class="srtm-ref" id="srtm-ref">-</div>
+        <div class="srtm-sub" id="srtm-sub">-</div>
+        <div class="srtm-chip" id="srtm-chip"><i class="bi bi-circle"></i><span id="srtm-chip-text">-</span></div>
       </div>
       <button class="srtm-close" onclick="closeSrTracking()"><i class="bi bi-x-lg"></i></button>
     </div>
@@ -118,21 +119,26 @@
         <div class="srtm-cell" style="grid-column:1/-1;"><div class="srtm-cell-label">Issue</div><div class="srtm-cell-value" style="font-weight:400;">${esc(d.sr.issue)}</div></div>
       </div>`;
 
-      const timeline = `
-      <div class="srtm-section-title"><i class="bi bi-signpost-2"></i> Progress</div>
-      ${d.milestones.map((m,i) => `
-        <div class="srtm-tl-item">
-          <div class="srtm-tl-left">
-            <div class="srtm-tl-node ${m.state}"><i class="bi ${m.state==='done'?'bi-check':m.icon}"></i></div>
-            <div class="srtm-tl-line ${m.state==='done'?'done':''}"></div>
-          </div>
-          <div class="srtm-tl-right">
-            <div class="srtm-tl-label ${m.state==='pending'?'pending':''}">${esc(m.label)}</div>
-            <div class="srtm-tl-time">${m.time ? esc(m.time) : 'Pending'}</div>
-            <div class="srtm-tl-desc">${esc(m.desc)}</div>
-            ${m.by ? `<div class="srtm-tl-by"><i class="bi bi-person-fill"></i>${esc(m.by)}</div>` : ''}
-          </div>
-        </div>`).join('')}`;
+    const timeline = `
+  <div class="srtm-section-title"><i class="bi bi-signpost-2"></i> Progress</div>
+  ${d.milestones
+    .filter(m => m.state === 'done' || m.state === 'active')
+    .map((m,i,arr) => {
+      const label = (i === 0 && m.label === 'Pending') ? 'SR Created' : m.label;
+      return `
+      <div class="srtm-tl-item ${i === arr.length - 1 ? 'srtm-tl-last' : ''}">
+        <div class="srtm-tl-left">
+          <div class="srtm-tl-node ${m.state}"><i class="bi ${m.state==='done'?'bi-check':m.icon}"></i></div>
+          <div class="srtm-tl-line ${m.state==='done'?'done':''}"></div>
+        </div>
+        <div class="srtm-tl-right">
+          <div class="srtm-tl-label">${esc(label)}</div>
+          <div class="srtm-tl-time">${m.time ? esc(m.time) : (m.state==='active' ? 'In progress' : 'Pending')}</div>
+          <div class="srtm-tl-desc">${esc(m.desc)}</div>
+          ${m.by ? `<div class="srtm-tl-by"><i class="bi bi-person-fill"></i>${esc(m.by)}</div>` : ''}
+        </div>
+      </div>`;
+    }).join('') || '<div class="srtm-loading" style="padding:16px 0;">No milestones completed yet.</div>'}`;
 
     const history = d.history.length ? `
       <div class="srtm-section-title"><i class="bi bi-clock-history"></i> Activity Log</div>
@@ -149,7 +155,7 @@
     document.getElementById('srtm-content').innerHTML = meta + timeline + history;
   }
 
-  // Global delegated click — works for ANY page, any element with this class
+  // Global delegated click - works for ANY page, any element with this class
   document.addEventListener('click', function(e){
     const el = e.target.closest('.sr-ref-trigger');
     if (el && el.dataset.srId) openSrTracking(el.dataset.srId);

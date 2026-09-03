@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
 <style>
-/* ===== QC Review Terminal — scoped page styles ===== */
+/* ===== QC Review Terminal - scoped page styles ===== */
 .qc-wrap{--gold:#9a8053;--gold-2:#b8975e;--queue-width:300px;--proof-bg:#f0f3f9;--locked-bg:#f7f8fb;}
 [data-bs-theme="dark"] .qc-wrap{--proof-bg:#2a2928;--locked-bg:#242220;}
 .qc-wrap .pg-header h4,.qc-wrap .modal-hdr h6,.qc-wrap .ws-sr-id,.qc-wrap .queue-item-id,
@@ -428,9 +428,9 @@
         <div class="ws-header-card">
           <div class="ws-header-top">
             <div>
-              <div class="ws-sr-id" id="ws-sr-id">—</div>
-              <div class="ws-client" id="ws-client">—</div>
-              <div class="ws-site" id="ws-site">—</div>
+              <div class="ws-sr-id" id="ws-sr-id">-</div>
+              <div class="ws-client" id="ws-client">-</div>
+              <div class="ws-site" id="ws-site">-</div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
               <span class="sbadge sb-review"><i class="bi bi-circle-fill" style="font-size:.4rem;"></i>Pending Review</span>
@@ -438,10 +438,10 @@
             </div>
           </div>
           <div class="ws-meta-grid">
-            <div class="ws-meta-item"><div class="ws-meta-label">Technician</div><div class="ws-meta-value" id="ws-tech">—</div></div>
-            <div class="ws-meta-item"><div class="ws-meta-label">Punch In</div><div class="ws-meta-value" id="ws-punchin">—</div></div>
-            <div class="ws-meta-item"><div class="ws-meta-label">Punch Out</div><div class="ws-meta-value" id="ws-punchout">—</div></div>
-            <div class="ws-meta-item"><div class="ws-meta-label">SLA Elapsed</div><div class="ws-meta-value" id="ws-sla">—</div></div>
+            <div class="ws-meta-item"><div class="ws-meta-label">Technician</div><div class="ws-meta-value" id="ws-tech">-</div></div>
+            <div class="ws-meta-item"><div class="ws-meta-label">Punch In</div><div class="ws-meta-value" id="ws-punchin">-</div></div>
+            <div class="ws-meta-item"><div class="ws-meta-label">Punch Out</div><div class="ws-meta-value" id="ws-punchout">-</div></div>
+            <div class="ws-meta-item"><div class="ws-meta-label">SLA Elapsed</div><div class="ws-meta-value" id="ws-sla">-</div></div>
           </div>
         </div>
 
@@ -490,7 +490,7 @@
             </div>
           <div style="margin:0 18px 14px;padding:9px 13px;background:rgba(21,128,61,.07);border:1px solid rgba(21,128,61,.2);border-radius:7px;display:flex;align-items:center;gap:8px;font-size:.78rem;color:#15803d;">
             <i class="bi bi-shield-fill-check"></i>
-            All 3 required documents uploaded — Before photo, After photo, and Signed customer acceptance form.
+            All 3 required documents uploaded - Before photo, After photo, and Signed customer acceptance form.
           </div>
           <div class="proof-strip-label" id="before-strip-label" style="display:none;">All Before Photos</div>
           <div class="proof-strip" id="before-strip"></div>
@@ -520,16 +520,16 @@
 
     <!-- <div class="qc-lock-note" id="qc-lock-note">
       <i class="bi bi-lock-fill"></i>
-      <span>QC on this ticket is allocated to <strong id="qc-owner-name">—</strong>. You can review the evidence here, but only they can pass or return it.</span>
+      <span>QC on this ticket is allocated to <strong id="qc-owner-name">-</strong>. You can review the evidence here, but only they can pass or return it.</span>
     </div> -->
 
     {{-- Two main buttons only --}}
     <!-- <div class="action-btns" id="action-btns">
       <button class="btn-qc-fail" id="btn-fail" onclick="initiateFail()">
-        <i class="bi bi-arrow-counterclockwise"></i>QC Fail — Return to Rework
+        <i class="bi bi-arrow-counterclockwise"></i>QC Fail - Return to Rework
       </button>
       <button class="btn-qc-pass" id="btn-pass" onclick="initiatePass()">
-        <i class="bi bi-patch-check-fill"></i>QC Pass — Authorize Closeout
+        <i class="bi bi-patch-check-fill"></i>QC Pass - Authorize Closeout
       </button>
     </div> -->
 
@@ -537,16 +537,16 @@
 
     <div class="qc-lock-note" id="qc-lock-note">
   <i class="bi bi-lock-fill"></i>
-  <span>QC on this ticket is allocated to <strong id="qc-owner-name">—</strong>. You can review the evidence here, but only they can pass or return it.</span>
+  <span>QC on this ticket is allocated to <strong id="qc-owner-name">-</strong>. You can review the evidence here, but only they can pass or return it.</span>
 </div>
 
 {{-- Two main buttons only --}}
 <div class="action-btns" id="action-btns" style="display:none;">
   <button class="btn-qc-fail" id="btn-fail" onclick="initiateFail()">
-    <i class="bi bi-arrow-counterclockwise"></i>QC Fail — Return to Rework
+    <i class="bi bi-arrow-counterclockwise"></i>QC Fail - Return to Rework
   </button>
   <button class="btn-qc-pass" id="btn-pass" onclick="initiatePass()">
-    <i class="bi bi-patch-check-fill"></i>QC Pass — Authorize Closeout
+    <i class="bi bi-patch-check-fill"></i>QC Pass - Authorize Closeout
   </button>
 </div>
 
@@ -571,9 +571,9 @@
           </span>
         </div>
         <textarea class="rework-textarea" id="rework-textarea"
-          placeholder="Describe the rework requirements clearly — this will be sent directly to the technician's mobile view…"></textarea>
+          placeholder="Describe the rework requirements clearly - this will be sent directly to the technician's mobile view…"></textarea>
         <div class="rework-hint active" id="rework-hint">
-          Required — SLA timers and historical timestamps will be preserved for the rework cycle.
+          Required - SLA timers and historical timestamps will be preserved for the rework cycle.
         </div>
       </div>
 
@@ -595,12 +595,12 @@
 
       {{-- One shared confirm button --}}
       <button class="btn-confirm-rework show" id="btn-confirm-fail" onclick="confirmFail()">
-        <i class="bi bi-send-fill"></i><span id="btn-confirm-fail-text">Confirm — Send Back to Technician</span>
+        <i class="bi bi-send-fill"></i><span id="btn-confirm-fail-text">Confirm - Send Back to Technician</span>
       </button>
 
       <div id="cancel-fail-wrap" style="margin-top:8px;text-align:center;">
         <button onclick="cancelFail()" style="background:none;border:none;font-size:.78rem;color:var(--text-muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px;">
-          Cancel — keep current assessment
+          Cancel - keep current assessment
         </button>
       </div>
     </div>
@@ -632,7 +632,7 @@
       </div>
       <div class="lightbox-img" id="lb-img"></div>
       <div class="lightbox-foot">
-        <span id="lb-filename">—</span>
+        <span id="lb-filename">-</span>
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="lb-nav" id="lb-nav" style="display:none;">
             <button id="lb-prev" onclick="lbStep(-1)" title="Previous"><i class="bi bi-chevron-left"></i></button>
@@ -672,7 +672,7 @@
 @push('scripts')
 <script>
 /* =========================================================
-   QC Review Terminal — page scripts
+   QC Review Terminal - page scripts
    Row shape:
    { id, dbId, client, site, tech, scope('iw'|'oow'), scopeLabel,
      punchIn, punchOut, sla:{label, cls, fill, color}, slaFill, slaColor,
@@ -699,7 +699,7 @@ function renderQueue(list){
     return;
   }
   ul.innerHTML = list.map(sr=>{
-    const sla      = sr.sla || {label:'—', cls:'', fill:0, color:'#9ca3af'};
+    const sla      = sr.sla || {label:'-', cls:'', fill:0, color:'#9ca3af'};
     const active   = selectedSR && selectedSR.id === sr.id ? 'active' : '';
     const timerCls = (sla.cls === 'warn' || sla.cls === 'breach') ? 'timer-warn' : '';
     const scopeCls = sr.scope === 'iw' ? 'scope-iw' : 'scope-oow';
@@ -826,7 +826,7 @@ function selectSR(id){
   document.getElementById('ws-punchin').textContent  = selectedSR.punchIn;
   document.getElementById('ws-punchout').textContent = selectedSR.punchOut;
 
-  const sla   = selectedSR.sla || {label:'—', cls:''};
+  const sla   = selectedSR.sla || {label:'-', cls:''};
   const slaEl = document.getElementById('ws-sla');
   slaEl.textContent = sla.label;
   slaEl.className   = 'ws-meta-value ' + (sla.cls || '');
@@ -872,7 +872,7 @@ function selectSR(id){
         ? 'AED ' + e.amt.toLocaleString()
         : (String(e.amt || '').trim() || 'AED 0');
       return `<div class="expense-row">
-        <div class="expense-cat"><i class="bi ${e.icon || 'bi-receipt'}"></i>${e.cat || '—'}</div>
+        <div class="expense-cat"><i class="bi ${e.icon || 'bi-receipt'}"></i>${e.cat || '-'}</div>
         <div style="display:flex;align-items:center;gap:12px;">
           <span class="expense-amt">${amt}</span>
           ${e.receipt
@@ -897,12 +897,12 @@ function initiatePass(){
   if(selectedSR.scope==='iw'){
     brd.innerHTML=`<div class="branch-route iw-route">
       <div class="branch-route-icon"><i class="bi bi-check-circle-fill"></i></div>
-      <div><div class="branch-route-label">In-Warranty — Next action</div>
+      <div><div class="branch-route-label">In-Warranty - Next action</div>
       <div class="branch-route-action">→ Status: Completed + WhatsApp summary to client</div></div></div>`;
   } else {
     brd.innerHTML=`<div class="branch-route oow-route">
       <div class="branch-route-icon"><i class="bi bi-receipt"></i></div>
-      <div><div class="branch-route-label">Out-of-Warranty — Next action</div>
+      <div><div class="branch-route-label">Out-of-Warranty - Next action</div>
       <div class="branch-route-action">→ Forwarded to Invoice Panel for invoice upload</div></div></div>`;
   }
   document.getElementById('pass-modal').classList.add('show');
@@ -928,13 +928,13 @@ function executePass(){
     if(sr.scope==='iw'){
       icon.style.background='rgba(21,128,61,.12)';
       icon.innerHTML='<i class="bi bi-check-circle-fill" style="color:#15803d;font-size:1.8rem;"></i>';
-      title.textContent=`${sr.id} — QC Passed & Completed`;
+      title.textContent=`${sr.id} - QC Passed & Completed`;
       body.textContent='Status updated to Completed. WhatsApp summary dispatched to client stakeholders.';
       showToast('ok','QC Authorised',`${sr.id} closed successfully.`);
     } else {
       icon.style.background='rgba(37,99,235,.1)';
       icon.innerHTML='<i class="bi bi-receipt" style="color:#2563eb;font-size:1.8rem;"></i>';
-      title.textContent=`${sr.id} — Forwarded to Invoice Panel`;
+      title.textContent=`${sr.id} - Forwarded to Invoice Panel`;
       body.textContent='Status updated to Pending Invoice. Accounts team notified to upload the invoice.';
       showToast('ok','Forwarded to Accounts',`${sr.id} sent to Invoice Panel.`);
     }
@@ -956,12 +956,12 @@ function executePass(){
 //   const ta = document.getElementById('rework-textarea');
 //   ta.disabled = false;
 //   ta.style.borderColor = '';
-//   ta.placeholder = 'Describe the rework requirements clearly — this will be sent directly to the technician\'s mobile view…';
+//   ta.placeholder = 'Describe the rework requirements clearly - this will be sent directly to the technician\'s mobile view…';
 //   ta.focus();
 //   document.getElementById('rework-locked-tag').style.display='none';
 //   document.getElementById('rework-unlocked-tag').style.display='flex';
 //   const hint = document.getElementById('rework-hint');
-//   hint.textContent = 'Required — SLA timers and historical timestamps will be preserved for the rework cycle.';
+//   hint.textContent = 'Required - SLA timers and historical timestamps will be preserved for the rework cycle.';
 //   hint.classList.add('active');
 //   document.getElementById('btn-fail').classList.add('active');
 //   document.getElementById('btn-pass').disabled = true;
@@ -977,7 +977,7 @@ function executePass(){
 //   ta.disabled = true;
 //   ta.value = '';
 //   ta.style.borderColor = '';
-//   ta.placeholder = 'This field is locked. Click \'QC Fail — Return to Rework\' to activate…';
+//   ta.placeholder = 'This field is locked. Click \'QC Fail - Return to Rework\' to activate…';
 //   document.getElementById('rework-locked-tag').style.display='flex';
 //   document.getElementById('rework-unlocked-tag').style.display='none';
 //   const hint = document.getElementById('rework-hint');
@@ -1020,7 +1020,7 @@ function setFailAction(mode){
   document.getElementById('rework-wrap').style.display  = isRework ? 'block' : 'none';
   document.getElementById('realloc-wrap').style.display = isRework ? 'none'  : 'block';
   document.getElementById('btn-confirm-fail-text').textContent =
-    isRework ? 'Confirm — Send Back to Technician' : 'Confirm Reallocation to ML';
+    isRework ? 'Confirm - Send Back to Technician' : 'Confirm Reallocation to ML';
 
   if(!isRework && selectedSR){
     document.getElementById('realloc-cat-name').textContent =
@@ -1082,7 +1082,7 @@ function confirmRework(){
     document.getElementById('ws-detail').classList.remove('show');
     document.getElementById('success-icon').style.background='rgba(239,68,68,.08)';
     document.getElementById('success-icon').innerHTML='<i class="bi bi-arrow-counterclockwise" style="color:#ef4444;font-size:1.8rem;"></i>';
-    document.getElementById('success-title').textContent=`${sr.id} — Returned to Rework`;
+    document.getElementById('success-title').textContent=`${sr.id} - Returned to Rework`;
     document.getElementById('success-body').textContent='Status reverted to Rework. Technician has been notified on their mobile with your requirements. SLA timestamps preserved.';
     document.getElementById('ws-success').classList.add('show');
     showToast('warn','Rework Initiated',`${sr.id} sent back to ${sr.tech}.`);
@@ -1178,7 +1178,7 @@ function lbRender(){
   const url = lbList[lbIndex] || null;
   lbCurrentUrl = url;
 
-  const suffix = lbList.length > 1 ? ` — ${lbIndex + 1} of ${lbList.length}` : '';
+  const suffix = lbList.length > 1 ? ` - ${lbIndex + 1} of ${lbList.length}` : '';
   document.getElementById('lb-title').textContent    = lbTitleBase + suffix;
   document.getElementById('lb-filename').textContent = url ? url.split('/').pop() : 'No file';
 
@@ -1297,7 +1297,7 @@ async function loadMls(categoryId){
 
     sel.innerHTML = '<option value="">Select ML…</option>' + users.map(u => {
       const n = Number(u.active_count) || 0;
-      return `<option value="${u.id}">${u.name}${n > 0 ? ` — ${n} open` : ''}</option>`;
+      return `<option value="${u.id}">${u.name}${n > 0 ? ` - ${n} open` : ''}</option>`;
     }).join('');
     sel.disabled = false;
   }catch(e){
@@ -1338,7 +1338,7 @@ function confirmRealloc(){
     document.getElementById('ws-detail').classList.remove('show');
     document.getElementById('success-icon').style.background='rgba(37,99,235,.1)';
     document.getElementById('success-icon').innerHTML='<i class="bi bi-arrow-left-right" style="color:#2563eb;font-size:1.8rem;"></i>';
-    document.getElementById('success-title').textContent=`${sr.id} — Reallocated`;
+    document.getElementById('success-title').textContent=`${sr.id} - Reallocated`;
     document.getElementById('success-body').textContent='The job has been moved to the selected ML.';
     document.getElementById('ws-success').classList.add('show');
     showToast('ok','Reallocated',`${sr.id} moved to a new ML.`);

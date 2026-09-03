@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Ticket Summary — Digit-Us Portal')
+@section('title', 'Ticket Summary - Digit-Us Portal')
 @section('page_title', 'Ticket Summary')
 @section('page_icon', 'kanban')
 
@@ -113,14 +113,14 @@
 .timer-crit{background:rgba(255,51,102,.12);color:#ff3366;}
 .kc-site{font-size:.7rem;color:var(--text-muted);margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px;text-align:right;}
 
-/* Staff credit — revealed on hover */
+/* Staff credit - revealed on hover */
 .kc-staff{background:var(--surface-2);border:1px solid var(--border-color);border-radius:6px;padding:7px 9px;margin-bottom:8px;font-size:.7rem;display:none;}
 .kcard:hover .kc-staff{display:block;}
 .kc-staff .staff-label{color:var(--text-muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
 .kc-staff .staff-name{font-weight:600;color:var(--text-heading);display:flex;align-items:center;gap:5px;}
 .kc-staff .staff-meta{color:var(--text-muted);margin-top:2px;}
 
-/* Completion artefacts — only rendered on Completed / Archived cards */
+/* Completion artefacts - only rendered on Completed / Archived cards */
 .kc-actions{display:flex;align-items:center;gap:6px;margin-top:8px;}
 .kc-action-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border-color);background:var(--surface-2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.85rem;transition:all .15s;flex-shrink:0;color:var(--text-muted);}
 .kc-action-btn.before-ph:hover{border-color:#fbbc06;color:#a8802a;background:rgba(251,188,6,.1);}
@@ -227,14 +227,14 @@
 
 {{-- PAGE HEADER --}}
 <div class="pg-header">
-  <h4><i class="bi bi-kanban me-2"></i>Ticket Summary &amp; History — Kanban Card View</h4>
+  <h4><i class="bi bi-kanban me-2"></i>Ticket Summary &amp; History - Kanban Card View</h4>
   <p>Live pipeline view of all service requests across lifecycle stages. Site photos and the signed sheet appear once a ticket is completed.</p>
   <div class="meta-row">
     <span class="meta-badge"><i class="bi bi-person-badge me-1"></i>Super Admin</span>
     <span class="meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
     <span class="meta-badge"><i class="bi bi-briefcase me-1"></i>Head of Projects</span>
     <span class="meta-badge"><i class="bi bi-calculator me-1"></i>Accounts</span>
-    <span class="view-only-tag"><i class="bi bi-eye-slash"></i>View only — no drag</span>
+    <span class="view-only-tag"><i class="bi bi-eye-slash"></i>View only - no drag</span>
   </div>
 </div>
 
@@ -322,7 +322,7 @@ function cfg(status){
   return STATUS_CFG[status] || {color:'#aeb7c5', group:'cancel'};
 }
 
-/** Translucent variant of a hex — reads correctly on light and dark surfaces. */
+/** Translucent variant of a hex - reads correctly on light and dark surfaces. */
 function tint(hex, a){
   const h = String(hex || '#aeb7c5').replace('#','');
   const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
@@ -330,7 +330,7 @@ function tint(hex, a){
 }
 
 function elapsed(iso){
-  if(!iso) return {label:'—', cls:'timer-ok'};
+  if(!iso) return {label:'-', cls:'timer-ok'};
   const ms = Date.now() - new Date(iso).getTime();
   if(ms < 0) return {label:'0h 0m', cls:'timer-ok'};
   const h = Math.floor(ms / 3600000);
@@ -585,7 +585,7 @@ function openPhoto(type, srId){
   if(!lbPhotos.length) return;
 
   document.getElementById('lbTitle').textContent =
-    `${type === 'before' ? 'Before' : 'After'} — ${srId}`;
+    `${type === 'before' ? 'Before' : 'After'} - ${srId}`;
 
   document.getElementById('lbMeta').innerHTML = `
     <span><i class="bi bi-person"></i>${esc(t.tech)}</span>
@@ -630,7 +630,7 @@ function openSignedSheet(srId){
 window.openSignedSheet = openSignedSheet;
 
 /* ════════════════════════════════════
-   CSV EXPORT — exports exactly what's on screen
+   CSV EXPORT - exports exactly what's on screen
 ════════════════════════════════════ */
 function exportCsv(){
   if(!filteredTickets.length){

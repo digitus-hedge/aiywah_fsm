@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('service_requests', function (Blueprint $table) {
-            // Who logged it — role code at time of creation (SE, HP, FD, AC, ML)
+            // Who logged it - role code at time of creation (SE, HP, FD, AC, ML)
             $table->string('logged_by_role', 10)->nullable()->after('created_by');
         });
     }

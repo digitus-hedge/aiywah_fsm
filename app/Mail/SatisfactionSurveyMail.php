@@ -36,11 +36,11 @@ class SatisfactionSurveyMail extends Mailable
             view: 'emails.satisfaction_survey',
             with: [
                 'customerName'   => $this->sr->client?->company_name ?? 'Customer',
-                'projectName'    => $this->sr->project?->project_name ?? '—',
+                'projectName'    => $this->sr->project?->project_name ?? '-',
                 'location'       => $this->sr->project?->site_name
                                     ?? $this->sr->project_site
-                                    ?? '—',
-                'completionDate' => $completedAt?->format('d M Y') ?? '—',
+                                    ?? '-',
+                'completionDate' => $completedAt?->format('d M Y') ?? '-',
             ],
         );
     }
