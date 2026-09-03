@@ -16,18 +16,17 @@ class Userdirectorycontroller extends Controller
     {
         abort_unless(auth()->user()?->canAccessUserDirectory(), 403);
         $roles = Role::orderBy('sort_order')->get();
-        // Aggregate stats (single grouped query)
+
         $counts = User::selectRaw('status, COUNT(*) as c')
             ->groupBy('status')
             ->pluck('c', 'status');
 
         $stats = [
-                    'total'    => (int) $counts->sum(),
-                    'active'   => (int) ($counts['active']   ?? 0),
-                    'inactive' => (int) ($counts['inactive'] ?? 0) + (int) ($counts['pending'] ?? 0),
-                ];
+            'total'    => (int) $counts->sum(),
+            'active'   => (int) ($counts['active']   ?? 0),
+            'inactive' => (int) ($counts['inactive'] ?? 0) + (int) ($counts['pending'] ?? 0),
+        ];
 
-        // Filtered, eager-loaded, paginated listing
         $users = User::with(['role', 'serviceDomains'])
             ->when($request->filled('q'), function ($query) use ($request) {
                 $term = $request->string('q');
@@ -46,13 +45,10 @@ class Userdirectorycontroller extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        // Whether this user can provision (create/edit) accounts — drives
-        // the "Add New User" button on the directory page. Directory
-        // viewing itself only needs user_directory access; provisioning
-        // is a separately gated capability layered on top of it.
         $canProvisionUsers = auth()->user()?->hasAnyAccess('user_provisioning') ?? false;
+        $canDeleteUsers    = auth()->user()?->hasAnyAccess('user_delete') ?? false;
 
-        return view('user_directory', compact('roles', 'stats', 'users', 'canProvisionUsers'));
+        return view('user_directory', compact('roles', 'stats', 'users', 'canProvisionUsers', 'canDeleteUsers'));
     }
 
     /**
@@ -105,5 +101,18 @@ class Userdirectorycontroller extends Controller
                 ->values(),
 
         ]);
+    }
+    public function destroy(User $user)
+    {
+        abort_unless(auth()->user()?->hasAnyAccess('user_delete'), 403);
+
+        // Don't allow deleting yourself
+        if ($user->id === auth()->id()) {
+            return response()->json(['message' => 'You cannot delete your own account.'], 422);
+        }
+
+        $user->delete(); // soft delete — sets deleted_at
+
+        return response()->json(['ok' => true]);
     }
 }

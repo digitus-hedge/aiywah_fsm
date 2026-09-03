@@ -79,6 +79,36 @@
     font-weight: 500;
   }
 
+/* Toggle switch (Active/Inactive) */
+.ud-toggle{
+  position:relative;
+  width:36px;
+  height:18px;
+  border-radius:20px;
+  background:var(--border-color);
+  border:none;
+  padding:0;
+  cursor:pointer;
+  flex-shrink:0;
+  transition:background .2s ease;
+}
+.ud-toggle.on{ background:linear-gradient(135deg,#9A7B4F,#7A6140); }
+.ud-toggle.off{ background:#aeb7c5; }
+.ud-toggle-thumb{
+  position:absolute;
+  top:2px;
+  left:2px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 1px 3px rgba(0,0,0,.25);
+  transition:left .2s ease;
+}
+.ud-toggle.on .ud-toggle-thumb{ left:20px; }
+.ud-toggle:disabled{ opacity:.5; cursor:not-allowed; }
+.ud-toggle-wrap{ display:flex; align-items:center; gap:8px; }
+
   /* STATS STRIP */
   .cd-stats-strip {
     display: grid;
@@ -205,7 +235,25 @@
       justify-content: center;
     }
   }
-
+.cd-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: linear-gradient(135deg, #ff3366, #cc1f4d);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: .8rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.cd-btn-danger:hover {
+  opacity: .87;
+  color: #fff;
+}
   /* BUTTONS */
   .cd-btn-gold {
     display: inline-flex;
@@ -291,7 +339,14 @@
     background: rgba(156, 163, 175, .2);
     color: #9ca3af;
   }
-
+  .cd-btn-xs-delete {
+  background: rgba(255, 51, 102, .1);
+  color: #ff3366;
+}
+.cd-btn-xs-delete:hover {
+  background: rgba(255, 51, 102, .2);
+  color: #ff3366;
+}
   /* TABLE CARD */
   .cd-tbl-card {
     background: var(--card-bg);
@@ -868,6 +923,9 @@
           <th style="text-align:center;">Contacts</th>
           <th>Status</th>
           <th style="width:160px;">Actions</th>
+          @if($canDeleteClients)
+            <th style="width:60px;">Delete</th>
+          @endif
         </tr>
       </thead>
       <tbody>
@@ -916,42 +974,40 @@
           <td style="text-align:center;">{{ $client->email}}</td>
           <td style="text-align:center;"><strong>{{ $client->projects_count }}</strong></td>
           <td style="text-align:center;"><strong>{{ $client->mobiles_count + 1 }}</strong></td>
-          <td data-client-id="{{ $client->id }}" class="status-cell">
-            @if($client->status === 'Active')
-            <span class="cd-sbadge cd-sb-active">
-              <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>
-              <span class="status-text">Active</span>
-            </span>
-            @else
-            <span class="cd-sbadge cd-sb-inactive">
-              <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>
-              <span class="status-text">Inactive</span>
-            </span>
-            @endif
+          <td data-client-id="{{ $client->id }}" class="status-cell" onclick="event.stopPropagation()">
+            <div class="ud-toggle-wrap">
+              <button type="button"
+                      class="ud-toggle {{ $client->status === 'Active' ? 'on' : 'off' }}"
+                      id="ctoggle-{{ $client->id }}"
+                      onclick="cdConfirmToggle('{{ route('clients.toggle', $client->id) }}', '{{ $client->status }}', '{{ addslashes($client->company_name) }}', this)">
+                <span class="ud-toggle-thumb"></span>
+              </button>
+            </div>
           </td>
           <td onclick="event.stopPropagation()">
-            <div style="display:flex;gap:5px;">
-              <!-- <button type="button" class="cd-btn-xs cd-btn-xs-view" onclick="cdViewClient(this.closest('tr'))"><i class="bi bi-eye"></i>View</button> -->
-             <a href="{{ route('clients.show', $client->id) }}" class="cd-btn-xs cd-btn-xs-view">
-    <i class="bi bi-eye"></i>View
-</a>
+          <div style="display:flex;gap:5px;">
+            <a href="{{ route('clients.show', $client->id) }}" class="cd-btn-xs cd-btn-xs-view">
+              <i class="bi bi-eye"></i>View
+            </a>
 
             @if(auth()->user()?->role?->code !== 'SE')
               <a href="{{ route('clients.edit', $client) }}" class="cd-btn-xs cd-btn-xs-edit"><i class="bi bi-pencil"></i>Edit</a>
+            @endif
+          </div>
+        </td>
 
-              <button type="button" class="btn-xs btn-xs-off"
-                onclick="udPost('{{ route('clients.toggle', $client->id) }}','warning','Status Toggled','Account status changed for {{ $client->contact_name }}')">
-                <i class="bi bi-slash-circle"></i>
-              </button>
-
-              @endif
-
-            </div>
-          </td>
+        @if($canDeleteClients)
+        <td onclick="event.stopPropagation()">
+          <button type="button" class="cd-btn-xs cd-btn-xs-delete"
+                  onclick="cdConfirmDelete('{{ route('clients.destroy', $client->id) }}', '{{ addslashes($client->company_name) }}')">
+            <i class="bi bi-trash"></i>
+          </button>
+        </td>
+        @endif
         </tr>
         @empty
         <tr class="cd-empty-row">
-          <td colspan="8">
+          <td colspan="{{ $canDeleteClients ? 9 : 8 }}">
             <i class="bi bi-inboxes"></i>
             No clients found. Try adjusting your search or
             <a href="{{ route('clients.create') }}" style="color:#9A7B4F;">create a new Customer</a>.
@@ -1020,7 +1076,24 @@
     </div>
   </div>
 </div>
-
+<div class="cd-modal-overlay" id="cdConfirmOverlay" onclick="if(event.target===this)cdCloseConfirm()">
+  <div class="cd-modal" style="max-width:380px;">
+    <div class="cd-modal-hdr" style="background:transparent;color:var(--text-heading);padding:15px 18px;">
+      <h6 style="margin:0;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:8px;">
+        <i class="bi bi-exclamation-triangle" style="color:#ff3366;" id="cdConfirmIcon"></i>
+        <span id="cdConfirmTitle">Confirm Action</span>
+      </h6>
+      <button type="button" class="cd-modal-close" style="background:var(--surface-2);color:var(--text-muted);" onclick="cdCloseConfirm()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="cd-modal-body" style="padding:16px 18px;">
+      <p style="font-size:.85rem;color:var(--text-primary);margin:0;" id="cdConfirmMsg"></p>
+    </div>
+    <div class="cd-modal-ftr">
+      <button type="button" class="cd-btn cd-btn-ghost" onclick="cdCloseConfirm()">Cancel</button>
+      <button type="button" class="cd-btn cd-btn-gold" id="cdConfirmBtn">Confirm</button>
+    </div>
+  </div>
+</div>
 <div id="cdToastWrap"></div>
 
 <div class="ud-toast-wrap" id="udToastWrap"></div>
@@ -1171,6 +1244,107 @@
     document.body.style.overflow = '';
   }
 
+let cdPendingToggle = null;
+let cdPendingDelete = null;
+
+function cdConfirmToggle(url, currentStatus, name, el){
+  cdPendingToggle = { url, el };
+  document.getElementById('cdConfirmBtn').dataset.mode = 'toggle';
+
+  const icon  = document.getElementById('cdConfirmIcon');
+  const title = document.getElementById('cdConfirmTitle');
+  const msg   = document.getElementById('cdConfirmMsg');
+  const btn   = document.getElementById('cdConfirmBtn');
+
+  if (currentStatus === 'Active') {
+    icon.className = 'bi bi-exclamation-triangle';
+    icon.style.color = '#ff3366';
+    title.textContent = 'Deactivate Customer';
+    msg.textContent = `Deactivate ${name}? They will not be able to raise new service requests while inactive.`;
+    btn.className = 'cd-btn cd-btn-danger';
+    btn.style.background = '';
+    btn.textContent = 'Deactivate';
+  } else {
+    icon.className = 'bi bi-check-circle';
+    icon.style.color = '#05a34a';
+    title.textContent = 'Activate Customer';
+    msg.textContent = `Activate ${name}? They will regain the ability to raise service requests.`;
+    btn.className = 'cd-btn cd-btn-gold';
+    btn.style.background = '';
+    btn.textContent = 'Activate';
+  }
+
+  document.getElementById('cdConfirmOverlay').classList.add('open');
+}
+
+function cdConfirmDelete(url, name){
+  cdPendingDelete = { url };
+  document.getElementById('cdConfirmBtn').dataset.mode = 'delete';
+
+  const icon  = document.getElementById('cdConfirmIcon');
+  const title = document.getElementById('cdConfirmTitle');
+  const msg   = document.getElementById('cdConfirmMsg');
+  const btn   = document.getElementById('cdConfirmBtn');
+
+  icon.className = 'bi bi-trash';
+  icon.style.color = '#ff3366';
+  title.textContent = 'Delete Customer';
+  msg.textContent = `Delete ${name}? This can be restored later by an administrator, but all their projects will immediately stop appearing.`;
+  btn.className = 'cd-btn cd-btn-danger';
+  btn.style.background = '';
+  btn.textContent = 'Delete';
+
+  document.getElementById('cdConfirmOverlay').classList.add('open');
+}
+
+function cdCloseConfirm(){
+  document.getElementById('cdConfirmOverlay').classList.remove('open');
+  cdPendingToggle = null;
+  cdPendingDelete = null;
+}
+
+document.getElementById('cdConfirmBtn').addEventListener('click', function(){
+  const mode = this.dataset.mode;
+
+  if (mode === 'delete' && cdPendingDelete) {
+    const { url } = cdPendingDelete;
+    cdCloseConfirm();
+
+    fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+        'Accept': 'application/json',
+      }
+    }).then(async res => {
+      if (res.ok) {
+        udToast('success', 'Customer Deleted', 'The customer account has been removed.');
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        const body = await res.json().catch(() => ({}));
+        udToast('error', 'Failed', body.message || `Something went wrong (${res.status}).`);
+      }
+    }).catch(() => {
+      udToast('error', 'Network Error', 'Could not reach the server.');
+    });
+    return;
+  }
+
+  if (mode === 'toggle' && cdPendingToggle) {
+    const { url, el } = cdPendingToggle;
+    const wasActive = el.classList.contains('on');
+
+    el.disabled = true;
+    cdCloseConfirm();
+
+    udPost(
+      url,
+      wasActive ? 'warning' : 'success',
+      wasActive ? 'Customer Deactivated' : 'Customer Activated',
+      wasActive ? 'The account is now marked Inactive.' : 'The account has been set to Active.'
+    );
+  }
+});
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cdCloseModal(); });
 </script>
 @endpush

@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Models\Concerns\HasPermissions;
@@ -14,7 +15,7 @@ class User extends Authenticatable
 {
     use LogsActivity;
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasPermissions;
+    use HasFactory, Notifiable, HasPermissions, SoftDeletes;
     protected $fillable = ['name', 'email', 'country_code', 'phone', 'password', 'role_id', 'fd_grants', 'ac_grants', 'status', 'can_qc_review','is_se_enabled','ext_grants'];
 
     protected $casts = [

@@ -157,12 +157,34 @@ public function sendTemplate($phone, $template, $lang = 'en_US', $components = [
 
         return [
             'name'  => $this->cleanParam(optional($tech)->name) ?: 'To be confirmed',
-            'phone' => $this->cleanParam(
+            'phone' => $this->formatDisplayPhone(
+                optional($tech)->country_code,
                 optional($tech)->phone
                     ?? optional($tech)->mobile
                     ?? optional($tech)->contact_number
-            ) ?: 'N/A',
+            ),
         ];
+    }
+
+    /**
+     * Human-readable "+<country> <number>" for display inside a message body
+     * (as opposed to formatWhatsAppNumber(), which returns the digits-only
+     * form the Graph API needs for the 'to' field).
+     */
+    private function formatDisplayPhone(?string $country, ?string $mobile): string
+    {
+        if (!$mobile) {
+            return 'N/A';
+        }
+
+        $country = preg_replace('/\D/', '', (string) $country);
+        $mobile  = ltrim(preg_replace('/\D/', '', (string) $mobile), '0');
+
+        if (!$country) {
+            return $this->cleanParam($mobile) ?: 'N/A';
+        }
+
+        return '+' . $country . ' ' . $mobile;
     }
 
     private function fmtDate($d, string $fallback = 'N/A'): string
@@ -1609,4 +1631,89 @@ public function notifyInvoiceRequiredAccounts(
             $preview
         );
     }
+
+
+    /**
+ * Daily summary "Good Morning" push → daily_summary
+ * {{1}} name, {{2}} date
+ * Button (index 0, url): dynamic suffix appended to the template's static
+ * base. Registered base is assumed to be config('app.url').'/' — i.e. we
+ * send the FULL path+query (signature included) as the suffix, same
+ * pattern as notifyMaintenanceCompleted(). Confirm the exact base URL
+ * you registered in Meta and adjust the prefix below if it differs.
+ */
+public function notifyDailySummaryAdmin(
+    \App\Models\User $user,
+    Carbon $summaryDate,
+    string $event = 'Daily Summary - Admin'
+): void {
+    $link = \App\Http\Controllers\SummaryViewController::adminLink($user);
+    $this->sendDailySummary($user, $link, $summaryDate, $event);
+}
+
+public function notifyDailySummaryHop(
+    \App\Models\User $user,
+    Carbon $summaryDate,
+    string $event = 'Daily Summary - HoP'
+): void {
+    $link = \App\Http\Controllers\SummaryViewController::hopLink($user);
+    $this->sendDailySummary($user, $link, $summaryDate, $event);
+}
+
+public function notifyDailySummarySe(
+    \App\Models\User $user,
+    Carbon $summaryDate,
+    string $event = 'Daily Summary - SE'
+): void {
+    $link = \App\Http\Controllers\SummaryViewController::seLink($user);
+    $this->sendDailySummary($user, $link, $summaryDate, $event);
+}
+public function notifyDailySummaryMl(
+    \App\Models\User $user,
+    Carbon $summaryDate,
+    string $event = 'Daily Summary - ML'
+): void {
+    $link = \App\Http\Controllers\SummaryViewController::mlLink($user);
+    $this->sendDailySummary($user, $link, $summaryDate, $event);
+}
+
+private function sendDailySummary(
+    \App\Models\User $user,
+    string $link,
+    Carbon $summaryDate,
+    string $event
+): void {
+    $phone = $this->formatWhatsAppNumber($user->country_code, $user->phone);
+
+    if (!$phone) {
+        Log::warning('Daily summary WhatsApp skipped — no usable number', ['user_id' => $user->id]);
+        return;
+    }
+
+    $buttonValue = $this->buttonSuffix($link, config('app.url') . '/');
+
+    $components = [
+        [
+            "type" => "body",
+            "parameters" => [
+                $this->txt($this->cleanParam($user->name) ?: 'Team'),
+                $this->txt($summaryDate->format('d M Y')),
+            ],
+        ],
+        [
+            "type"     => "button",
+            "sub_type" => "url",
+            "index"    => "0",
+            "parameters" => [
+                ["type" => "text", "text" => $buttonValue],
+            ],
+        ],
+    ];
+
+    $preview = "Daily summary sent — {$user->name} | {$summaryDate->format('d M Y')}";
+
+    // No ServiceRequest/Client context for this one — user-only send.
+    $this->sendLogged(null, null, $phone, $event, 'daily_summary', $components, $preview);
+}
+
 }

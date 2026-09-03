@@ -17,8 +17,8 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             Permissionseeder::class,
             DemoUserSeeder::class,
+            AlertTypeSeeder::class,
+            UserAlertPermissionSeeder::class,
         ]);
-
-        $this->call(WhatsappTemplateSeeder::class);
     }
 }

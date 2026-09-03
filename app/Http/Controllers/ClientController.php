@@ -68,16 +68,18 @@ class ClientController extends Controller
             ->orderBy('primary_country')
             ->pluck('primary_country');
 
+        
         return view('client_directory', [
             'clients'       => $clients,
             'totalClients'  => $totalClients,
-            'activeClients' => $activeClients, // <-- Pass to view
+            'activeClients' => $activeClients,
             'totalProjects' => $totalProjects,
             'totalContacts' => $totalContacts,
             'recentCount'   => $recentCount,
             'countries'     => $countries,
-            'currentStatus' => $status,        // <-- Pass to keep selection highlighted
-            'warranties' => $warranties,
+            'currentStatus' => $status,
+            'warranties'    => $warranties,
+            'canDeleteClients' => auth()->user()?->hasAnyAccess('client_delete') ?? false,
         ]);
     }
 
@@ -266,9 +268,16 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateData($request);
+        $client = Client::findOrFail($validated['client_id']);
+
+        if ($client->status !== 'Active') {
+            return back()
+                ->withInput()
+                ->with('error', "Cannot create a service request — {$client->company_name} is currently marked Inactive. Please activate the customer account first.");
+        }
 
         $client = DB::transaction(function () use ($request, $validated) {
-
+        
             $client = Client::create([
                 'company_name'    => $validated['company_name'],
                 'status'          => 'Active',
@@ -937,5 +946,24 @@ class ClientController extends Controller
             'srTotal'     => $rows->sum('total'),
             'coveredCount' => $rows->where('inWarranty', true)->count(),
         ]);
+    }
+    public function destroy(Client $client)
+    {
+        abort_unless(auth()->user()?->hasAnyAccess('client_delete'), 403);
+
+        // Optional: block deleting a client that still has open service requests
+        $openSrCount = ServiceRequest::where('client_id', $client->id)
+            ->whereNotIn('status', ['Completed', 'Rejected', 'Quote Rejected'])
+            ->count();
+
+        if ($openSrCount > 0) {
+            return response()->json([
+                'message' => "This customer has {$openSrCount} open service request(s). Resolve or close them before deleting."
+            ], 422);
+        }
+
+        $client->delete(); // soft delete
+
+        return response()->json(['ok' => true]);
     }
 }

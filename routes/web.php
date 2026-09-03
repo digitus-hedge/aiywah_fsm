@@ -27,6 +27,7 @@ use App\Http\Controllers\SEDashboardController;
 use App\Http\Controllers\ReworkServiceRequestController;
 use App\Http\Controllers\AccountantDashboardController;
 use App\Http\Controllers\SrTrackingController;
+use App\Http\Controllers\SummaryViewController;
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -77,6 +78,22 @@ Route::get('/portal/doc/{sr}/{type}', [ClientController::class, 'portalDoc'])
 //     return redirect()->route('dashboard');
 // });
 
+//internal summary page links
+Route::get('/summary/admin/{user}', [SummaryViewController::class, 'admin'])
+    ->name('summary.admin.show')
+    ->middleware('signed');
+
+Route::get('/summary/hop/{user}', [SummaryViewController::class, 'hop'])
+    ->name('summary.hop.show')
+    ->middleware('signed');
+
+Route::get('/summary/se/{user}', [SummaryViewController::class, 'se'])
+    ->name('summary.se.show')
+    ->middleware('signed');
+
+Route::get('/summary/ml/{user}', [SummaryViewController::class, 'ml'])
+    ->name('summary.ml.show')
+    ->middleware('signed');
 /*
 |--------------------------------------------------------------------------
 | Protected routes
@@ -115,6 +132,8 @@ Route::middleware('auth')->group(function () {
     //user-directory
     Route::get('/user-directory', [Userdirectorycontroller::class, 'index'])->name('user_directory');
     Route::post('/user-directory/{user}/toggle-status', [Userdirectorycontroller::class, 'toggleStatus'])->name('user_directory.toggle');
+    Route::delete('/user-directory/{user}', [Userdirectorycontroller::class, 'destroy'])
+    ->name('user_directory.destroy');
     Route::post('/user-directory/{user}/reset-password', [Userdirectorycontroller::class, 'resetPassword'])->name('user_directory.reset');
 
     Route::get('/user-directory/{user}',[UserdirectoryController::class, 'show'])->name('user_directory.show');
@@ -155,7 +174,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/directory', [ClientController::class, 'directory'])->name('clients.directory');
     Route::get('/clients/{id}', [ClientController::class, 'show'])->name('clients.show');
     Route::post('/clients-directory/{client}/toggle-status', [ClientController::class, 'toggleStatus'])->name('clients.toggle');
-
+    Route::delete('/clients/{client}', [ClientController::class, 'destroy'])
+    ->name('clients.destroy');
     // Job Tracking
     Route::get('/job-tracking/{id}', [ClientController::class, 'job_tracking'])->name('clients.job_tracking');
     Route::get('/job-tracking/{id}/data', [ClientController::class, 'job_tracking_data'])->name('clients.job_tracking.data');
@@ -282,7 +302,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/ajax/expenses', [MasterController::class, 'ajaxExpenses'])->name('ajax.expenses');
         Route::get('/ajax/priorities', [MasterController::class, 'ajaxPriorities'])->name('ajax.priorities');
         Route::get('/ajax/sla', [MasterController::class, 'ajaxSla'])->name('ajax.sla');
-    });
+
+        // Summary Alert
+        Route::get('/summary-alert/users/{roleSlug}', [MasterController::class, 'summaryAlertUsers'])
+            ->name('summary-alert.users');
+        Route::get('/summary-alert/permissions/{user}', [MasterController::class, 'summaryAlertPermissions'])
+            ->name('summary-alert.permissions');
+        Route::post('/summary-alert/save', [MasterController::class, 'summaryAlertSave'])
+            ->name('summary-alert.save');
+            });
+
+        // Summary Alert
+        Route::get('/summary-alert/users/{roleSlug}', [MasterController::class, 'summaryAlertUsers'])
+            ->name('summary-alert.users');
+        Route::get('/summary-alert/permissions/{user}', [MasterController::class, 'summaryAlertPermissions'])
+            ->name('summary-alert.permissions');
+        Route::post('/summary-alert/save', [MasterController::class, 'summaryAlertSave'])
+            ->name('summary-alert.save');
 });
 
 
