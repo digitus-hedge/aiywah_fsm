@@ -11,5 +11,5 @@ Artisan::command('inspire', function () {
 
 Schedule::job(new SendDailySummaryNotifications)
     ->timezone('Asia/Kolkata')
-    ->dailyAt('12:00');
+    ->dailyAt('12:01');
 
