@@ -94,6 +94,10 @@ Route::get('/summary/se/{user}', [SummaryViewController::class, 'se'])
 Route::get('/summary/ml/{user}', [SummaryViewController::class, 'ml'])
     ->name('summary.ml.show')
     ->middleware('signed');
+
+Route::get('/summary/ac/{user}', [SummaryViewController::class, 'ac'])
+    ->name('summary.ac.show')
+    ->middleware('signed');
 /*
 |--------------------------------------------------------------------------
 | Protected routes

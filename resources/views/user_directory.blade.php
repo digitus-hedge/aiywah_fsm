@@ -547,6 +547,10 @@ async function udPost(url, type, title, body){
       }
     });
     if (res.ok){ udToast(type, title, body); setTimeout(function(){ location.reload(); }, 1000); }
+    else if (res.status === 419){
+      udToast('warning','Session Expired','Your session timed out. Reloading the page…');
+      setTimeout(function(){ location.reload(); }, 1500);
+    }
     else {
       udToast('error','Failed','Something went wrong (' + res.status + ').');
       document.querySelectorAll('.ud-toggle').forEach(t => t.disabled = false); // re-enable on failure

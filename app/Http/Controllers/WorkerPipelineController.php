@@ -168,7 +168,7 @@ class WorkerPipelineController extends Controller
         return 'data:image/png;base64,' . base64_encode(file_get_contents($path));
     }
 
-    public function history(Request $request)
+   public function history(Request $request)
     {
         $user = $this->worker($request);
 
@@ -179,7 +179,7 @@ class WorkerPipelineController extends Controller
             'items',
         ])
             ->where('user_id', $user->id)
-            ->whereIn('status', ['submitted', 'approved', 'rejected'])
+            ->whereNotIn('status', ['draft', 'punched_in', 'cancelled'])
             ->whereNotNull('punch_out_at')
             ->orderByDesc('punch_out_at')
             ->limit(50)

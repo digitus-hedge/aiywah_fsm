@@ -34,6 +34,8 @@ class SummaryViewController extends Controller
     private const SE_ALLOWED_ROLE_CODES = ['SE'];
 
     private const ML_ALLOWED_ROLE_CODES = ['ML'];
+
+    private const AC_ALLOWED_ROLE_CODES = ['AC'];
     /** Same bucket groupings as ServiceRequestController::ticketSummary(),
      *  restricted to the non-terminal buckets, so this page's "Open by
      *  Status" chart speaks the same language as the Kanban board. */
@@ -187,6 +189,39 @@ public function ml(User $user)
         'loginUrl'    => route('login'),
     ]);
 }
+
+public static function acLink(User $user, int $validHours = 24): string
+    {
+        return URL::temporarySignedRoute(
+            'summary.ac.show',
+            now()->addHours($validHours),
+            ['user' => $user->id]
+        );
+    }
+    /**
+     * GET /summary/ac/{user}  (name: summary.ac.show)
+     */
+    public function ac(User $user)
+    {
+        abort_unless(
+            in_array(optional($user->role)->code, self::AC_ALLOWED_ROLE_CODES, true),
+            403,
+            'This summary is only available to Accounts, Admin, and Super Admin.'
+        );
+
+        $summaryDate = Carbon::yesterday();
+
+        $data = $this->buildAcSummaryData($summaryDate, $user);
+        $data['enabled'] = $this->enabledAlertKeys($user, AlertType::ROLE_AC);
+
+        return view('summary.ac', [
+            'user'        => $user,
+            'summaryDate' => $summaryDate,
+            'data'        => $data,
+            'loginUrl'    => route('login'),
+        ]);
+    }
+
     /**
      * Assembles every number/list the admin summary page needs, from real
      * data. The one exception is 'wa_failures' - I don't have your
@@ -1121,4 +1156,145 @@ private function buildMlSummaryData(Carbon $summaryDate, User $mlUser): array
         ],
     ];
 }
+
+/**
+ * Assembles the Accounts summary. "Quotations Pending" and "Invoices
+ * Pending"/"Awaiting HoP Approval" read the same status values already
+ * used by buildHopSummaryData()'s approval funnel and the invoice.hop
+ * route flow. Expense ledger is aggregated across ALL of yesterday's
+ * punches (not scoped to $acUser) since AC's expense_ledger permission
+ * is 'yes' - full visibility, same as the admin builder, not row-scoped
+ * like the ML one.
+ */
+private function buildAcSummaryData(Carbon $summaryDate, User $acUser): array
+{
+    // Routed to Accounts for quotation, not yet quoted.
+    $quotesPending = ServiceRequest::with('client', 'project')
+        ->whereIn('status', ['Forwarded', 'Additional'])
+        ->orderBy('updated_at')
+        ->get();
+
+    // QC approved, awaiting invoice submission.
+    $invoicesPending = ServiceRequest::with('client', 'project')
+        ->where('status', 'Pending Invoice')
+        ->orderBy('qc_reviewed_at')
+        ->get();
+
+    // Invoice submitted by Accounts, awaiting HoP approval.
+    $hopPending = ServiceRequest::with('client', 'project')
+        ->where('status', 'Invoice Submitted')
+        ->orderBy('updated_at')
+        ->get();
+
+    // ── Expense ledger - all of yesterday's punches, same aggregation
+    //    logic as buildAdminSummaryData()'s expense block ───────────────
+    $punchesYesterday = Punch::with(['items', 'serviceRequest.client'])
+        ->whereDate('punch_out_at', $summaryDate)
+        ->get();
+
+    $expenseSubmissions = 0;
+    $expensePending     = 0;
+    $expenseTotal       = 0.0;
+    $expenseRows        = [];
+
+    foreach ($punchesYesterday as $punch) {
+        $lineTotal = 0.0;
+        $hasMissingReceipt = false;
+
+        foreach ($punch->items as $item) {
+            $amt = (float) ($item->line_total ?? ($item->qty * $item->rate));
+            $lineTotal += $amt;
+            if (empty($item->receipt_path)) {
+                $hasMissingReceipt = true;
+            }
+            $expenseRows[] = [
+                $punch->serviceRequest ? $this->srRef($punch->serviceRequest) : '-',
+                $item->category ?? $item->name ?? '-',
+                'AED ' . number_format($amt, 0),
+                empty($item->receipt_path) ? 'Pending' : 'Submitted',
+            ];
+        }
+
+        $labour = (float) ($punch->labour_charge ?? 0);
+        if ($labour > 0) {
+            $lineTotal += $labour;
+        }
+        $grand = (float) ($punch->grand_total ?? 0);
+        if ($grand > 0) {
+            $lineTotal = $grand;
+        }
+
+        if ($lineTotal > 0) {
+            $expenseSubmissions++;
+            $expenseTotal += $lineTotal;
+            if ($hasMissingReceipt) {
+                $expensePending++;
+            }
+        }
+    }
+
+    $submissionRate = $expenseSubmissions > 0
+        ? (int) round((($expenseSubmissions - $expensePending) / $expenseSubmissions) * 100)
+        : 0;
+
+    return [
+        'quick' => [
+            'quotes'      => $quotesPending->count(),
+            'invoices'    => $invoicesPending->count(),
+            'hop_pending' => $hopPending->count(),
+            'expenses'    => $expenseSubmissions,
+        ],
+
+        'kpis' => [
+            'quotes'      => ['value' => $quotesPending->count(),   'sub' => 'Awaiting quotation'],
+            'invoices'    => ['value' => $invoicesPending->count(), 'sub' => 'QC approved, awaiting invoice'],
+            'hop_pending' => ['value' => $hopPending->count(),      'sub' => 'Submitted, awaiting HoP'],
+            'expenses'    => ['value' => $expenseSubmissions,       'sub' => $submissionRate . '% receipts in'],
+        ],
+
+        'expenses' => [
+            'submissions'     => $expenseSubmissions,
+            'submission_rate' => $submissionRate,
+            'pending'         => $expensePending,
+            'total_value'     => (int) round($expenseTotal),
+        ],
+
+        'sheets' => [
+            'quotes' => [
+                'title' => "Quotations Pending - {$quotesPending->count()} Total",
+                'rows'  => $quotesPending->map(fn ($sr) => [
+                    $this->srRef($sr),
+                    optional($sr->client)->company_name ?? '-',
+                    optional($sr->project)->project_name ?? '-',
+                    $sr->priority_level ?? 'Normal',
+                    $sr->updated_at?->diffForHumans() ?? '-',
+                ])->values()->all(),
+            ],
+            'invoices' => [
+                'title' => "Invoices Pending - {$invoicesPending->count()} Total",
+                'rows'  => $invoicesPending->map(fn ($sr) => [
+                    $this->srRef($sr),
+                    optional($sr->client)->company_name ?? '-',
+                    $sr->invoice_total ? 'AED ' . number_format($sr->invoice_total, 0) : '-',
+                    $sr->priority_level ?? 'Normal',
+                    $sr->qc_reviewed_at?->diffForHumans() ?? '-',
+                ])->values()->all(),
+            ],
+            'hop_pending' => [
+                'title' => "Invoices Awaiting HoP Approval - {$hopPending->count()} Total",
+                'rows'  => $hopPending->map(fn ($sr) => [
+                    $this->srRef($sr),
+                    optional($sr->client)->company_name ?? '-',
+                    $sr->invoice_total ? 'AED ' . number_format($sr->invoice_total, 0) : '-',
+                    $sr->updated_at?->diffForHumans() ?? '-',
+                ])->values()->all(),
+            ],
+            'expenses' => [
+                'title' => 'Expense Submissions - AED ' . number_format($expenseTotal, 0),
+                'rows'  => $expenseRows,
+            ],
+        ],
+    ];
+}
+
 }

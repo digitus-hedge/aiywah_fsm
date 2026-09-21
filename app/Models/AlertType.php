@@ -13,6 +13,7 @@ class AlertType extends Model
     public const ROLE_ML    = 'ml';
     public const ROLE_FD    = 'fd';
     public const ROLE_ACC   = 'acc';
+    public const ROLE_AC    = 'ac';
 
     protected $fillable = [
         'role', 'key', 'title', 'description', 'sort_order', 'is_default_checked',

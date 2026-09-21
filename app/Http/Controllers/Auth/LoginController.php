@@ -38,14 +38,19 @@ class LoginController extends Controller
 
     $user = Auth::user();
 
-    // Block inactive/deactivated accounts before anything else runs.
-    if ($user->status === 'inactive') {
+        // Only active accounts may sign in - pending, inactive, or any other
+    // status is blocked by default rather than individually listed.
+    if ($user->status !== 'active') {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        $message = $user->status === 'pending'
+            ? 'Your account is pending activation. Please contact your administrator.'
+            : 'Your account has been deactivated. Please contact your administrator.';
+
         throw ValidationException::withMessages([
-            'email' => 'Your account has been deactivated. Please contact your administrator.',
+            'email' => $message,
         ]);
     }
 

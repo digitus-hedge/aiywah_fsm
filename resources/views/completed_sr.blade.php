@@ -329,6 +329,9 @@ $qc        = $qcFor($qcHrs);
               'code'        => $srCode,
                'dbId'        => $sr->id,
               'client'      => optional($sr->client)->company_name ?? '-',
+              'rating'      => $sr->performance_score,
+              'feedback'    => $sr->evaluation_comment,
+              'rated'       => (bool) $sr->feedback_submitted_at,
               'site'        => optional($sr->project)->site_name ?? '-',
               'worker'      => $worker,
               'issue'       => $sr->issue_description ?? '-',
@@ -536,6 +539,14 @@ $qc        = $qcFor($qcHrs);
           <span class="sr-detail-value" id="sr-m-total" style="font-size:1.05rem;font-weight:700;color:#059669;">-</span>
         </div>
 
+       <div class="sr-detail-divider"></div> 
+       <div class="sr-detail-item"> 
+        <span class="sr-detail-label"> <i class="bi bi-star-fill"></i>Customer Rating </span> 
+        <span class="sr-detail-value" id="sr-m-rating">-</span> </div> 
+        <div class="sr-detail-item"> 
+          <span class="sr-detail-label"> <i class="bi bi-chat-square-text"></i>Customer Feedback </span> 
+          <span class="sr-detail-value muted" id="sr-m-feedback">-</span> 
+        </div>
         <div class="sr-detail-divider"></div>
 
         <span class="sr-detail-label" style="grid-column:1 / -1;"><i class="bi bi-images"></i>Proof of Work</span>
@@ -643,7 +654,22 @@ if (idEl) {
   _set('sr-m-out', data.punch_out);
   _set('sr-m-dur', data.duration);
   _set('sr-m-completed', data.completed);
-    _set('sr-m-materials', data.materials);
+   _set('sr-m-materials', data.materials);
+
+  // Customer rating (stars) + feedback text
+  var ratingEl = document.getElementById('sr-m-rating');
+  if (ratingEl) {
+    if (data.rated && data.rating) {
+      var stars = '';
+      for (var i = 1; i <= 5; i++) {
+        stars += '<i class="bi ' + (i <= data.rating ? 'bi-star-fill' : 'bi-star') + '" style="color:#f59e0b;"></i>';
+      }
+      ratingEl.innerHTML = stars + ' <span style="font-size:.78rem;color:var(--text-muted);margin-left:4px;">(' + data.rating + '/5)</span>';
+    } else {
+      ratingEl.innerHTML = '<span style="color:var(--text-light);font-style:italic;font-size:.8rem;">Not yet rated</span>';
+    }
+  }
+  _set('sr-m-feedback', data.feedback || 'No feedback submitted yet.');
 
   var totalWrap = document.getElementById('sr-m-total-wrap');
   if (data.has_invoice_total && data.invoice_total) {

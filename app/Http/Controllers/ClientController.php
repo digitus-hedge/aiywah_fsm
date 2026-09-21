@@ -13,6 +13,8 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Jobs\SendClientWelcomeNotifications;
 use App\Services\SrTrackingService;
+use Illuminate\Validation\Rule;
+
 class ClientController extends Controller
 {
     /**
@@ -268,16 +270,8 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateData($request);
-        $client = Client::findOrFail($validated['client_id']);
-
-        if ($client->status !== 'Active') {
-            return back()
-                ->withInput()
-                ->with('error', "Cannot create a service request - {$client->company_name} is currently marked Inactive. Please activate the customer account first.");
-        }
 
         $client = DB::transaction(function () use ($request, $validated) {
-        
             $client = Client::create([
                 'company_name'    => $validated['company_name'],
                 'status'          => 'Active',
@@ -393,13 +387,17 @@ class ClientController extends Controller
                 'required',
                 'string',
                 'max:15',
-                'unique:clients,primary_mobile' . ($locked && $clientId ? ",{$clientId}" : ''),
+                Rule::unique('clients', 'primary_mobile')
+                    ->whereNull('deleted_at')
+                    ->ignore($locked && $clientId ? $clientId : null),
             ],
             'email' => [
                 'required',
                 'email:rfc,dns',
                 'max:255',
-                'unique:clients,email' . ($locked && $clientId ? ",{$clientId}" : ''),
+                Rule::unique('clients', 'email')
+                    ->whereNull('deleted_at')
+                    ->ignore($locked && $clientId ? $clientId : null),
             ],
 
             'stakeholders'             => ['nullable', 'array'],
@@ -427,7 +425,12 @@ class ClientController extends Controller
 
         // Unique code is only validated/editable on create; locked on update
         if (! $locked) {
-            $rules['unique_code'] = ['required', 'string', 'max:20', 'unique:clients,unique_code'];
+            $rules['unique_code'] = [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('clients', 'unique_code')->whereNull('deleted_at'),
+            ];
         }
 
         $validated = $request->validate($rules, [

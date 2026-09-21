@@ -55,11 +55,17 @@ class WorkerLoginController extends Controller
             ]);
         }
 
-        // Block disabled accounts.
-        if (isset($user->status) && $user->status === 'inactive') {
+               // Only active accounts may sign in - pending, inactive, or any other
+        // status is blocked by default rather than individually listed.
+        if (isset($user->status) && $user->status !== 'active') {
             Auth::guard('worker')->logout();
+
+            $message = $user->status === 'pending'
+                ? 'Your account is pending activation. Please contact your supervisor.'
+                : 'Your account is inactive. Please contact your supervisor.';
+
             throw ValidationException::withMessages([
-                'email' => 'Your account is inactive. Please contact your supervisor.',
+                'email' => $message,
             ]);
         }
 

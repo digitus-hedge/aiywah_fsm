@@ -594,6 +594,7 @@ private const SUMMARY_ALERT_ROLES = [
     ['slug' => 'hop',   'codes' => ['HP'],       'label' => 'HoP'],
     ['slug' => 'se',    'codes' => ['SE'],       'label' => 'Service Engineer'],
     ['slug' => 'ml',    'codes' => ['ML'],       'label' => 'Maintenance Lead'],
+    ['slug' => 'ac',    'codes' => ['AC'],       'label' => 'Accounts'],
 ];
  
 /* ============================================================
