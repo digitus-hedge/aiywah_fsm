@@ -134,6 +134,44 @@ class WorkerPipelineController extends Controller
         ]);
     }
 
+        /**
+     * Lightweight JSON refresh for the pipeline - polled by the frontend so
+     * status changes (QC pass, invoice approval, reallocation, etc.) show up
+     * without the worker manually reloading the page. Mirrors index()'s job
+     * query but skips the view-only payload (routes, letterhead, SLA matrix).
+     */
+    public function refresh(Request $request)
+    {
+        $user = $this->worker($request);
+        $me   = (int) $user->id;
+
+        $requests = ServiceRequest::with([
+            'client', 'project', 'category', 'domain',
+            'punches.user.role', 'createdBy.role', 'qcReviewedBy.role',
+            'assignedUser', 'reschedules.user',
+        ])
+        ->where(function ($q) use ($me) {
+            $q->where(function ($w) use ($me) {
+                $w->where('assigned_user_id', $me)
+                  ->where(function ($r) {
+                      $r->whereNull('reallocate')->orWhere('reallocate', 0);
+                  });
+            })
+            ->orWhere(function ($w) use ($me) {
+                $w->where('reallocate_user_id', $me)->where('reallocate', 1);
+            });
+        })
+        ->whereIn('status', self::OPEN_STATUSES)
+        ->orderByDesc('dispatched_at')
+        ->orderByDesc('id')
+        ->get();
+
+        return response()->json([
+            'ok'        => true,
+            'jobs'      => $requests->map(fn(ServiceRequest $sr) => $this->transform($sr, $user))->values(),
+            'activeJob' => $this->activeJob($user),
+        ]);
+    }
 
     private function slaMatrix()
     {
@@ -760,6 +798,7 @@ class WorkerPipelineController extends Controller
     private function routes(): array
     {
         return [
+            'refresh'       => route('worker.pipeline.refresh'),
             'accept'        => route('worker.job.accept'),
             'punchIn'       => route('worker.punch.in'),
             'punchOut'      => route('worker.punch.out'),

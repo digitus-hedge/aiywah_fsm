@@ -1027,6 +1027,10 @@ const statusCls = isRealloc ? 'pill-purple' : badgeClass;
     ? `<div class="jc-active-note" style="color:var(--muted);background:var(--surface);">
          <i class="bi bi-check2-all"></i> Submitted &mdash; nothing left to do here
        </div>`
+    : job.status === 'Review'
+    ? `<div class="jc-active-note" style="color:var(--muted);background:var(--surface);">
+         <i class="bi bi-hourglass-split"></i> Submitted for QC review &mdash; awaiting approval
+       </div>`
     : `<div class="eta-form">
          <div class="eta-title"><i class="bi bi-calendar-check"></i>Set expected attendance (ETA)</div>
          <div class="eta-grid">
@@ -2653,6 +2657,30 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('Init failed:', err);
     showToast('error', 'Load error', err.message);
   }
+  /* Auto-refresh: pulls fresh job data every 20s so QC/invoice status
+   changes show up without a manual reload. Skips a cycle while the
+   worker is actively filling the Accept-job ETA form in the list, so
+   we don't wipe an in-progress date/time pick out from under them. */
+setInterval(async () => {
+  const active = document.activeElement;
+  if (active && active.closest('#jobList')) return;   // hands-on in a card - don't disturb it
+
+  try {
+    const res = await fetch(ROUTES.refresh, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.ok) return;
+
+    JOBS.length = 0;
+    JOBS.push(...data.jobs);
+    renderPipeline();
+
+    // Don't touch the live terminal if a punch is in progress - it's
+    // driven by ACTIVE/restoreTerminal(), not this poll.
+  } catch (err) {
+    console.warn('Auto-refresh failed', err);
+  }
+}, 20000);
 });
 </script>
 @endpush

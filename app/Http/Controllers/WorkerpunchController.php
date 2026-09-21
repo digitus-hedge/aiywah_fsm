@@ -339,13 +339,22 @@ public function hold(Request $request)
 
         $punch->refresh();
 
-                // Completion message - sent immediately, right when the worker finishes the job
-        // (previously fired from ServiceRequentController::qcPass() on QC approval).
-        \App\Jobs\SendSrNotifications::dispatch($sr->id, \App\Jobs\SendSrNotifications::COMPLETED, $this->buildSrRef($sr));
+               // In-warranty only: completed message immediately + auto-complete/survey in 2 min.
+        // Out-of-warranty SRs stay in "Qc Review" here - they only get notified when
+        // Accounts manually approves the invoice from the Invoice Panel (hopApprove()).
+        $sr->loadMissing('project');
+        $warrantyEnd  = optional($sr->project)->warranty_end_date;
+        $isInWarranty = $warrantyEnd && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
 
-        // Satisfaction survey - sent 2 minutes later, and flips the SR to
-        // Completed at the same time (only if QC hasn't already moved it).
-        \App\Jobs\SendSatisfactionSurvey::dispatch($sr)->delay(now()->addMinutes(2));
+        if ($isInWarranty) {
+            // Completion message - sent immediately, right when the worker finishes the job
+            // (previously fired from ServiceRequentController::qcPass() on QC approval).
+            \App\Jobs\SendSrNotifications::dispatch($sr->id, \App\Jobs\SendSrNotifications::COMPLETED, $this->buildSrRef($sr));
+
+            // Satisfaction survey - sent 2 minutes later, and flips the SR to
+            // Completed at the same time (only if QC hasn't already moved it).
+            \App\Jobs\SendSatisfactionSurvey::dispatch($sr)->delay(now()->addMinutes(2));
+        }
 
         return response()->json([
             'ok'          => true,

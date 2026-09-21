@@ -372,6 +372,7 @@ Route::prefix('worker')->name('worker.')->group(function () {
         // Everything else sits behind the reset gate
         Route::middleware('worker.reset')->group(function () {
             Route::get('/pipeline', [WorkerPipelineController::class, 'index'])->name('pipeline');
+            Route::get('/pipeline/refresh', [WorkerPipelineController::class, 'refresh'])->name('pipeline.refresh');
 
             Route::post('/job/accept',     [WorkerPipelineController::class, 'accept'])->name('job.accept');
             Route::post('/job/reschedule', [WorkerPipelineController::class, 'reschedule'])->name('job.reschedule');
