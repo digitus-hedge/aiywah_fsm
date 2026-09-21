@@ -2103,7 +2103,7 @@ $clientsJs = $clients->map(fn($c) => [
     document.getElementById('cust-dropdown').classList.add('open');
   }
 
-  function selectCustomer(client) {
+   function selectCustomer(client) {
     if (!client) return;
     selectedClientId = client.id;
     document.getElementById('cust-search-wrap').style.display = 'none';
@@ -2116,7 +2116,14 @@ $clientsJs = $clients->map(fn($c) => [
     document.getElementById('sel-cust-token').textContent = client.token;
     document.getElementById('step1-label').classList.add('done');
     document.getElementById('proj-form-body').classList.add('revealed');
-   
+
+    // Auto-generate the project code the moment a customer is picked,
+    // but only when adding a new project - never overwrite an existing
+    // code while editing.
+    if (!editingProjectId) {
+      regenCode();
+    }
+
     enableSaveBtn();
   }
 

@@ -479,8 +479,8 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
 </div>
           <div class="col-sm-6">
           <div class="fg">
-            <label class="fl">Phone Number</label>
-            <div style="display:flex;gap:8px;">
+          <label class="fl">Phone Number <span class="req">*</span></label>
+          <div style="display:flex;gap:8px;">
 
               <select class="form-select" id="empCountryCode" style="max-width:130px;" onchange="syncAll()">
                 <option value="+971" selected>🇦🇪 +971</option>
@@ -500,6 +500,7 @@ hr.shr{border-color:var(--card-border);margin:8px 0;}
 
 
             </div>
+            <div class="ferr" id="phoneErrMsg"></div>
           </div>
         </div>
           </div>
@@ -1625,8 +1626,10 @@ function saveUser(){
   const password=document.getElementById('empPassword').value;
   const isEditing = editingUserId !== null;
 
-  if(!name){showToast('error','Missing','Employee full name is required.');document.getElementById('empName').focus();return;}
+    if(!name){showToast('error','Missing','Employee full name is required.');document.getElementById('empName').focus();return;}
+  if(!phone || phone.length < 10){showToast('error','Phone Required','Enter a valid 10-digit phone number.');document.getElementById('empPhone').focus();return;}
   if(!emailValid){showToast('error','Email Issue','Enter a valid, unique corporate email.');document.getElementById('empEmail').focus();return;}
+  
   if(!isEditing && (!password || password.length<8)){showToast('error','Password Required','Password must be at least 8 characters.');document.getElementById('empPassword').focus();return;}
   if(isEditing && password && password.length<8){showToast('error','Password Too Short','New password must be at least 8 characters.');document.getElementById('empPassword').focus();return;}
   if(!selectedRole){showToast('error','Role Required','Please select an operational role.');return;}
@@ -1758,6 +1761,21 @@ function onPhoneInput(el) {
   // keep the caret from jumping to the end when editing mid-string
   const removed = before.slice(0, start).replace(/\D/g, '').length;
   el.setSelectionRange(removed, removed);
+
+  const errEl = document.getElementById('phoneErrMsg');
+  if (el.value.length === 0) {
+    errEl.textContent = '';
+    errEl.style.display = 'none';
+    el.classList.remove('is-invalid');
+  } else if (el.value.length < 10) {
+    errEl.textContent = 'Phone number must be 10 digits.';
+    errEl.style.display = 'block';
+    el.classList.add('is-invalid');
+  } else {
+    errEl.textContent = '';
+    errEl.style.display = 'none';
+    el.classList.remove('is-invalid');
+  }
 
   syncAll();
 }

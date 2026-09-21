@@ -1693,6 +1693,14 @@ public function notifyDailySummaryMl(
     $link = \App\Http\Controllers\SummaryViewController::mlLink($user);
     $this->sendDailySummary($user, $link, $summaryDate, $event);
 }
+public function notifyDailySummaryAc(
+    \App\Models\User $user,
+    Carbon $summaryDate,
+    string $event = 'Daily Summary - Accounts'
+): void {
+    $link = \App\Http\Controllers\SummaryViewController::acLink($user);
+    $this->sendDailySummary($user, $link, $summaryDate, $event);
+}
 
 private function sendDailySummary(
     \App\Models\User $user,

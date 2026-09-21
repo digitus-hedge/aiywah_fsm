@@ -738,6 +738,8 @@ let profileLoaded  = false;
 let signatureUploaded = false;
 let activeEtaAt    = null;
 let etaGateTimer   = null;
+let awaitingBeforePhoto = false;
+let pendingPunchFix = null;
 
 /* Block sign-out while a punch is open - the layout checks this. */
 window.beforeSignOut = () => {
@@ -1358,11 +1360,100 @@ function openTerminal() {
 $('punchInBtn').addEventListener('click', () => {
   const btn = $('punchInBtn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span> Starting\u2026';
-  punchIn();
+  btn.innerHTML = '<span class="spin"></span> Locating\u2026';
+  startBeforePhotoCapture();
 });
+async function startBeforePhotoCapture() {
+  const btn = $('punchInBtn');
 
+  if (!activeSrId) {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start job';
+    showToast('error', 'No active job', 'Re-activate the job first.');
+    return;
+  }
 
+  pendingPunchFix = await captureLocation();
+  if (!pendingPunchFix) showToast('warning', 'No GPS fix', 'Continuing without location. Enable GPS if possible.');
+
+  // Job has NOT started yet - only the camera opens here.
+  awaitingBeforePhoto = true;
+  document.querySelector('[data-upload="before"]').disabled = false;
+  btn.innerHTML = '<span class="spin"></span> Add before photo\u2026';
+
+  $('beforeInput').click();
+}
+$('beforeInput').addEventListener('change', (e) => {
+  if (awaitingBeforePhoto) {
+    startJobWithBeforePhoto(e.target);
+  } else {
+    uploadFile('before', e.target);
+  }
+});
+$('afterInput').addEventListener('change', (e) => uploadFile('after', e.target));
+
+async function startJobWithBeforePhoto(input) {
+  const btn = $('punchInBtn');
+
+  if (!input.files.length) {
+    // Camera was cancelled - back to a clean, unstarted state.
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start job';
+    document.querySelector('[data-upload="before"]').disabled = true;
+    awaitingBeforePhoto = false;
+    return;
+  }
+
+  btn.innerHTML = '<span class="spin"></span> Starting\u2026';
+
+  try {
+    // Punch in now that a before photo actually exists.
+    const res = await apiPost(ROUTES.punchIn, withGeo({
+      sr_id: activeSrId,
+      work_description: $('workDesc').value.trim() || null,
+    }, pendingPunchFix));
+
+    punchInTime = new Date(res.punch_in_at);
+    applyEtaGate();
+
+    btn.innerHTML = '<span class="spin"></span> Uploading photo\u2026';
+
+    const form = new FormData();
+    form.append('sr_id', activeSrId);
+    form.append('type', 'before');
+    for (const f of input.files) {
+      form.append('files[]', await compressImage(f));
+    }
+
+    const upRes = await apiPost(ROUTES.upload, form, true);
+    uploads.before.push(...upRes.photos);
+    renderPhotoStrip('before');
+    refreshLock();
+
+    awaitingBeforePhoto = false;
+    showToast('success', 'Before photos uploaded',
+      `${upRes.photos.length} photo${upRes.photos.length === 1 ? '' : 's'} added.`);
+
+    finalizeJobStart();
+  } catch (err) {
+    if (!punchInTime) {
+      // Punch-in itself failed - nothing started, reset fully.
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-play-fill"></i>Start job';
+      document.querySelector('[data-upload="before"]').disabled = true;
+      awaitingBeforePhoto = false;
+      showToast('error', 'Punch-in failed', err.message);
+    } else {
+      // Punch is already open server-side, only the photo upload failed -
+      // let the job start and have them retry the photo from the card.
+      awaitingBeforePhoto = false;
+      finalizeJobStart();
+      showToast('error', 'Before photo failed to upload', err.message + ' Add it from the compliance card.');
+    }
+  } finally {
+    input.value = '';
+  }
+}
 
 
 
@@ -1453,54 +1544,25 @@ function isEtaValid(ref){
   return picked.getTime() > Date.now();
 }
 
-
-
-
-async function punchIn() {
+/** Reveal the live terminal once the before photo has been captured. */
+function finalizeJobStart() {
   const btn = $('punchInBtn');
 
-  if (!activeSrId) {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start job';
-    showToast('error', 'No active job', 'Re-activate the job first.');
-    return;
-  }
+  clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimer, 1000);
+  updateTimer();
 
-  btn.innerHTML = '<span class="spin"></span> Locating\u2026';
-  const fix = await captureLocation();
-  btn.innerHTML = '<span class="spin"></span> Starting\u2026';
+  $('timerIcon').innerHTML = '<i class="bi bi-stopwatch-fill" style="color:var(--green);"></i>';
+  $('timerStatus').textContent = 'Live';
+  $('timerStatus').className   = 'tw-status status-live';
+  $('timerLabel').textContent  = 'Time on site';
 
-  if (!fix) showToast('warning', 'No GPS fix', 'Starting without location. Enable GPS if possible.');
+  document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
+  $('expenseBtn').disabled = false;
+  btn.innerHTML = '<i class="bi bi-check2"></i>Job started';
 
-  try {
-    const res = await apiPost(ROUTES.punchIn, withGeo({
-      sr_id: activeSrId,
-      work_description: $('workDesc').value.trim() || null,
-    }, fix));
-
-    punchInTime = new Date(res.punch_in_at);
-
-    clearInterval(timerInterval);
-    timerInterval = setInterval(updateTimer, 1000);
-    updateTimer();
-
-    $('timerIcon').innerHTML = '<i class="bi bi-stopwatch-fill" style="color:var(--green);"></i>';
-    $('timerStatus').textContent = 'Live';
-    $('timerStatus').className   = 'tw-status status-live';
-    $('timerLabel').textContent  = 'Time on site';
-
-    document.querySelectorAll('[data-upload]').forEach((b) => { b.disabled = false; });
-    $('expenseBtn').disabled = false;
-    btn.innerHTML = '<i class="bi bi-check2"></i>Job started';
-
-    showToast('success', 'Punched in', 'Job started.');
-    applyEtaGate();     // punch is open now - hides the notice, stops the ticker
-    refreshLock();
-    } catch (err) {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="bi bi-play-fill"></i>Start job';
-    showToast('error', 'Punch-in failed', err.message);
-  }
+  showToast('success', 'Job started', 'Timer running.');
+  refreshLock();
 }
 
 function updateTimer() {
@@ -1516,10 +1578,6 @@ function updateTimer() {
 ══════════════════════════════════════════════════════ */
 document.querySelectorAll('[data-upload]').forEach((btn) => {
   btn.addEventListener('click', () => $(`${btn.dataset.upload}Input`).click());
-});
-
-['before', 'after'].forEach((type) => {
-  $(`${type}Input`).addEventListener('change', (e) => uploadFile(type, e.target));
 });
 
 /** Downscale a camera photo so the tab doesn't run out of memory. */
@@ -1577,6 +1635,11 @@ async function uploadFile(type, input) {
     showToast('success', `${labels[type]} uploaded`,
       `${res.photos.length} photo${res.photos.length === 1 ? '' : 's'} added.`);
     refreshLock();
+
+    if (type === 'before' && awaitingBeforePhoto) {
+      awaitingBeforePhoto = false;
+      finalizeJobStart();
+    }
   } catch (err) {
     restore();
     showToast('error', `${labels[type]} failed`, err.message);

@@ -309,6 +309,7 @@ public function hold(Request $request)
         $oldStatus = $sr->status;
         $worker    = $this->worker($request);
 
+       // after
         DB::transaction(function () use ($punch, $sr, $data, $oldStatus, $worker) {
             $punch->fill([
                 'punch_out_at'       => now(),
@@ -337,7 +338,14 @@ public function hold(Request $request)
         });
 
         $punch->refresh();
-        \App\Jobs\SendSrNotifications::dispatch($sr->id, \App\Jobs\SendSrNotifications::QC_SUBMITTED);
+
+                // Completion message - sent immediately, right when the worker finishes the job
+        // (previously fired from ServiceRequentController::qcPass() on QC approval).
+        \App\Jobs\SendSrNotifications::dispatch($sr->id, \App\Jobs\SendSrNotifications::COMPLETED, $this->buildSrRef($sr));
+
+        // Satisfaction survey - sent 2 minutes later, and flips the SR to
+        // Completed at the same time (only if QC hasn't already moved it).
+        \App\Jobs\SendSatisfactionSurvey::dispatch($sr)->delay(now()->addMinutes(2));
 
         return response()->json([
             'ok'          => true,

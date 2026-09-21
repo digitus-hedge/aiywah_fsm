@@ -47,6 +47,7 @@ class SendDailySummaryNotifications implements ShouldQueue
             'hop'   => [['HP'], 'notifyDailySummaryHop'],
             'se'    => [['SE'], 'notifyDailySummarySe'],
             'ml'    => [['ML'], 'notifyDailySummaryMl'],
+            'ac'    => [['AC'], 'notifyDailySummaryAc'],
         ];
 
         foreach ($roleBatches as $label => [$codes, $method]) {

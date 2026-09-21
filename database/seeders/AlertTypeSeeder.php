@@ -61,6 +61,12 @@ class AlertTypeSeeder extends Seeder
                 ['key' => 'ml_expenses',   'title' => 'Expense Submissions',   'description' => 'Expense submissions from yesterday - submitted vs pending receipts.'],
                 ['key' => 'ml_ratings',    'title' => 'Client Ratings',        'description' => 'Client ratings received on jobs they closed.'],
             ],
+            AlertType::ROLE_AC => [
+                ['key' => 'ac_quotes',      'title' => 'Quotations Pending',            'description' => 'SRs routed to Accounts for quotation, not yet quoted.'],
+                ['key' => 'ac_invoices',    'title' => 'Invoices Pending',              'description' => 'QC-approved SRs awaiting invoice submission.'],
+                ['key' => 'ac_hop_pending', 'title' => 'Invoices Awaiting HoP Approval', 'description' => 'Invoices submitted by Accounts, awaiting HoP approval.'],
+                ['key' => 'ac_expenses',    'title' => 'Expense Ledger Activity',       'description' => 'Expense submissions from yesterday - submitted vs pending receipts, across all technicians.'],
+            ],
 
         ];
 

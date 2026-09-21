@@ -349,7 +349,7 @@ class ProjectController extends Controller
         $data = $request->validate([
             'client_id'       => 'required|exists:clients,id',
             'project_name'    => 'required|string|max:255',
-            'project_code'    => 'required|string|min:3',
+            'project_code'    => 'nullable|string|min:3',
             'site_name'       => 'required|string|max:255',
             // 'completion_date' => 'nullable|date',
             'completion_date' => 'required|date',

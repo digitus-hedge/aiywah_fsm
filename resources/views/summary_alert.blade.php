@@ -132,6 +132,7 @@ const SA_ROLES = [
   { slug: 'hop',   label: 'HoP',                icon: 'bi-person-badge' },
   { slug: 'se',    label: 'Service Engineer',   icon: 'bi-person-gear' },
   { slug: 'ml',    label: 'Maintenance Lead',   icon: 'bi-tools' },
+  { slug: 'ac',    label: 'Accounts',           icon: 'bi-cash-coin' },
 ];
 
 window.SA_ROUTES = {

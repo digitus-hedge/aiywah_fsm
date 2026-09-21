@@ -14,6 +14,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
+use App\Models\NotificationLog;
+use Illuminate\Support\Facades\DB;
 
 class SendSatisfactionSurvey implements ShouldQueue
 {
@@ -32,9 +34,57 @@ class SendSatisfactionSurvey implements ShouldQueue
             return;   // deleted in the meantime
         }
 
-        // The SR may have gone back to rework/hold since the job was queued.
-        if (!in_array($sr->status, ['Completed', 'Pending Invoice', 'Invoice Submitted'], true)) {
-            Log::info('Survey skipped - SR no longer completed', [
+                // If QC hasn't reviewed it yet (still sitting where punchOut() left it),
+        // auto-complete it now - the SLA window for the customer to act has passed.
+        if ($sr->status === 'Qc Review') {
+            $sr->loadMissing('project');
+
+            $warrantyEnd  = optional($sr->project)->warranty_end_date;
+            $isInWarranty = $warrantyEnd
+                && \Carbon\Carbon::parse($warrantyEnd)->endOfDay()->isFuture();
+
+            $newStatus = $isInWarranty ? 'Completed' : 'Pending Invoice';
+            $ref       = 'SR-' . ($sr->created_at?->year ?? now()->year)
+                . '-' . str_pad($sr->id, 5, '0', STR_PAD_LEFT);
+
+            DB::transaction(function () use ($sr, $newStatus, $isInWarranty, $ref) {
+                $sr->update([
+                    'status'         => $newStatus,
+                    'qc_reviewed_at' => now(),
+                    // qc_reviewed_by stays null - nobody reviewed it, the system auto-passed it.
+                ]);
+
+                $sr->punches()
+                    ->whereIn('status', ['submitted', 'qc_review'])
+                    ->update(['status' => 'qc_passed']);
+
+                NotificationLog::create([
+                    'service_request_id' => $sr->id,
+                    'event'       => 'status_updated',
+                    'title'       => 'Status Updated',
+                    'message'     => "{$ref} auto-passed QC - no reviewer action within the SLA window - "
+                        . ($isInWarranty ? 'marked Completed' : 'forwarded to invoicing'),
+                    'from_status' => 'Qc Review',
+                    'to_status'   => $newStatus,
+                    'caused_by'   => null,
+                ]);
+            });
+
+            // Out-of-warranty still needs Accounts to invoice it - same routing qcPass() uses.
+            if (!$isInWarranty) {
+                \App\Jobs\SendSrNotifications::dispatch(
+                    $sr->id,
+                    \App\Jobs\SendSrNotifications::INVOICE_REQUIRED_ACCOUNTS,
+                    $ref
+                );
+            }
+
+            $sr->refresh();
+        }
+        // Anything else that isn't a completed/invoicing state means QC already
+        // moved it elsewhere (Rework, On Hold, etc.) - respect that and skip.
+        elseif (!in_array($sr->status, ['Completed', 'Pending Invoice', 'Invoice Submitted'], true)) {
+            Log::info('Survey skipped - SR no longer eligible', [
                 'sr_id'  => $sr->id,
                 'status' => $sr->status,
             ]);

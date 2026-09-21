@@ -1409,13 +1409,11 @@ private function rlsScope(string $module): ?array
             ]);
         });
 
-        $ref = $this->buildSrRef($serviceRequest);
+                $ref = $this->buildSrRef($serviceRequest);
 
-        // In-warranty work ends here, so this is the moment to tell the customer.
-        // Out-of-warranty still has to clear invoicing - hopApprove() notifies instead.
-        if ($scope === 'iw') {
-            SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::COMPLETED, $ref);
-        } else {
+        // Completion message now goes out at punch-out (see WorkerpunchController::punchOut()),
+        // so an in-warranty QC pass no longer re-notifies the customer here.
+        if ($scope !== 'iw') {
             SendSrNotifications::dispatch(
                 $serviceRequest->id,
                 SendSrNotifications::INVOICE_REQUIRED_ACCOUNTS,

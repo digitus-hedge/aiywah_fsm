@@ -153,8 +153,8 @@ class UserProvisioningController extends Controller
         $data = $request->validate([
             'name'       => 'required|string|max:255',
             'email'      => 'required|email:rfc,dns|max:255|unique:users,email',
-            'country_code' => 'nullable|string|max:8',
-            'phone'      => 'nullable|string|max:20',
+            'country_code' => 'required|string|max:8',
+            'phone'      => 'required|string|max:20|unique:users,phone',
             'password'   => 'required|string|min:8',
             'role'       => 'required|string',
             'roleId'     => 'required|string|exists:roles,code',
@@ -169,6 +169,9 @@ class UserProvisioningController extends Controller
             'acGrants'   => 'array',
             'acGrants.*' => 'string',
             'extGrants'  => 'array',    // ← add: { key: access } - access value is a hint, server recomputes it
+        ] , [
+            'phone.unique' => 'This phone number is already registered with another user.',
+            'email.unique' => 'This email address is already registered with another user.',
         ]);
 
         $isSE = $data['roleId'] === 'SE';
@@ -234,8 +237,8 @@ class UserProvisioningController extends Controller
         $data = $request->validate([
             'name'       => 'required|string|max:255',
             'email'      => ['required', 'email:rfc,dns', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
-            'country_code' => 'nullable|string|max:8',
-            'phone'        => 'nullable|string|max:20',
+            'country_code' => 'required|string|max:8',
+            'phone'        => ['required', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($user->id)],
             'password'   => 'sometimes|nullable|string|min:8',
             'role'       => 'required|string',
             'roleId'     => 'required|string|exists:roles,code',
@@ -250,6 +253,9 @@ class UserProvisioningController extends Controller
             'acGrants'   => 'array',
             'acGrants.*' => 'string',
             'extGrants'  => 'array',   // ← add
+        ] , [
+            'phone.unique' => 'This phone number is already registered with another user.',
+            'email.unique' => 'This email address is already registered with another user.',
         ]);
 
         $isSE = $data['roleId'] === 'SE';
