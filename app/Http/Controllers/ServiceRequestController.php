@@ -1418,7 +1418,7 @@ private function rlsScope(string $module): ?array
                 $serviceRequest->id,
                 SendSrNotifications::INVOICE_REQUIRED_ACCOUNTS,
                 $ref,
-                auth()->user()   // ← actor is whoever is passing QC right now
+                auth()->user()?->name    // ← actor is whoever is passing QC right now
             );
         }
         return response()->json([
@@ -1832,7 +1832,12 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
         'caused_by'   => Auth::id(),
     ]);
 
-    SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::COMPLETED, $ref);
+       SendSrNotifications::dispatch($serviceRequest->id, SendSrNotifications::COMPLETED, $ref);
+
+    // Same 2-minute-delayed survey the in-warranty flow gets at punch-out - this is
+    // the out-of-warranty equivalent, fired now because this is the point the SR
+    // actually becomes Completed.
+    \App\Jobs\SendSatisfactionSurvey::dispatch($serviceRequest)->delay(now()->addMinutes(2));
 
     return response()->json([
         'ok'      => true,
