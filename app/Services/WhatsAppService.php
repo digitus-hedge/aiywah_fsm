@@ -820,22 +820,30 @@ public function notifyMaintenanceCompleted(
      * {{1}} name, {{2}} project, {{3}} location, {{4}} handover, {{5}} warranty expiry
      */
     private function sendProjectMessage(
-        \App\Models\Client $client,
-        \App\Models\Project $project,
-        string $template,
-        string $event,
-        callable $previewFor,
-        string $refPrefix
-    ): void {
-        $c = [
-            'project'  => $this->cleanParam($project->project_name) ?: 'N/A',
-            'location' => $this->cleanParam($project->site_name) ?: 'N/A',
-            'handover' => $this->fmtDate($project->completion_date, 'To be confirmed'),
-            'expiry'   => $this->fmtDate($project->warranty_end_date, 'To be confirmed'),
-        ];
+    \App\Models\Client $client,
+    \App\Models\Project $project,
+    string $template,
+    string $event,
+    callable $previewFor,
+    string $refPrefix
+): void {
+    $c = [
+        'project'  => $this->cleanParam($project->project_name) ?: 'N/A',
+        'location' => $this->cleanParam($project->site_name) ?: 'N/A',
+        'handover' => $this->fmtDate($project->completion_date, 'To be confirmed'),
+        'expiry'   => $this->fmtDate($project->warranty_end_date, 'To be confirmed'),
+    ];
 
-        $this->fanOut(null, $client, $event, $template,
-            fn ($name) => [[
+    // Dynamic URL button - Meta appends this suffix onto the template's
+    // registered base URL. Registered base is assumed to be
+    // config('app.url').'/portal/client/' - adjust the prefix if you
+    // registered a different base in Meta's template manager.
+    $portalLink  = route('portal.client', ['code' => $client->unique_code]);
+    $buttonValue = $this->buttonSuffix($portalLink, config('app.url') . '/portal/client/');
+
+    $this->fanOut(null, $client, $event, $template,
+        fn ($name) => [
+            [
                 "type" => "body",
                 "parameters" => [
                     $this->txt($this->cleanParam($name) ?: 'Customer'),
@@ -844,12 +852,20 @@ public function notifyMaintenanceCompleted(
                     $this->txt($c['handover']),
                     $this->txt($c['expiry']),
                 ],
-            ]],
-            fn ($name) => $previewFor($name, $c),
-            $refPrefix . '-' . $project->id
-        );
-    }
-
+            ],
+            [
+                "type"     => "button",
+                "sub_type" => "url",
+                "index"    => "0",
+                "parameters" => [
+                    ["type" => "text", "text" => $buttonValue],
+                ],
+            ],
+        ],
+        fn ($name) => $previewFor($name, $c),
+        $refPrefix . '-' . $project->id
+    );
+}
     /** First project onboarded → client_welcome */
     public function notifyClientWelcome(
         \App\Models\Client $client,
