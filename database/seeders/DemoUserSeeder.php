@@ -17,6 +17,7 @@ class DemoUserSeeder extends Seeder
                 'name'     => 'Super Admin',
                 'password' => Hash::make('service@mattermind'),
                 'role_id'  => 1,
+                'status'    => 'active',
             ]
         );
 
@@ -25,7 +26,8 @@ class DemoUserSeeder extends Seeder
             [
                 'name'     => 'Shilpa',            
                 'password' => Hash::make('password'),
-                'role_id'  => 2,                     
+                'role_id'  => 2, 
+                'status'    => 'active',                    
             ]
         );
     }
