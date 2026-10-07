@@ -73,9 +73,10 @@ class PermissionSeeder extends Seeder
             ['user_provisioning',      'User Provisioning',      'System',            'shield',         'user_provisioning',     20],
             ['master_data',            'Master Data',            'System',            'database',       'masters.index',         21],
             ['wa_notification_log',    'WhatsApp Notifications', 'System',            'message-circle', 'wa_notification_log',   22],
-            ['activity-log',           'Activity Log',           'System',            'activity',       'activity-log',          23],
-            ['user_delete',            'Disable Users',           'System',             'trash-2',        null,                   24],
-            ['client_delete',          'Disable Customers',       'Customer',           'trash-2',        null,                   25],
+            ['email_notification_log', 'Email Notifications',    'System',            'mail',           'email_notification_log',23], 
+            ['activity-log',           'Activity Log',           'System',            'activity',       'activity-log',          24],
+            ['user_delete',            'Disable Users',           'System',             'trash-2',        null,                   25],
+            ['client_delete',          'Disable Customers',       'Customer',           'trash-2',        null,                   26],
         ];
 
         foreach ($permissions as [$key, $name, $section, $icon, $route, $order]) {
@@ -128,6 +129,7 @@ class PermissionSeeder extends Seeder
                 'expense_ledger'         => 'view',
                 'analytics'              => 'rls',
                 'wa_notification_log'    => 'view',   // log, never edited
+                'email_notification_log' => 'view',
                 'rework_sr'              => 'yes',
                 'master_data'            => 'view',   // admin owns config
                 'user_directory'         => 'view',
@@ -148,6 +150,7 @@ class PermissionSeeder extends Seeder
                 'qc_review'              => 'rls',
                 'completed'              => 'rls',
                 'wa_notification_log'    => 'view_rls',  // own message history
+                'email_notification_log' => 'view_rls',
             ]),
 
             // Maintenance Lead - own pipeline only.
@@ -174,6 +177,7 @@ class PermissionSeeder extends Seeder
                 'analytics'              => 'grant',
                 'user_provisioning'      => 'grant',
                 'wa_notification_log'    => 'view_rls',
+                'email_notification_log' => 'view_rls',
             ]),
 
             // Accounts / AR - out-of-warranty financial flows only.

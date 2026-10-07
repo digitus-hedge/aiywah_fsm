@@ -2058,16 +2058,19 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
         string $ref,
         string $customerLink
     ): void {
-        try {
-            if ($to = $sr->client?->email) {
-                Mail::to($to)->send(new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink));
-            } else {
-                Log::warning('Completion mail skipped - client has no email', ['sr_id' => $sr->id]);
-            }
-        } catch (\Throwable $e) {
-            Log::error('Completion mail failed', ['sr_id' => $sr->id, 'error' => $e->getMessage()]);
+                if ($to = $sr->client?->email) {
+            app(\App\Services\EmailService::class)->sendLogged(
+                $sr,
+                $sr->client,
+                $to,
+                'Maintenance Completed',
+                new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink),
+                "Completion mail for {$ref} to {$sr->client->contact_name}"
+            );
+        } else {
+            Log::warning('Completion mail skipped - client has no email', ['sr_id' => $sr->id]);
         }
-
+    
         try {
             app(\App\Services\WhatsAppService::class)
                 ->notifyMaintenanceCompleted($sr, null, $customerLink);

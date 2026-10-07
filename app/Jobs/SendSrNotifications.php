@@ -111,7 +111,14 @@ class SendSrNotifications implements ShouldQueue
 
         if ($to = optional($sr->client)->email) {
             $this->safely('mail.created', fn() =>
-                Mail::to($to)->send(new ServiceRequestReceivedMail($sr, $ref))
+                app(\App\Services\EmailService::class)->sendLogged(
+                    $sr,
+                    $sr->client,
+                    $to,
+                    'SR Received',
+                    new ServiceRequestReceivedMail($sr, $ref),
+                    "Service request {$ref} received for " . ($sr->client->contact_name ?? 'customer')
+                )
             );
         } else {
             Log::warning('SR created but client has no email', ['sr_id' => $this->srId]);
@@ -188,19 +195,34 @@ class SendSrNotifications implements ShouldQueue
 
     private function dispatched(WhatsAppService $wa, ServiceRequest $sr, string $ref): void
 {
-    // Customer
+
+        // Customer
     if ($to = $sr->client?->email) {
         $this->safely('mail.dispatched.client', fn() =>
-            Mail::to($to)->send(new \App\Mail\TechnicianAssignedMail($sr, $ref))
+            app(\App\Services\EmailService::class)->sendLogged(
+                $sr,
+                $sr->client,
+                $to,
+                'Technician Assigned',
+                new \App\Mail\TechnicianAssignedMail($sr, $ref),
+                "Technician assigned to {$ref} - " . (optional($sr->assignedUser)->name ?: 'TBC')
+            )
         );
     } else {
         Log::warning('Tech-assigned mail skipped - client has no email', ['sr_id' => $this->srId]);
     }
 
-    // The Maintenance Lead doing the work
+        // The Maintenance Lead doing the work
     if ($techEmail = $sr->assignedUser?->email) {
         $this->safely('mail.dispatched.ml', fn() =>
-            Mail::to($techEmail)->send(new \App\Mail\TechnicianAssignedMail($sr, $ref, true))
+            app(\App\Services\EmailService::class)->sendLogged(
+                $sr,
+                $sr->client,
+                $techEmail,
+                'Technician Assigned (ML)',
+                new \App\Mail\TechnicianAssignedMail($sr, $ref, true),
+                "ML notification: assigned to {$ref}"
+            )
         );
     } else {
         Log::warning('Tech-assigned mail skipped - ML has no email', ['sr_id' => $this->srId]);
@@ -223,7 +245,14 @@ class SendSrNotifications implements ShouldQueue
 
     if ($to = $sr->client?->email) {
         $this->safely('mail.completed', fn() =>
-            Mail::to($to)->send(new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink))
+            app(\App\Services\EmailService::class)->sendLogged(
+                $sr,
+                $sr->client,
+                $to,
+                'Maintenance Completed',
+                new \App\Mail\MaintenanceCompletedMail($sr, $ref, $customerLink),
+                "Completion mail for {$ref} to " . ($sr->client->contact_name ?? 'customer')
+            )
         );
     } else {
         Log::warning('Completion mail skipped - client has no email', ['sr_id' => $this->srId]);

@@ -53,24 +53,22 @@ class SendClientWelcomeNotifications implements ShouldQueue
     }
 
     /** Onboarding: welcome email, then the WhatsApp welcome template. */
-    private function welcome(WhatsAppService $wa, Client $client, ?Project $project): void
+        private function welcome(WhatsAppService $wa, Client $client, ?Project $project): void
     {
         if ($client->email) {
-            try {
-                Mail::to($client->email)->send(
-                    new ClientWelcomeMail($client, $project, $this->portalUrl)
-                );
-            } catch (\Throwable $e) {
-                Log::error('Client welcome mail failed', [
-                    'client_id' => $this->clientId,
-                    'error'     => $e->getMessage(),
-                ]);
-            }
+            app(\App\Services\EmailService::class)->sendLogged(
+                null,
+                $client,
+                $client->email,
+                'Client Welcome',
+                new ClientWelcomeMail($client, $project, $this->portalUrl),
+                "Welcome mail to {$client->contact_name} <{$client->email}>",
+                'WELCOME-' . ($project?->id ?? '0')
+            );
         } else {
             Log::warning('Client welcome mail skipped - no email', ['client_id' => $this->clientId]);
         }
 
-        // The WhatsApp welcome template needs project details, so skip without one.
         if (! $project) {
             Log::warning('Welcome WhatsApp skipped - no project', ['client_id' => $this->clientId]);
             return;
@@ -86,7 +84,6 @@ class SendClientWelcomeNotifications implements ShouldQueue
         }
     }
 
-    /** A project added to a client who was already onboarded. */
     private function projectAdded(WhatsAppService $wa, Client $client, ?Project $project): void
     {
         if (! $project) {
@@ -95,6 +92,18 @@ class SendClientWelcomeNotifications implements ShouldQueue
                 'project_id' => $this->projectId,
             ]);
             return;
+        }
+
+        if ($client->email && class_exists(\App\Mail\ProjectAddedMail::class)) {
+            app(\App\Services\EmailService::class)->sendLogged(
+                null,
+                $client,
+                $client->email,
+                'Project Added',
+                new \App\Mail\ProjectAddedMail($client, $project, $this->portalUrl),
+                "Project {$project->project_code} added for {$client->contact_name}",
+                'PROJECT-' . $project->id
+            );
         }
 
         try {

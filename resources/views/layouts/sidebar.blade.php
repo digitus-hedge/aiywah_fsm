@@ -220,6 +220,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
             // page, so provisioning rights imply reaching the directory.
             $showSystem = $u?->canAccessUserDirectory()
                     || $can('master_data') || $can('wa_notification_log')
+                    || $can('email_notification_log')
                     || $can('activity-log');
         @endphp
         @if ($showSystem)
@@ -245,6 +246,14 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
                 <li>
                     <a href="{{ route('wa_notification_log') }}" class="{{ request()->routeIs('wa_notification_log') ? 'active' : '' }}">
                         <i data-feather="message-circle"></i><span>WhatsApp Notifications</span>
+                    </a>
+                </li>
+            @endif
+
+            @if ($can('email_notification_log'))
+                <li>
+                    <a href="{{ route('email_notification_log') }}" class="{{ request()->routeIs('email_notification_log') ? 'active' : '' }}">
+                        <i data-feather="mail"></i><span>Email Notifications</span>
                     </a>
                 </li>
             @endif
