@@ -464,7 +464,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 
   <!-- Page Header -->
   <div class="pg-header">
-    <h4><i class="bi bi-clipboard-check me-2"></i>Inquiry Approval - Triage Panel</h4>
+    <h4><i class="bi bi-clipboard-check me-2"></i>Inquiry Approval - Panel</h4>
     <p>Review incoming Pending service requests against active contracts. Approve, forward to Accounts, or reject with documented reason.</p>
     <div class="meta-row">
       <span class="meta-badge"><i class="bi bi-briefcase me-1"></i>Head of Projects</span>
@@ -477,7 +477,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
   <div class="stats-strip">
     <div class="stat-card">
       <div class="stat-icon" style="background:rgba(249,115,22,.1);"><i class="bi bi-hourglass-split" style="color:#f97316;"></i></div>
-      <div><div class="stat-num" style="color:#f97316;" id="stat-pending">0</div><div class="stat-lbl">Pending Triage</div></div>
+      <div><div class="stat-num" style="color:#f97316;" id="stat-pending">0</div><div class="stat-lbl">Pending</div></div>
     </div>
     <div class="stat-card">
       <div class="stat-icon" style="background:rgba(5,163,74,.1);"><i class="bi bi-check2-circle" style="color:#05a34a;"></i></div>
@@ -500,7 +500,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
     <div>
       <div class="queue-tabs">
         <div class="queue-tab active" id="tab-pending" onclick="switchMode('pending')">
-          <i class="bi bi-hourglass-split"></i>Pending Triage
+          <i class="bi bi-hourglass-split"></i>Pending
           <span class="tab-count" id="tab-pending-count">0</span>
         </div>
         <div class="queue-tab oow" id="tab-oow" onclick="switchMode('oow')">
@@ -616,7 +616,7 @@ hr.dp-hr{border-color:var(--card-border);margin:10px 0;}
 
       <!-- Action Panel -->
       <div class="action-panel">
-        <div class="ap-title"><i class="bi bi-lightning-charge-fill" style="color:#f97316;"></i>Triage Actions</div>
+        <div class="ap-title"><i class="bi bi-lightning-charge-fill" style="color:#f97316;"></i>Actions</div>
 
 
          {{-- Assign Service Engineer --}}

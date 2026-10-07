@@ -28,6 +28,9 @@ use App\Http\Controllers\ReworkServiceRequestController;
 use App\Http\Controllers\AccountantDashboardController;
 use App\Http\Controllers\SrTrackingController;
 use App\Http\Controllers\SummaryViewController;
+use App\Http\Controllers\EmailLogController;
+
+
 /*
 |--------------------------------------------------------------------------
 | SR Portal Routes
@@ -235,6 +238,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/wa_notification_log/retry-all', [WhatsappLogController::class, 'retryAll'])->name('wa_notification_log.retryAll');
         Route::get('/wa_notification_log/{log}', [WhatsappLogController::class, 'show'])->name('wa_notification_log.show');
         Route::post('/wa_notification_log/{log}/retry', [WhatsappLogController::class, 'retry'])->name('wa_notification_log.retry');
+
+        //email notification log 
+        Route::get('/email_notification_log', [EmailLogController::class, 'index'])->name('email_notification_log');
+        Route::get('/email_notification_log/export', [EmailLogController::class, 'export'])->name('email_notification_log.export');
+        Route::post('/email_notification_log/retry-all', [EmailLogController::class, 'retryAll'])->name('email_notification_log.retryAll');
+        Route::get('/email_notification_log/{log}', [EmailLogController::class, 'show'])->name('email_notification_log.show');
+        Route::post('/email_notification_log/{log}/retry', [EmailLogController::class, 'retry'])->name('email_notification_log.retry');
 
         Route::get('/completed-sr',        [CompletedService::class, 'index'])->name('completed');
         Route::get('/completed-sr/{id}',   [CompletedService::class, 'show'])->name('completed.show');
