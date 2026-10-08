@@ -228,6 +228,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/invoice_panel/{serviceRequest}/submit', [ServiceRequestController::class, 'invoiceSubmit'])->name('invoice.submit');
         Route::post('/invoice_panel/{serviceRequest}/hop-approve', [ServiceRequestController::class, 'hopApprove'])->name('invoice.hop');
 
+        Route::post('/invoice_panel/{serviceRequest}/invoice/preview', [ServiceRequestController::class, 'invoicePreview']);
+        Route::post('/invoice_panel/{serviceRequest}/invoice',         [ServiceRequestController::class, 'invoiceGenerate']);
+
         Route::get('/expense_ledger', [ServiceRequestController::class, 'expenseLedger'])->name('expense_ledger');
 
         Route::patch('/service-requests/{serviceRequest}/status', [ServiceRequestController::class, 'updateStatus'])

@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Jobs\SendSrNotifications;
 use App\Http\Controllers\Concerns\BuildsQuotationPdf;
 use App\Models\Quotation;
+use App\Http\Controllers\Concerns\BuildsInvoicePdf;
 
 class ServiceRequestController extends Controller
 {
@@ -32,7 +33,7 @@ class ServiceRequestController extends Controller
      |  CREATE / LOOKUP / STORE
      * ============================================================ */
 
-            use BuildsQuotationPdf; 
+            use BuildsQuotationPdf, BuildsInvoicePdf;
 
     public function create()
     {
@@ -1787,9 +1788,16 @@ private function rlsScope(string $module): ?array
             ->latest('updated_at')
             ->get();
 
-        $invQueue = $pending->map(function ($sr) {
+        // Latest quotation per SR - its total is the invoice amount.
+            $quotes = Quotation::whereIn('service_request_id', $pending->pluck('id'))
+                ->orderBy('id')
+                ->get()
+                ->keyBy('service_request_id');
+
+            $invQueue = $pending->map(function ($sr) use ($quotes) {
             $punch = $sr->punches->first();
             $exp   = $punch ? $this->srExpenses($punch) : ['rows' => [], 'total' => 0];
+            $quote = $quotes->get($sr->id);
 
             $duration = '-';
             if ($punch && $punch->punch_in_at && $punch->punch_out_at) {
@@ -1813,6 +1821,11 @@ private function rlsScope(string $module): ?array
                     'amt' => (float) preg_replace('/[^0-9.]/', '', $r['amt']),
                 ])->values(),
                 'totalExp'   => $exp['total'],
+                'quote'      => $quote ? [
+                'ref'     => $quote->quote_ref,
+                'summary' => $quote->summary,
+                'amount'  => (float) $quote->grand_total,
+            ] : null,
             ];
         })->values();
 
@@ -1830,6 +1843,9 @@ private function rlsScope(string $module): ?array
                 'client'    => optional($sr->client)->company_name ?? '-',
                 'site'      => optional($sr->project)->site_name ?? '-',
                 'code'      => $sr->invoice_code ?? '-',
+                'pdfUrl'    => $sr->invoice_path ? asset('storage/' . $sr->invoice_path) : null,
+                'email'     => optional($sr->client)->email ?? '',
+                'total'     => (float) $sr->invoice_total,
                 'submitted' => $sr->updated_at?->format('d M · h:i A') ?? '-',
                 'waiting'   => $sr->updated_at?->diffForHumans(null, true) ?? '-',
             ];
@@ -1847,8 +1863,10 @@ private function rlsScope(string $module): ?array
             0
         );
 
-         return view('invoice_panel', compact(
-        'invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth', 'canHopApprove'
+        $invCurrency = static::invoiceCurrency();
+
+    return view('invoice_panel', compact(
+        'invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth', 'canHopApprove', 'invCurrency'
     ));
     }
 public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
@@ -1893,7 +1911,7 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
 
     return response()->json(['ok' => true, 'message' => 'Invoice committed. HoP notified.']);
 }
-    public function hopApprove(ServiceRequest $serviceRequest)
+    public function hopApprove(Request $request, ServiceRequest $serviceRequest)
 {
      if (! auth()->user()?->hasAnyAccess('invoice_hop_approve')) {
         return response()->json([
@@ -1902,6 +1920,40 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
             'message' => 'You do not have permission to approve invoices for closure.',
         ], 403);
     }
+
+    // Stops a second click from closing the SR (and emailing the customer) twice.
+if ($serviceRequest->status !== 'Invoice Submitted') {
+    return response()->json([
+        'ok'      => false,
+        'success' => false,
+        'message' => 'This service request is not awaiting HoP approval. Refresh the page.',
+    ], 422);
+}
+
+// From / To / Subject / Message typed in the approval dialog (null = do not email).
+$mail = $this->buildInvoiceMail($request);
+
+// Email the customer BEFORE closing the SR. If the email cannot be sent,
+// nothing is changed and the user can correct it and try again.
+if ($mail) {
+    try {
+        $this->sendInvoiceMail($serviceRequest, $mail);
+    } catch (\Throwable $e) {
+        Log::error('Invoice email failed', [
+            'sr_id' => $serviceRequest->id,
+            'to'    => $mail['to'],
+            'error' => $e->getMessage(),
+        ]);
+
+        return response()->json([
+            'ok'      => false,
+            'success' => false,
+            'message' => 'The invoice email could not be sent, so the SR was not closed. '
+                . 'Check the addresses and the mail settings, then try again.'
+                . (config('app.debug') ? ' Reason: ' . $e->getMessage() : ''),
+        ], 502);
+    }
+}
 
     $oldStatus = $serviceRequest->status;
 
@@ -1917,7 +1969,8 @@ public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
         'service_request_id' => $serviceRequest->id,
         'event'       => 'status_updated',
         'title'       => 'Status Updated',
-        'message'     => $ref . ' - HoP approved invoice, service request completed',
+        'message'     => $ref . ' - HoP approved invoice, service request completed'
+    . ($mail ? ' - invoice emailed to ' . implode(', ', $mail['to']) : ''),
         'from_status' => $oldStatus,
         'to_status'   => 'Completed',
         'caused_by'   => Auth::id(),
