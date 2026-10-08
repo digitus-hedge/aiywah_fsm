@@ -325,7 +325,13 @@ Route::middleware('auth')->group(function () {
             ->name('summary-alert.permissions');
         Route::post('/summary-alert/save', [MasterController::class, 'summaryAlertSave'])
             ->name('summary-alert.save');
-            });
+
+        // PDF Templates
+        Route::post('/pdf-template/store', [MasterController::class, 'storePdfTemplate'])->name('pdf-template.store');
+        Route::post('/pdf-template/update/{id}', [MasterController::class, 'updatePdfTemplate'])->name('pdf-template.update');
+        Route::delete('/pdf-template/delete/{id}', [MasterController::class, 'deletePdfTemplate'])->name('pdf-template.delete');
+        
+        });
 
      
         

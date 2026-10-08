@@ -15,17 +15,20 @@ use App\Models\AlertType;
 use App\Models\UserAlertPermission;
 use App\Models\User;
 use App\Models\UserAlertSchedule;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Client;
+use App\Models\PdfTemplate;
 
 class MasterController extends Controller
 {
-    
+
 
     /* ============================================================
      |  MAIN PAGE
      ============================================================ */
     public function index()
     {
-        $categories = ServiceCategory::with(['domains' => fn ($q) => $q->orderBy('sort_order')])
+        $categories = ServiceCategory::with(['domains' => fn($q) => $q->orderBy('sort_order')])
             ->orderBy('sort_order')
             ->get();
 
@@ -34,19 +37,117 @@ class MasterController extends Controller
         $priorities        = Priority::orderBy('display_order')->get();
         $slaMatrix         = SlaMatrix::with('priority')->orderBy('priority_id')->get();
 
+        $pdfTemplates       = PdfTemplate::with('client:id,company_name')->latest()->get();
+        $clients            = Client::orderBy('company_name')->get(['id', 'company_name']);
+
         $counts = [
             'service'   => $categories->count(),
             'expense'   => $expenseCategories->count(),
             'priority'  => $priorities->count(),
             'warranty'  => $warranties->count(),
             'sla'       => $slaMatrix->count(),
+                'template'  => $pdfTemplates->count(),
         ];
 
         return view('master_data', compact(
-            'categories', 'expenseCategories','warranties', 'priorities',
-            'slaMatrix','counts'
+            'categories',
+            'expenseCategories',
+            'warranties',
+            'priorities',
+            'slaMatrix',
+            'counts',
+             'pdfTemplates', 'clients'
         ));
     }
+    
+
+
+    /* ============================================================
+ |  PDF TEMPLATES (one per company)
+ ============================================================ */
+private const PDF_IMAGE_FIELDS = ['header_image', 'letterhead_image', 'footer_image'];
+
+private function pdfTemplateRules($id = null): array
+{
+    $img = 'nullable|image|mimes:jpg,jpeg,png|max:2048';
+
+    return [
+        'client_id'        => 'required|exists:clients,id|unique:pdf_templates,client_id,' . ($id ?? 'NULL') . ',id',
+        'header_image'     => $img,
+        'letterhead_image' => $img,
+        'footer_image'     => $img,
+        'status'           => 'required|in:0,1',
+    ];
+}
+
+private function pdfTemplateMessages(): array
+{
+    return ['client_id.unique' => 'This company already has a PDF template. Edit that one instead.'];
+}
+
+public function storePdfTemplate(Request $request)
+{
+    $data = $request->validate($this->pdfTemplateRules(), $this->pdfTemplateMessages());
+
+    $hasAny = false;
+    foreach (self::PDF_IMAGE_FIELDS as $field) {
+        if ($request->hasFile($field)) {
+            $data[$field] = $request->file($field)->store('pdf-templates', 'public');
+            $hasAny = true;
+        }
+    }
+
+    if (! $hasAny) {
+        return response()->json(['status' => false, 'message' => 'Upload at least one image.'], 422);
+    }
+
+    $template = PdfTemplate::create($data);
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'PDF template created successfully.',
+        'data'    => $template,
+    ]);
+}
+
+public function updatePdfTemplate(Request $request, $id)
+{
+    $template = PdfTemplate::findOrFail($id);
+    $data     = $request->validate($this->pdfTemplateRules($id), $this->pdfTemplateMessages());
+
+    foreach (self::PDF_IMAGE_FIELDS as $field) {
+        if ($request->hasFile($field)) {
+            if ($template->{$field}) {
+                Storage::disk('public')->delete($template->{$field});
+            }
+            $data[$field] = $request->file($field)->store('pdf-templates', 'public');
+        } else {
+            unset($data[$field]);   // keep the image that is already saved
+        }
+    }
+
+    $template->update($data);
+
+    return response()->json([
+        'status'  => true,
+        'message' => 'PDF template updated successfully.',
+        'data'    => $template,
+    ]);
+}
+
+public function deletePdfTemplate($id)
+{
+    $template = PdfTemplate::findOrFail($id);
+
+    foreach (self::PDF_IMAGE_FIELDS as $field) {
+        if ($template->{$field}) {
+            Storage::disk('public')->delete($template->{$field});
+        }
+    }
+    $template->delete();
+
+    return response()->json(['status' => true, 'message' => 'PDF template deleted successfully.']);
+}
 
     /* ============================================================
      |  SERVICE CATEGORIES
@@ -272,52 +373,52 @@ class MasterController extends Controller
 
 
     public function storeWarrantyCategory(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'name'   => 'required|string|max:255',
-        // 'value'  => 'nullable|string|max:500',
-        'value'  => 'required|integer|min:1',
-        'status' => 'required|in:0,1',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'name'   => 'required|string|max:255',
+            // 'value'  => 'nullable|string|max:500',
+            'value'  => 'required|integer|min:1',
+            'status' => 'required|in:0,1',
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $warranty = Warranty::create($request->only('name', 'value', 'status'));
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Warranty Category created successfully.',
+            'data'    => $warranty,
+        ]);
     }
 
-    $warranty = Warranty::create($request->only('name', 'value', 'status'));
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Warranty Category created successfully.',
-        'data'    => $warranty,
-    ]);
-}
 
 
+    public function updateWarrantyCategory(Request $request, $id)
+    {
+        $warranty = Warranty::findOrFail($id);
 
-public function updateWarrantyCategory(Request $request, $id)
-{
-    $warranty = Warranty::findOrFail($id);
+        $validator = Validator::make($request->all(), [
+            'name'   => 'required|string|max:255',
+            // 'value'  => 'nullable|string|max:500',
+            'value'  => 'required|integer|min:1',
+            'status' => 'required|in:0,1',
+        ]);
 
-    $validator = Validator::make($request->all(), [
-        'name'   => 'required|string|max:255',
-        // 'value'  => 'nullable|string|max:500',
-        'value'  => 'required|integer|min:1',
-        'status' => 'required|in:0,1',
-    ]);
+        if ($validator->fails()) {
+            return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+        }
 
-    if ($validator->fails()) {
-        return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+        $warranty->update($request->only('name', 'value', 'status'));
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Warranty Category updated successfully.',
+            'data'    => $warranty,
+        ]);
     }
-
-    $warranty->update($request->only('name', 'value', 'status'));
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Warranty Category updated successfully.',
-        'data'    => $warranty,
-    ]);
-}
 
     public function updateExpenseCategory(Request $request, $id)
     {
@@ -386,7 +487,7 @@ public function updateWarrantyCategory(Request $request, $id)
     }
 
 
-     public function changeWarrantyCategoryStatus(Request $request, $id)
+    public function changeWarrantyCategoryStatus(Request $request, $id)
     {
         $warranty = Warranty::findOrFail($id);
         $warranty->status = $request->has('status')
@@ -490,112 +591,112 @@ public function updateWarrantyCategory(Request $request, $id)
     /* ============================================================
      |  SLA MATRIX
      ============================================================ */
-        /** Shared rules - all times are HOURS now. */
-private function slaRules(string $prefix = ''): array
-{
-    return [
-        $prefix.'priority_id'     => 'required|exists:priorities,id',
-        $prefix.'response_time'   => 'required|integer|min:1|max:8760',   // Approve
-        $prefix.'assignment_time' => 'required|integer|min:1|max:8760',   // Dispatch
-        $prefix.'resolution_time' => 'required|integer|min:1|max:8760',   // QC
-        $prefix.'status'          => 'nullable|in:0,1',
-    ];
-}
-
-public function storeSlaMatrix(Request $request)
-{
-    $request->validate($this->slaRules());
-
-    if (SlaMatrix::where('priority_id', $request->priority_id)->exists()) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'SLA already exists for this criticality.',
-        ], 422);
+    /** Shared rules - all times are HOURS now. */
+    private function slaRules(string $prefix = ''): array
+    {
+        return [
+            $prefix . 'priority_id'     => 'required|exists:priorities,id',
+            $prefix . 'response_time'   => 'required|integer|min:1|max:8760',   // Approve
+            $prefix . 'assignment_time' => 'required|integer|min:1|max:8760',   // Dispatch
+            $prefix . 'resolution_time' => 'required|integer|min:1|max:8760',   // QC
+            $prefix . 'status'          => 'nullable|in:0,1',
+        ];
     }
 
-    $sla = SlaMatrix::create([
-        'priority_id'     => $request->priority_id,
-        'response_time'   => $request->response_time,
-        'assignment_time' => $request->assignment_time,
-        'resolution_time' => $request->resolution_time,
-        'status'          => $request->status ?? 1,
-    ]);
+    public function storeSlaMatrix(Request $request)
+    {
+        $request->validate($this->slaRules());
 
-    return response()->json([
-        'status'  => true,
-        'message' => 'SLA Matrix created successfully.',
-        'data'    => $sla,
-    ]);
-}
-
-public function updateSlaMatrix(Request $request, $id)
-{
-    $sla = SlaMatrix::findOrFail($id);
-    $request->validate($this->slaRules());
-
-    $dupe = SlaMatrix::where('priority_id', $request->priority_id)
-        ->where('id', '!=', $id)->exists();
-
-    if ($dupe) {
-        return response()->json([
-            'status'  => false,
-            'message' => 'SLA already exists for this criticality.',
-        ], 422);
-    }
-
-    $sla->update([
-        'priority_id'     => $request->priority_id,
-        'response_time'   => $request->response_time,
-        'assignment_time' => $request->assignment_time,
-        'resolution_time' => $request->resolution_time,
-        'status'          => $request->status ?? 1,
-    ]);
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'SLA Matrix updated successfully.',
-        'data'    => $sla,
-    ]);
-}
-
-public function saveAllSla(Request $request)
-{
-    $request->validate(array_merge(
-        ['rows' => 'required|array|min:1'],
-        $this->slaRules('rows.*.')
-    ));
-
-    DB::beginTransaction();
-    try {
-        foreach ($request->rows as $row) {
-            SlaMatrix::updateOrCreate(
-                ['priority_id' => $row['priority_id']],
-                [
-                    'response_time'   => $row['response_time'],
-                    'assignment_time' => $row['assignment_time'],
-                    'resolution_time' => $row['resolution_time'],
-                    'status'          => $row['status'] ?? 1,
-                ]
-            );
+        if (SlaMatrix::where('priority_id', $request->priority_id)->exists()) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'SLA already exists for this criticality.',
+            ], 422);
         }
-        DB::commit();
 
-        return response()->json(['status' => true, 'message' => 'SLA Matrix saved successfully.']);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
+        $sla = SlaMatrix::create([
+            'priority_id'     => $request->priority_id,
+            'response_time'   => $request->response_time,
+            'assignment_time' => $request->assignment_time,
+            'resolution_time' => $request->resolution_time,
+            'status'          => $request->status ?? 1,
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'SLA Matrix created successfully.',
+            'data'    => $sla,
+        ]);
     }
-}
 
-    
-// ---- class constant ----
-private const SUMMARY_ALERT_ROLES = [
-    ['slug' => 'admin', 'codes' => ['AD', 'SA'], 'label' => 'Admin'],
-    ['slug' => 'hop',   'codes' => ['HP'],       'label' => 'HoP'],
-    ['slug' => 'se',    'codes' => ['SE'],       'label' => 'Service Engineer'],
-    ['slug' => 'ml',    'codes' => ['ML'],       'label' => 'Maintenance Lead'],
-    ['slug' => 'ac',    'codes' => ['AC'],       'label' => 'Accounts'],
-];
+    public function updateSlaMatrix(Request $request, $id)
+    {
+        $sla = SlaMatrix::findOrFail($id);
+        $request->validate($this->slaRules());
+
+        $dupe = SlaMatrix::where('priority_id', $request->priority_id)
+            ->where('id', '!=', $id)->exists();
+
+        if ($dupe) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'SLA already exists for this criticality.',
+            ], 422);
+        }
+
+        $sla->update([
+            'priority_id'     => $request->priority_id,
+            'response_time'   => $request->response_time,
+            'assignment_time' => $request->assignment_time,
+            'resolution_time' => $request->resolution_time,
+            'status'          => $request->status ?? 1,
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'SLA Matrix updated successfully.',
+            'data'    => $sla,
+        ]);
+    }
+
+    public function saveAllSla(Request $request)
+    {
+        $request->validate(array_merge(
+            ['rows' => 'required|array|min:1'],
+            $this->slaRules('rows.*.')
+        ));
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->rows as $row) {
+                SlaMatrix::updateOrCreate(
+                    ['priority_id' => $row['priority_id']],
+                    [
+                        'response_time'   => $row['response_time'],
+                        'assignment_time' => $row['assignment_time'],
+                        'resolution_time' => $row['resolution_time'],
+                        'status'          => $row['status'] ?? 1,
+                    ]
+                );
+            }
+            DB::commit();
+
+            return response()->json(['status' => true, 'message' => 'SLA Matrix saved successfully.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+
+    // ---- class constant ----
+    private const SUMMARY_ALERT_ROLES = [
+        ['slug' => 'admin', 'codes' => ['AD', 'SA'], 'label' => 'Admin'],
+        ['slug' => 'hop',   'codes' => ['HP'],       'label' => 'HoP'],
+        ['slug' => 'se',    'codes' => ['SE'],       'label' => 'Service Engineer'],
+        ['slug' => 'ml',    'codes' => ['ML'],       'label' => 'Maintenance Lead'],
+        ['slug' => 'ac',    'codes' => ['AC'],       'label' => 'Accounts'],
+    ];
  
 /* ============================================================
  |  SUMMARY ALERT - MASTER SETTINGS
@@ -604,143 +705,143 @@ private const SUMMARY_ALERT_ROLES = [
  |  in UserAlertPermission. Everything defaults to checked
  |  (is_enabled = true) until a Super Admin unchecks it here.
  ============================================================ */
- 
-/**
- * GET /masters/summary-alert/users/{roleSlug}
- * List users belonging to the given role slug (admin|hop|se|ml).
- */
-public function summaryAlertUsers(string $roleSlug)
-{
-    $role = collect(self::SUMMARY_ALERT_ROLES)->firstWhere('slug', $roleSlug);
 
-    if (!$role) {
-        return response()->json(['status' => false, 'message' => 'Unknown role.'], 422);
+    /**
+     * GET /masters/summary-alert/users/{roleSlug}
+     * List users belonging to the given role slug (admin|hop|se|ml).
+     */
+    public function summaryAlertUsers(string $roleSlug)
+    {
+        $role = collect(self::SUMMARY_ALERT_ROLES)->firstWhere('slug', $roleSlug);
+
+        if (!$role) {
+            return response()->json(['status' => false, 'message' => 'Unknown role.'], 422);
+        }
+
+        $users = User::whereHas('role', fn($q) => $q->whereIn('code', $role['codes']))
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'phone']);
+
+        // Pull enabled state for all these users in one query, not N+1.
+        $enabledMap = UserAlertSchedule::whereIn('user_id', $users->pluck('id'))
+            ->pluck('is_enabled', 'user_id');
+
+        $users = $users->map(function ($u) use ($enabledMap) {
+            $u->summary_enabled = (bool) ($enabledMap[$u->id] ?? false);
+            return $u;
+        });
+
+        return response()->json(['status' => true, 'data' => $users]);
     }
 
-    $users = User::whereHas('role', fn ($q) => $q->whereIn('code', $role['codes']))
-        ->orderBy('name')
-        ->get(['id', 'name', 'email', 'phone']);
+    /**
+     * GET /masters/summary-alert/permissions/{user}
+     * The checklist for one user: every AlertType for their role (is_enabled
+     * from user_alert_permissions, defaulting to true when no row exists yet)
+     * PLUS their send-days schedule (from user_alert_schedules, defaulting to
+     * every day true when no row exists yet).
+     */
+    public function summaryAlertPermissions(int $userId)
+    {
+        $user = User::with('role')->findOrFail($userId);
 
-    // Pull enabled state for all these users in one query, not N+1.
-    $enabledMap = UserAlertSchedule::whereIn('user_id', $users->pluck('id'))
-        ->pluck('is_enabled', 'user_id');
+        $roleEntry = collect(self::SUMMARY_ALERT_ROLES)
+            ->first(fn($r) => in_array($user->role?->code, $r['codes'], true));
 
-    $users = $users->map(function ($u) use ($enabledMap) {
-        $u->summary_enabled = (bool) ($enabledMap[$u->id] ?? false);
-        return $u;
-    });
+        if (!$roleEntry) {
+            return response()->json([
+                'status'  => false,
+                'message' => 'This user\'s role has no Summary Alert items configured.',
+            ], 422);
+        }
 
-    return response()->json(['status' => true, 'data' => $users]);
-}
- 
-/**
- * GET /masters/summary-alert/permissions/{user}
- * The checklist for one user: every AlertType for their role (is_enabled
- * from user_alert_permissions, defaulting to true when no row exists yet)
- * PLUS their send-days schedule (from user_alert_schedules, defaulting to
- * every day true when no row exists yet).
- */
-public function summaryAlertPermissions(int $userId)
-{
-    $user = User::with('role')->findOrFail($userId);
+        $alertTypes = AlertType::forRole($roleEntry['slug'])->get();
 
-    $roleEntry = collect(self::SUMMARY_ALERT_ROLES)
-        ->first(fn ($r) => in_array($user->role?->code, $r['codes'], true));
+        $existing = UserAlertPermission::where('user_id', $userId)
+            ->pluck('is_enabled', 'alert_type_id');
 
-    if (!$roleEntry) {
+        $items = $alertTypes->map(function ($type) use ($existing) {
+            return [
+                'id'          => $type->id,
+                'key'         => $type->key,
+                'title'       => $type->title,
+                'description' => $type->description,
+                'is_enabled'  => $existing->has($type->id) ? (bool) $existing[$type->id] : true,
+            ];
+        })->values();
+
+        $schedule = UserAlertSchedule::where('user_id', $userId)->first();
+
+        $days = [];
+        foreach (UserAlertSchedule::DAYS as $day) {
+            $days[$day] = $schedule ? (bool) $schedule->{$day} : true; // default: every day
+        }
+
         return response()->json([
-            'status'  => false,
-            'message' => 'This user\'s role has no Summary Alert items configured.',
-        ], 422);
-    }
-
-    $alertTypes = AlertType::forRole($roleEntry['slug'])->get();
-
-    $existing = UserAlertPermission::where('user_id', $userId)
-        ->pluck('is_enabled', 'alert_type_id');
-
-    $items = $alertTypes->map(function ($type) use ($existing) {
-        return [
-            'id'          => $type->id,
-            'key'         => $type->key,
-            'title'       => $type->title,
-            'description' => $type->description,
-            'is_enabled'  => $existing->has($type->id) ? (bool) $existing[$type->id] : true,
-        ];
-    })->values();
-
-    $schedule = UserAlertSchedule::where('user_id', $userId)->first();
-
-    $days = [];
-    foreach (UserAlertSchedule::DAYS as $day) {
-        $days[$day] = $schedule ? (bool) $schedule->{$day} : true; // default: every day
-    }
-
-    return response()->json([
-        'status' => true,
-        'data'   => [
-            'items'   => $items,
-            'days'    => $days,
-            'enabled' => $schedule ? (bool) $schedule->is_enabled : false, // ← NEW: defaults OFF until explicitly turned on
-        ],
-    ]);
-}
- 
-/**
- * POST /masters/summary-alert/save
- * Body: {
- *   user_id: 12,
- *   items: [{alert_type_id: 3, is_enabled: false}, ...],
- *   days: {monday: true, tuesday: true, ..., sunday: false}
- * }
- */
-public function summaryAlertSave(Request $request)
-{
-    $data = $request->validate([
-        'user_id'               => 'required|exists:users,id',
-        'items'                 => 'required|array|min:1',
-        'items.*.alert_type_id' => 'required|exists:alert_types,id',
-        'items.*.is_enabled'    => 'required|boolean',
-        'days'                  => 'nullable|array',
-        'days.monday'           => 'nullable|boolean',
-        'days.tuesday'          => 'nullable|boolean',
-        'days.wednesday'        => 'nullable|boolean',
-        'days.thursday'         => 'nullable|boolean',
-        'days.friday'           => 'nullable|boolean',
-        'days.saturday'         => 'nullable|boolean',
-        'days.sunday'           => 'nullable|boolean',
-        'enabled'                => 'required|boolean',   // ← NEW
-    ]);
-
-    foreach ($data['items'] as $item) {
-        UserAlertPermission::updateOrCreate(
-            [
-                'user_id'       => $data['user_id'],
-                'alert_type_id' => $item['alert_type_id'],
+            'status' => true,
+            'data'   => [
+                'items'   => $items,
+                'days'    => $days,
+                'enabled' => $schedule ? (bool) $schedule->is_enabled : false, // ← NEW: defaults OFF until explicitly turned on
             ],
-            [
-                'is_enabled' => $item['is_enabled'],
-            ]
+        ]);
+    }
+
+    /**
+     * POST /masters/summary-alert/save
+     * Body: {
+     *   user_id: 12,
+     *   items: [{alert_type_id: 3, is_enabled: false}, ...],
+     *   days: {monday: true, tuesday: true, ..., sunday: false}
+     * }
+     */
+    public function summaryAlertSave(Request $request)
+    {
+        $data = $request->validate([
+            'user_id'               => 'required|exists:users,id',
+            'items'                 => 'required|array|min:1',
+            'items.*.alert_type_id' => 'required|exists:alert_types,id',
+            'items.*.is_enabled'    => 'required|boolean',
+            'days'                  => 'nullable|array',
+            'days.monday'           => 'nullable|boolean',
+            'days.tuesday'          => 'nullable|boolean',
+            'days.wednesday'        => 'nullable|boolean',
+            'days.thursday'         => 'nullable|boolean',
+            'days.friday'           => 'nullable|boolean',
+            'days.saturday'         => 'nullable|boolean',
+            'days.sunday'           => 'nullable|boolean',
+            'enabled'                => 'required|boolean',   // ← NEW
+        ]);
+
+        foreach ($data['items'] as $item) {
+            UserAlertPermission::updateOrCreate(
+                [
+                    'user_id'       => $data['user_id'],
+                    'alert_type_id' => $item['alert_type_id'],
+                ],
+                [
+                    'is_enabled' => $item['is_enabled'],
+                ]
+            );
+        }
+
+        $dayValues = [];
+        foreach (UserAlertSchedule::DAYS as $day) {
+            $dayValues[$day] = $data['days'][$day] ?? true;
+        }
+
+        UserAlertSchedule::updateOrCreate(
+            ['user_id' => $data['user_id']],
+            array_merge($dayValues, ['is_enabled' => $data['enabled']])   // ← NEW
         );
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Summary Alert preferences saved.',
+        ]);
     }
 
-    $dayValues = [];
-    foreach (UserAlertSchedule::DAYS as $day) {
-        $dayValues[$day] = $data['days'][$day] ?? true;
-    }
 
-    UserAlertSchedule::updateOrCreate(
-        ['user_id' => $data['user_id']],
-        array_merge($dayValues, ['is_enabled' => $data['enabled']])   // ← NEW
-    );
-
-    return response()->json([
-        'status'  => true,
-        'message' => 'Summary Alert preferences saved.',
-    ]);
-}
- 
- 
 
     /* ============================================================
      |  AJAX READ ENDPOINTS
@@ -758,7 +859,7 @@ public function summaryAlertSave(Request $request)
         return response()->json([
             'status' => true,
             'data'   => ServiceDomain::where('service_category_id', $categoryId)
-                            ->orderBy('sort_order')->get(),
+                ->orderBy('sort_order')->get(),
         ]);
     }
 
@@ -793,6 +894,4 @@ public function summaryAlertSave(Request $request)
             'data'   => WhatsappTemplate::orderBy('template_name')->get(),
         ]);
     }
-
-    
 }

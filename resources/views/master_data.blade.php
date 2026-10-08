@@ -305,6 +305,13 @@ textarea.form-control{resize:vertical;min-height:72px;}
       <span class="trb-label">Summary Alerts</span>
       <span class="trb-count" id="cnt-summary-alert">4</span>
     </button>
+
+
+    <button class="trb" onclick="switchTab('template')" data-tab="template">
+  <i class="bi bi-file-earmark-pdf"></i>
+  <span class="trb-label">PDF Templates</span>
+  <span class="trb-count" id="cnt-template">{{ $counts['template'] ?? 0 }}</span>
+</button>
   </div>
  
   <!-- ════════════════════════════════
@@ -634,7 +641,85 @@ textarea.form-control{resize:vertical;min-height:72px;}
     </div>
   </div>
 </div>
- 
+
+<!-- Templates PDF -->
+
+<div class="master-panel" id="panel-template">
+  <div class="simple-card">
+    <div class="simple-card-hdr">
+      <div class="card-hdr-icon" style="background:rgba(154,123,79,.1);"><i class="bi bi-file-earmark-pdf" style="color:#9A7B4F;"></i></div>
+      <div>
+        <h6 style="font-size:.875rem;font-weight:600;color:var(--text-heading);margin:0 0 1px;">PDF Templates</h6>
+        <div class="csub" style="font-size:.72rem;color:var(--text-muted);">Header, letterhead watermark and footer images used on each company's quotation PDF</div>
+      </div>
+      <div class="card-hdr-actions">
+        @if (auth()->user()?->role?->code !== 'HP')
+          <button class="btn-primary-gold" onclick="openModal('modal-template','add')"><i class="bi bi-plus-lg"></i>Add Template</button>
+        @endif
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:40px;">#</th>
+            <th>Company</th>
+            <th>Header</th>
+            <th>Letterhead</th>
+            <th>Footer</th>
+            <th>Status</th>
+            @if (auth()->user()?->role?->code !== 'HP')
+              <th style="width:110px;text-align:center;">Actions</th>
+            @endif
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($pdfTemplates as $t)
+            <tr>
+              <td class="muted">{{ $loop->iteration }}</td>
+              <td><strong>{{ optional($t->client)->company_name ?: '-' }}</strong></td>
+              @foreach (['header_image', 'letterhead_image', 'footer_image'] as $f)
+                <td>
+                  @if ($t->$f)
+                    <img src="{{ asset('storage/' . $t->$f) }}" style="height:34px;max-width:140px;border:1px solid var(--border-color);border-radius:4px;background:#fff;">
+                  @else
+                    <span class="muted">-</span>
+                  @endif
+                </td>
+              @endforeach
+              <td>
+                <span class="spill {{ $t->status ? 'spill-on' : 'spill-off' }}">
+                  <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>{{ $t->status ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+              @if (auth()->user()?->role?->code !== 'HP')
+                <td style="text-align:center;">
+                  <div class="row-actions" style="justify-content:center;">
+                    <button class="btn-icon-edit" title="Edit"
+                      data-id="{{ $t->id }}"
+                      data-client="{{ $t->client_id }}"
+                      data-header="{{ $t->header_image ? 1 : 0 }}"
+                      data-letterhead="{{ $t->letterhead_image ? 1 : 0 }}"
+                      data-footer="{{ $t->footer_image ? 1 : 0 }}"
+                      data-active="{{ $t->status ? 1 : 0 }}"
+                      onclick="editTemplateBtn(this)"><i class="bi bi-pencil"></i></button>
+                    <button class="btn-icon-del" title="Delete"
+                      onclick="confirmDel('template',{{ $t->id }},'{{ addslashes(optional($t->client)->company_name) }} template')"><i class="bi bi-trash3"></i></button>
+                  </div>
+                </td>
+              @endif
+            </tr>
+          @empty
+            <tr><td colspan="7" class="muted" style="text-align:center;padding:20px;">No PDF templates yet.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+
  @include('summary_alert')
 <!-- ════ MODAL: SERVICE CATEGORY ════ -->
 <div class="modal-overlay" id="modal-cat" onclick="handleOverlayClick(event,'modal-cat')">
@@ -862,6 +947,58 @@ textarea.form-control{resize:vertical;min-height:72px;}
     </div>
   </div>
 </div>
+
+
+<!-- Templates PDF Modal -->
+<div class="modal-overlay" id="modal-template" onclick="handleOverlayClick(event,'modal-template')">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-hdr-left">
+        <div class="modal-hdr-icon" style="background:rgba(154,123,79,.1);"><i class="bi bi-file-earmark-pdf" style="color:#9A7B4F;"></i></div>
+        <h6 id="modal-template-title">Add PDF Template</h6>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-template')"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Company <span class="req">*</span></label>
+        <select class="form-select" id="tpl-client">
+          <option value="">Select company</option>
+          @foreach($clients as $c)
+            <option value="{{ $c->id }}">{{ $c->company_name }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Header Image <span class="hint">(JPG or PNG, wide banner, max 2 MB)</span></label>
+        <input type="file" class="form-control" id="tpl-header" accept="image/png,image/jpeg"/>
+        <div class="field-hint" id="tpl-header-cur"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Letterhead / Watermark <span class="hint">(logo or page design)</span></label>
+        <input type="file" class="form-control" id="tpl-letterhead" accept="image/png,image/jpeg"/>
+        <div class="field-hint" id="tpl-letterhead-cur"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Footer Image <span class="hint">(wide banner)</span></label>
+        <input type="file" class="form-control" id="tpl-footer" accept="image/png,image/jpeg"/>
+        <div class="field-hint" id="tpl-footer-cur"></div>
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <div class="tog-wrap" onclick="toggleTog('tpl-tog-track',this)">
+          <div class="tog-track on" id="tpl-tog-track"><div class="tog-thumb"></div></div>
+          <span class="tog-label">Active</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" onclick="closeModal('modal-template')">Cancel</button>
+      <button class="btn-primary-gold" onclick="saveTemplate()"><i class="bi bi-floppy"></i>Save Template</button>
+    </div>
+  </div>
+</div>
+
+
  
 <!-- ════ DELETE CONFIRM ════ -->
 <div class="modal-overlay" id="modal-del" onclick="handleOverlayClick(event,'modal-del')">
@@ -924,6 +1061,11 @@ window.M_ROUTES = {
   warrantyUpdate: (id) => `{{ url('masters/warranty-category/update') }}/${id}`,
   warrantyDelete: (id) => `{{ url('masters/warranty-category/delete') }}/${id}`,
   warrantyStatus: (id) => `{{ url('masters/warranty-category/status') }}/${id}`,
+
+
+  tplStore:  "{{ route('masters.pdf-template.store') }}",
+tplUpdate: (id) => `{{ url('masters/pdf-template/update') }}/${id}`,
+tplDelete: (id) => `{{ url('masters/pdf-template/delete') }}/${id}`,
  
 
  
@@ -1064,6 +1206,19 @@ function openModal(id,mode,data){
     document.getElementById('exp-desc').value = data?.desc || '';
     setTog('exp-tog-track', data ? !!data.active : true);
   }
+
+
+  if(id==='modal-template'){
+  editMode.template = (mode==='edit' && data) ? data.id : null;
+  document.getElementById('modal-template-title').textContent = mode==='edit'?'Edit PDF Template':'Add PDF Template';
+  document.getElementById('tpl-client').value = data?.client || '';
+  ['header','letterhead','footer'].forEach(k=>{
+    document.getElementById(`tpl-${k}`).value = '';
+    document.getElementById(`tpl-${k}-cur`).textContent =
+      data?.[k] ? 'Already uploaded. Choose a file only if you want to replace it.' : '';
+  });
+  setTog('tpl-tog-track', data ? !!data.active : true);
+}
 
     if(id==='modal-warranty'){
     editMode.warranty = (mode==='edit' && data) ? data.id : null;
@@ -1301,6 +1456,55 @@ async function toggleStatus(type,id){
   }catch(e){showToast('err','Error',e.message);}
 }
  
+
+
+
+/* File uploads cannot go through api(), which sends JSON. */
+async function apiForm(url, formData){
+  const res = await fetch(url, { method:'POST', headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'}, body:formData });
+  let data = {};
+  try { data = await res.json(); } catch (e) {}
+  if(!res.ok || data.status === false){
+    throw new Error(data.message || (data.errors ? Object.values(data.errors).flat().join(' ') : 'Request failed.'));
+  }
+  return data;
+}
+
+function editTemplateBtn(btn){
+  openModal('modal-template','edit',{
+    id:         parseInt(btn.dataset.id,10),
+    client:     btn.dataset.client,
+    header:     btn.dataset.header === '1',
+    letterhead: btn.dataset.letterhead === '1',
+    footer:     btn.dataset.footer === '1',
+    active:     btn.dataset.active === '1',
+  });
+}
+
+async function saveTemplate(){
+  const client = document.getElementById('tpl-client').value;
+  if(!client){ showToast('err','Missing Field','Please choose a company.'); return; }
+
+  const fd = new FormData();
+  fd.append('client_id', client);
+  fd.append('status', document.getElementById('tpl-tog-track').classList.contains('on') ? 1 : 0);
+  [['header','header_image'],['letterhead','letterhead_image'],['footer','footer_image']].forEach(([k,field])=>{
+    const file = document.getElementById(`tpl-${k}`).files[0];
+    if(file) fd.append(field, file);
+  });
+
+  try{
+    const url = editMode.template ? window.M_ROUTES.tplUpdate(editMode.template) : window.M_ROUTES.tplStore;
+    await apiForm(url, fd);
+    showToast('ok','Saved','PDF template has been saved.');
+    closeModal('modal-template');
+    setTimeout(()=>location.reload(),700);
+  }catch(e){ showToast('err','Error', e.message); }
+}
+
+
+
+
 /* ─── SAVE SLA (whole table) ─── */
 async function saveSLA(){
   const trs = [...document.querySelectorAll('.sla-tbl tbody tr[data-priority-id]')];
@@ -1348,7 +1552,7 @@ function confirmDel(type,id,name){
 async function execDel(){
   const {type,id,name}=pendingDel;
   const map={ cat:window.M_ROUTES.catDelete, domain:window.M_ROUTES.domDelete,
-              expense:window.M_ROUTES.expDelete, warranty:window.M_ROUTES.warrantyDelete, priority:window.M_ROUTES.priDelete };
+              expense:window.M_ROUTES.expDelete, warranty:window.M_ROUTES.warrantyDelete, priority:window.M_ROUTES.priDelete,template:window.M_ROUTES.tplDelete };
   const urlFn=map[type];
   if(!urlFn){closeModal('modal-del');return;}
   try{

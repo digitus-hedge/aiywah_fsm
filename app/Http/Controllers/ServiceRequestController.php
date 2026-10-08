@@ -1678,6 +1678,7 @@ private function rlsScope(string $module): ?array
 
         return [
             'sr_id'     => $sr->id,
+            'client_id' => $sr->client_id,
             'sr_number' => $this->buildSrRef($sr),
             'customer'  => optional($sr->client)->company_name ?? '',
                     'email'  => optional($sr->client)->email ?? '',

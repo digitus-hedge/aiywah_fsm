@@ -79,6 +79,7 @@ trait BuildsQuotationPdf
             'expiry'         => ! empty($v['expiry_date']) ? \Illuminate\Support\Carbon::parse($v['expiry_date']) : null,
             'sr_number'      => $sr['sr_number'] ?? '',
             'customer'       => $sr['customer'] ?? '',
+            'client_id'      => $sr['client_id'] ?? null,
             'contact_name'   => $sr['contact_person'] ?? '',
             'contact_number' => $sr['contact_number'] ?? '',
             'email'          => $sr['email'] ?? '',
@@ -99,16 +100,35 @@ trait BuildsQuotationPdf
     }
 
     /** The PDF object - call ->output() for the bytes or ->stream() to show it. */
+    
     protected function quotePdf(array $quote)
     {
-        return Pdf::loadView('pdf.quotation', [
-            'quote' => $quote,
+        // return Pdf::loadView('pdf.quotation', [
+        //     'quote' => $quote,
        
-        'template' => \App\Models\PdfTemplate::forType('quotation'),
-            'money' => fn ($n) => '₹ ' . $this->inr((float) $n),
-            'pct'   => fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.'),
+        // 'template' => \App\Models\PdfTemplate::forType('quotation'),
+        //     'money' => fn ($n) => '₹ ' . $this->inr((float) $n),
+        //     'pct'   => fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.'),
+        // ])->setPaper('a4');
+
+
+        $template = \App\Models\PdfTemplate::forClient($quote['client_id'] ?? null);
+
+        return Pdf::loadView('pdf.quotation', [
+        'quote' => $quote,
+        'tpl'   => [
+        'header'     => $template?->dataUri('header_image'),
+        'letterhead' => $template?->dataUri('letterhead_image'),
+        'footer'     => $template?->dataUri('footer_image'),
+        ],
+        'money' => fn ($n) => '₹ ' . $this->inr((float) $n),
+        'pct'   => fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.'),
         ])->setPaper('a4');
+
     }
+
+
+
 
     /**
      * Store the PDF and return the stored path. Pass $bytes when the PDF has

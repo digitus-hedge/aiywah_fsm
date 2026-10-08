@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <title>Quotation {{ $quote['ref'] }}</title>
 <style>
-  @page { margin: 16mm 15mm 20mm 15mm; }
+@page { margin: 16mm 15mm {{ $tpl['footer'] ? '30mm' : '20mm' }} 15mm; }
+
   body { font-family: "DejaVu Sans", sans-serif; font-size: 10px; color: #1f2430; line-height: 1.45; margin: 0; }
   table { width: 100%; border-collapse: collapse; }
   td, th { vertical-align: top; }
@@ -35,23 +36,49 @@
   .notes { margin-top: 18px; page-break-inside: avoid; }
   .sign { margin-top: 26px; font-size: 9.5px; color: #555b6b; }
   .footer { position: fixed; left: 0; right: 0; bottom: -12mm; text-align: center; font-size: 8px; color: #8a8f9c; }
+
+
+.watermark { position: fixed; top: 60mm; left: 0; right: 0; text-align: center; opacity: 1; z-index: -1; }
+.watermark img { width: 120mm; }
+.header-img { width: 100%; margin-bottom: 8px; }
+.footer-img { position: fixed; left: 0; right: 0; bottom: -24mm; height: 20mm; text-align: center; }
+.footer-img img { max-width: 100%; max-height: 20mm; }
+
 </style>
 </head>
 <body>
 
+  <!-- <div class="footer">
+    {{ config('app.name') }} · Quotation {{ $quote['ref'] }} · This is a computer-generated document.
+  </div> -->
+
+
+  @if ($tpl['letterhead'])
+  <div class="watermark"><img src="{{ $tpl['letterhead'] }}"></div>
+@endif
+
+@if ($tpl['footer'])
+  <div class="footer-img"><img src="{{ $tpl['footer'] }}"></div>
+@else
   <div class="footer">
     {{ config('app.name') }} · Quotation {{ $quote['ref'] }} · This is a computer-generated document.
   </div>
+@endif
 
-
+{{-- Header --}}
+@if ($tpl['header'])
+  <img class="header-img" src="{{ $tpl['header'] }}">
+@endif
 
   {{-- Header --}}
   <table>
     <tr>
 
       <td style="width:55%;">
+          @unless ($tpl['header'])
         <div class="brand">FSM Aiywah</div>
         <div class="brand-sub">Out-of-Warranty Service Quotation</div>
+      @endunless
       </td>
 
     
@@ -149,9 +176,9 @@
     </div>
   @endif
 
-  @if ($quote['prepared_by'] !== '')
+  <!-- @if ($quote['prepared_by'] !== '')
     <div class="sign">Prepared by: {{ $quote['prepared_by'] }}</div>
-  @endif
+  @endif -->
 
 </body>
 </html>
