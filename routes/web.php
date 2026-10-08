@@ -219,6 +219,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/quotation_desk', [ServiceRequestController::class, 'quotationDesk'])->name('quotation_desk');
         Route::post('/quotation_desk/{serviceRequest}/quote',   [ServiceRequestController::class, 'quoteSubmit'])->name('quote.submit');
         Route::post('/quotation_desk/{serviceRequest}/approve', [ServiceRequestController::class, 'quoteApprove'])->name('quote.approve');
+        Route::post('/quotation_desk/{serviceRequest}/quote/preview', [ServiceRequestController::class, 'quotePreview'])->name('quote.preview');
 
         Route::post('/quotation_desk/{serviceRequest}/reject',
         [ServiceRequestController::class, 'quoteReject'])->name('quotation.reject');
