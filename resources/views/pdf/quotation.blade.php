@@ -43,14 +43,19 @@
     {{ config('app.name') }} · Quotation {{ $quote['ref'] }} · This is a computer-generated document.
   </div>
 
+
+
   {{-- Header --}}
   <table>
     <tr>
+
       <td style="width:55%;">
         <div class="brand">FSM Aiywah</div>
-        {{-- Add your company address, phone and GSTIN here --}}
         <div class="brand-sub">Out-of-Warranty Service Quotation</div>
       </td>
+
+    
+
       <td style="width:45%;">
         <div class="doc-title">QUOTATION</div>
         <div class="meta">

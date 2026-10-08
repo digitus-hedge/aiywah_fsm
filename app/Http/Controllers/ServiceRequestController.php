@@ -24,6 +24,8 @@ use App\Mail\ServiceRequestReceivedMail;
 use Illuminate\Support\Facades\Mail;
 use App\Jobs\SendSrNotifications;
 use App\Http\Controllers\Concerns\BuildsQuotationPdf;
+use App\Models\Quotation;
+
 class ServiceRequestController extends Controller
 {
     /* ============================================================
@@ -1619,6 +1621,28 @@ private function rlsScope(string $module): ?array
             'quote_submitted_at' => now(),
         ]);
 
+
+        $quotation = Quotation::create([
+    'service_request_id' => $serviceRequest->id,
+    'quote_ref'          => $quote['ref'],
+    'quote_date'         => $quote['date'],
+    'expiry_date'        => $quote['expiry'],
+    'summary'            => $quote['summary'],
+    'notes'              => $quote['notes'] ?: null,
+    'amount'             => $quote['amount'],
+    'discount_type'      => $quote['discount_type'],
+    'discount_value'     => $quote['discount_value'],
+    'discount_amount'    => $quote['discount'],
+    'adjustment'         => $quote['adjustment'],
+    'grand_total'        => $quote['grand_total'],
+    'pdf_path'           => $path,
+    'sent_to'            => implode(', ', $mail['to']),
+    'sent_cc'            => $mail['cc'] ? implode(', ', $mail['cc']) : null,
+    'email_subject'      => $mail['subject'],
+    'created_by'         => auth()->id(),
+]);
+
+
         NotificationLog::create([
             'service_request_id' => $serviceRequest->id,
             'event'       => 'status_updated',
@@ -1634,6 +1658,8 @@ private function rlsScope(string $module): ?array
             'ok'      => true,
             'message' => 'Quotation sent.',
             'ref'     => $quote['ref'],
+                'quotation_id' => $quotation->id,
+
             'sent_to' => $mail['to'],
         ]);
     }

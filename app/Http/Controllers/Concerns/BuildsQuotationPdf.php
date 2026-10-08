@@ -103,6 +103,8 @@ trait BuildsQuotationPdf
     {
         return Pdf::loadView('pdf.quotation', [
             'quote' => $quote,
+       
+        'template' => \App\Models\PdfTemplate::forType('quotation'),
             'money' => fn ($n) => '₹ ' . $this->inr((float) $n),
             'pct'   => fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.'),
         ])->setPaper('a4');

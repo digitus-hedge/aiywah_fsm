@@ -327,13 +327,8 @@ Route::middleware('auth')->group(function () {
             ->name('summary-alert.save');
             });
 
-        // Summary Alert
-        Route::get('/summary-alert/users/{roleSlug}', [MasterController::class, 'summaryAlertUsers'])
-            ->name('summary-alert.users');
-        Route::get('/summary-alert/permissions/{user}', [MasterController::class, 'summaryAlertPermissions'])
-            ->name('summary-alert.permissions');
-        Route::post('/summary-alert/save', [MasterController::class, 'summaryAlertSave'])
-            ->name('summary-alert.save');
+     
+        
 });
 
 
