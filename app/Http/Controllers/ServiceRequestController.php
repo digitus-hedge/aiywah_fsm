@@ -23,20 +23,11 @@ use App\Support\PortalLink;
 use App\Mail\ServiceRequestReceivedMail;
 use Illuminate\Support\Facades\Mail;
 use App\Jobs\SendSrNotifications;
-use App\Http\Controllers\Concerns\BuildsQuotationPdf;
-
 class ServiceRequestController extends Controller
 {
     /* ============================================================
      |  CREATE / LOOKUP / STORE
      * ============================================================ */
-
-       use BuildsQuotationPdf;   // quotation PDF builder - used by quoteSubmit() and quotePreview()
-
-    /* ============================================================
-     |  CREATE / LOOKUP / STORE
-     * ============================================================ */
-
 
     public function create()
     {
@@ -1583,46 +1574,20 @@ private function rlsScope(string $module): ?array
     }
 
 
-    
-      public function quoteSubmit(Request $request, ServiceRequest $serviceRequest)
+    public function quoteSubmit(Request $request, ServiceRequest $serviceRequest)
     {
-        // Validates the quotation form and works out every total on the server.
-        $quote = $this->buildQuote($request, $this->srForQuote($serviceRequest));
-
-        // Validates the Send dialog: recipients, subject, message.
-        $mail = $this->buildQuoteMail($request);
-
-        // Build the PDF once and store it.
-        $pdf  = $this->quotePdf($quote)->output();
-        $path = $this->saveQuotePdf($quote, 'public', $pdf);   // storage/app/public/quotations/...
-
-        // Email the customer BEFORE touching the SR. If the email cannot be
-        // sent, nothing is changed and the user can correct it and resend.
-        try {
-            $this->sendQuoteMail($quote, $mail, $pdf);
-        } catch (\Throwable $e) {
-            Storage::disk('public')->delete($path);
-
-            Log::error('Quotation email failed', [
-                'sr_id' => $serviceRequest->id,
-                'to'    => $mail['to'],
-                'error' => $e->getMessage(),
-            ]);
-
-            return response()->json([
-                'ok'      => false,
-                'message' => 'The quotation email could not be sent, so nothing was changed. '
-                    . 'Check the address and the mail settings, then try again.',
-            ], 502);
-        }
+        $data = $request->validate([
+            'erp_quote_ref' => ['required', 'string', 'max:100'],
+            'quote_pdf'     => ['required', 'file', 'mimes:pdf', 'max:25600'],
+        ]);
 
         $oldStatus = $serviceRequest->status;          // capture BEFORE update
 
         $serviceRequest->update([
             'status'             => 'Quoted',
             'warranty_scope'     => 'oow',
-            'erp_quote_ref'      => $quote['ref'],     // quotation number generated on the server
-            'quote_path'         => $path,
+            'erp_quote_ref'      => strtoupper($data['erp_quote_ref']),
+            'quote_path'         => $request->file('quote_pdf')->store('quotations', 'public'),
             'quote_submitted_at' => now(),
         ]);
 
@@ -1631,44 +1596,13 @@ private function rlsScope(string $module): ?array
             'event'       => 'status_updated',
             'title'       => 'Status Updated',
             'message'     =>  $this->buildSrRef($serviceRequest) . ' quoted - ref '
-                . $quote['ref'] . ' - emailed to ' . implode(', ', $mail['to']),
+                . strtoupper($data['erp_quote_ref']),
             'from_status' => $oldStatus,   // e.g. 'Forwarded'
             'to_status'   => 'Quoted',
             'caused_by'   => auth()->id(),
         ]);
-
-        return response()->json([
-            'ok'      => true,
-            'message' => 'Quotation sent.',
-            'ref'     => $quote['ref'],
-            'sent_to' => $mail['to'],
-        ]);
+        return response()->json(['ok' => true, 'message' => 'Quote committed.']);
     }
-
-    /**
-     * Preview button on the Quotation Desk. Renders the same PDF in the
-     * browser - nothing is saved and the SR is not changed.
-     */
-    public function quotePreview(Request $request, ServiceRequest $serviceRequest)
-    {
-        $quote = $this->buildQuote($request, $this->srForQuote($serviceRequest));
-
-        return $this->quotePdf($quote)->stream('quotation-preview.pdf');
-    }
-
-    /** The SR details printed on the quotation PDF. */
-    private function srForQuote(ServiceRequest $sr): array
-    {
-        $sr->loadMissing(['client', 'project']);
-
-        return [
-            'sr_id'     => $sr->id,
-            'sr_number' => $this->buildSrRef($sr),
-            'customer'  => optional($sr->client)->company_name ?? '',
-            'site'      => optional($sr->project)->site_name ?? '',
-        ];
-    }
-
 
     public function quoteApprove(ServiceRequest $serviceRequest)
 {

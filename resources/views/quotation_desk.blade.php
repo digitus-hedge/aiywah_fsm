@@ -74,7 +74,7 @@
 .qd-wrap .qi-time{font-size:.68rem;color:var(--text-muted);display:flex;align-items:center;gap:3px;}
 
 /* WORKSPACE */
-.qd-wrap .ws-panel{display:flex;flex-direction:column;gap:14px;min-width:0;}
+.qd-wrap .ws-panel{display:flex;flex-direction:column;gap:14px;}
 .qd-wrap .ws-empty{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;box-shadow:var(--card-shadow);padding:60px 24px;text-align:center;}
 .qd-wrap .ws-empty-icon{width:56px;height:56px;border-radius:14px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.5rem;color:var(--text-light);}
 .qd-wrap .ws-empty h6{font-size:.9rem;font-weight:600;color:var(--text-muted);margin-bottom:4px;}
@@ -98,36 +98,33 @@
 /* FORM */
 .qd-wrap .form-label-sm{font-size:.78rem;font-weight:600;color:var(--text-heading);margin-bottom:5px;display:block;}
 .qd-wrap .form-label-sm .req{color:#ef4444;margin-left:2px;}
-.qd-wrap .form-label-sm .opt{color:var(--text-muted);font-weight:400;margin-left:4px;}
 .qd-wrap .form-group{margin-bottom:14px;}
 .qd-wrap .form-group:last-child{margin-bottom:0;}
 .qd-wrap .fc{width:100%;padding:8px 11px;border:1px solid var(--border-color);border-radius:7px;background:var(--input-bg);color:var(--text-primary);font-size:.8125rem;transition:border-color .15s,box-shadow .15s;}
 .qd-wrap .fc:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(154,128,83,.12);}
-.qd-wrap textarea.fc{resize:vertical;min-height:38px;font-family:inherit;line-height:1.45;}
 .qd-wrap .field-hint{font-size:.72rem;color:var(--text-muted);margin-top:4px;}
 
-/* QUOTE BUILDER */
-.qd-wrap .qf-grid{display:grid;grid-template-columns:3fr 1fr;gap:14px;margin-bottom:16px;align-items:start;}
-.qd-wrap .qf-grid .form-group{margin-bottom:0;min-width:0;}
-@media(max-width:1099px){.qd-wrap .qf-grid{grid-template-columns:2fr 1fr;}}
-@media(max-width:575.98px){.qd-wrap .qf-grid{grid-template-columns:1fr;}}
-.qd-wrap .ql-num{text-align:right;font-variant-numeric:tabular-nums;}
-.qd-wrap .q-totals{margin:16px 0 16px auto;max-width:380px;display:flex;flex-direction:column;gap:8px;}
-.qd-wrap .q-tot-row{display:grid;grid-template-columns:104px 1fr;align-items:center;gap:12px;}
-.qd-wrap .q-tot-lbl{font-size:.8rem;color:var(--text-heading);text-align:right;margin:0;}
-.qd-wrap .q-tot-lbl .req{color:#ef4444;margin-left:2px;}
-.qd-wrap .q-tot-val{padding:8px 11px;border:1px solid var(--border-color);border-radius:7px;background:var(--surface-2);text-align:right;font-size:.8125rem;font-weight:600;color:var(--text-heading);font-variant-numeric:tabular-nums;}
-.qd-wrap .q-tot-grand .q-tot-lbl{font-weight:700;}
-.qd-wrap .q-tot-grand .q-tot-val{font-size:.95rem;font-weight:700;color:var(--gold);background:rgba(154,128,83,.08);border-color:rgba(154,128,83,.3);}
-.qd-wrap .q-disc-wrap{display:flex;gap:6px;}
-.qd-wrap .q-disc-wrap select{width:70px;flex-shrink:0;padding-left:8px;padding-right:4px;}
-.qd-wrap .q-disc-amt{font-size:.72rem;color:var(--text-muted);text-align:right;margin-top:3px;min-height:1em;font-variant-numeric:tabular-nums;}
-.qd-wrap .q-need{font-size:.75rem;color:var(--text-muted);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-.qd-wrap .q-need:empty{display:none;}
-.qd-wrap .q-actions{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;}
-.qd-wrap .q-actions .btn-submit{margin-top:0;flex:1 1 260px;width:auto;}
-.qd-wrap .q-actions .btn-ghost{white-space:nowrap;justify-content:center;}
-@media(max-width:575.98px){.qd-wrap .q-totals{max-width:none;}.qd-wrap .q-actions .btn-ghost{flex:1 1 100%;}}
+/* DROPZONE */
+.qd-wrap .dropzone{border:2px dashed var(--border-color);border-radius:10px;background:var(--dz-bg,#f7f9fd);padding:26px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.qd-wrap .dropzone:hover,.qd-wrap .dropzone.dragover{border-color:var(--gold);background:rgba(154,128,83,.04);}
+.qd-wrap .dropzone.has-file{border-color:#15803d;background:rgba(21,128,61,.04);border-style:solid;}
+.qd-wrap .dropzone.dz-err{border-color:#ef4444;background:rgba(239,68,68,.04);}
+.qd-wrap .dz-icon{font-size:2rem;color:var(--text-light);margin-bottom:8px;display:block;transition:color .2s;}
+.qd-wrap .dropzone:hover .dz-icon,.qd-wrap .dropzone.dragover .dz-icon{color:var(--gold);}
+.qd-wrap .dropzone.has-file .dz-icon{color:#15803d;}
+.qd-wrap .dropzone.dz-err .dz-icon{color:#ef4444;}
+.qd-wrap .dz-title{font-size:.82rem;font-weight:500;color:var(--text-heading);margin-bottom:3px;}
+.qd-wrap .dz-sub{font-size:.75rem;color:var(--text-muted);}
+.qd-wrap .dz-file-row{display:none;align-items:center;gap:10px;justify-content:center;margin-top:10px;}
+.qd-wrap .dz-file-row.show{display:flex;}
+.qd-wrap .dz-file-ico{width:32px;height:32px;background:rgba(21,128,61,.1);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#15803d;font-size:.9rem;flex-shrink:0;}
+.qd-wrap .dz-fname{font-size:.8rem;font-weight:500;color:#15803d;text-align:left;word-break:break-all;}
+.qd-wrap .dz-fsize{font-size:.72rem;color:var(--text-muted);}
+.qd-wrap .dz-rm{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:.85rem;padding:2px;border-radius:4px;line-height:1;}
+.qd-wrap .dz-rm:hover{color:#ef4444;}
+.qd-wrap .dz-err-msg{display:none;font-size:.75rem;color:#ef4444;margin-top:8px;font-weight:500;}
+.qd-wrap .dz-err-msg.show{display:block;}
+.qd-wrap .dz-input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
 
 /* TABS */
 .qd-wrap .qd-tabs{display:flex;gap:6px;margin:22px 0 12px;border-bottom:1px solid var(--border-color);flex-wrap:wrap;}
@@ -147,7 +144,6 @@
 .qd-wrap .btn-gold:hover{opacity:.87;}
 .qd-wrap .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-color);border-radius:7px;font-size:.8rem;cursor:pointer;}
 .qd-wrap .btn-ghost:hover{background:var(--surface-3);}
-.qd-wrap .btn-ghost:disabled{opacity:.45;cursor:not-allowed;}
 .qd-wrap .btn-submit{width:100%;padding:12px;border:none;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s;margin-top:4px;}
 .qd-wrap .btn-submit:hover{opacity:.88;}
 .qd-wrap .btn-submit:disabled{opacity:.38;cursor:not-allowed;}
@@ -208,32 +204,6 @@
 .qd-modal-overlay .modal-foot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--border-color);background:var(--surface-2);}
 .qd-modal-overlay .btn-confirm{flex:1;padding:9px;border:none;border-radius:7px;font-size:.82rem;font-weight:600;cursor:pointer;color:#fff;}
 .qd-modal-overlay .btn-cancel{flex:1;padding:9px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-color);border-radius:7px;font-size:.82rem;cursor:pointer;}
-.qd-modal-overlay .btn-confirm:disabled{opacity:.45;cursor:not-allowed;}
-
-/* SEND QUOTATION DIALOG */
-.qd-modal-overlay .modal-box.modal-wide{max-width:640px;display:flex;flex-direction:column;max-height:calc(100vh - 40px);}
-.qd-modal-overlay .modal-wide .modal-body{overflow-y:auto;}
-.qd-wrap .sq-row{display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:center;margin-bottom:10px;}
-.qd-wrap .sq-lbl{font-size:.8rem;color:var(--text-muted);margin:0;}
-.qd-wrap .sq-lbl .req{color:#ef4444;margin-left:2px;}
-.qd-wrap .sq-from{font-size:.8rem;color:var(--text-muted);padding:8px 11px;border:1px solid var(--border-color);border-radius:7px;background:var(--surface-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.qd-wrap .sq-to{display:flex;gap:6px;align-items:center;min-width:0;}
-.qd-wrap .sq-to .fc{min-width:0;}
-.qd-wrap .sq-link{background:none;border:none;color:var(--gold);font-size:.75rem;font-weight:700;cursor:pointer;padding:4px 5px;border-radius:5px;}
-.qd-wrap .sq-link:hover{background:var(--surface-2);}
-.qd-wrap .sq-hint{font-size:.72rem;color:var(--text-muted);margin:-4px 0 10px 74px;}
-.qd-wrap .sq-card{border:1px solid var(--border-color);border-radius:9px;overflow:hidden;margin:14px 0;}
-.qd-wrap .sq-card-top{background:rgba(154,128,83,.08);text-align:center;padding:14px;}
-.qd-wrap .sq-card-lbl{font-size:.78rem;font-weight:600;color:var(--text-heading);}
-.qd-wrap .sq-card-amt{font-size:1.25rem;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;}
-.qd-wrap .sq-card-row{display:flex;justify-content:space-between;gap:12px;padding:8px 14px;border-top:1px solid var(--border-color);font-size:.78rem;color:var(--text-muted);}
-.qd-wrap .sq-card-row strong{color:var(--text-heading);font-weight:600;text-align:right;}
-.qd-wrap .sq-attach{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-.qd-wrap .sq-check{display:inline-flex;align-items:center;gap:7px;font-size:.8rem;color:var(--text-heading);margin:0;cursor:pointer;}
-.qd-wrap .sq-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 10px;border:1px solid var(--border-color);border-radius:7px;background:var(--surface-2);font-size:.78rem;color:var(--text-heading);cursor:pointer;}
-.qd-wrap .sq-chip:hover{border-color:var(--gold);}
-.qd-wrap .sq-need{font-size:.75rem;color:var(--text-muted);margin-top:12px;min-height:1.1em;}
-@media(max-width:575.98px){.qd-wrap .sq-row{grid-template-columns:1fr;gap:4px;}.qd-wrap .sq-hint{margin-left:0;}}
 
 /* TOAST */
 .qd-toast-wrap{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:calc(100vw - 44px);}
@@ -246,6 +216,8 @@
 .qd-toast-wrap .t-body{font-size:.75rem;color:var(--text-muted);margin:0;}
 @media(max-width:575.98px){.qd-toast-wrap{left:12px;right:12px;bottom:12px;}.qd-toast-wrap .toast-item{max-width:none;}}
 
+
+
 </style>
 @endpush
 
@@ -255,7 +227,7 @@
   {{-- PAGE HEADER --}}
   <div class="pg-header">
     <h4 class="pg-hdr-title"><i class="bi bi-file-earmark-text me-2"></i>Out-of-Warranty Quotation Desk</h4>
-    <p class="pg-hdr-desc">Prepare quotations for out-of-warranty SRs and generate the PDF here. Track customer approval status before routing to operations.</p>
+    <p class="pg-hdr-desc">Upload ERP quote references and PDF quotations for out-of-warranty SRs. Track customer approval status before routing to operations.</p>
     <div class="pg-hdr-meta">
       <span class="meta-badge"><i class="bi bi-shield-fill-check me-1"></i>Super Admin</span>
       <span class="meta-badge"><i class="bi bi-person-gear me-1"></i>Admin</span>
@@ -265,7 +237,7 @@
 
   {{-- STATS --}}
   <div class="stats-strip">
-    <div class="stat-card"><div class="stat-icon" style="background:rgba(139,92,246,.1);"><i class="bi bi-hourglass-split" style="color:#7c3aed;"></i></div><div><div class="stat-num" id="stat-pq">0</div><div class="stat-lbl">Pending Quotation</div></div></div>
+    <div class="stat-card"><div class="stat-icon" style="background:rgba(139,92,246,.1);"><i class="bi bi-hourglass-split" style="color:#7c3aed;"></i></div><div><div class="stat-num" id="stat-pq">0</div><div class="stat-lbl">Pending Quote Upload</div></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:rgba(245,158,11,.1);"><i class="bi bi-clock-history" style="color:#d97706;"></i></div><div><div class="stat-num" id="stat-pa">0</div><div class="stat-lbl">Pending Client Approval</div></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:rgba(21,128,61,.1);"><i class="bi bi-check-circle" style="color:#15803d;"></i></div><div><div class="stat-num">{{ $clientApproved ?? 0 }}</div><div class="stat-lbl">Client Approved</div></div></div>
     <div class="stat-card"><div class="stat-icon" style="background:rgba(239,68,68,.1);"><i class="bi bi-x-circle" style="color:#ef4444;"></i></div><div><div class="stat-num">{{ $quoteRejected ?? 0 }}</div><div class="stat-lbl">Quote Rejected</div></div></div>
@@ -292,7 +264,7 @@
       <div class="ws-empty" id="q-empty">
         <div class="ws-empty-icon"><i class="bi bi-file-earmark-text"></i></div>
         <h6 style="font-family:unset;">Select a Ticket</h6>
-        <p>Choose a pending OoW SR from the queue to prepare its quotation.</p>
+        <p>Choose a pending OoW SR from the queue to begin the quotation upload process.</p>
       </div>
       <div class="ws-success" id="q-success">
         <div class="s-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-file-earmark-check" style="color:#9a8053;font-size:1.6rem;"></i></div>
@@ -314,76 +286,41 @@
 
         @if (auth()->user()?->role?->code !== 'HP')
 
-        {{-- CREATE QUOTATION (replaces the old PDF upload card) --}}
         <div class="ws-card">
           <div class="ws-card-hdr">
-            <div class="ws-card-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-receipt" style="color:#9a8053;"></i></div>
-            <h6>Create Quotation</h6>
+            <div class="ws-card-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-tag" style="color:#9a8053;"></i></div>
+            <h6>Quotation Upload</h6>
           </div>
           <div class="ws-card-body">
-
-            {{-- Quotation details --}}
-            <div class="qf-grid">
-              <div class="form-group qf-wide">
-                <label class="form-label-sm" for="q-summary">Summary <span class="req">*</span></label>
-                <textarea class="fc" id="q-summary" rows="2" maxlength="500" placeholder="e.g. Compressor replacement and gas refill for split AC" oninput="q_validate()"></textarea>
-              </div>
-              <div class="form-group">
-                <label class="form-label-sm" for="q-expiry">Expiry Date <span class="opt">(optional)</span></label>
-                <input type="date" class="fc" id="q-expiry" onchange="q_validate()"/>
-                <div class="field-hint">Quote is valid until this date.</div>
-              </div>
+            <div class="form-group">
+              <label class="form-label-sm">ERP Quotation Reference Token <span class="req">*</span></label>
+              <input type="text" class="fc" id="q-ref" placeholder="e.g. QT-2025-ERP-00441" oninput="q_validate()" style="text-transform:uppercase;letter-spacing:.03em;"/>
+              <div class="field-hint">Alphanumeric ERP reference - links the PDF to the external quotation record.</div>
             </div>
-
-            {{-- Amount and totals --}}
-            <div class="q-totals">
-              <div class="q-tot-row">
-                <label class="q-tot-lbl" for="q-amount">Amount (₹) <span class="req">*</span></label>
-                <input type="number" class="fc ql-num" id="q-amount" min="0" step="0.01" placeholder="0.00" oninput="qlRefresh()"/>
-              </div>
-              <div class="q-tot-row">
-                <label class="q-tot-lbl" for="q-disc">Discount</label>
-                <div>
-                  <div class="q-disc-wrap">
-                    <input type="number" class="fc ql-num" id="q-disc" min="0" step="0.01" placeholder="0" oninput="qlRefresh()"/>
-                    <select class="fc" id="q-disc-type" aria-label="Discount type" onchange="qlRefresh()">
-                      <option value="percent">%</option>
-                      <option value="flat">₹</option>
-                    </select>
-                  </div>
-                  <div class="q-disc-amt" id="q-disc-amt"></div>
+            <div class="form-group">
+              <label class="form-label-sm">Quotation Package PDF <span class="req">*</span></label>
+              <div class="dropzone" id="q-dz" onclick="dz_click('q-fi')"
+                ondragover="dz_dragover(event,'q-dz')" ondragleave="dz_dragleave('q-dz')"
+                ondrop="dz_drop(event,'q-dz','q-fi','q')">
+                <input type="file" class="dz-input" id="q-fi" accept=".pdf" onchange="dz_change(event,'q-dz','q')"/>
+                <i class="bi bi-cloud-upload dz-icon" id="q-dz-icon"></i>
+                <div class="dz-title" id="q-dz-title">Drag &amp; Drop PDF here or click to browse</div>
+                <div class="dz-sub" id="q-dz-sub">Accepted: PDF only · Max 25MB</div>
+                <div class="dz-file-row" id="q-frow">
+                  <div class="dz-file-ico"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+                  <div><div class="dz-fname" id="q-fname"></div><div class="dz-fsize" id="q-fsize"></div></div>
+                  <button class="dz-rm" onclick="event.stopPropagation();dz_remove('q-dz','q-fi','q','Drag &amp; Drop PDF here or click to browse')" title="Remove"><i class="bi bi-x-circle"></i></button>
                 </div>
-              </div>
-              <div class="q-tot-row">
-                <label class="q-tot-lbl" for="q-adj">Adjustment</label>
-                <div>
-                  <input type="number" class="fc ql-num" id="q-adj" step="0.01" placeholder="0" oninput="qlRefresh()"/>
-                  <div class="q-disc-amt">Use a minus sign to deduct.</div>
-                </div>
-              </div>
-              <div class="q-tot-row q-tot-grand">
-                <div class="q-tot-lbl">Grand Total</div>
-                <div class="q-tot-val" id="q-grand">₹ 0.00</div>
+                <div class="dz-err-msg" id="q-dz-err">Only PDF files are accepted.</div>
               </div>
             </div>
 
-            <div class="form-group" style="margin-bottom:16px;">
-              <label class="form-label-sm" for="q-notes">Notes / Terms <span class="opt">(optional)</span></label>
-              <textarea class="fc" id="q-notes" rows="2" maxlength="2000" placeholder="Payment terms, warranty on the work, exclusions…"></textarea>
-              <div class="field-hint">Printed at the bottom of the quotation PDF.</div>
-            </div>
-
-            <div class="q-need" id="q-need"></div>
+            
             <div id="q-val-msg" style="display:none;padding:8px 12px;border-radius:7px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:.78rem;margin-bottom:10px;"></div>
-
-            <div class="q-actions">
-              <button type="button" class="btn-ghost" id="q-preview-btn" onclick="previewQuote()" disabled>
-                <i class="bi bi-eye"></i>Preview PDF
-              </button>
-              <button type="button" class="btn-submit btn-amber" id="q-btn" onclick="openSendModal()" disabled>
-                <i class="bi bi-send-check-fill"></i>Generate Quote PDF &amp; Send to Customer
-              </button>
-            </div>
+           
+            <button class="btn-submit btn-amber" id="q-btn" onclick="submitQuote()" disabled>
+              <i class="bi bi-send-check-fill"></i>Upload Quote &amp; Forward to Customer
+            </button>
           </div>
         </div>
         @endif
@@ -412,13 +349,13 @@
           <div><div class="pa-card-title">Awaiting Customer Response</div><div class="pa-card-sub">Quote sent to customer - mark approved or rejected when customer responds</div></div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--text-muted);">
-          <i class="bi bi-envelope-check" style="color:#9a8053;"></i>Quotation emailed to the customer on submission
+          <i class="bi bi-whatsapp" style="color:#25d366;"></i>Customer notified via WhatsApp on submission
         </div>
       </div>
       <div class="pa-scroll">
         <table class="pa-tbl">
           <thead>
-            <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>Quote Ref</th><th>Quote Submitted</th><th>Waiting</th><th style="text-align:center;width:160px;">Action</th></tr>
+            <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>ERP Quote Ref</th><th>Quote Submitted</th><th>Waiting</th><th style="text-align:center;width:160px;">Action</th></tr>
           </thead>
           <tbody id="pa-tbody"></tbody>
         </table>
@@ -438,7 +375,7 @@
       <div class="pa-scroll">
         <table class="pa-tbl">
           <thead>
-            <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>Quote Ref</th><th>Rejected On</th><th>Since</th><th style="text-align:center;width:120px;">Status</th></tr>
+            <tr><th>SR ID</th><th>Customer</th><th>Site</th><th>ERP Quote Ref</th><th>Rejected On</th><th>Since</th><th style="text-align:center;width:120px;">Status</th></tr>
           </thead>
           <tbody id="rj-tbody"></tbody>
         </table>
@@ -475,73 +412,6 @@
     </div>
   </div>
 
-  {{-- SEND QUOTATION DIALOG --}}
-  @if (auth()->user()?->role?->code !== 'HP')
-  <div class="qd-modal-overlay" id="sq-modal" onclick="if(event.target===this)closeSendModal()">
-    <div class="modal-box modal-wide" role="dialog" aria-modal="true" aria-labelledby="sq-title">
-      <div class="modal-hdr">
-        <div class="modal-hdr-left">
-          <div class="modal-hdr-icon" style="background:rgba(154,128,83,.1);"><i class="bi bi-envelope-paper" style="color:#9a8053;"></i></div>
-          <h6 id="sq-title">Send Quotation</h6>
-        </div>
-        <button type="button" class="modal-close" onclick="closeSendModal()" aria-label="Close"><i class="bi bi-x-lg"></i></button>
-      </div>
-      <div class="modal-body">
-        <div class="sq-row">
-          <div class="sq-lbl">From</div>
-          <div class="sq-from">{{ config('mail.from.address') }}</div>
-        </div>
-        <div class="sq-row">
-          <label class="sq-lbl" for="sq-to">To <span class="req">*</span></label>
-          <div class="sq-to">
-            <input type="text" class="fc" id="sq-to" placeholder="customer@gmail.com" autocomplete="off" oninput="sqValidate()"/>
-            <button type="button" class="sq-link" id="sq-cc-btn" onclick="sqShow('cc')">CC</button>
-            <button type="button" class="sq-link" id="sq-bcc-btn" onclick="sqShow('bcc')">BCC</button>
-          </div>
-        </div>
-        <div class="sq-hint">Separate several addresses with commas.</div>
-        <div class="sq-row" id="sq-cc-row" style="display:none;">
-          <label class="sq-lbl" for="sq-cc">CC</label>
-          <input type="text" class="fc" id="sq-cc" autocomplete="off" oninput="sqValidate()"/>
-        </div>
-        <div class="sq-row" id="sq-bcc-row" style="display:none;">
-          <label class="sq-lbl" for="sq-bcc">BCC</label>
-          <input type="text" class="fc" id="sq-bcc" autocomplete="off" oninput="sqValidate()"/>
-        </div>
-        <div class="sq-row">
-          <label class="sq-lbl" for="sq-subject">Subject <span class="req">*</span></label>
-          <input type="text" class="fc" id="sq-subject" maxlength="200" oninput="sqValidate()"/>
-        </div>
-
-        <label class="form-label-sm" for="sq-message" style="margin-top:14px;">Message</label>
-        <textarea class="fc" id="sq-message" rows="4" maxlength="5000"></textarea>
-
-        <div class="sq-card">
-          <div class="sq-card-top">
-            <div class="sq-card-lbl">Quotation Amount</div>
-            <div class="sq-card-amt" id="sq-amt">₹ 0.00</div>
-          </div>
-          <div class="sq-card-row"><span>Service Request</span><strong id="sq-sr"></strong></div>
-          <div class="sq-card-row"><span>Customer</span><strong id="sq-client"></strong></div>
-          <div class="sq-card-row"><span>Valid Until</span><strong id="sq-valid"></strong></div>
-        </div>
-
-        <div class="sq-attach">
-          <label class="sq-check"><input type="checkbox" id="sq-attach" checked/>Attach quotation PDF</label>
-          <button type="button" class="sq-chip" onclick="previewQuote()" title="Open the PDF">
-            <i class="bi bi-file-earmark-pdf-fill" style="color:#ef4444;"></i>Quotation.pdf<i class="bi bi-eye"></i>
-          </button>
-        </div>
-        <div class="sq-need" id="sq-need"></div>
-      </div>
-      <div class="modal-foot">
-        <button type="button" class="btn-cancel" onclick="closeSendModal()">Cancel</button>
-        <button type="button" class="btn-confirm" id="sq-send" style="background:linear-gradient(135deg,#9A7B4F,#7A6140);" onclick="submitQuote()"><i class="bi bi-send-fill"></i> Send</button>
-      </div>
-    </div>
-  </div>
-  @endif
-
   <div class="qd-toast-wrap" id="qdToastWrap"></div>
 </div>
 @include('partials.sr_tracking_modal')
@@ -552,25 +422,24 @@
 /* =========================================================
    Quotation Desk - page scripts
    Q_QUEUE row shape:
-   { id, dbId, client, site, logged, createdAt, issue, email }
+   { id, dbId, client, site, logged, createdAt, issue }
    PENDING_APPROVAL row shape:
    { id, sr, dbId, client, site, ref, submitted, waiting, createdAt }
    ========================================================= */
 var Q_QUEUE          = @json($qQueue ?? []);
 var PENDING_APPROVAL = @json($pendingApproval ?? []);
 var CSRF             = '{{ csrf_token() }}';
-var USER_ROLE        = '{{ auth()->user()?->role?->code }}';
-var APP_NAME         = @json(config('app.name'));
+var USER_ROLE        = '{{ auth()->user()?->role?->code }}';   // ← add this
 /* filtered views - what actually gets rendered */
 var Q_FILTERED  = Q_QUEUE.slice();
 var PA_FILTERED = PENDING_APPROVAL.slice();
 
 var selQ = null;
+var q_fileOk = false;
 
 var REJECTED    = @json($rejectedQuotes ?? []);
 var RJ_FILTERED = REJECTED.slice();
 var QD_TAB      = 'pending';
-
 /* ---------- TOAST ---------- */
 function showToast(type,title,body){
   var w = document.getElementById('qdToastWrap');
@@ -582,91 +451,59 @@ function showToast(type,title,body){
   setTimeout(function(){t.style.transition='opacity .3s';t.style.opacity='0';setTimeout(function(){t.remove();},300);},3800);
 }
 
-/* ---------- SMALL HELPERS ---------- */
-function qdNum(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
-function qdR2(n){ return Math.round((n + Number.EPSILON) * 100) / 100; }
-function qdMoney(n){
-  return '₹ ' + qdR2(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-}
-function qdToday(){
-  var d = new Date();
-  function p(x){ return (x < 10 ? '0' : '') + x; }
-  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());
-}
-/* parse a JSON reply; turn non-2xx (and non-JSON error pages) into a readable Error */
-function qdJson(r){
-  return r.json().catch(function(){ return {}; }).then(function(d){
-    if(!r.ok) throw new Error(d.message || ('Server error ('+r.status+')'));
-    return d;
-  });
+/* ---------- DROPZONE ---------- */
+function dz_dragover(e,id){e.preventDefault();document.getElementById(id).classList.add('dragover');}
+function dz_dragleave(id){document.getElementById(id).classList.remove('dragover');}
+function dz_click(inputId){document.getElementById(inputId).click();}
+function dz_drop(e,dzId,inputId,prefix){e.preventDefault();document.getElementById(dzId).classList.remove('dragover');var f=e.dataTransfer.files[0];if(f)dz_process(f,dzId,prefix);}
+function dz_change(e,dzId,prefix){var f=e.target.files[0];if(f)dz_process(f,dzId,prefix);}
+function dz_process(file,dzId,prefix){
+  var dz = document.getElementById(dzId);
+  var errEl = document.getElementById(prefix+'-dz-err');
+  if(!file.name.toLowerCase().endsWith('.pdf')){
+    dz.className = 'dropzone dz-err';
+    document.getElementById(prefix+'-dz-icon').className = 'bi bi-x-circle dz-icon';
+    document.getElementById(prefix+'-dz-title').textContent = 'Invalid file - PDF only';
+    if(errEl)errEl.classList.add('show');
+    window[prefix+'_fileOk'] = false;
+    if(typeof window[prefix+'_validate']==='function')window[prefix+'_validate']();
+    return;
+  }
+  var mb = (file.size/1024/1024).toFixed(2);
+  dz.className = 'dropzone has-file';
+  document.getElementById(prefix+'-dz-icon').className = 'bi bi-file-earmark-pdf-fill dz-icon';
+  document.getElementById(prefix+'-dz-title').textContent = 'File attached successfully';
+  document.getElementById(prefix+'-dz-sub').textContent = '';
+  document.getElementById(prefix+'-fname').textContent = file.name;
+  document.getElementById(prefix+'-fsize').textContent = mb+' MB · PDF';
+  document.getElementById(prefix+'-frow').classList.add('show');
+  if(errEl)errEl.classList.remove('show');
+  window[prefix+'_fileOk'] = true;
+  if(typeof window[prefix+'_validate']==='function')window[prefix+'_validate']();
 }
 
-/* ---------- QUOTATION TOTALS ---------- */
-function qlCalc(){
-  var sub   = qdR2(Math.max(0, qdNum(document.getElementById('q-amount').value)));
-  var dVal  = Math.max(0, qdNum(document.getElementById('q-disc').value));
-  var dType = document.getElementById('q-disc-type').value;
-  var disc  = dType === 'percent' ? qdR2(sub * Math.min(dVal,100) / 100) : Math.min(qdR2(dVal), sub);
-  var adj   = qdR2(qdNum(document.getElementById('q-adj').value));
-  return {sub:sub, disc:disc, adj:adj, grand:qdR2(sub - disc + adj)};
-}
-
-function qlRefresh(){
-  if(!document.getElementById('q-amount')) return;   // form is not rendered for the HP role
-  var t = qlCalc();
-  document.getElementById('q-disc-amt').textContent = t.disc > 0 ? '− ' + qdMoney(t.disc) : '';
-  document.getElementById('q-grand').textContent    = qdMoney(t.grand);
-  q_validate();
+function dz_remove(dzId,inputId,prefix,placeholder){
+  var dz = document.getElementById(dzId);
+  if(!dz) return;
+  document.getElementById(prefix+'-dz-icon').className = 'bi bi-cloud-upload dz-icon';
+  document.getElementById(prefix+'-dz-title').textContent = placeholder||'Drag & Drop PDF here or click to browse';
+  document.getElementById(prefix+'-dz-sub').textContent = 'Accepted format: PDF only · Max 25MB';
+  document.getElementById(prefix+'-frow').classList.remove('show');
+  var inp = document.getElementById(inputId);if(inp)inp.value='';
+  window[prefix+'_fileOk'] = false;
+  if(typeof window[prefix+'_validate']==='function')window[prefix+'_validate']();
 }
 
 /* ---------- VALIDATION ---------- */
-/* returns the first problem with the form, or '' when it is ready to send */
-function qfError(){
-  var sum = document.getElementById('q-summary');
-  if(!sum) return 'Quotation form is not available.';
-  if(!selQ) return 'Select a ticket from the queue.';
-  if(sum.value.trim().length < 3) return 'Enter a summary.';
-  if(qdNum(document.getElementById('q-amount').value) <= 0) return 'Enter the quotation amount.';
-  var ex = document.getElementById('q-expiry').value;
-  if(ex && ex < qdToday()) return 'Expiry date cannot be in the past.';
-  if(qlCalc().grand < 0) return 'Grand total cannot be negative.';
-  return '';
-}
-
 function q_validate(){
-  var btn = document.getElementById('q-btn');
-  if(!btn) return;
-  var err = qfError();
-  btn.disabled = !!err;
-  var pv = document.getElementById('q-preview-btn');
-  if(pv) pv.disabled = !!err;
-  var need = document.getElementById('q-need');
-  if(need) need.textContent = err ? 'To continue: ' + err : '';
+  var refEl = document.getElementById('q-ref');
+  var btn   = document.getElementById('q-btn');
+  if(!refEl || !btn) return;
+  var ref = refEl.value.trim();
+  var ok  = ref.length >= 3 && q_fileOk;
+  btn.disabled = !ok; btn.style.opacity = ok ? '1' : '.38';
 }
 window.q_validate = q_validate;
-
-function qfReset(){
-  if(!document.getElementById('q-amount')) return;   // form is not rendered for the HP role
-  ['q-summary','q-expiry','q-notes','q-amount','q-disc','q-adj'].forEach(function(id){
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('q-disc-type').value = 'percent';
-  document.getElementById('q-expiry').min = qdToday();
-  document.getElementById('q-val-msg').style.display = 'none';
-  qlRefresh();
-}
-
-function qfPayload(){
-  return {
-    summary:        document.getElementById('q-summary').value.trim(),
-    expiry_date:    document.getElementById('q-expiry').value || null,
-    notes:          document.getElementById('q-notes').value.trim() || null,
-    discount_type:  document.getElementById('q-disc-type').value,
-    discount_value: Math.max(0, qdNum(document.getElementById('q-disc').value)),
-    adjustment:     qdNum(document.getElementById('q-adj').value),
-    amount:         qdR2(qdNum(document.getElementById('q-amount').value))
-  };
-}
 
 /* ---------- QUEUE ---------- */
 function renderQQueue(list){
@@ -694,11 +531,11 @@ function renderQQueue(list){
 function selectQ(id){
   selQ = Q_QUEUE.find(function(s){return s.id===id;});
   if(!selQ) return;
+  q_fileOk = false;
+  dz_remove('q-dz','q-fi','q','Drag & Drop PDF here or click to browse');
 
-  /* start a fresh quotation, with the SR's issue as the starting summary */
-  qfReset();
-  var sumEl = document.getElementById('q-summary');
-  if(sumEl && selQ.issue) sumEl.value = String(selQ.issue).slice(0,500);
+  var refEl = document.getElementById('q-ref');
+  if (refEl) refEl.value = '';   // ← guard, q-ref doesn't exist for HP
 
   q_validate();
   renderQQueue();
@@ -706,9 +543,9 @@ function selectQ(id){
   document.getElementById('q-success').classList.remove('show');
   document.getElementById('q-detail').style.display = 'flex';
   var qSrIdEl = document.getElementById('q-sr-id');
-  qSrIdEl.textContent = selQ.id;
-  qSrIdEl.classList.add('sr-ref-trigger');
-  qSrIdEl.onclick = function(){ openSrTracking(selQ.dbId); };
+qSrIdEl.textContent = selQ.id;
+qSrIdEl.classList.add('sr-ref-trigger');
+qSrIdEl.onclick = function(){ openSrTracking(selQ.dbId); };
   document.getElementById('q-sr-client').textContent = selQ.client;
   document.getElementById('q-sr-site').innerHTML     = '<i class="bi bi-geo-alt" style="color:#9a8053;font-size:.8rem;"></i> '+selQ.site;
   document.getElementById('q-chips').innerHTML =
@@ -727,7 +564,7 @@ function renderPA(list){
     tbody.innerHTML = '<tr><td colspan="7"><div class="pa-empty"><i class="bi bi-inbox"></i><p>No quotes awaiting client approval</p></div></td></tr>';
     return;
   }
-  var canDecide = USER_ROLE !== 'HP';
+  var canDecide = USER_ROLE !== 'HP';   // ← guard
   tbody.innerHTML = list.map(function(item){
     var actionCell = canDecide
       ? '<button class="btn-mark btn-mark-green" data-id="'+item.id+'" data-sr="'+item.sr+'" onclick="openQAModal(this.dataset.id,this.dataset.sr)"><i class="bi bi-check-circle-fill"></i>Record Decision</button>'
@@ -763,7 +600,7 @@ function qdFilter(){
 
   Q_FILTERED  = Q_QUEUE.filter(match);
   PA_FILTERED = PENDING_APPROVAL.filter(match);
-  RJ_FILTERED = REJECTED.filter(match);
+  RJ_FILTERED = REJECTED.filter(match);   
   renderRJ(RJ_FILTERED);
   renderQQueue(Q_FILTERED);
   renderPA(PA_FILTERED);
@@ -775,165 +612,31 @@ function qdResetFilters(){
   document.getElementById('q-date-to').value = '';
   Q_FILTERED  = Q_QUEUE.slice();
   PA_FILTERED = PENDING_APPROVAL.slice();
-  RJ_FILTERED = REJECTED.slice();
+  RJ_FILTERED = REJECTED.slice();         
   renderRJ(RJ_FILTERED);
   renderQQueue(Q_FILTERED);
   renderPA(PA_FILTERED);
 }
 
-/* ---------- PREVIEW ---------- */
-/* asks the server to render the PDF without saving or sending anything */
-function previewQuote(){
-  var err = qfError();
-  if(err){ showValMsg('q',err); return; }
+/* ---------- SUBMIT ---------- */
+function submitQuote(){
+  var ref = document.getElementById('q-ref').value.trim().toUpperCase();
+  if(!ref || !q_fileOk){ showValMsg('q','Please fill the ERP Reference and attach a PDF.'); return; }
   var sr  = selQ;
-  var btn = document.getElementById('q-preview-btn');
+  var btn = document.getElementById('q-btn');
   btn.disabled = true;
 
-  /* open the tab now, while we still have the click, so the browser doesn't block it */
-  var win = window.open('', '_blank');
-
-  fetch('/quotation_desk/'+sr.dbId+'/quote/preview', {
-    method:'POST',
-    headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json','Content-Type':'application/json'},
-    body: JSON.stringify(qfPayload())
-  })
-  .then(function(r){
-    if(!r.ok) return qdJson(r);          // throws with the server's message
-    return r.blob();
-  })
-  .then(function(blob){
-    var url = URL.createObjectURL(blob);
-    if(win){ win.location.href = url; }
-    else {
-      /* pop-up was blocked - download it instead */
-      var a = document.createElement('a');
-      a.href = url; a.download = 'quotation-preview.pdf';
-      document.body.appendChild(a); a.click(); a.remove();
-    }
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
-  })
-  .catch(function(e){
-    if(win) win.close();
-    showToast('err','Preview Failed', e.message);
-  })
-  .then(function(){ q_validate(); });
-}
-
-/* ---------- SEND DIALOG ---------- */
-var SQ_EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
-var sqFor = null;      // SR the dialog was last filled in for
-var sqBusy = false;
-
-function sqEl(id){ return document.getElementById(id); }
-function sqList(v){ return String(v || '').split(/[,;\s]+/).filter(Boolean); }
-function sqBad(v){ return sqList(v).filter(function(e){ return !SQ_EMAIL_RE.test(e); }); }
-function sqDate(iso){
-  if(!iso) return '-';
-  var p = iso.split('-');
-  return new Date(+p[0], +p[1]-1, +p[2]).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-}
-
-/* first problem with the email fields, or '' when it can be sent */
-function sqError(){
-  if(!sqEl('sq-to')) return 'Send dialog is not available.';
-  if(!sqList(sqEl('sq-to').value).length) return 'Enter the customer\'s email address.';
-  var bad = sqBad(sqEl('sq-to').value).concat(sqBad(sqEl('sq-cc').value), sqBad(sqEl('sq-bcc').value));
-  if(bad.length) return 'This email address is not complete: ' + bad[0];
-  if(!sqEl('sq-subject').value.trim()) return 'Enter a subject.';
-  return '';
-}
-
-function sqValidate(){
-  if(!sqEl('sq-send')) return;
-  var err = sqError();
-  sqEl('sq-send').disabled = !!err || sqBusy;
-  sqEl('sq-need').textContent = err ? 'To send: ' + err : '';
-}
-
-function sqShow(which){
-  sqEl('sq-'+which+'-row').style.display = '';
-  sqEl('sq-'+which+'-btn').style.display = 'none';
-  sqEl('sq-'+which).focus();
-}
-
-function openSendModal(){
-  var err = qfError();
-  if(err){ showValMsg('q',err); return; }
-  if(!sqEl('sq-modal')) return;
-
-  /* fill the email fields once per ticket, so reopening keeps what was typed */
-  if(sqFor !== selQ.id){
-    sqFor = selQ.id;
-    var who = (selQ.client && selQ.client !== '-') ? selQ.client : 'Team';
-    sqEl('sq-to').value      = selQ.email || '';
-    sqEl('sq-cc').value      = '';
-    sqEl('sq-bcc').value     = '';
-    sqEl('sq-subject').value = 'Quotation for ' + selQ.id + ' from ' + APP_NAME;
-    sqEl('sq-message').value = 'Hello ' + who + ',\n\nThank you for contacting us. Please find the quotation for your service request below. Kindly review it and let us know your approval.';
-    sqEl('sq-attach').checked = true;
-    ['cc','bcc'].forEach(function(k){
-      sqEl('sq-'+k+'-row').style.display = 'none';
-      sqEl('sq-'+k+'-btn').style.display = '';
-    });
-  }
-
-  /* the summary card always shows the current figures */
-  sqEl('sq-amt').textContent    = qdMoney(qlCalc().grand);
-  sqEl('sq-sr').textContent     = selQ.id;
-  sqEl('sq-client').textContent = selQ.client || '-';
-  sqEl('sq-valid').textContent  = sqDate(sqEl('q-expiry').value);
-
-  sqValidate();
-  sqEl('sq-modal').classList.add('show');
-  (sqEl('sq-to').value ? sqEl('sq-subject') : sqEl('sq-to')).focus();
-}
-
-function closeSendModal(){
-  if(sqBusy) return;                       // don't close while the email is going out
-  var m = sqEl('sq-modal');
-  if(m) m.classList.remove('show');
-}
-
-/* ---------- SUBMIT ---------- */
-/* Send button in the dialog: builds the PDF, emails it, then moves the ticket on */
-function submitQuote(){
-  var err = qfError();
-  if(err){ closeSendModal(); showValMsg('q',err); return; }
-  err = sqError();
-  if(err){ sqValidate(); return; }
-  if(sqBusy) return;
-
-  var sr      = selQ;
-  var to      = sqList(sqEl('sq-to').value);
-  var payload = qfPayload();
-  payload.email_to      = to.join(', ');
-  payload.email_cc      = sqList(sqEl('sq-cc').value).join(', ')  || null;
-  payload.email_bcc     = sqList(sqEl('sq-bcc').value).join(', ') || null;
-  payload.email_subject = sqEl('sq-subject').value.trim();
-  payload.email_message = sqEl('sq-message').value.trim() || null;
-  payload.attach_pdf    = sqEl('sq-attach').checked;
-
-  var send = sqEl('sq-send');
-  var sendHtml = send.innerHTML;
-  sqBusy = true;
-  send.disabled = true;
-  send.innerHTML = 'Sending…';
-  document.getElementById('q-btn').disabled = true;
+  var fd = new FormData();
+  fd.append('erp_quote_ref', ref);
+  fd.append('quote_pdf', document.getElementById('q-fi').files[0]);
 
   fetch('/quotation_desk/'+sr.dbId+'/quote', {
     method:'POST',
-    headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json','Content-Type':'application/json'},
-    body: JSON.stringify(payload)
+    headers:{'X-CSRF-TOKEN':CSRF,'Accept':'application/json'},
+    body: fd
   })
-  .then(qdJson)
-  .then(function(d){
-    var ref = (d && d.ref) || '-';   // quotation number generated by the server
-
-    sqBusy = false; sqFor = null;
-    send.innerHTML = sendHtml;
-    closeSendModal();
-
+  .then(function(r){ return r.json().then(function(d){ if(!r.ok) throw new Error(d.message||'Server error'); return d; }); })
+  .then(function(){
     var i = Q_QUEUE.findIndex(function(s){return s.id===sr.id;});
     if(i > -1) Q_QUEUE.splice(i,1);
 
@@ -944,20 +647,14 @@ function submitQuote(){
     });
 
     document.getElementById('q-detail').style.display = 'none';
-    document.getElementById('q-success-title').textContent = sr.id+' - Quotation Sent';
-    document.getElementById('q-success-body').textContent  = 'Quotation '+ref+' was emailed to '+to.join(', ')+'.';
+    document.getElementById('q-success-title').textContent = sr.id+' - Quote Submitted';
+    document.getElementById('q-success-body').textContent  = 'Quote PDF uploaded with ERP ref '+ref+'. Client notified via WhatsApp.';
     document.getElementById('q-success').classList.add('show');
-    selQ = null;
-    showToast('ok','Quotation Sent',sr.id+' moved to Pending Client Approval.');
+    selQ = null; q_fileOk = false;
+    showToast('ok','Quote Submitted',sr.id+' moved to Pending Client Approval.');
     qdFilter();
   })
-  .catch(function(e){
-    /* nothing was changed on the server - leave the dialog open so it can be fixed and resent */
-    sqBusy = false;
-    send.innerHTML = sendHtml;
-    q_validate(); sqValidate();
-    showToast('err','Quotation Not Sent', e.message);
-  });
+  .catch(function(e){ btn.disabled = false; showToast('err','Upload Failed', e.message); });
 }
 
 /* ---------- APPROVAL ---------- */
@@ -1011,7 +708,6 @@ function qdNext(){document.getElementById('q-success').classList.remove('show');
 
 function showValMsg(prefix,msg){
   var el = document.getElementById(prefix+'-val-msg');
-  if(!el) return;
   el.textContent = msg; el.style.display = 'block';
   setTimeout(function(){el.style.display='none';},3500);
 }
@@ -1026,7 +722,6 @@ document.addEventListener('DOMContentLoaded', function(){
   renderQQueue();
   renderPA();
   renderRJ();
-  document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSendModal(); });
 });
 
 function renderRJ(list){
