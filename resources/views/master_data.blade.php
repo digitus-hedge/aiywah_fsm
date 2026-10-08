@@ -8,7 +8,7 @@
 <style>
  
 
-
+.tpl-prev{display:none;margin-top:6px;max-width:100%;max-height:54px;border:1px solid var(--border-color);border-radius:6px;background:#fff;padding:3px;}
 /* ── SIDEBAR ── */
 .sb-brand{display:flex;align-items:center;gap:11px;padding:18px 20px 15px;border-bottom:1px solid var(--border-color);flex-shrink:0;}
 .sb-brand-icon{width:38px;height:38px;flex-shrink:0;background:linear-gradient(135deg,#9A7B4F,#C4A882);border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.05rem;}
@@ -695,14 +695,14 @@ textarea.form-control{resize:vertical;min-height:72px;}
               @if (auth()->user()?->role?->code !== 'HP')
                 <td style="text-align:center;">
                   <div class="row-actions" style="justify-content:center;">
-                    <button class="btn-icon-edit" title="Edit"
-                      data-id="{{ $t->id }}"
-                      data-client="{{ $t->client_id }}"
-                      data-header="{{ $t->header_image ? 1 : 0 }}"
-                      data-letterhead="{{ $t->letterhead_image ? 1 : 0 }}"
-                      data-footer="{{ $t->footer_image ? 1 : 0 }}"
-                      data-active="{{ $t->status ? 1 : 0 }}"
-                      onclick="editTemplateBtn(this)"><i class="bi bi-pencil"></i></button>
+                   <button class="btn-icon-edit" title="Edit"
+  data-id="{{ $t->id }}"
+  data-client="{{ $t->client_id }}"
+  data-header="{{ $t->header_image ? asset('storage/' . $t->header_image) : '' }}"
+  data-letterhead="{{ $t->letterhead_image ? asset('storage/' . $t->letterhead_image) : '' }}"
+  data-footer="{{ $t->footer_image ? asset('storage/' . $t->footer_image) : '' }}"
+  data-active="{{ $t->status ? 1 : 0 }}"
+  onclick="editTemplateBtn(this)"><i class="bi bi-pencil"></i></button>
                     <button class="btn-icon-del" title="Delete"
                       onclick="confirmDel('template',{{ $t->id }},'{{ addslashes(optional($t->client)->company_name) }} template')"><i class="bi bi-trash3"></i></button>
                   </div>
@@ -951,7 +951,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
 
 <!-- Templates PDF Modal -->
 <div class="modal-overlay" id="modal-template" onclick="handleOverlayClick(event,'modal-template')">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:540px;max-height:92vh;display:flex;flex-direction:column;">
     <div class="modal-hdr">
       <div class="modal-hdr-left">
         <div class="modal-hdr-icon" style="background:rgba(154,123,79,.1);"><i class="bi bi-file-earmark-pdf" style="color:#9A7B4F;"></i></div>
@@ -959,7 +959,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
       </div>
       <button class="modal-close" onclick="closeModal('modal-template')"><i class="bi bi-x-lg"></i></button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="flex:1;overflow-y:auto;">
       <div class="form-group">
         <label class="form-label">Company <span class="req">*</span></label>
         <select class="form-select" id="tpl-client">
@@ -969,21 +969,26 @@ textarea.form-control{resize:vertical;min-height:72px;}
           @endforeach
         </select>
       </div>
+
       <div class="form-group">
         <label class="form-label">Header Image <span class="hint">(JPG or PNG, wide banner, max 2 MB)</span></label>
-        <input type="file" class="form-control" id="tpl-header" accept="image/png,image/jpeg"/>
+        <input type="file" class="form-control" id="tpl-header" accept="image/png,image/jpeg" onchange="previewTplFile('header')"/>
+        <img class="tpl-prev" id="tpl-header-prev" alt="Header preview">
         <div class="field-hint" id="tpl-header-cur"></div>
       </div>
       <div class="form-group">
-        <label class="form-label">Letterhead / Watermark <span class="hint">(logo or page design)</span></label>
-        <input type="file" class="form-control" id="tpl-letterhead" accept="image/png,image/jpeg"/>
+        <label class="form-label">Letterhead / Watermark</label>
+        <input type="file" class="form-control" id="tpl-letterhead" accept="image/png,image/jpeg" onchange="previewTplFile('letterhead')"/>
+        <img class="tpl-prev" id="tpl-letterhead-prev" alt="Letterhead preview">
         <div class="field-hint" id="tpl-letterhead-cur"></div>
       </div>
       <div class="form-group">
-        <label class="form-label">Footer Image <span class="hint">(wide banner)</span></label>
-        <input type="file" class="form-control" id="tpl-footer" accept="image/png,image/jpeg"/>
+        <label class="form-label">Footer Image</label>
+        <input type="file" class="form-control" id="tpl-footer" accept="image/png,image/jpeg" onchange="previewTplFile('footer')"/>
+        <img class="tpl-prev" id="tpl-footer-prev" alt="Footer preview">
         <div class="field-hint" id="tpl-footer-cur"></div>
       </div>
+
       <div class="form-group" style="margin-bottom:0;">
         <div class="tog-wrap" onclick="toggleTog('tpl-tog-track',this)">
           <div class="tog-track on" id="tpl-tog-track"><div class="tog-thumb"></div></div>
@@ -1208,17 +1213,20 @@ function openModal(id,mode,data){
   }
 
 
-  if(id==='modal-template'){
+if(id==='modal-template'){
   editMode.template = (mode==='edit' && data) ? data.id : null;
   document.getElementById('modal-template-title').textContent = mode==='edit'?'Edit PDF Template':'Add PDF Template';
   document.getElementById('tpl-client').value = data?.client || '';
+  tplSaved = { header:data?.header||'', letterhead:data?.letterhead||'', footer:data?.footer||'' };
   ['header','letterhead','footer'].forEach(k=>{
     document.getElementById(`tpl-${k}`).value = '';
+    setTplPreview(k, tplSaved[k]);
     document.getElementById(`tpl-${k}-cur`).textContent =
-      data?.[k] ? 'Already uploaded. Choose a file only if you want to replace it.' : '';
+      tplSaved[k] ? 'This is the saved image. Choose a file only if you want to replace it.' : '';
   });
   setTog('tpl-tog-track', data ? !!data.active : true);
 }
+
 
     if(id==='modal-warranty'){
     editMode.warranty = (mode==='edit' && data) ? data.id : null;
@@ -1470,16 +1478,37 @@ async function apiForm(url, formData){
   return data;
 }
 
+let tplSaved = { header:'', letterhead:'', footer:'' };   // saved image URLs of the template being edited
+
 function editTemplateBtn(btn){
   openModal('modal-template','edit',{
     id:         parseInt(btn.dataset.id,10),
     client:     btn.dataset.client,
-    header:     btn.dataset.header === '1',
-    letterhead: btn.dataset.letterhead === '1',
-    footer:     btn.dataset.footer === '1',
+    header:     btn.dataset.header,
+    letterhead: btn.dataset.letterhead,
+    footer:     btn.dataset.footer,
     active:     btn.dataset.active === '1',
   });
 }
+
+function setTplPreview(k, url){
+  const img = document.getElementById(`tpl-${k}-prev`);
+  if(url){ img.src = url; img.style.display = 'block'; }
+  else   { img.removeAttribute('src'); img.style.display = 'none'; }
+}
+
+function previewTplFile(k){
+  const file = document.getElementById(`tpl-${k}`).files[0];
+  const hint = document.getElementById(`tpl-${k}-cur`);
+  if(file){
+    setTplPreview(k, URL.createObjectURL(file));
+    hint.textContent = 'New image selected. It replaces the saved one when you click Save.';
+  }else{
+    setTplPreview(k, tplSaved[k]);
+    hint.textContent = tplSaved[k] ? 'This is the saved image. Choose a file only if you want to replace it.' : '';
+  }
+}
+
 
 async function saveTemplate(){
   const client = document.getElementById('tpl-client').value;
