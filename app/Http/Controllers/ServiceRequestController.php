@@ -1648,13 +1648,22 @@ private function rlsScope(string $module): ?array
 
         private function srForQuote(ServiceRequest $sr): array
     {
-        $sr->loadMissing(['client', 'project']);
+        $sr->loadMissing(['client', 'project','category']);
 
         return [
             'sr_id'     => $sr->id,
             'sr_number' => $this->buildSrRef($sr),
             'customer'  => optional($sr->client)->company_name ?? '',
-            'site'      => optional($sr->project)->site_name ?? '',
+                    'email'  => optional($sr->client)->email ?? '',
+            'contact_person'  => optional($sr->client)->contact_name ?? '',
+        'contact_number' => trim(
+    (optional($sr->client)->primary_country ?? '') . ' ' .
+    (optional($sr->client)->primary_mobile ?? '')
+),
+            'site'      => optional($sr->project)->site_name ?? '', 
+            'priority_level'     => $sr->priority_level,
+            'project_name'      => optional($sr->project)->project_name ?? '',
+              'category_name'      => optional($sr->category)->category_name ?? '',
         ];
     }
     

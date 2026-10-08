@@ -73,14 +73,23 @@
         <div class="box">
           <div class="lbl">Quotation For</div>
           <strong>{{ $quote['customer'] ?: '-' }}</strong><br>
-          {{ $quote['site'] }}
+          {{ $quote['site'] }}<br>
+       {{ $quote['contact_name'] ?? '' }}<br>
+  {{ $quote['contact_number'] ?? '' }}<br>
+
+    {{ $quote['email'] ?? '' }}
         </div>
       </td>
       <td style="width:50%; padding-left:6px;">
         <div class="box">
           <div class="lbl">Service Request</div>
           <strong>{{ $quote['sr_number'] ?: '-' }}</strong><br>
-          Scope: Out of Warranty
+          Scope: Out of Warranty<br/>
+
+            Priority: {{ $quote['priority_level'] ?: '-' }}<br>
+  Project: {{ $quote['project_name'] ?: '-' }}<br>
+  Category: {{ $quote['category_name'] ?: '-' }}
+
         </div>
       </td>
     </tr>
