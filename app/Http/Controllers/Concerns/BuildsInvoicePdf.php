@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-
+use App\Models\PdfTemplate;
 /**
  * Invoice Panel: builds an invoice from the Create Invoice form, renders the
  * PDF, and stores everything in the `invoices` table.
@@ -37,7 +37,7 @@ trait BuildsInvoicePdf
     /** Currency shown on the form and the PDF. Change it here only. */
     public static function invoiceCurrency(): array
     {
-        return ['code' => 'INR', 'symbol' => '₹'];
+        return ['code' => 'AED', 'symbol' => 'AED'];
     }
 
     /** key => [label, days until due]. `null` days = the user picks the due date. */
@@ -199,75 +199,78 @@ trait BuildsInvoicePdf
      * ============================================================ */
 
     /** Validates the Create Invoice form and returns everything the PDF and the table need. */
-    private function buildInvoice(Request $request, ServiceRequest $sr): array
-    {
-        $terms = static::invoicePaymentTerms();
+private function buildInvoice(Request $request, ServiceRequest $sr): array
+{
+    $terms = static::invoicePaymentTerms();
 
-        $data = $request->validate([
-            'invoice_date'      => ['required', 'date'],
-            'payment_terms'     => ['required', Rule::in(array_keys($terms))],
-            'due_date'          => ['required', 'date', 'after_or_equal:invoice_date'],
-            'amount'            => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
-            'additional_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-            'additional_note'   => ['nullable', 'string', 'max:255'],
-            'notes'             => ['nullable', 'string', 'max:2000'],
-        ]);
+    $data = $request->validate([
+        'invoice_date'      => ['required', 'date'],
+        'payment_terms'     => ['required', Rule::in(array_keys($terms))],
+        'due_date'          => ['required', 'date', 'after_or_equal:invoice_date'],
+        'amount'            => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+        'additional_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
+        'additional_note'   => ['nullable', 'string', 'max:255'],
+        'notes'             => ['nullable', 'string', 'max:2000'],
+        'pdf_template_id'   => ['nullable', 'integer', Rule::exists('pdf_templates', 'id')->where('status', 1)],
+    ]);
 
-        $sr->loadMissing('category');
-        $quotation = Quotation::where('service_request_id', $sr->id)->latest('id')->first();
+    $sr->loadMissing('category');
+    $quotation = Quotation::where('service_request_id', $sr->id)->latest('id')->first();
 
-        // The quotation total is the invoice amount. The typed amount is only
-        // used for an SR that has no quotation amount saved.
-        $quoted = $quotation ? (float) $quotation->grand_total : 0.0;
-        $amount = $quoted > 0 ? $quoted : (float) ($data['amount'] ?? 0);
+    // The quotation total is the invoice amount. The typed amount is only
+    // used for an SR that has no quotation amount saved.
+    $quoted = $quotation ? (float) $quotation->grand_total : 0.0;
+    $amount = $quoted > 0 ? $quoted : (float) ($data['amount'] ?? 0);
 
-        if ($amount <= 0) {
-            throw ValidationException::withMessages([
-                'amount' => 'Enter the invoice amount.',
-            ]);
-        }
-
-        $totals = static::invoiceTotals($amount, $data['additional_amount'] ?? 0);
-
-        if ($totals['grand_total'] > 9999999999.99) {
-            throw ValidationException::withMessages([
-                'amount' => 'The invoice total is too large.',
-            ]);
-        }
-
-        // One line on the invoice: what the work was, and the amount for it.
-        $items = [[
-            'name'        => optional($sr->category)->category_name ?: 'Service Charges',
-            'description' => Str::limit(trim((string) ($quotation?->summary ?: $sr->issue_description)), 500) ?: null,
-            'amount'      => $totals['sub_total'],
-        ]];
-
-        // Fixed terms decide the due date; only "Custom" takes the typed one.
-        $invoiceDate = Carbon::parse($data['invoice_date'])->startOfDay();
-        $days        = $terms[$data['payment_terms']]['days'];
-        $dueDate     = $days === null
-            ? Carbon::parse($data['due_date'])->startOfDay()
-            : $invoiceDate->copy()->addDays($days);
-
-        $currency = static::invoiceCurrency();
-
-        // srForQuote() gives the customer / site / project block used on the quotation PDF.
-        return array_merge($this->srForQuote($sr), $totals, [
-            'items'               => $items,
-            'invoice_no'          => 'DRAFT',
-            'invoice_date'        => $invoiceDate->toDateString(),
-            'due_date'            => $dueDate->toDateString(),
-            'payment_terms'       => $data['payment_terms'],
-            'payment_terms_label' => $terms[$data['payment_terms']]['label'],
-            'created_by_name'     => Auth::user()?->name,   // whoever is creating the invoice
-            'quotation_id'        => $quotation?->id,
-            'quote_ref'           => $quotation?->quote_ref,
-            'additional_note'     => trim((string) ($data['additional_note'] ?? '')) ?: null,
-            'notes'               => trim((string) ($data['notes'] ?? '')) ?: null,
-            'currency'            => $currency['code'],
-            'currency_symbol'     => $currency['symbol'],
+    if ($amount <= 0) {
+        throw ValidationException::withMessages([
+            'amount' => 'Enter the invoice amount.',
         ]);
     }
+
+    $totals = static::invoiceTotals($amount, $data['additional_amount'] ?? 0);
+
+    if ($totals['grand_total'] > 9999999999.99) {
+        throw ValidationException::withMessages([
+            'amount' => 'The invoice total is too large.',
+        ]);
+    }
+
+    // One line on the invoice: what the work was, and the amount for it.
+    $items = [[
+        'name'        => optional($sr->category)->category_name ?: 'Service Charges',
+        'description' => Str::limit(trim((string) ($quotation?->summary ?: $sr->issue_description)), 500) ?: null,
+        'amount'      => $totals['sub_total'],
+    ]];
+
+    // Fixed terms decide the due date; only "Custom" takes the typed one.
+    $invoiceDate = Carbon::parse($data['invoice_date'])->startOfDay();
+    $days        = $terms[$data['payment_terms']]['days'];
+    $dueDate     = $days === null
+        ? Carbon::parse($data['due_date'])->startOfDay()
+        : $invoiceDate->copy()->addDays($days);
+
+    $currency = static::invoiceCurrency();
+
+    // srForQuote() gives the customer / site / project block used on the quotation PDF.
+    return array_merge($this->srForQuote($sr), $totals, [
+        'items'               => $items,
+        'invoice_no'          => 'DRAFT',
+        'invoice_date'        => $invoiceDate->toDateString(),
+        'due_date'            => $dueDate->toDateString(),
+        'payment_terms'       => $data['payment_terms'],
+        'payment_terms_label' => $terms[$data['payment_terms']]['label'],
+        'created_by_name'     => Auth::user()?->name,   // whoever is creating the invoice
+        'quotation_id'        => $quotation?->id,
+        'quote_ref'           => $quotation?->quote_ref,
+        'additional_note'     => trim((string) ($data['additional_note'] ?? '')) ?: null,
+        'notes'               => trim((string) ($data['notes'] ?? '')) ?: null,
+        'currency'            => $currency['code'],
+        'currency_symbol'     => $currency['symbol'],
+        'template'            => $this->invoiceTemplate($data['pdf_template_id'] ?? null),
+    ]);
+}
+    
 
     /**
      * The one place that talks to the PDF library. This assumes
@@ -280,6 +283,34 @@ trait BuildsInvoicePdf
             ->loadView('pdf.invoice', ['inv' => $inv])
             ->setPaper('a4');
     }
+
+    /** Header / watermark / footer images of the chosen PDF template, ready for the PDF view. */
+private function invoiceTemplate($id): ?array
+{
+    $tpl = $id ? PdfTemplate::where('status', 1)->find($id) : null;
+    if (! $tpl) {
+        return null;
+    }
+
+    $image = function (string $field) use ($tpl) {
+        $src = $tpl->dataUri($field);
+        if (! $src) {
+            return null;
+        }
+        $size = @getimagesize(Storage::disk('public')->path($tpl->{$field}));
+
+        return [
+            'src'   => $src,
+            'ratio' => ($size && $size[0] > 0) ? $size[1] / $size[0] : 0.2,   // height ÷ width
+        ];
+    };
+
+    return [
+        'header'    => $image('header_image'),
+        'watermark' => $image('letterhead_image'),
+        'footer'    => $image('footer_image'),
+    ];
+}
 
     /* ============================================================
      |  EMAILING THE INVOICE (used by hopApprove)
@@ -296,12 +327,10 @@ trait BuildsInvoicePdf
         }
 
         $data = $request->validate([
-            'email_from'    => ['required', 'email', 'max:255'],
             'email_to'      => ['required', 'string', 'max:1000'],
             'email_subject' => ['required', 'string', 'max:200'],
             'email_message' => ['nullable', 'string', 'max:5000'],
         ], [], [
-            'email_from'    => 'From address',
             'email_to'      => 'To address',
             'email_subject' => 'subject',
             'email_message' => 'message',
@@ -326,7 +355,7 @@ trait BuildsInvoicePdf
         }
 
         return [
-            'from'    => $data['email_from'],
+            'from'    => config('mail.from.address'),
             'to'      => $to,
             'subject' => $data['email_subject'],
             'message' => trim((string) ($data['email_message'] ?? '')),

@@ -115,9 +115,9 @@
 .inv-wrap select.fc{height:35px;}
 .inv-wrap textarea.fc{resize:vertical;min-height:38px;font-family:inherit;line-height:1.45;}
 .inv-wrap .fc[readonly]{background:var(--surface-2);color:var(--text-heading);cursor:default;}
-.inv-wrap .if-money{position:relative;}
-.inv-wrap .if-money span{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:.8rem;color:var(--text-muted);pointer-events:none;}
-.inv-wrap .if-money .fc{padding-left:26px;font-variant-numeric:tabular-nums;}
+.inv-wrap .if-money{display:flex;align-items:stretch;}
+.inv-wrap .if-money span{display:flex;align-items:center;padding:0 10px;border:1px solid var(--border-color);border-right:none;border-radius:7px 0 0 7px;background:var(--surface-2);font-size:.8rem;color:var(--text-muted);white-space:nowrap;}
+.inv-wrap .if-money .fc{border-radius:0 7px 7px 0;font-variant-numeric:tabular-nums;}
 .inv-wrap .if-add-note{margin-top:6px;}
 .inv-wrap .if-hint-btn{background:none;border:none;color:var(--gold);font-weight:700;font-size:.72rem;cursor:pointer;padding:0 2px;text-decoration:underline;}
 .inv-wrap .if-total{padding:9px 12px;border:1px solid rgba(154,128,83,.3);border-radius:7px;background:rgba(154,128,83,.08);font-size:1rem;font-weight:700;color:var(--gold);font-variant-numeric:tabular-nums;}
@@ -388,7 +388,22 @@
               <textarea class="fc" id="inv-notes" rows="2" maxlength="2000" placeholder="Bank details, payment instructions, warranty on the work…"></textarea>
               <div class="field-hint">Printed at the bottom of the invoice PDF.</div>
             </div>
-
+            {{-- Which PDF template (Master Data → PDF Templates) the invoice is printed on --}}
+            <div class="if-section">PDF Template</div>
+            <div class="if-summary">
+              <div class="if-row top">
+                <label class="if-lbl" for="inv-template">Template</label>
+                <div>
+                  <select class="fc" id="inv-template">
+                    <option value="">No template (plain invoice)</option>
+                    @foreach ($pdfTemplates as $t)
+                      <option value="{{ $t->id }}">{{ $t->template_name }}</option>
+                    @endforeach
+                  </select>
+                  <div class="field-hint">Header, watermark and footer come from this template. Preview PDF shows the same layout.</div>
+                </div>
+              </div>
+            </div>
             <div id="inv-val-msg" style="display:none;padding:8px 12px;border-radius:7px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:.78rem;margin:12px 0 0;"></div>
 
             <div class="if-actions">
@@ -481,7 +496,7 @@
         <div id="hop-email">
           <div class="hm-row">
             <label class="hm-lbl" for="hop-from">From <span class="req">*</span></label>
-            <input type="email" class="fc" id="hop-from" autocomplete="off" oninput="hopValidate()"/>
+            <input type="email" class="fc" id="hop-from" readonly tabindex="-1"/>
           </div>
           <div class="hm-hint">Use an address your mail server is allowed to send from.</div>
           <div class="hm-row">
@@ -672,7 +687,8 @@ function invPayload(){
     amount:            t.amount,     // ignored by the server when the SR has a quotation
     additional_amount: t.add,
     additional_note:   invEl('inv-additional-note').value.trim() || null,
-    notes:             invEl('inv-notes').value.trim() || null
+    notes:             invEl('inv-notes').value.trim() || null,
+    pdf_template_id:   invEl('inv-template').value || null
   };
 }
 
