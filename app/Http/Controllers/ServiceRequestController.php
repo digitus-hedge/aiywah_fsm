@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Jobs\SendSrNotifications;
 use App\Http\Controllers\Concerns\BuildsQuotationPdf;
 use App\Models\Quotation;
+use App\Models\PdfTemplate;
 use App\Http\Controllers\Concerns\BuildsInvoicePdf;
 
 class ServiceRequestController extends Controller
@@ -1863,11 +1864,13 @@ private function rlsScope(string $module): ?array
             0
         );
 
-        $invCurrency = static::invoiceCurrency();
+        $invCurrency  = static::invoiceCurrency();
+        $pdfTemplates = PdfTemplate::where('status', 1)->orderBy('template_name')->get(['id', 'template_name']);
 
-    return view('invoice_panel', compact(
-        'invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth', 'canHopApprove', 'invCurrency'
-    ));
+        return view('invoice_panel', compact(
+            'invQueue', 'pendingHop', 'completedThisMonth', 'invoicedThisMonth', 'canHopApprove', 'invCurrency',
+            'pdfTemplates'
+        ));
     }
 public function invoiceSubmit(Request $request, ServiceRequest $serviceRequest)
 {
