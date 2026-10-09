@@ -663,7 +663,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
         <thead>
           <tr>
             <th style="width:40px;">#</th>
-            <th>Company</th>
+            <th>Template Name</th>
             <th>Header</th>
             <th>Letterhead</th>
             <th>Footer</th>
@@ -677,7 +677,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
           @forelse($pdfTemplates as $t)
             <tr>
               <td class="muted">{{ $loop->iteration }}</td>
-              <td><strong>{{ optional($t->client)->company_name ?: '-' }}</strong></td>
+              <td><strong>{{ $t->template_name }}</strong></td>
               @foreach (['header_image', 'letterhead_image', 'footer_image'] as $f)
                 <td>
                   @if ($t->$f)
@@ -697,14 +697,14 @@ textarea.form-control{resize:vertical;min-height:72px;}
                   <div class="row-actions" style="justify-content:center;">
                    <button class="btn-icon-edit" title="Edit"
   data-id="{{ $t->id }}"
-  data-client="{{ $t->client_id }}"
+  data-name="{{ $t->template_name }}"
   data-header="{{ $t->header_image ? asset('storage/' . $t->header_image) : '' }}"
   data-letterhead="{{ $t->letterhead_image ? asset('storage/' . $t->letterhead_image) : '' }}"
   data-footer="{{ $t->footer_image ? asset('storage/' . $t->footer_image) : '' }}"
   data-active="{{ $t->status ? 1 : 0 }}"
   onclick="editTemplateBtn(this)"><i class="bi bi-pencil"></i></button>
                     <button class="btn-icon-del" title="Delete"
-                      onclick="confirmDel('template',{{ $t->id }},'{{ addslashes(optional($t->client)->company_name) }} template')"><i class="bi bi-trash3"></i></button>
+                        onclick="confirmDel('template',{{ $t->id }},'{{ addslashes($t->template_name) }}')"><i class="bi bi-trash3"></i></button>
                   </div>
                 </td>
               @endif
@@ -962,12 +962,10 @@ textarea.form-control{resize:vertical;min-height:72px;}
     <div class="modal-body" style="flex:1;overflow-y:auto;">
       <div class="form-group">
         <label class="form-label">Company <span class="req">*</span></label>
-        <select class="form-select" id="tpl-client">
-          <option value="">Select company</option>
-          @foreach($clients as $c)
-            <option value="{{ $c->id }}">{{ $c->company_name }}</option>
-          @endforeach
-        </select>
+        <div class="form-group">
+          <label class="form-label">Template Name <span class="req">*</span></label>
+          <input type="text" class="form-control" id="tpl-name" maxlength="150" placeholder="e.g. Main Letterhead"/>
+        </div>
       </div>
 
       <div class="form-group">
@@ -1092,8 +1090,7 @@ let selectedCatId = null;
 
 
 /* edit-mode trackers: null = create, otherwise the id being edited */
-let editMode = { cat:null, domain:null, expense:null, priority:null };
- 
+ let editMode = { cat:null, domain:null, expense:null, warranty:null, priority:null, template:null };
 /* ─── AJAX HELPER ─── */
 async function api(url, method, payload) {
   const opts = { method, headers: { 'X-CSRF-TOKEN': CSRF, 'Accept': 'application/json' } };
@@ -1216,7 +1213,7 @@ function openModal(id,mode,data){
 if(id==='modal-template'){
   editMode.template = (mode==='edit' && data) ? data.id : null;
   document.getElementById('modal-template-title').textContent = mode==='edit'?'Edit PDF Template':'Add PDF Template';
-  document.getElementById('tpl-client').value = data?.client || '';
+  document.querySelector('#modal-template #tpl-name').value = data?.name || '';
   tplSaved = { header:data?.header||'', letterhead:data?.letterhead||'', footer:data?.footer||'' };
   ['header','letterhead','footer'].forEach(k=>{
     document.getElementById(`tpl-${k}`).value = '';
@@ -1483,7 +1480,7 @@ let tplSaved = { header:'', letterhead:'', footer:'' };   // saved image URLs of
 function editTemplateBtn(btn){
   openModal('modal-template','edit',{
     id:         parseInt(btn.dataset.id,10),
-    client:     btn.dataset.client,
+    name:       btn.dataset.name,
     header:     btn.dataset.header,
     letterhead: btn.dataset.letterhead,
     footer:     btn.dataset.footer,
@@ -1511,11 +1508,11 @@ function previewTplFile(k){
 
 
 async function saveTemplate(){
-  const client = document.getElementById('tpl-client').value;
-  if(!client){ showToast('err','Missing Field','Please choose a company.'); return; }
+  const name = document.querySelector('#modal-template #tpl-name').value.trim();
+  if(!name){ showToast('err','Missing Field','Please enter a template name.'); return; }
 
   const fd = new FormData();
-  fd.append('client_id', client);
+  fd.append('template_name', name);
   fd.append('status', document.getElementById('tpl-tog-track').classList.contains('on') ? 1 : 0);
   [['header','header_image'],['letterhead','letterhead_image'],['footer','footer_image']].forEach(([k,field])=>{
     const file = document.getElementById(`tpl-${k}`).files[0];

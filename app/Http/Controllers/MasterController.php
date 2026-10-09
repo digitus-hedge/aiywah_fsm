@@ -37,8 +37,7 @@ class MasterController extends Controller
         $priorities        = Priority::orderBy('display_order')->get();
         $slaMatrix         = SlaMatrix::with('priority')->orderBy('priority_id')->get();
 
-        $pdfTemplates       = PdfTemplate::with('client:id,company_name')->latest()->get();
-        $clients            = Client::orderBy('company_name')->get(['id', 'company_name']);
+        $pdfTemplates = PdfTemplate::latest()->get();
 
         $counts = [
             'service'   => $categories->count(),
@@ -56,7 +55,7 @@ class MasterController extends Controller
             'priorities',
             'slaMatrix',
             'counts',
-             'pdfTemplates', 'clients'
+             'pdfTemplates'
         ));
     }
     
@@ -72,7 +71,7 @@ private function pdfTemplateRules($id = null): array
     $img = 'nullable|image|mimes:jpg,jpeg,png|max:2048';
 
     return [
-        'client_id'        => 'required|exists:clients,id|unique:pdf_templates,client_id,' . ($id ?? 'NULL') . ',id',
+        'template_name'    => 'required|string|max:150|unique:pdf_templates,template_name,' . ($id ?? 'NULL') . ',id',
         'header_image'     => $img,
         'letterhead_image' => $img,
         'footer_image'     => $img,
@@ -82,7 +81,7 @@ private function pdfTemplateRules($id = null): array
 
 private function pdfTemplateMessages(): array
 {
-    return ['client_id.unique' => 'This company already has a PDF template. Edit that one instead.'];
+    return ['template_name.unique' => 'A template with this name already exists. Use a different name.'];
 }
 
 public function storePdfTemplate(Request $request)
