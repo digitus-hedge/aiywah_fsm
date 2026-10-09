@@ -6,244 +6,205 @@
 
 @push('styles')
 <style>
-  /* ── Page header ─────────────────────────── */
-  .sr-header {
-    background:linear-gradient(135deg,#12A5DC 0%,#0B76A3 100%);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden;
+  /* ── Page tokens (change the blue here) ───── */
+  :root {
+    --sr-primary: #0d8ed6;
+    --sr-primary-dark: #0b76b3;
+    --sr-primary-light: #45b3e7;
+    --sr-primary-soft: rgba(13, 142, 214, .13);
   }
 
-  .sr-header::before,
-  .sr-header::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    pointer-events: none;
+  /* ── Page title row ──────────────────────── */
+  .sr-top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px 20px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
   }
 
-  .sr-header::before {
-    width: 200px;
-    height: 200px;
-    background: rgba(255, 255, 255, .06);
-    left: -50px;
-    bottom: -50px;
-  }
-
-  .sr-header::after {
-    width: 160px;
-    height: 160px;
-    background: rgba(255, 255, 255, .08);
-    right: -30px;
-    top: -30px;
-  }
-
-  .sr-header-inner {
-    position: relative;
-    z-index: 1;
-  }
-
-  .sr-header h4 {
-    font-size: 1.0625rem;
+  .sr-title {
+    font-size: 1.375rem;
     font-weight: 700;
-    margin: 0 0 5px;
+    color: var(--text-heading);
+    margin: 0 0 4px;
     letter-spacing: -.01em;
   }
 
-  .sr-header p {
-    font-size: .8rem;
+  .sr-sub {
+    font-size: .875rem;
+    color: var(--text-muted);
     margin: 0;
-    opacity: .88;
-    line-height: 1.6;
   }
 
-  .sr-header-tags {
-    display: flex;
-    gap: 6px;
-    margin-top: 12px;
-    flex-wrap: wrap;
-  }
-
-  .sr-htag {
-    background: rgba(255, 255, 255, .17);
-    border: 1px solid rgba(255, 255, 255, .28);
-    border-radius: 20px;
-    font-size: .6875rem;
-    padding: 3px 10px;
-    font-weight: 500;
-  }
-
-  @media(max-width:575.98px) {
-    .sr-header {
-      padding: 18px 16px;
-    }
-
-    .sr-header h4 {
-      font-size: .9375rem;
-    }
-  }
-
-  /* ── Status bar ──────────────────────────── */
+  /* Status line (filled by setAlert) */
   .sr-alert {
-    display: flex;
+    display: flex;                 /* was inline-flex: now lines up with the input edges */
     align-items: center;
-    gap: 9px;
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: .8rem;
-    margin-bottom: 20px;
-    border: 1.5px solid transparent;
-    transition: all .3s;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 8px 12px;             /* was 7px 12px */
+    border: 1px solid transparent;
+    border-radius: 6px;            /* same as the inputs */
+    font-size: .75rem;             /* was .78rem */
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text-primary);
+    transition: background .2s, border-color .2s;
   }
 
-  /* ── Cards ───────────────────────────────── */
-  .fc {
+  .sr-alert:empty {
+    display: none;
+  }
+
+  .sr-alert strong {
+    font-weight: 600;
+    color: var(--text-heading);
+  }
+
+  /* ── Cards (left column) ─────────────────── */
+  .fc,
+  .rp-card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 12px;
-    box-shadow: 0 1px 12px rgba(100, 120, 160, .08);
-    overflow: hidden;
-    margin-bottom: 18px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, .06);
+    margin-bottom: 16px;
     transition: background .3s, border-color .3s;
   }
 
-  .fc-head {
+  .fc-head,
+  .rp-head {
     display: flex;
     align-items: center;
-    gap: 11px;
-    padding: 14px 20px;
+    gap: 12px;
+    margin: 0 18px;
+    padding: 14px 0 12px;
     border-bottom: 1px solid var(--card-border);
   }
 
-  .fc-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: .9rem;
-  }
-
   .fc-step {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: .65rem;
+    font-size: .78rem;
     font-weight: 700;
-    color: #fff;
-    margin-left: auto;
+    color: var(--text-heading);
+    background: var(--sr-primary-soft);
   }
 
-  .fc-head h6 {
-    font-size: .875rem;
-    font-weight: 600;
+  .fc-head h6,
+  .rp-head h6 {
+    font-size: .95rem;
+    font-weight: 700;
     color: var(--text-heading);
     margin: 0;
   }
 
-  .fc-head .fc-sub {
-    font-size: .71rem;
-    color: var(--text-muted);
-    margin-top: 1px;
-    display: block;
-  }
-
-  .fc-body {
-    padding: 20px;
+  .fc-body,
+  .rp-body {
+    padding: 16px 18px 18px;
   }
 
   @media(max-width:575.98px) {
-    .fc-head {
-      padding: 12px 14px;
+
+    .fc-head,
+    .rp-head {
+      margin: 0 14px;
     }
 
-    .fc-body {
+    .fc-body,
+    .rp-body {
       padding: 14px;
     }
   }
 
   /* ── Form controls ───────────────────────── */
-  .form-label {
-    font-size: .8rem;
-    font-weight: 500;
-    color: var(--nav-link);
-    margin-bottom: 5px;
+  :is(.sr-page, .ct-box) .form-label {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 6px;
     display: block;
   }
 
   .req {
-    color: #ff3366;
+    color: #e5484d;
     margin-left: 2px;
   }
 
-  .opt {
-    font-size: .7rem;
-    color: var(--text-muted);
-    font-weight: 400;
-    margin-left: 4px;
-  }
-
-  .form-control,
-  .form-select {
+  :is(.sr-page, .ct-box) .form-control,
+  :is(.sr-page, .ct-box) .form-select {
     font-size: .8125rem;
-    border: 1.5px solid var(--border-color);
-    border-radius: 7px;
-    padding: .48rem .85rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: .45rem .75rem;
+    min-height: 36px;
     color: var(--text-primary);
-    background: var(--input-bg);
+    background-color: var(--input-bg);
     width: 100%;
-    transition: border-color .18s, box-shadow .18s, background .3s;
     line-height: 1.5;
+    transition: border-color .18s, box-shadow .18s, background-color .3s;
   }
 
-  .form-control:focus,
-  .form-select:focus {
-    border-color: #12A5DC;
-    box-shadow: 0 0 0 3px rgba(18, 165, 220, .13);
+  :is(.sr-page, .ct-box) select.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 34px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%2364748b' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M3.5 6l4.5 4.5L12.5 6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px 12px;
+  }
+
+  :is(.sr-page, .ct-box) .form-control:focus,
+  :is(.sr-page, .ct-box) .form-select:focus {
+    border-color: var(--sr-primary);
+    box-shadow: 0 0 0 3px var(--sr-primary-soft);
     outline: none;
   }
 
-  .form-control::placeholder {
+  :is(.sr-page, .ct-box) .form-control::placeholder {
     color: var(--text-light);
   }
 
-  .form-control:disabled,
-  .form-select:disabled {
-    background: var(--surface-2);
-    opacity: .5;
+  :is(.sr-page, .ct-box) .form-control:disabled,
+  :is(.sr-page, .ct-box) .form-select:disabled {
+    background-color: var(--surface-2);
+    opacity: .6;
     cursor: not-allowed;
   }
 
-  .form-control[readonly] {
-    background: var(--surface-2);
+  :is(.sr-page, .ct-box) .form-control[readonly] {
+    background-color: var(--surface-2);
     cursor: default;
   }
 
-  textarea.form-control {
+  .sr-page textarea.form-control {
     resize: vertical;
-    min-height: 108px;
+    min-height: 96px;
   }
 
   .form-hint {
-    font-size: .71rem;
+    font-size: .7rem;
     color: var(--text-muted);
-    margin-top: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    margin-top: 6px;
+    display: block;
   }
 
-  /* Icon-prefixed inputs */
-  .iw {
+  /* Customer lookup */
+  .lk-wrap {
     position: relative;
   }
 
-  .iw .ii {
+  .lk-wrap .lk-ic {
     position: absolute;
-    left: 10px;
+    left: 11px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
@@ -251,22 +212,13 @@
     pointer-events: none;
   }
 
-  .iw .form-control,
-  .iw .form-select {
-    padding-left: 32px;
+  .sr-page .lk-wrap .form-control {
+    padding-left: 34px;
+    padding-right: 34px;
   }
 
-  /* Lookup state */
-  .lk-wrap {
-    position: relative;
-  }
-
-  .lk-wrap .form-control {
-    padding-left: 32px;
-    padding-right: 36px;
-  }
-
-  .lk-spin {
+  .lk-spin,
+  .lk-ok {
     position: absolute;
     right: 10px;
     top: 50%;
@@ -278,46 +230,38 @@
     width: 15px;
     height: 15px;
     border-width: 2px;
-    color: #12A5DC;
+    color: var(--sr-primary);
   }
 
   .lk-ok {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
     color: #05a34a;
     font-size: .95rem;
-    display: none;
   }
 
-  .lk-wrap.verifying .lk-spin {
-    display: block;
-  }
-
+  .lk-wrap.verifying .lk-spin,
   .lk-wrap.verified .lk-ok {
     display: block;
   }
 
-  .lk-wrap.verified .form-control {
+  .sr-page .lk-wrap.verified .form-control {
     border-color: #05a34a;
-    background: rgba(5, 163, 74, .03);
+    background-color: rgba(5, 163, 74, .03);
   }
 
-  /* Client info reveal */
+  /* Verified customer / match list (full width under the three fields) */
   .client-reveal {
     display: none;
-    margin-top: 10px;
+    margin-top: 14px;
     background: rgba(5, 163, 74, .06);
-    border: 1.5px solid rgba(5, 163, 74, .2);
-    border-radius: 8px;
+    border: 1px solid rgba(5, 163, 74, .22);
+    border-radius: 6px;
     padding: 12px 14px;
     animation: fadeUp .22s ease;
   }
 
   .client-reveal.show {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 10px;
   }
 
@@ -349,82 +293,89 @@
     color: var(--text-heading);
   }
 
-  /* Priority pills */
-  .priority-row {
+  /* Contact person select + add button */
+  .ct-pick {
     display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+    gap: 10px;
   }
 
-  .pr-pill.on {
-    border-color: #12A5DC;
-    color: #12A5DC;
-    background: rgba(18, 165, 220, .05);
-}
+  .ct-pick .form-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .btn-add-ct {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--sr-primary);
+    background: var(--card-bg);
+    color: var(--sr-primary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+
+  .btn-add-ct:hover:not(:disabled) {
+    background: var(--sr-primary);
+    color: #fff;
+  }
+
+  .btn-add-ct:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+
+  /* Priority (radio look) */
+  .priority-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 28px;
+    min-height: 36px;
+  }
 
   .pr-pill {
-    flex: 1;
-    min-width: 72px;
-    text-align: center;
-    border: 1.5px solid var(--border-color);
-    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
-    font-size: .78rem;
+    font-size: .8125rem;
     font-weight: 500;
-    color: var(--text-muted);
-    background: var(--input-bg);
-    transition: all .18s;
+    color: var(--text-primary);
     user-select: none;
   }
 
-  .pr-pill .pi {
-    font-size: 30px;
-    display: block;
+  .pr-radio {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-light);
+    background: var(--input-bg);
+    transition: border-color .15s;
   }
 
-  .pr-pill:hover {
-    border-color: #12A5DC;
-    color: #12A5DC;
-    background: rgba(18, 165, 220, .05);
+  .pr-pill:hover .pr-radio,
+  .pr-pill.on .pr-radio {
+    border-color: var(--sr-primary);
   }
 
-  .pr-pill.sel-low.on {
-    border-color: #05a34a;
-    color: #05a34a;
-    background: rgba(5, 163, 74, .08);
-    box-shadow: 0 0 0 3px rgba(5, 163, 74, .1);
+  .pr-pill.on .pr-radio::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--sr-primary);
   }
 
-  .pr-pill.sel-med.on {
-    border-color: #fbbc06;
-    color: #b88b00;
-    background: rgba(251, 188, 6, .08);
-    box-shadow: 0 0 0 3px rgba(251, 188, 6, .1);
-  }
-
-  .pr-pill.sel-high.on {
-    border-color: #ff6f3c;
-    color: #ff6f3c;
-    background: rgba(255, 111, 60, .08);
-    box-shadow: 0 0 0 3px rgba(255, 111, 60, .1);
-  }
-
-  .pr-pill.sel-crit.on {
-    border-color: #ff3366;
-    color: #ff3366;
-    background: rgba(255, 51, 102, .08);
-    box-shadow: 0 0 0 3px rgba(255, 51, 102, .1);
-  }
-
-  @media(max-width:420px) {
-    .pr-pill {
-      min-width: 60px;
-      font-size: .72rem;
-    }
-
-    .pr-pill .pi {
-      font-size: .9rem;
-    }
+  .pr-pill.on {
+    color: var(--text-heading);
+    font-weight: 600;
   }
 
   /* Char counter */
@@ -438,30 +389,24 @@
   }
 
   .cc.warn {
-    color: #ff3366;
+    color: #e5484d;
   }
 
   /* Dropzone */
   .dz {
-    border: 2px dashed var(--dz-border);
-    border-radius: 9px;
-    padding: 24px 14px;
+    position: relative;
+    border: 1.5px dashed var(--dz-border);
+    border-radius: 8px;
+    padding: 18px 14px;
     text-align: center;
     cursor: pointer;
     background: var(--dz-bg);
-    position: relative;
     transition: border-color .2s, background .2s;
-    box-sizing: border-box;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 140px;
   }
 
   .dz:hover,
   .dz.over {
-    border-color: #12A5DC;
+    border-color: var(--sr-primary);
     background: var(--dz-hover);
   }
 
@@ -474,23 +419,38 @@
     height: 100%;
   }
 
-  .dz-ic {
-    font-size: 1.8rem;
-    color: #12A5DC;
-    margin-bottom: 6px;
-    line-height: 1;
+  .dz-txt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: .8125rem;
+    color: var(--text-primary);
+    margin: 0;
   }
 
-  .dz-txt {
-    font-size: .79rem;
-    color: var(--nav-link);
-    margin: 0;
+  .dz-txt strong {
+    color: var(--sr-primary);
+    font-weight: 600;
+  }
+
+  .dz-ic {
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--sr-primary);
+    margin-right: 4px;
   }
 
   .dz-hint {
     font-size: .69rem;
     color: var(--text-muted);
-    margin-top: 4px;
+    margin: 8px 0 0;
+  }
+
+  .dz-hint span {
+    margin: 0 8px;
+    opacity: .6;
   }
 
   /* File list */
@@ -501,10 +461,10 @@
   .fitem {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     background: var(--file-bg);
     border: 1px solid var(--file-border);
-    border-radius: 7px;
+    border-radius: 6px;
     padding: 7px 10px;
     margin-bottom: 6px;
     font-size: .79rem;
@@ -515,15 +475,35 @@
     border-color: var(--text-muted);
   }
 
-  .fi-ic {
-    font-size: 1.05rem;
-    flex-shrink: 0;
+  .fitem .fi-thumb {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--file-border);
+    flex: 0 0 auto;
+    display: block;
+  }
+
+  .fi-pdf {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 51, 102, .1);
+    color: #ff3366;
+    font-size: 1.2rem;
   }
 
   .fi-name {
     flex: 1;
+    min-width: 0;
     color: var(--text-heading);
     font-weight: 500;
+    text-decoration: none;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -546,46 +526,34 @@
   }
 
   .fi-rm:hover {
-    color: #ff3366;
-  }
-
-  .ftype-chips {
-    display: flex;
-    gap: 6px;
-    margin-top: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .ftc {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: .68rem;
-    font-weight: 700;
-    letter-spacing: .03em;
+    color: #e5484d;
   }
 
   /* ── Buttons ─────────────────────────────── */
-  .btn-main {
-    background: linear-gradient(135deg, #12A5DC, #0E8FC2);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: .55rem 1.5rem;
-    font-size: .875rem;
-    font-weight: 600;
-    cursor: pointer;
+  .btn-main,
+  .btn-ghost {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 7px;
-    box-shadow: 0 4px 14px rgba(18, 165, 220, .32);
-    transition: opacity .15s, transform .1s, box-shadow .15s;
-    letter-spacing: .01em;
+    border-radius: 6px;
+    padding: .55rem 1.25rem;
+    font-size: .8125rem;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s, transform .1s;
+  }
+
+  .btn-main {
+    background: var(--sr-primary);
+    border: 1px solid var(--sr-primary);
+    color: #fff;
   }
 
   .btn-main:hover {
-    opacity: .9;
-    box-shadow: 0 6px 20px rgba(18, 165, 220, .42);
+    background: var(--sr-primary-dark);
+    border-color: var(--sr-primary-dark);
   }
 
   .btn-main:active {
@@ -595,28 +563,23 @@
   .btn-main:disabled {
     opacity: .55;
     cursor: not-allowed;
-    box-shadow: none;
   }
 
   .btn-ghost {
-    background: transparent;
-    color: var(--text-muted);
-    border: 1.5px solid var(--border-color);
-    border-radius: 8px;
-    padding: .55rem 1.5rem;
-    font-size: .875rem;
-    font-weight: 500;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    transition: all .15s;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-heading);
   }
 
   .btn-ghost:hover {
     border-color: var(--text-muted);
-    color: var(--text-heading);
     background: var(--surface-2);
+  }
+
+  .desk-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
   }
 
   /* Mobile sticky bar */
@@ -640,7 +603,7 @@
     }
 
     .desk-actions {
-      display: none !important;
+      display: none;
     }
 
     .main-content {
@@ -649,116 +612,98 @@
   }
 
   /* ── Right panel ─────────────────────────── */
-  .rp-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    box-shadow: 0 1px 12px rgba(100, 120, 160, .08);
-    overflow: hidden;
-    margin-bottom: 14px;
-    transition: background .3s, border-color .3s;
-  }
-
-  .rp-head {
+  .rp-ic {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 9px;
-    padding: 13px 17px;
-    border-bottom: 1px solid var(--card-border);
+    justify-content: center;
+    font-size: .9rem;
+    color: var(--sr-primary);
+    background: var(--sr-primary-soft);
   }
 
-  .rp-head h6 {
-    font-size: .85rem;
-    font-weight: 600;
-    color: var(--text-heading);
-    margin: 0;
-  }
-
-  .rp-body {
-    padding: 15px 17px;
+  .rp-bulb {
+    font-size: 1.15rem;
+    color: var(--sr-primary);
   }
 
   .rp-badge {
-    border-radius: 20px;
-    font-size: .65rem;
+    margin-left: auto;
+    border-radius: 6px;
+    font-size: .68rem;
     font-weight: 600;
-    padding: 2px 9px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
+    padding: 3px 9px;
+    background: rgba(251, 188, 6, .14);
+    color: #b88b00;
   }
 
   .pv-row {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 42% 1fr;
+    gap: 10px;
     align-items: baseline;
-    gap: 8px;
-    margin-bottom: 9px;
-    font-size: .79rem;
-  }
-
-  .pv-row:last-child {
-    margin-bottom: 0;
+    padding: 7px 0;
+    font-size: .8rem;
   }
 
   .pv-k {
-    color: var(--text-muted);
-    white-space: nowrap;
+    color: var(--text-primary);
   }
 
   .pv-v {
+    min-width: 0;
     font-weight: 600;
     color: var(--text-heading);
-    text-align: right;
-    max-width: 58%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  .rp-hr {
-    border: none;
-    border-top: 1px solid var(--card-border);
-    margin: 10px 0;
+  #pvPriority {
+    color: var(--sr-primary);
   }
 
   /* Tips */
-  .tips-card {
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    padding: 15px 17px;
-    box-shadow: 0 1px 12px rgba(100, 120, 160, .08);
-    margin-bottom: 14px;
-  }
-
-  .tips-lbl {
-    font-size: .65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--text-muted);
-    margin-bottom: 11px;
-  }
-
   .tip {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    font-size: .78rem;
-    color: var(--text-primary);
-    margin-bottom: 8px;
-    line-height: 1.5;
+    gap: 12px;
+    margin-bottom: 16px;
   }
 
   .tip:last-child {
     margin-bottom: 0;
   }
 
-  .tip i {
-    color: #12A5DC;
+  .tip-n {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
     flex-shrink: 0;
-    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .7rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--sr-primary-light);
+  }
+
+  .tip-t {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin: 0 0 3px;
+  }
+
+  .tip-d {
+    font-size: .72rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 0;
   }
 
   /* Collapsible right panel (mobile) */
@@ -767,7 +712,7 @@
     width: 100%;
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 12px 15px;
     cursor: pointer;
     font-size: .8125rem;
@@ -776,7 +721,17 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 13px;
-    box-shadow: 0 1px 10px rgba(100, 120, 160, .08);
+    box-shadow: 0 1px 3px rgba(16, 24, 40, .06);
+  }
+
+  .rp-toggle span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rp-toggle span i {
+    color: var(--sr-primary);
   }
 
   @media(max-width:991.98px) {
@@ -807,7 +762,7 @@
 
   .toast-el {
     background: var(--card-bg);
-    border-left: 4px solid #12A5DC;
+    border-left: 4px solid var(--sr-primary);
     border-radius: 8px;
     padding: 11px 13px;
     box-shadow: 0 6px 22px rgba(0, 0, 0, .16);
@@ -822,7 +777,7 @@
   }
 
   .toast-el.error {
-    border-color: #ff3366;
+    border-color: #e5484d;
   }
 
   @keyframes tIn {
@@ -844,7 +799,7 @@
   }
 
   .ti.primary {
-    color: #12A5DC;
+    color: var(--sr-primary);
   }
 
   .ti.success {
@@ -852,7 +807,7 @@
   }
 
   .ti.error {
-    color: #ff3366;
+    color: #e5484d;
   }
 
   .tt {
@@ -895,7 +850,7 @@
 
   .sr-modal {
     background: var(--modal-bg);
-    border-radius: 14px;
+    border-radius: 10px;
     padding: 32px 28px;
     text-align: center;
     max-width: 400px;
@@ -945,92 +900,131 @@
   }
 
   .sr-id {
-    background: rgba(18, 165, 220, .1);
-    border: 1.5px solid rgba(18, 165, 220, .25);
-    border-radius: 8px;
+    background: var(--sr-primary-soft);
+    border: 1px solid rgba(13, 142, 214, .3);
+    border-radius: 6px;
     padding: 10px 18px;
     font-size: .9375rem;
     font-weight: 700;
-    color: #12A5DC;
+    color: var(--sr-primary);
     display: inline-block;
     letter-spacing: .06em;
     margin-bottom: 16px;
   }
 
-  .fitem .fi-thumb{
-  width:44px;height:44px;object-fit:cover;border-radius:6px;
-  border:1px solid rgba(255,255,255,.12);flex:0 0 auto;display:block;
-}
-.fi-pdf{
-  width:44px;height:44px;border-radius:6px;flex:0 0 auto;
-  display:flex;align-items:center;justify-content:center;
-  background:rgba(255,51,102,.1);color:#ff3366;font-size:1.2rem;
-}
+  /* ── Add contact modal ───────────────────── */
+  .ct-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(15, 23, 42, .45);
+    backdrop-filter: blur(3px);
+  }
 
+  .ct-overlay.show {
+    display: flex;
+  }
 
+  .ct-box {
+    background: var(--card-bg, #fff);
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+  }
 
+  .ct-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--card-border);
+  }
 
-/* Needed */
+  .ct-hdr h6 {
+    margin: 0;
+    font-size: .95rem;
+    font-weight: 700;
+    color: var(--text-heading);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 
+  .ct-hdr h6 i {
+    color: var(--sr-primary);
+  }
 
-.btn-add-ct{width:38px;flex-shrink:0;border:1px solid rgba(18,165,220,.4);background:rgba(18,165,220,.1);color:#12A5DC;border-radius:8px;cursor:pointer}
-.btn-add-ct:disabled{opacity:.4;cursor:not-allowed}
-.ct-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:0;display:none;align-items:center;justify-content:center;padding:16px}
-.ct-overlay.show{display:flex}
-.ct-box{background:var(--bs-body-bg,#fff);border:1px solid rgba(18,165,220,.25);border-radius:14px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-.ct-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(18,165,220,.18)}
-.ct-hdr h6{margin:0;font-size:.9rem;color:#12A5DC}
-.ct-x{background:none;border:0;cursor:pointer;color:inherit;opacity:.6}
-.ct-body{padding:16px}
-.ct-foot{
-  display:flex;justify-content:flex-end;gap:10px;
-  padding:12px 16px;border-top:1px solid rgba(18,165,220,.18);
-}
-.ct-foot .btn-ghost,
-.ct-foot .btn-gold{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:8px 16px;border-radius:8px;
-  font-size:.78rem;font-weight:600;letter-spacing:.2px;
-  cursor:pointer;transition:all .18s ease;line-height:1;
-}
-.ct-foot .btn-ghost{
-  background:transparent;
-  border:1px solid rgba(18,165,220,.35);
-  color:var(--text-muted,#8a8a8a);
-}
-.ct-foot .btn-ghost:hover{
-  background:rgba(18,165,220,.08);
-  border-color:rgba(18,165,220,.55);
-  color:#12A5DC;
-}
-.ct-foot .btn-gold{
-  background:linear-gradient(135deg,#12A5DC,#0E8FC2);
-  border:1px solid rgba(18,165,220,.6);
-  color:#fff;
-  box-shadow:0 2px 8px rgba(18,165,220,.28);
-}
-.ct-foot .btn-gold:hover{
-  background:linear-gradient(135deg,#0E8FC2,#0B76A3);
-  box-shadow:0 4px 14px rgba(18,165,220,.4);
-  transform:translateY(-1px);
-}
-.ct-foot .btn-gold:active{transform:translateY(0)}
-.ct-foot .btn-gold:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
+  .ct-x {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    color: var(--text-muted);
+  }
 
+  .ct-body {
+    padding: 16px 18px;
+  }
 
+  .ct-body .form-label+.form-control {
+    margin-bottom: 12px;
+  }
 
+  .ct-phone {
+    display: flex;
+    gap: 8px;
+  }
 
+  .ct-phone .form-select {
+    width: 96px;
+    flex-shrink: 0;
+  }
 
-.sidebar        { z-index: 1000; }
+  .ct-phone .form-control {
+    flex: 1;
+    min-width: 0;
+  }
 
-#ctModal        { display: none; }
-#ctModal.show   { display: flex; align-items: center; justify-content: center;
-                  position: fixed; inset: 0; z-index: 1200;
-                  background: rgba(15, 23, 42, .45); }
+  .ct-chk-lbl {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0 0;
+    font-size: .8125rem;
+    color: var(--text-primary);
+    cursor: pointer;
+  }
 
-body.modal-open { overflow: hidden; }
-body.modal-open .sidebar,
-body.modal-open .topbar { pointer-events: none; }
+  .ct-chk-lbl input {
+    accent-color: var(--sr-primary);
+  }
+
+  .ct-foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid var(--card-border);
+  }
+
+  /* Needed for the contact modal stacking */
+  .sidebar {
+    z-index: 1000;
+  }
+
+  body.modal-open {
+    overflow: hidden;
+  }
+
+  body.modal-open .sidebar,
+  body.modal-open .topbar {
+    pointer-events: none;
+  }
 </style>
 @endpush
 
@@ -1038,6 +1032,7 @@ body.modal-open .topbar { pointer-events: none; }
 @php
     $canViewTriage = $canViewTriage ?? auth()->user()->hasAnyAccess('inquiry_approval');
 @endphp
+
 {{-- Toasts --}}
 <div class="toast-shelf" id="toastShelf"></div>
 
@@ -1048,177 +1043,32 @@ body.modal-open .topbar { pointer-events: none; }
     <h5>Ticket Submitted!</h5>
     <p>Your service request is logged and set to <strong>Pending</strong>.</p>
     <div class="sr-id" id="srIdOut">SR-0000-00000</div>
-    <p style="font-size:.76rem;color:var(--text-muted);margin-bottom:18px;">
+    <p style="font-size:.76rem;margin-bottom:18px;">
       <i class="bi bi-check-circle-fill me-1" style="color:#05a34a;"></i>Timestamped and saved in the system.
     </p>
     <button class="btn-main w-100 mb-2" onclick="goHub()">
-        <i class="bi bi-grid-1x2"></i>{{ $canViewTriage ? 'Inquiry Approvals' : 'View My Tickets' }}
+      <i class="bi bi-grid-1x2"></i>{{ $canViewTriage ? 'Inquiry Approvals' : 'View My Tickets' }}
     </button>
     <button class="btn-ghost w-100" onclick="newTicket()">
-        <i class="bi bi-plus-circle"></i>Register Another SR
-    </button>
-      </div>
-  </div>
-
-{{-- Main --}}
-<main class="main-content">
-
-  {{-- ── Page Header ── --}}
-  <div class="sr-header">
-    <div class="sr-header-inner">
-      <h4><i class="bi bi-ticket-perforated me-2"></i>SR Registration</h4>
-      <p>Log a new service request by verifying the customer, filling in service details, and submitting.</p>
-      <div class="sr-header-tags">
-        <span class="sr-htag"><i class="bi bi-people-fill me-1"></i>All Roles Can Log SRs</span>
-      </div>
-    </div>
-  </div>
-
-  {{-- ── Status Bar ── --}}
-  <div class="sr-alert" id="srAlert"></div>
-
-  <form id="srForm" enctype="multipart/form-data">
-    @csrf
-    <div class="row g-3 g-lg-4 align-items-start">
-
-      {{-- ════════════════ LEFT COLUMN (3 cards) ════════════════ --}}
-      <div class="col-lg-8">
-
-        {{-- ── CARD 1 · Customer Verification ── --}}
-        <div class="fc">
-          <div class="fc-head">
-            <div class="fc-icon" style="background:rgba(18,165,220,.1);">
-              <i class="bi bi-person-badge-fill" style="color:#12A5DC;"></i>
-            </div>
-            <div>
-              <h6>Customer Verification</h6>
-              <span class="fc-sub">Search by customer name, code or mobile - details load automatically</span>
-            </div>
-            <div class="fc-step" style="background:#12A5DC;">1</div>
-          </div>
-          <div class="fc-body">
-            <div class="row g-3">
-
-              {{-- Lookup --}}
-              <div class="col-12">
-                <label class="form-label">Customer Lookup <span class="req">*</span></label>
-                <div class="lk-wrap" id="lkWrap">
-                  <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:.85rem;pointer-events:none;">
-                    <i class="bi bi-search"></i>
-                  </span>
-                  <input type="text" class="form-control" id="custCode" name="customer_code"
-                    placeholder="Customer name, unique code, or mobile number"
-                    maxlength="60" autocomplete="off"
-                    oninput="onCode(this.value)" />
-                  <div class="lk-spin">
-                    <div class="spinner-border"></div>
-                  </div>
-                  <i class="bi bi-check-circle-fill lk-ok"></i>
-                </div>
-                <div class="form-hint"><i class="bi bi-search"></i>Search by Customer Name, Unique Code or Primary Mobile.</div>
-                {{-- hidden fields posted to controller --}}
-                <input type="hidden" id="customerId" name="customer_id" />
-                <input type="hidden" id="customerName" name="customer_name" />
-                <div class="client-reveal" id="clientReveal">
-                  <div><span class="ci-lbl">Customer Name</span><span class="ci-val" id="cName">-</span></div>
-                  <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">-</span></div>
-                  <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">-</span></div>
-                  <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">-</span></div>
-                </div>
-              </div>
-
-              {{-- Project --}}
-              <div class="col-sm-6">
-                <label class="form-label">Project <span class="req">*</span></label>
-                <div class="iw">
-                  <span class="ii"><i class="bi bi-folder2-open"></i></span>
-                  <select class="form-select" id="projSel" name="project_id" disabled onchange="onProject(this.value)">
-                    <option value="">- Select project -</option>
-                  </select>
-                </div>
-                <div class="form-hint"><i class="bi bi-info-circle"></i>All projects for the customer load after verification</div>
-              </div>
-
-              {{-- Site (auto-filled, read-only) --}}
-              <div class="col-sm-6">
-                <label class="form-label">Site Location <span class="req">*</span></label>
-                <div class="iw">
-                  <span class="ii"><i class="bi bi-geo-alt"></i></span>
-                  <input type="text" class="form-control" id="siteField" name="project_site"
-                    placeholder="Auto-filled from project" readonly />
-                </div>
-                <div class="form-hint"><i class="bi bi-magic"></i>Auto-fetched from the selected project</div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        {{-- ── CARD 2 · Service Info ── --}}
-        <div class="fc">
-          <div class="fc-head">
-            <div class="fc-icon" style="background:rgba(5,163,74,.1);">
-              <i class="bi bi-grid-3x3-gap-fill" style="color:#05a34a;"></i>
-            </div>
-            <div>
-              <h6>Service Information</h6>
-              <span class="fc-sub">Type, reporter and urgency level</span>
-            </div>
-            <div class="fc-step" style="background:#05a34a;">2</div>
-          </div>
-          <div class="fc-body">
-            <div class="row g-3">
-
-              {{-- Service Type (2 static options) --}}
-              <div class="col-sm-6">
-                <label class="form-label">Service Category <span class="req">*</span></label>
-                <div class="iw">
-                  <span class="ii"><i class="bi bi-tag"></i></span>
-
-                  <select class="form-select" id="svcType" name="service_type_id"
-                    onchange="pv('pvType', this.options[this.selectedIndex].text)">
-                    <option value="">- Select Category -</option>
-
-                    @foreach($categories as $category)
-                    <option value="{{ $category->id }}">
-                      {{ $category->category_name }}
-                    </option>
-                    @endforeach
-
-                  </select>
-                </div>
-              </div>
-
-              {{-- Reported By --}}
-         
-<div class="col-sm-6">
-  <label class="form-label">Contact Person <span class="req">*</span></label>
-  <div class="iw" style="display:flex;gap:6px;">
-    <span class="ii"><i class="bi bi-person"></i></span>
-    <select class="form-control" id="reporter" name="reported_by" onchange="onReporterChange(this)" style="flex:1;">
-      <option value="">Select customer first…</option>
-    </select>
-    <button type="button" class="btn-add-ct" id="addCtBtn" onclick="openCtModal()" title="Add contact person" disabled>
-      <i class="bi bi-plus-lg"></i>
+      <i class="bi bi-plus-circle"></i>Register Another SR
     </button>
   </div>
-  <input type="hidden" name="reported_by_mobile" id="reporterMobile">
 </div>
 
 {{-- Add Contact Modal --}}
 <div class="ct-overlay" id="ctModal" onclick="if(event.target===this)closeCtModal()">
   <div class="ct-box" role="dialog" aria-modal="true">
     <div class="ct-hdr">
-      <h6><i class="bi bi-person-plus"></i> Add Contact Person</h6>
+      <h6><i class="bi bi-person-plus"></i>Add Contact Person</h6>
       <button type="button" class="ct-x" onclick="closeCtModal()"><i class="bi bi-x-lg"></i></button>
     </div>
     <div class="ct-body">
-      <label class="form-label">Name <span class="req">*</span></label>
+      <label class="form-label" for="ctName">Name <span class="req">*</span></label>
       <input type="text" class="form-control" id="ctName" placeholder="e.g. John Facilities">
 
-      <label class="form-label" style="margin-top:10px;">WhatsApp Number <span class="req">*</span></label>
-      <div style="display:flex;gap:6px;">
-        <select class="form-control" id="ctCountry" style="width:90px;flex-shrink:0;">
+      <label class="form-label" for="ctMobile">WhatsApp Number <span class="req">*</span></label>
+      <div class="ct-phone">
+        <select class="form-select" id="ctCountry">
           <option value="+971">+971</option>
           <option value="+91" selected>+91</option>
           <option value="+1">+1</option>
@@ -1228,152 +1078,265 @@ body.modal-open .topbar { pointer-events: none; }
         </select>
         <input type="tel" class="form-control" id="ctMobile" placeholder="50 123 4567"
                inputmode="numeric" maxlength="15"
-               oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="flex:1;">
+               oninput="this.value=this.value.replace(/[^0-9]/g,'')">
       </div>
 
-      <label class="ct-chk-lbl" style="margin-top: 20px;">
+      <label class="ct-chk-lbl">
         <input type="checkbox" id="ctNotify" value="1">
         <span>Send WhatsApp updates</span>
       </label>
     </div>
     <div class="ct-foot">
       <button type="button" class="btn-ghost" onclick="closeCtModal()">Cancel</button>
-      <button type="button" class="btn-gold" id="ctSaveBtn" onclick="saveContact()">
-        <i class="bi bi-check-lg"></i> Save Contact
+      <button type="button" class="btn-main" id="ctSaveBtn" onclick="saveContact()">
+        <i class="bi bi-check-lg"></i>Save Contact
       </button>
     </div>
   </div>
 </div>
-             {{-- Priority --}}
-<div class="col-12">
-  <label class="form-label">Priority Level <span class="req">*</span></label>
-  <div class="priority-row" id="prGroup">
-    @foreach($priorities as $priority)
-      <div class="pr-pill"
-           style="--pr-color: {{ $priority->color }}"
-           onclick="setPriority(this, '{{ $priority->name }}')">
-        <span class="pi" style="color: {{ $priority->color }}">●</span>{{ $priority->name }}
-      </div>
-    @endforeach
-  </div>
-  <input type="hidden" id="priorityVal" name="priority_level" />
-</div>
 
-            </div>
-          </div>
-        </div>
+{{-- Main --}}
+<main class="main-content sr-page">
 
-        {{-- ── CARD 3 · Description ── --}}
+  {{-- ── Page title + status line ── --}}
+  {{-- <div class="sr-top">
+    <div>
+      <h4 class="sr-title">SR Registration</h4>
+      <p class="sr-sub">Create a service request</p>
+    </div>
+    <div class="sr-alert" id="srAlert"></div>
+  </div> --}}
+
+  <form id="srForm" enctype="multipart/form-data">
+    @csrf
+    <div class="row g-3 g-lg-4 align-items-start">
+
+      {{-- ════════════════ LEFT COLUMN ════════════════ --}}
+      <div class="col-lg-8">
+
+        {{-- ── CARD 1 · Customer & Project ── --}}
         <div class="fc">
           <div class="fc-head">
-            <div class="fc-icon" style="background:rgba(251,188,6,.1);">
-              <i class="bi bi-pencil-square" style="color:#d9a400;"></i>
-            </div>
-            <div>
-              <h6>Description</h6>
-              <span class="fc-sub">Describe the issue clearly for the service team</span>
-            </div>
-            <div class="fc-step" style="background:#d9a400;">3</div>
+            <span class="fc-step">1</span>
+            <h6>Customer &amp; Project</h6>
           </div>
           <div class="fc-body">
-            <div class="mb-3">
-              <label class="form-label">Issue Description <span class="req">*</span></label>
-              <textarea class="form-control" id="svcDesc" name="issue_description" rows="5"
-                placeholder="Describe the service issue clearly (min 20 characters)..."
-                oninput="onDesc(this)"></textarea>
-              <div class="d-flex justify-content-between align-items-center mt-1">
-                <span class="form-hint"><i class="bi bi-info-circle"></i>Minimum 20 characters</span>
-                <span class="cc warn" id="ccCount">0 / 20</span>
+            <div class="row g-3">
+
+              {{-- Lookup --}}
+              <div class="col-12 col-xl-4">
+                <label class="form-label" for="custCode">Customer Lookup <span class="req">*</span></label>
+                <div class="lk-wrap" id="lkWrap">
+                  <i class="bi bi-search lk-ic"></i>
+                  <input type="text" class="form-control" id="custCode" name="customer_code"
+                    placeholder="Enter customer name, code or mobile number"
+                    maxlength="60" autocomplete="off"
+                    oninput="onCode(this.value)" />
+                  <div class="lk-spin">
+                    <div class="spinner-border"></div>
+                  </div>
+                  <i class="bi bi-check-circle-fill lk-ok"></i>
+                </div>
+                <span class="form-hint">Search by customer name, code or mobile number</span>
+                {{-- hidden fields posted to controller --}}
+                <input type="hidden" id="customerId" name="customer_id" />
+                <input type="hidden" id="customerName" name="customer_name" />
               </div>
+
+              {{-- Project --}}
+              <div class="col-sm-6 col-xl-4">
+                <label class="form-label" for="projSel">Project <span class="req">*</span></label>
+                <select class="form-select" id="projSel" name="project_id" disabled onchange="onProject(this.value)">
+                  <option value="">- Select project -</option>
+                </select>
+                <span class="form-hint">All projects for selected customer</span>
+              </div>
+
+              {{-- Site (auto-filled, read-only) --}}
+              <div class="col-sm-6 col-xl-4">
+                <label class="form-label" for="siteField">Site Location <span class="req">*</span></label>
+                <input type="text" class="form-control" id="siteField" name="project_site"
+                  placeholder="Auto-filled from project" readonly />
+                <span class="form-hint">Auto-filled from selected project</span>
+              </div>
+
             </div>
 
-            <!-- <div>
-              <label class="form-label">Internal Remark <span class="opt">(Optional)</span></label>
-              <textarea class="form-control" id="remark" name="internal_remark" rows="3"
-                placeholder="Notes for the service team - not visible to client..."></textarea>
-              <div class="form-hint"><i class="bi bi-eye-slash"></i>Not shared with client</div>
-            </div> -->
+            {{-- Verified customer details / match list --}}
+            <div class="client-reveal" id="clientReveal">
+              <div><span class="ci-lbl">Customer Name</span><span class="ci-val" id="cName">-</span></div>
+              <div><span class="ci-lbl">Status</span><span class="ci-val" id="cStatus" style="color:#05a34a;">-</span></div>
+              <div><span class="ci-lbl">Contact Person</span><span class="ci-val" id="cFlag">-</span></div>
+              <div><span class="ci-lbl">Contact</span><span class="ci-val" id="cContact">-</span></div>
+            </div>
+            <div class="sr-alert" id="srAlert"></div>
+          </div>
+          
+        </div>
+        
+        {{-- ── CARD 2 · Service Information ── --}}
+        <div class="fc">
+          <div class="fc-head">
+            <span class="fc-step">2</span>
+            <h6>Service Information</h6>
+          </div>
+          <div class="fc-body">
+            <div class="row g-3">
 
+              {{-- Service Category --}}
+              <div class="col-md-6">
+                <label class="form-label" for="svcType">Service Category <span class="req">*</span></label>
+                <select class="form-select" id="svcType" name="service_type_id"
+                  onchange="pv('pvType', this.options[this.selectedIndex].text)">
+                  <option value="">- Select Category -</option>
+                  @foreach($categories as $category)
+                  <option value="{{ $category->id }}">
+                    {{ $category->category_name }}
+                  </option>
+                  @endforeach
+                </select>
+              </div>
+
+              {{-- Contact Person --}}
+              <div class="col-md-6">
+                <label class="form-label" for="reporter">Contact Person <span class="req">*</span></label>
+                <div class="ct-pick">
+                  <select class="form-select" id="reporter" name="reported_by" onchange="onReporterChange(this)">
+                    <option value="">Select customer first…</option>
+                  </select>
+                  <button type="button" class="btn-add-ct" id="addCtBtn" onclick="openCtModal()" title="Add contact person" disabled>
+                    <i class="bi bi-plus-lg"></i>
+                  </button>
+                </div>
+                <input type="hidden" name="reported_by_mobile" id="reporterMobile">
+              </div>
+
+              {{-- Priority --}}
+              <div class="col-12">
+                <label class="form-label">Priority <span class="req">*</span></label>
+                <div class="priority-row" id="prGroup">
+                  @foreach($priorities as $priority)
+                    <div class="pr-pill" onclick="setPriority(this, '{{ $priority->name }}')">
+                      <span class="pr-radio"></span>{{ $priority->name }}
+                    </div>
+                  @endforeach
+                </div>
+                <input type="hidden" id="priorityVal" name="priority_level" />
+              </div>
+
+            </div>
           </div>
         </div>
 
-        {{-- Desktop actions --}}
-        <div class="d-flex gap-3 justify-content-end mt-1 desk-actions">
-          <button type="button" class="btn-ghost" onclick="clearAll()"><i class="bi bi-arrow-counterclockwise"></i>Clear Form</button>
-          <button type="button" class="btn-main" onclick="doSubmit()" id="deskBtn"><i class="bi bi-send-fill"></i>Submit Ticket</button>
+        {{-- ── CARD 3 · Request Details ── --}}
+        <div class="fc">
+          <div class="fc-head">
+            <span class="fc-step">3</span>
+            <h6>Request Details</h6>
+          </div>
+          <div class="fc-body">
+            <label class="form-label" for="svcDesc">Description <span class="req">*</span></label>
+            <textarea class="form-control" id="svcDesc" name="issue_description" rows="4"
+              placeholder="Describe the issue in detail (minimum 20 characters)"
+              oninput="onDesc(this)"></textarea>
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="form-hint">Minimum 20 characters</span>
+              <span class="cc warn" id="ccCount">0 / 20</span>
+            </div>
+
+            {{-- Internal remark is still switched off, same as before
+            <div class="mt-3">
+              <label class="form-label">Internal Remark (Optional)</label>
+              <textarea class="form-control" id="remark" name="internal_remark" rows="3"
+                placeholder="Add any internal notes (optional)"></textarea>
+            </div>
+            --}}
+          </div>
+        </div>
+
+        {{-- ── CARD 4 · Attachments + actions ── --}}
+        <div class="fc">
+          <div class="fc-head">
+            <span class="fc-step">4</span>
+            <h6>Attachments</h6>
+          </div>
+          <div class="fc-body">
+            <div class="dz" id="dzBox" ondragover="dzOn(event)" ondragleave="dzOff()" ondrop="dzDrop(event)">
+              <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.pdf" onchange="onFiles(this.files)" />
+              <p class="dz-txt">
+                <i class="bi bi-cloud-arrow-up dz-ic"></i><strong>Choose files</strong> or drag them here
+              </p>
+              <p class="dz-hint">Supported formats: JPG, PNG, PDF <span>|</span> Max 10 MB each <span>|</span> Optional</p>
+            </div>
+            <div class="file-list" id="fileList"></div>
+
+            {{-- Desktop actions --}}
+            <div class="desk-actions">
+              <button type="button" class="btn-main" onclick="doSubmit()" id="deskBtn">Submit Service Request</button>
+              <button type="button" class="btn-ghost" onclick="clearAll()">Reset</button>
+            </div>
+          </div>
         </div>
 
       </div>{{-- /col-lg-8 --}}
 
-      {{-- ════════════════ RIGHT COLUMN (3 cards) ════════════════ --}}
+      {{-- ════════════════ RIGHT COLUMN ════════════════ --}}
       <div class="col-lg-4">
 
         {{-- Mobile toggle --}}
         <button type="button" class="rp-toggle" onclick="toggleRP(this)">
-          <span style="display:flex;align-items:center;gap:8px;"><i class="bi bi-eye" style="color:#12A5DC;"></i>SR Preview</span>
+          <span><i class="bi bi-file-earmark-text"></i>Request Summary</span>
           <i class="bi bi-chevron-down" id="rpChevron" style="transition:transform .25s;color:var(--text-muted);"></i>
         </button>
 
         <div class="rp-body-wrap" id="rpWrap">
 
-          {{-- RIGHT CARD 1 · Preview --}}
+          {{-- Request Summary --}}
           <div class="rp-card">
             <div class="rp-head">
-              <div class="fc-icon" style="background:rgba(18,165,220,.1);width:30px;height:30px;border-radius:7px;font-size:.82rem;">
-                <i class="bi bi-eye" style="color:#12A5DC;"></i>
-              </div>
-              <h6>SR Preview</h6>
-              <span class="ms-auto rp-badge" style="background:rgba(251,188,6,.12);color:#b88b00;">● Draft</span>
+              <span class="rp-ic"><i class="bi bi-file-earmark-text"></i></span>
+              <h6>Request Summary</h6>
+              <span class="rp-badge">• Draft</span>
             </div>
             <div class="rp-body">
               <div class="pv-row"><span class="pv-k">Customer</span><span class="pv-v" id="pvCode">-</span></div>
               <div class="pv-row"><span class="pv-k">Project</span><span class="pv-v" id="pvProject">-</span></div>
               <div class="pv-row"><span class="pv-k">Site</span><span class="pv-v" id="pvSite">-</span></div>
-              <hr class="rp-hr">
-              <div class="pv-row"><span class="pv-k">Type</span><span class="pv-v" id="pvType">-</span></div>
-              <div class="pv-row"><span class="pv-k">Reporter</span><span class="pv-v" id="pvReporter">-</span></div>
+              <div class="pv-row"><span class="pv-k">Category</span><span class="pv-v" id="pvType">-</span></div>
+              <div class="pv-row"><span class="pv-k">Contact Person</span><span class="pv-v" id="pvReporter">-</span></div>
               <div class="pv-row"><span class="pv-k">Priority</span><span class="pv-v" id="pvPriority">-</span></div>
-              <hr class="rp-hr">
-              <div class="pv-row"><span class="pv-k">Files</span><span class="pv-v" id="pvFiles">0 files</span></div>
-              <div class="pv-row" style="margin:0;"><span class="pv-k">Description</span><span class="pv-v" id="pvDesc">-</span></div>
+              <div class="pv-row"><span class="pv-k">Attachments</span><span class="pv-v" id="pvFiles">0 files</span></div>
+              <div class="pv-row"><span class="pv-k">Description</span><span class="pv-v" id="pvDesc">-</span></div>
             </div>
           </div>
 
-          {{-- RIGHT CARD 2 · Tips --}}
-          <div class="tips-card">
-            <div class="tips-lbl">How to fill this form</div>
-            <div class="tip"><i class="bi bi-1-circle-fill"></i>Search the customer by name, code or mobile - details load automatically.</div>
-            <div class="tip"><i class="bi bi-2-circle-fill"></i>Select a project - the site auto-fills.</div>
-            <div class="tip"><i class="bi bi-3-circle-fill"></i>Pick a service type, add the reporter name, and set priority.</div>
-            <div class="tip"><i class="bi bi-4-circle-fill"></i>Write a clear description (min 20 characters).</div>
-            <div class="tip"><i class="bi bi-5-circle-fill"></i>Attach photos or PDFs if needed - up to 10 MB each.</div>
-          </div>
-
-          {{-- RIGHT CARD 3 · Attachments --}}
-          <div class="fc" style="margin-bottom:0;">
-            <div class="fc-head">
-              <div class="fc-icon" style="background:rgba(18,165,220,.1);">
-                <i class="bi bi-paperclip" style="color:#12A5DC;"></i>
-              </div>
-              <div>
-                <h6>Attachments</h6>
-                <span class="fc-sub">.jpg · .png · .pdf · Max 10 MB each</span>
-              </div>
-              <span class="opt" style="margin-left:auto;">Optional</span>
+          {{-- Before submitting --}}
+          <div class="rp-card">
+            <div class="rp-head">
+              <i class="bi bi-lightbulb rp-bulb"></i>
+              <h6>Before submitting</h6>
             </div>
-            <div class="fc-body">
-              <div class="dz" id="dzBox" ondragover="dzOn(event)" ondragleave="dzOff()" ondrop="dzDrop(event)">
-                <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.pdf" onchange="onFiles(this.files)" />
-                <div class="dz-ic"><i class="bi bi-cloud-arrow-up-fill"></i></div>
-                <p class="dz-txt">Drop files here or <strong style="color:#12A5DC;">browse</strong></p>
-                <p class="dz-hint">.jpg · .png · .pdf &nbsp;·&nbsp; Max 10 MB</p>
+            <div class="rp-body">
+              <div class="tip">
+                <span class="tip-n">1</span>
+                <div>
+                  <p class="tip-t">Verify customer and project</p>
+                  <p class="tip-d">Make sure the customer and project are correct before submitting.</p>
+                </div>
               </div>
-              <div class="file-list" id="fileList"></div>
-              <div class="ftype-chips pt-2">
-                <span class="ftc" style="background:rgba(255,51,102,.1);color:#ff3366;">.PDF</span>
-                <span class="ftc" style="background:rgba(18,165,220,.1);color:#12A5DC;">.JPG</span>
-                <span class="ftc" style="background:rgba(5,163,74,.1);color:#05a34a;">.PNG</span>
-                <span style="font-size:.68rem;color:var(--text-muted);margin-left:2px;">Multiple files OK</span>
+              <div class="tip">
+                <span class="tip-n">2</span>
+                <div>
+                  <p class="tip-t">Describe the issue clearly</p>
+                  <p class="tip-d">Provide detailed information to help the team understand and resolve faster.</p>
+                </div>
+              </div>
+              <div class="tip">
+                <span class="tip-n">3</span>
+                <div>
+                  <p class="tip-t">Attach photos or PDFs if helpful</p>
+                  <p class="tip-d">Add relevant files to support your request (if available).</p>
+                </div>
               </div>
             </div>
           </div>
@@ -1387,8 +1350,8 @@ body.modal-open .topbar { pointer-events: none; }
 
 {{-- Mobile bottom bar --}}
 <div class="mob-bar" id="mobBar">
-  <button type="button" class="btn-ghost" style="flex:1;" onclick="clearAll()"><i class="bi bi-arrow-counterclockwise"></i>Clear</button>
-  <button type="button" class="btn-main" style="flex:2;" onclick="doSubmit()" id="mobBtn"><i class="bi bi-send-fill"></i>Submit Ticket</button>
+  <button type="button" class="btn-ghost" style="flex:1;" onclick="clearAll()">Reset</button>
+  <button type="button" class="btn-main" style="flex:2;" onclick="doSubmit()" id="mobBtn">Submit Service Request</button>
 </div>
 
 @endsection
@@ -1399,9 +1362,6 @@ body.modal-open .topbar { pointer-events: none; }
    ENDPOINTS
 ═══════════════════════════════════════════ */
 
-
-
-
   const LOOKUP_URL = "{{ url('/service-requests/lookup') }}"; // GET + /{code}
   const STORE_URL = "{{ route('service-requests.store') }}"; // POST
   const CSRF_TOKEN = document.querySelector('#srForm input[name="_token"]').value;
@@ -1411,176 +1371,169 @@ body.modal-open .topbar { pointer-events: none; }
 
   /* ── Init ── */
   document.addEventListener('DOMContentLoaded', () => {
-    setAlert('warning', '⏳ Search a customer to begin.');
+    setAlert('warning', 'Search a customer to begin.');
   });
 
   /* ── Alert bar ── */
-  function setAlert(type, msg) {
+   function setAlert(type, msg) {
     const el = document.getElementById('srAlert');
     const m = {
-      warning: {
-        bg: 'rgba(251,188,6,.09)',
-        bd: 'rgba(251,188,6,.3)',
-        c: '#b88b00',
-        i: 'bi-exclamation-circle-fill'
+      warning: {                          // the "search a customer" prompts: now blue, not yellow
+        bg: 'rgba(13,142,214,.07)',
+        bd: 'rgba(13,142,214,.22)',
+        c: '#0d8ed6',
+        i: 'bi-info-circle-fill'          // was bi-exclamation-circle-fill
       },
       success: {
         bg: 'rgba(5,163,74,.07)',
-        bd: 'rgba(5,163,74,.2)',
+        bd: 'rgba(5,163,74,.22)',
         c: '#05a34a',
         i: 'bi-check-circle-fill'
       },
       danger: {
-        bg: 'rgba(255,51,102,.07)',
-        bd: 'rgba(255,51,102,.22)',
-        c: '#ff3366',
+        bg: 'rgba(229,72,77,.07)',        // was rgba(255,51,102,.07)
+        bd: 'rgba(229,72,77,.25)',
+        c: '#e5484d',                     // was #ff3366
         i: 'bi-x-circle-fill'
       },
       primary: {
-        bg: 'rgba(18,165,220,.07)',
-        bd: 'rgba(18,165,220,.2)',
-        c: '#12A5DC',
+        bg: 'rgba(13,142,214,.07)',       // was rgba(18,165,220,.07)
+        bd: 'rgba(13,142,214,.22)',
+        c: '#0d8ed6',                     // was #12A5DC
         i: 'bi-info-circle-fill'
       },
     } [type] || {};
     el.style.cssText = `background:${m.bg};border-color:${m.bd};`;
-    el.innerHTML = `<i class="bi ${m.i}" style="color:${m.c};font-size:.9rem;flex-shrink:0;"></i><span>${msg}</span>`;
+    el.innerHTML = `<i class="bi ${m.i}" style="color:${m.c};font-size:.85rem;flex-shrink:0;"></i><span>${msg}</span>`;
+  }
+
+  /* ── Contact person modal ── */
+
+  const CONTACT_STORE_URL = "{{ url('/service-requests/contacts') }}"; // POST
+
+  function openCtModal() {
+    if (!window.__clientId) { toast('error','Validation','Verify a customer first.'); return; }
+
+    const m = document.getElementById('ctModal');
+
+    // Escape any stacking context created by .main / .page-content
+    if (m.parentElement !== document.body) document.body.appendChild(m);
+
+    document.getElementById('ctName').value      = '';
+    document.getElementById('ctMobile').value    = '';
+    document.getElementById('ctNotify').checked  = false;
+
+    m.classList.add('show');
+    document.body.classList.add('modal-open');
+
+    setTimeout(() => document.getElementById('ctName').focus(), 50);
+  }
+
+  function closeCtModal() {
+    document.getElementById('ctModal').classList.remove('show');
+    document.body.classList.remove('modal-open');
+  }
+
+  async function saveContact() {
+    const name    = document.getElementById('ctName').value.trim();
+    const country = document.getElementById('ctCountry').value;
+    const mobile  = document.getElementById('ctMobile').value.trim();
+    const notify  = document.getElementById('ctNotify').checked ? 1 : 0;
+
+    if (!name)   { toast('error','Validation','Enter the contact name.'); return; }
+    if (!mobile) { toast('error','Validation','Enter the WhatsApp number.'); return; }
+
+    const btn = document.getElementById('ctSaveBtn');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch(CONTACT_STORE_URL, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': CSRF_TOKEN,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({ client_id: window.__clientId, name, country, mobile, notify })
+      });
+
+      if (res.status === 422) {
+        const err = await res.json();
+        toast('error','Validation', Object.values(err.errors||{})[0]?.[0] || 'Invalid data.');
+        return;
+      }
+      if (!res.ok) throw new Error('Server error ' + res.status);
+
+      const data = await res.json();          // { contact:{ id, name, mobile, notify } }
+      const sel  = document.getElementById('reporter');
+      const o    = document.createElement('option');
+      o.value = data.contact.name;
+      o.textContent = data.contact.name;
+      sel.appendChild(o);
+      sel.value = data.contact.name;
+      onReporterChange(sel);
+
+      closeCtModal();
+      toast('success','Contact Added', data.contact.name);
+    } catch (e) {
+      toast('error','Save Failed', e.message || 'Could not save the contact.');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function fillReporters(contacts) {
+    const sel = document.getElementById('reporter');
+    sel.innerHTML = '<option value="">Select contact person…</option>';
+    (contacts || []).forEach(c => {
+      const o = document.createElement('option');
+      o.value = c.name || '';
+      o.textContent = c.name || '';
+      sel.appendChild(o);
+    });
+    document.getElementById('addCtBtn').disabled = false;
+    pv('pvReporter', '-');
+  }
+
+  function onReporterChange(sel) {
+    pv('pvReporter', sel.value || '-');
   }
 
   /* ── Lookup (debounced) ── */
 
-
-
-  const CONTACT_STORE_URL = "{{ url('/service-requests/contacts') }}"; // POST
-
-function openCtModal() {
-  if (!window.__clientId) { toast('error','Validation','Verify a customer first.'); return; }
-
-  const m = document.getElementById('ctModal');
-
-  // Escape any stacking context created by .main / .page-content
-  if (m.parentElement !== document.body) document.body.appendChild(m);
-
-  document.getElementById('ctName').value      = '';
-  document.getElementById('ctMobile').value    = '';
-  document.getElementById('ctNotify').checked  = false;
-
-  m.classList.add('show');
-  document.body.classList.add('modal-open');
-
-  setTimeout(() => document.getElementById('ctName').focus(), 50);
-}
-
-function closeCtModal() {
-  document.getElementById('ctModal').classList.remove('show');
-  document.body.classList.remove('modal-open');
-}
-
-// function closeCtModal() {
-//   document.getElementById('ctModal').classList.remove('show');
-// }
-
-async function saveContact() {
-  const name    = document.getElementById('ctName').value.trim();
-  const country = document.getElementById('ctCountry').value;
-  const mobile  = document.getElementById('ctMobile').value.trim();
-  const notify  = document.getElementById('ctNotify').checked ? 1 : 0;
-
-  if (!name)   { toast('error','Validation','Enter the contact name.'); return; }
-  if (!mobile) { toast('error','Validation','Enter the WhatsApp number.'); return; }
-
-  const btn = document.getElementById('ctSaveBtn');
-  btn.disabled = true;
-
-  try {
-    const res = await fetch(CONTACT_STORE_URL, {
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': CSRF_TOKEN,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ client_id: window.__clientId, name, country, mobile, notify })
-    });
-
-    if (res.status === 422) {
-      const err = await res.json();
-      toast('error','Validation', Object.values(err.errors||{})[0]?.[0] || 'Invalid data.');
-      return;
-    }
-    if (!res.ok) throw new Error('Server error ' + res.status);
-
-    const data = await res.json();          // { contact:{ id, name, mobile, notify } }
-    const sel  = document.getElementById('reporter');
-    const o    = document.createElement('option');
-    o.value = data.contact.name;
-    o.textContent = data.contact.name;
-    sel.appendChild(o);
-    sel.value = data.contact.name;
-    onReporterChange(sel);
-
-    closeCtModal();
-    toast('success','Contact Added', data.contact.name);
-  } catch (e) {
-    toast('error','Save Failed', e.message || 'Could not save the contact.');
-  } finally {
-    btn.disabled = false;
-  }
-}
-
-
-
-function fillReporters(contacts) {
-  const sel = document.getElementById('reporter');
-  sel.innerHTML = '<option value="">Select contact person…</option>';
-  (contacts || []).forEach(c => {
-    const o = document.createElement('option');
-    o.value = c.name || '';
-    o.textContent = c.name || '';
-    sel.appendChild(o);
-  });
-  document.getElementById('addCtBtn').disabled = false;
-  pv('pvReporter', '-');
-}
-
-function onReporterChange(sel) {
-  pv('pvReporter', sel.value || '-');
-}
-
   let lastVerifiedTerm = null;
 
- function onCode(val) {
-  clearTimeout(vTimer);
-  const term = val.trim();
+  function onCode(val) {
+    clearTimeout(vTimer);
+    const term = val.trim();
 
-  if (term && term === lastVerifiedTerm) return;
+    if (term && term === lastVerifiedTerm) return;
 
-  const w = document.getElementById('lkWrap');
-  w.classList.remove('verifying', 'verified');
-  document.getElementById('clientReveal').classList.remove('show');
-  document.getElementById('customerId').value = '';
-  document.getElementById('customerName').value = '';
-  resetSel('projSel', 'project');
-  document.getElementById('siteField').value = '';
-  pv('pvCode', '-');
-  pv('pvProject', '-');
-  pv('pvSite', '-');
-  setAlert('warning', '⏳ Search by customer name, code or mobile.');
+    const w = document.getElementById('lkWrap');
+    w.classList.remove('verifying', 'verified');
+    document.getElementById('clientReveal').classList.remove('show');
+    document.getElementById('customerId').value = '';
+    document.getElementById('customerName').value = '';
+    resetSel('projSel', 'project');
+    document.getElementById('siteField').value = '';
+    pv('pvCode', '-');
+    pv('pvProject', '-');
+    pv('pvSite', '-');
+    setAlert('warning', 'Search by customer name, code or mobile.');
 
-  lastVerifiedTerm = null;
+    lastVerifiedTerm = null;
 
-  if (term.length >= 2) {
-    w.classList.add('verifying');
-   vTimer = setTimeout(() => verify(term), 400);
+    if (term.length >= 2) {
+      w.classList.add('verifying');
+      vTimer = setTimeout(() => verify(term), 400);
+    }
   }
-}
 
   // Expected JSON from LOOKUP_URL/{term}:
   // { found:true, client:{ id, name, status, flag, contact,
   //   projects:{ "Project Name":["Site 1","Site 2"] } } }
 
-
-async function verify(val) {
+  async function verify(val) {
     const w = document.getElementById('lkWrap');
     const term = val.trim();
 
@@ -1599,7 +1552,7 @@ async function verify(val) {
           'Accept': 'application/json'
         }
       });
-     let data = res.ok ? await res.json() : { found: false };
+      let data = res.ok ? await res.json() : { found: false };
       w.classList.remove('verifying');
       // Any matches → list them, wait for a click (even if there's only one)
       if (Array.isArray(data.clients) && data.clients.length) {
@@ -1609,7 +1562,7 @@ async function verify(val) {
       }
       if (data.found && data.client) {
         const c = data.client;
-       lastVerifiedTerm = document.getElementById('custCode').value.trim();
+        lastVerifiedTerm = document.getElementById('custCode').value.trim();
         w.classList.add('verified');
         const box = document.getElementById('clientReveal');
         box.style.gridTemplateColumns = '';   // back to the 4-column grid
@@ -1627,8 +1580,7 @@ async function verify(val) {
         window.__clientId = c.id;
         document.getElementById('clientReveal').classList.add('show');
 
-        fillReporters(c.contacts);   // ← add this
-
+        fillReporters(c.contacts);
 
         const ps = document.getElementById('projSel');
         ps.innerHTML = '<option value="">- Select project -</option>';
@@ -1656,11 +1608,11 @@ async function verify(val) {
         pv('pvSite', '-');
 
         pv('pvCode', c.name ?? term);
-        setAlert('success', `✅ Verified: <strong>${c.name}</strong> - select a project to continue.`);
+        setAlert('success', `Verified: <strong>${c.name}</strong> - select a project to continue.`);
         toast('success', 'Customer Verified', c.name);
       } else {
         lastVerifiedTerm = null;
-        setAlert('danger', '❌ No customer found. Check the name, code or mobile.');
+        setAlert('danger', 'No customer found. Check the name, code or mobile.');
         toast('error', 'Not Found', 'No active customer for this search.');
       }
     } catch (e) {
@@ -1687,7 +1639,7 @@ async function verify(val) {
       box.appendChild(row);
     });
     box.classList.add('show');
-    setAlert('primary', `ℹ️ ${list.length} matches - click the customer you want.`);
+    setAlert('primary', `${list.length} matches - click the customer you want.`);
   }
 
   /* Click a match → fill the input with the name, then verify it */
@@ -1702,14 +1654,14 @@ async function verify(val) {
 
   /* ── Project → auto-fill first site ── */
   function onProject(val) {
-  const projects = window.__projects || [];
-  const proj = projects.find(p => String(p.id) === String(val));
-  pv('pvProject', proj ? proj.name : '-');
-  const sites = proj && proj.sites ? proj.sites : [];
-  const firstSite = sites.length ? sites[0] : '';
-  document.getElementById('siteField').value = firstSite;   // auto-fill first site (read-only)
-  pv('pvSite', firstSite || '-');
-}
+    const projects = window.__projects || [];
+    const proj = projects.find(p => String(p.id) === String(val));
+    pv('pvProject', proj ? proj.name : '-');
+    const sites = proj && proj.sites ? proj.sites : [];
+    const firstSite = sites.length ? sites[0] : '';
+    document.getElementById('siteField').value = firstSite;   // auto-fill first site (read-only)
+    pv('pvSite', firstSite || '-');
+  }
 
   function resetSel(id, lbl) {
     const el = document.getElementById(id);
@@ -1771,30 +1723,30 @@ async function verify(val) {
     renderFiles();
   }
 
- function renderFiles() {
-  const list = document.getElementById('fileList');
-  list.innerHTML = '';
-  uploads.forEach((f, i) => {
-    const ext   = f.name.split('.').pop().toUpperCase();
-    const isImg = /^image\//.test(f.type) || ['JPG','JPEG','PNG','GIF','WEBP'].includes(ext);
-    const url   = URL.createObjectURL(f);
+  function renderFiles() {
+    const list = document.getElementById('fileList');
+    list.innerHTML = '';
+    uploads.forEach((f, i) => {
+      const ext   = f.name.split('.').pop().toUpperCase();
+      const isImg = /^image\//.test(f.type) || ['JPG','JPEG','PNG','GIF','WEBP'].includes(ext);
+      const url   = URL.createObjectURL(f);
 
-    const d = document.createElement('div');
-    d.className = 'fitem';
-    d.innerHTML = `
-      <a href="${url}" target="_blank" rel="noopener" class="fi-link">
-        ${isImg
-          ? `<img class="fi-thumb" src="${url}" alt="">`
-          : `<span class="fi-pdf"><i class="bi bi-file-earmark-pdf-fill"></i></span>`}
-      </a>
-      <a href="${url}" target="_blank" rel="noopener" class="fi-name">${f.name}</a>
-      <span class="fi-sz">${(f.size/1024).toFixed(1)} KB</span>
-      <button type="button" class="fi-rm" onclick="rmFile(${i})"><i class="bi bi-x-lg"></i></button>`;
+      const d = document.createElement('div');
+      d.className = 'fitem';
+      d.innerHTML = `
+        <a href="${url}" target="_blank" rel="noopener" class="fi-link">
+          ${isImg
+            ? `<img class="fi-thumb" src="${url}" alt="">`
+            : `<span class="fi-pdf"><i class="bi bi-file-earmark-pdf-fill"></i></span>`}
+        </a>
+        <a href="${url}" target="_blank" rel="noopener" class="fi-name">${f.name}</a>
+        <span class="fi-sz">${(f.size/1024).toFixed(1)} KB</span>
+        <button type="button" class="fi-rm" onclick="rmFile(${i})"><i class="bi bi-x-lg"></i></button>`;
 
-    list.appendChild(d);
-  });
-  pv('pvFiles', `${uploads.length} file${uploads.length !== 1 ? 's' : ''}`);
-}
+      list.appendChild(d);
+    });
+    pv('pvFiles', `${uploads.length} file${uploads.length !== 1 ? 's' : ''}`);
+  }
 
   function rmFile(i) {
     uploads.splice(i, 1);
@@ -1891,27 +1843,26 @@ async function verify(val) {
       b.disabled = loading;
       b.innerHTML = loading ?
         '<span class="spinner-border" style="width:13px;height:13px;border-width:2px;"></span> Submitting…' :
-        '<i class="bi bi-send-fill"></i>Submit Ticket';
+        'Submit Service Request';   // label only: was "Submit Ticket"
     });
   }
 
   /* ── Post-submit ── */
-  const CAN_VIEW_TRIAGE = @json($canViewTriage);   
+  const CAN_VIEW_TRIAGE = @json($canViewTriage);
 
-function goHub() {
+  function goHub() {
     document.getElementById('srOverlay').classList.remove('show');
     clearAll();
     window.location.href = CAN_VIEW_TRIAGE
         ? "{{ route('inquiry-approval.index') }}"
         : "{{ route('sr_explorer') }}";   // or dashboard, or wherever SE/AC should land
-}
+  }
 
   function newTicket() {
     document.getElementById('srOverlay').classList.remove('show');
     clearAll();
     toast('primary', 'Ready', 'Form cleared - register a new SR.');
   }
-
 
   /* ── Clear ── */
   function clearAll() {
@@ -1925,7 +1876,7 @@ function goHub() {
     document.getElementById('svcType').value = '';
     document.getElementById('reporter').value = '';
     document.getElementById('svcDesc').value = '';
-   
+
     document.getElementById('ccCount').textContent = '0 / 20';
     document.getElementById('ccCount').className = 'cc warn';
     document.getElementById('priorityVal').value = '';
@@ -1934,10 +1885,8 @@ function goHub() {
     renderFiles();
     ['pvCode', 'pvProject', 'pvSite', 'pvType', 'pvReporter', 'pvPriority', 'pvDesc'].forEach(id => pv(id, '-'));
     pv('pvFiles', '0 files');
-    setAlert('warning', '⏳ Search a customer to begin.');
+    setAlert('warning', 'Search a customer to begin.');
   }
-
-  
 
   /* ── Right panel toggle ── */
   function toggleRP(btn) {
