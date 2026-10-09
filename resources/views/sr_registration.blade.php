@@ -8,7 +8,7 @@
 <style>
   /* ── Page header ─────────────────────────── */
   .sr-header {
-    background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,#12A5DC 0%,#0B76A3 100%);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden;
   }
 
   .sr-header::before,
@@ -201,8 +201,8 @@
 
   .form-control:focus,
   .form-select:focus {
-    border-color: #9A7B4F;
-    box-shadow: 0 0 0 3px rgba(154, 123, 79, .13);
+    border-color: #12A5DC;
+    box-shadow: 0 0 0 3px rgba(18, 165, 220, .13);
     outline: none;
   }
 
@@ -278,7 +278,7 @@
     width: 15px;
     height: 15px;
     border-width: 2px;
-    color: #9A7B4F;
+    color: #12A5DC;
   }
 
   .lk-ok {
@@ -357,9 +357,9 @@
   }
 
   .pr-pill.on {
-    border-color: #9A7B4F;
-    color: #9A7B4F;
-    background: rgba(154, 123, 79, .05);
+    border-color: #12A5DC;
+    color: #12A5DC;
+    background: rgba(18, 165, 220, .05);
 }
 
   .pr-pill {
@@ -383,9 +383,9 @@
   }
 
   .pr-pill:hover {
-    border-color: #9A7B4F;
-    color: #9A7B4F;
-    background: rgba(154, 123, 79, .05);
+    border-color: #12A5DC;
+    color: #12A5DC;
+    background: rgba(18, 165, 220, .05);
   }
 
   .pr-pill.sel-low.on {
@@ -461,7 +461,7 @@
 
   .dz:hover,
   .dz.over {
-    border-color: #9A7B4F;
+    border-color: #12A5DC;
     background: var(--dz-hover);
   }
 
@@ -476,7 +476,7 @@
 
   .dz-ic {
     font-size: 1.8rem;
-    color: #9A7B4F;
+    color: #12A5DC;
     margin-bottom: 6px;
     line-height: 1;
   }
@@ -567,7 +567,7 @@
 
   /* ── Buttons ─────────────────────────────── */
   .btn-main {
-    background: linear-gradient(135deg, #9A7B4F, #C4A882);
+    background: linear-gradient(135deg, #12A5DC, #0E8FC2);
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -578,14 +578,14 @@
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    box-shadow: 0 4px 14px rgba(154, 123, 79, .32);
+    box-shadow: 0 4px 14px rgba(18, 165, 220, .32);
     transition: opacity .15s, transform .1s, box-shadow .15s;
     letter-spacing: .01em;
   }
 
   .btn-main:hover {
     opacity: .9;
-    box-shadow: 0 6px 20px rgba(154, 123, 79, .42);
+    box-shadow: 0 6px 20px rgba(18, 165, 220, .42);
   }
 
   .btn-main:active {
@@ -756,7 +756,7 @@
   }
 
   .tip i {
-    color: #9A7B4F;
+    color: #12A5DC;
     flex-shrink: 0;
     margin-top: 2px;
   }
@@ -807,7 +807,7 @@
 
   .toast-el {
     background: var(--card-bg);
-    border-left: 4px solid #9A7B4F;
+    border-left: 4px solid #12A5DC;
     border-radius: 8px;
     padding: 11px 13px;
     box-shadow: 0 6px 22px rgba(0, 0, 0, .16);
@@ -844,7 +844,7 @@
   }
 
   .ti.primary {
-    color: #9A7B4F;
+    color: #12A5DC;
   }
 
   .ti.success {
@@ -945,13 +945,13 @@
   }
 
   .sr-id {
-    background: rgba(154, 123, 79, .1);
-    border: 1.5px solid rgba(154, 123, 79, .25);
+    background: rgba(18, 165, 220, .1);
+    border: 1.5px solid rgba(18, 165, 220, .25);
     border-radius: 8px;
     padding: 10px 18px;
     font-size: .9375rem;
     font-weight: 700;
-    color: #9A7B4F;
+    color: #12A5DC;
     display: inline-block;
     letter-spacing: .06em;
     margin-bottom: 16px;
@@ -973,18 +973,18 @@
 /* Needed */
 
 
-.btn-add-ct{width:38px;flex-shrink:0;border:1px solid rgba(154,123,79,.4);background:rgba(154,123,79,.1);color:#9A7B4F;border-radius:8px;cursor:pointer}
+.btn-add-ct{width:38px;flex-shrink:0;border:1px solid rgba(18,165,220,.4);background:rgba(18,165,220,.1);color:#12A5DC;border-radius:8px;cursor:pointer}
 .btn-add-ct:disabled{opacity:.4;cursor:not-allowed}
 .ct-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);z-index:0;display:none;align-items:center;justify-content:center;padding:16px}
 .ct-overlay.show{display:flex}
-.ct-box{background:var(--bs-body-bg,#fff);border:1px solid rgba(154,123,79,.25);border-radius:14px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
-.ct-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(154,123,79,.18)}
-.ct-hdr h6{margin:0;font-size:.9rem;color:#9A7B4F}
+.ct-box{background:var(--bs-body-bg,#fff);border:1px solid rgba(18,165,220,.25);border-radius:14px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.ct-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(18,165,220,.18)}
+.ct-hdr h6{margin:0;font-size:.9rem;color:#12A5DC}
 .ct-x{background:none;border:0;cursor:pointer;color:inherit;opacity:.6}
 .ct-body{padding:16px}
 .ct-foot{
   display:flex;justify-content:flex-end;gap:10px;
-  padding:12px 16px;border-top:1px solid rgba(154,123,79,.18);
+  padding:12px 16px;border-top:1px solid rgba(18,165,220,.18);
 }
 .ct-foot .btn-ghost,
 .ct-foot .btn-gold{
@@ -995,23 +995,23 @@
 }
 .ct-foot .btn-ghost{
   background:transparent;
-  border:1px solid rgba(154,123,79,.35);
+  border:1px solid rgba(18,165,220,.35);
   color:var(--text-muted,#8a8a8a);
 }
 .ct-foot .btn-ghost:hover{
-  background:rgba(154,123,79,.08);
-  border-color:rgba(154,123,79,.55);
-  color:#9A7B4F;
+  background:rgba(18,165,220,.08);
+  border-color:rgba(18,165,220,.55);
+  color:#12A5DC;
 }
 .ct-foot .btn-gold{
-  background:linear-gradient(135deg,#9A7B4F,#c1a06a);
-  border:1px solid rgba(154,123,79,.6);
+  background:linear-gradient(135deg,#12A5DC,#0E8FC2);
+  border:1px solid rgba(18,165,220,.6);
   color:#fff;
-  box-shadow:0 2px 8px rgba(154,123,79,.28);
+  box-shadow:0 2px 8px rgba(18,165,220,.28);
 }
 .ct-foot .btn-gold:hover{
-  background:linear-gradient(135deg,#8a6d45,#b0905c);
-  box-shadow:0 4px 14px rgba(154,123,79,.4);
+  background:linear-gradient(135deg,#0E8FC2,#0B76A3);
+  box-shadow:0 4px 14px rgba(18,165,220,.4);
   transform:translateY(-1px);
 }
 .ct-foot .btn-gold:active{transform:translateY(0)}
@@ -1087,14 +1087,14 @@ body.modal-open .topbar { pointer-events: none; }
         {{-- ── CARD 1 · Customer Verification ── --}}
         <div class="fc">
           <div class="fc-head">
-            <div class="fc-icon" style="background:rgba(154,123,79,.1);">
-              <i class="bi bi-person-badge-fill" style="color:#9A7B4F;"></i>
+            <div class="fc-icon" style="background:rgba(18,165,220,.1);">
+              <i class="bi bi-person-badge-fill" style="color:#12A5DC;"></i>
             </div>
             <div>
               <h6>Customer Verification</h6>
               <span class="fc-sub">Search by customer name, code or mobile - details load automatically</span>
             </div>
-            <div class="fc-step" style="background:#9A7B4F;">1</div>
+            <div class="fc-step" style="background:#12A5DC;">1</div>
           </div>
           <div class="fc-body">
             <div class="row g-3">
@@ -1310,7 +1310,7 @@ body.modal-open .topbar { pointer-events: none; }
 
         {{-- Mobile toggle --}}
         <button type="button" class="rp-toggle" onclick="toggleRP(this)">
-          <span style="display:flex;align-items:center;gap:8px;"><i class="bi bi-eye" style="color:#9A7B4F;"></i>SR Preview</span>
+          <span style="display:flex;align-items:center;gap:8px;"><i class="bi bi-eye" style="color:#12A5DC;"></i>SR Preview</span>
           <i class="bi bi-chevron-down" id="rpChevron" style="transition:transform .25s;color:var(--text-muted);"></i>
         </button>
 
@@ -1319,8 +1319,8 @@ body.modal-open .topbar { pointer-events: none; }
           {{-- RIGHT CARD 1 · Preview --}}
           <div class="rp-card">
             <div class="rp-head">
-              <div class="fc-icon" style="background:rgba(154,123,79,.1);width:30px;height:30px;border-radius:7px;font-size:.82rem;">
-                <i class="bi bi-eye" style="color:#9A7B4F;"></i>
+              <div class="fc-icon" style="background:rgba(18,165,220,.1);width:30px;height:30px;border-radius:7px;font-size:.82rem;">
+                <i class="bi bi-eye" style="color:#12A5DC;"></i>
               </div>
               <h6>SR Preview</h6>
               <span class="ms-auto rp-badge" style="background:rgba(251,188,6,.12);color:#b88b00;">● Draft</span>
@@ -1352,8 +1352,8 @@ body.modal-open .topbar { pointer-events: none; }
           {{-- RIGHT CARD 3 · Attachments --}}
           <div class="fc" style="margin-bottom:0;">
             <div class="fc-head">
-              <div class="fc-icon" style="background:rgba(154,123,79,.1);">
-                <i class="bi bi-paperclip" style="color:#9A7B4F;"></i>
+              <div class="fc-icon" style="background:rgba(18,165,220,.1);">
+                <i class="bi bi-paperclip" style="color:#12A5DC;"></i>
               </div>
               <div>
                 <h6>Attachments</h6>
@@ -1365,13 +1365,13 @@ body.modal-open .topbar { pointer-events: none; }
               <div class="dz" id="dzBox" ondragover="dzOn(event)" ondragleave="dzOff()" ondrop="dzDrop(event)">
                 <input type="file" id="fileInput" multiple accept=".jpg,.jpeg,.png,.pdf" onchange="onFiles(this.files)" />
                 <div class="dz-ic"><i class="bi bi-cloud-arrow-up-fill"></i></div>
-                <p class="dz-txt">Drop files here or <strong style="color:#9A7B4F;">browse</strong></p>
+                <p class="dz-txt">Drop files here or <strong style="color:#12A5DC;">browse</strong></p>
                 <p class="dz-hint">.jpg · .png · .pdf &nbsp;·&nbsp; Max 10 MB</p>
               </div>
               <div class="file-list" id="fileList"></div>
               <div class="ftype-chips pt-2">
                 <span class="ftc" style="background:rgba(255,51,102,.1);color:#ff3366;">.PDF</span>
-                <span class="ftc" style="background:rgba(154,123,79,.1);color:#9A7B4F;">.JPG</span>
+                <span class="ftc" style="background:rgba(18,165,220,.1);color:#12A5DC;">.JPG</span>
                 <span class="ftc" style="background:rgba(5,163,74,.1);color:#05a34a;">.PNG</span>
                 <span style="font-size:.68rem;color:var(--text-muted);margin-left:2px;">Multiple files OK</span>
               </div>
@@ -1437,9 +1437,9 @@ body.modal-open .topbar { pointer-events: none; }
         i: 'bi-x-circle-fill'
       },
       primary: {
-        bg: 'rgba(154,123,79,.07)',
-        bd: 'rgba(154,123,79,.2)',
-        c: '#9A7B4F',
+        bg: 'rgba(18,165,220,.07)',
+        bd: 'rgba(18,165,220,.2)',
+        c: '#12A5DC',
         i: 'bi-info-circle-fill'
       },
     } [type] || {};

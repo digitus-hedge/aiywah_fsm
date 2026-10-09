@@ -33,14 +33,10 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
 
     <a href="{{ route('dashboard') }}" class="sidebar-brand">
         <div class="brand-mark">
-            <img src="{{ asset('assets/images/favicon.png') }}"
-                 alt="Matter Mind"
-                 style="width:35px;height:40px;object-fit:contain;padding:3px">
+            <img src="{{ asset('assets/images/logo-landscape.png') }}"
+                 alt="Matter Mind">
         </div>
-        <div class="brand-text">
-            MATTER MIND
-            <small>Service That Matters. Always.</small>
-        </div>
+        
     </a>
 
     <ul class="sidebar-nav">
@@ -272,185 +268,119 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
 
 <style>
 /* ═══════════════════════════════════════════════
-   SIDEBAR - scoped so nothing leaks into the page
+   SIDEBAR - Aiywah theme (scoped to .sidebar)
 ═══════════════════════════════════════════════ */
 .sidebar{
-  --sb-brand:#9a8053;
-  --sb-brand-soft:rgba(154,128,83,.12);
-  --sb-brand-hover:rgba(154,128,83,.07);
+  --sb-brand:#12A5DC;                    /* logo blue: accent bar, active icon */
+  --sb-brand-text:#0B76A3;               /* darker blue: readable active text */
+  --sb-brand-soft:rgba(18,165,220,.10);  /* active row background */
+  --sb-hover:rgba(15,23,42,.05);         /* hover row background */
   scrollbar-width:thin;
-  scrollbar-color:none;
+}
+[data-theme="dark"] .sidebar,
+[data-bs-theme="dark"] .sidebar{
+  --sb-brand-text:#5CC4EA;
+  --sb-brand-soft:rgba(18,165,220,.18);
+  --sb-hover:rgba(255,255,255,.06);
 }
 .sidebar::-webkit-scrollbar{width:5px;}
 .sidebar::-webkit-scrollbar-track{background:transparent;}
 .sidebar::-webkit-scrollbar-thumb{background:var(--border-color,#e4e8f0);border-radius:3px;}
-.sidebar:hover::-webkit-scrollbar-thumb{background:rgba(154,128,83,.35);}
 
 /* ── Brand ── */
 .sidebar-brand{
-  display:flex;align-items:center;gap:11px;
+  display:flex;align-items:center;justify-content:center;
+  height:60px;padding:0 18px;
   text-decoration:none;
   border-bottom:1px solid var(--border-color,#e4e8f0);
 }
-.sidebar-brand .brand-mark{
-  display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  border-radius:9px;
-  transition:transform .25s cubic-bezier(.34,1.56,.64,1);
-}
-.sidebar-brand:hover .brand-mark{transform:scale(1.06) rotate(-3deg);}
-.sidebar-brand .brand-text{
-  font-size:.9375rem;font-weight:700;letter-spacing:.04em;
-  color:var(--text-heading,#0d1626);line-height:1.2;
-}
-.sidebar-brand .brand-text small{
-  display:block;
-  font-size:.625rem;font-weight:400;letter-spacing:.01em;
-  color:var(--text-muted,#7987a1);margin-top:2px;
-}
+.sidebar-brand .brand-mark{display:flex;align-items:center;}
+.sidebar-brand .brand-mark img{display:block;height:38px;width:auto;max-width:100%;}
+/* the logo has black lettering, so give it a white plate in dark mode */
+[data-theme="dark"] .sidebar-brand .brand-mark,
+[data-bs-theme="dark"] .sidebar-brand .brand-mark{background:#fff;border-radius:8px;padding:4px 10px;}
 
 /* ── Nav list ── */
 .sidebar-nav{list-style:none;margin:0;padding:8px 0 24px;}
 
-/* Section headings - fixed height so nothing reflows on load */
 .sidebar-heading{
-  font-size:.625rem;font-weight:700;
-  text-transform:uppercase;letter-spacing:.13em;
-  color:var(--text-light,#b0bac9);
-  padding:16px 22px 5px;
-  min-height:28px;line-height:28px;
+  font-size:.6875rem;font-weight:600;
+  text-transform:uppercase;letter-spacing:.08em;
+  color:var(--text-muted,#7987a1);
+  padding:18px 20px 6px;
   user-select:none;
 }
-.sidebar-nav li:first-child .sidebar-heading,
-.sidebar-heading:first-child{padding-top:10px;}
+.sidebar-nav .sidebar-heading:first-child{padding-top:10px;}
 
-/* ── Links ── */
+/* ── Links: full-width rows ── */
 .sidebar-nav a{
-  position:relative;
-  display:flex;align-items:center;gap:11px;
-  margin:2px 10px;padding:9px 12px;
-  border-radius:8px;
-  font-size:.8125rem;font-weight:450;
+  display:flex;align-items:center;gap:12px;
+  padding:10px 20px 10px 17px;
+  border-left:3px solid transparent;
+  font-size:.8125rem;font-weight:500;
   color:var(--nav-link,#4a5568);
   text-decoration:none;
-  transition:background .16s ease,color .16s ease,transform .16s ease;
+  transition:background .15s ease,color .15s ease;
 }
 
-/* Reserve icon space BEFORE feather swaps <i> for <svg> - stops the shift */
+/* Reserve icon space before feather swaps <i> for <svg> */
 .sidebar-nav a > i[data-feather],
 .sidebar-nav a > svg{
   flex:0 0 18px;width:18px;height:18px;
+  margin-right:0;            /* add this line */
   stroke-width:1.9;
   color:var(--text-muted,#7987a1);
-  transition:color .16s ease;
+  transition:color .15s ease;
 }
 .sidebar-nav a > span{
   flex:1;min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 
+/* Hover */
 .sidebar-nav a:hover{
-  background:var(--sb-brand-hover);
-  color:var(--sb-brand);
-  transform:translateX(2px);
+  background:var(--sb-hover);
+  color:var(--text-heading,#0d1626);
 }
 .sidebar-nav a:hover > svg,
-.sidebar-nav a:hover > i[data-feather]{color:var(--sb-brand);}
+.sidebar-nav a:hover > i[data-feather]{color:var(--text-heading,#0d1626);}
 
-/* Active - tinted pill plus a flush accent bar on the rail */
+/* Selected: tinted row + left accent bar */
 .sidebar-nav a.active{
   background:var(--sb-brand-soft);
-  color:var(--sb-brand);
+  border-left-color:var(--sb-brand);
+  color:var(--sb-brand-text);
   font-weight:600;
 }
 .sidebar-nav a.active > svg,
-.sidebar-nav a.active > i[data-feather]{
-  color:var(--sb-brand);
-  stroke-width:2.2;
-}
-.sidebar-nav a.active::before{
-  content:'';
-  position:absolute;left:-10px;top:50%;
-  transform:translateY(-50%);
-  width:3px;height:20px;
-  border-radius:0 3px 3px 0;
-  background:var(--sb-brand);
-}
+.sidebar-nav a.active > i[data-feather]{color:var(--sb-brand);}
 
-/* Keyboard focus - visible without being loud */
+/* Keyboard focus */
 .sidebar-nav a:focus-visible{
-  outline:none;
-  box-shadow:0 0 0 2px rgba(154,128,83,.35);
+  outline:2px solid var(--sb-brand);
+  outline-offset:-2px;
 }
 
-/* ── Count badge ── */
-/* ── Inquiry Approval Pending Count ── */
+/* ── Inquiry Approval pending count ── */
 .sidebar-nav a .badge-pill{
-    margin-left:auto;
-    flex:0 0 auto;
-
-    min-width:24px;
-    height:22px;
-    padding:0 7px;
-
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-
-    border-radius:999px;
-
-    background:#fff1f0;
-    color:#d64545;
-
-    border:1px solid #ffd6d3;
-
-    font-size:.65rem;
-    font-weight:700;
-    line-height:1;
-
-    box-shadow:0 1px 3px rgba(0,0,0,.06);
-
-    transition:
-        background .16s ease,
-        color .16s ease,
-        border-color .16s ease,
-        transform .16s ease;
+  margin-left:auto;flex:0 0 auto;
+  min-width:24px;height:22px;padding:0 7px;
+  display:inline-flex;align-items:center;justify-content:center;
+  border-radius:999px;
+  background:#fff1f0;color:#d64545;border:1px solid #ffd6d3;
+  font-size:.65rem;font-weight:700;line-height:1;
 }
-
-/* Hover */
-.sidebar-nav a:hover .badge-pill{
-    background:#ffe5e2;
-    color:#c93636;
-    border-color:#ffc2bd;
-}
-
-/* Active Inquiry Approval */
-.sidebar-nav a.active .badge-pill{
-    background:#d64545;
-    color:#fff;
-    border-color:#d64545;
-    box-shadow:0 2px 5px rgba(214,69,69,.25);
-}
-
-/* Dark mode */
+.sidebar-nav a.active .badge-pill{background:#d64545;color:#fff;border-color:#d64545;}
 [data-theme="dark"] .sidebar-nav a .badge-pill,
 [data-bs-theme="dark"] .sidebar-nav a .badge-pill{
-    background:rgba(214,69,69,.16);
-    color:#ff8b87;
-    border-color:rgba(214,69,69,.30);
+  background:rgba(214,69,69,.16);color:#ff8b87;border-color:rgba(214,69,69,.30);
 }
-
 [data-theme="dark"] .sidebar-nav a.active .badge-pill,
-[data-bs-theme="dark"] .sidebar-nav a.active .badge-pill{
-    background:#d64545;
-    color:#fff;
-    border-color:#d64545;
-}
+[data-bs-theme="dark"] .sidebar-nav a.active .badge-pill{background:#d64545;color:#fff;border-color:#d64545;}
 
 /* ── Motion preferences ── */
 @media (prefers-reduced-motion:reduce){
-  .sidebar-nav a,
-  .sidebar-brand .brand-mark{transition:none;}
-  .sidebar-nav a:hover{transform:none;}
+  .sidebar-nav a{transition:none;}
 }
 
 /* Kill transitions until the page has settled */

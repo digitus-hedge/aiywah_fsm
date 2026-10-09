@@ -1,15 +1,15 @@
 /* =============================================
    SR Portal - Main Stylesheet
-   Brand theme (Matter Mind): #9a8053 → #c4ad86
+   Brand theme (Aiywah): #12A5DC → #5CC4EA
    Ties into --color-primary / --color-tertiary / --font-header
    tokens from theme.css when loaded together; falls back to
    the values below if used standalone.
    ============================================= */
 
 :root {
-    --primary: var(--color-primary, #9a8053);
-    --primary-hover: #866e43;
-    --primary-light: #c4ad86;
+    --primary: var(--color-primary, #12A5DC);
+    --primary-hover: #0E8FC2;
+    --primary-light: #5CC4EA;
     --success: #0acf97;
     --info: #39afd1;
     --warning: #ffbc00;
@@ -126,12 +126,12 @@ body {
 }
 
 .sidebar-nav a:hover {
-    background: rgba(154,128,83,0.05);
+    background: rgba(18,165,220,0.05);
     color: var(--primary);
 }
 
 .sidebar-nav a.active {
-    background: rgba(154,128,83,0.08);
+    background: rgba(18,165,220,0.08);
     color: var(--primary);
     border-left-color: var(--primary);
     font-weight: 500;
@@ -139,11 +139,12 @@ body {
 
 
 
+/* Spacing between icon and label comes from the `gap` set in
+   sidebar.blade.php, so no margin-right here (it doubled the space). */
 .sidebar-nav a svg,
 .sidebar-nav a [data-feather] {
     width: 16px;
     height: 16px;
-    margin-right: 12px;
     stroke-width: 2;
     flex-shrink: 0;
     display: inline-block;
@@ -394,7 +395,7 @@ body {
 }
 
 .stat-card .stat-icon svg { width: 22px; height: 22px; }
-.stat-card .stat-icon.primary { background: rgba(154,128,83,0.15); color: var(--primary); }
+.stat-card .stat-icon.primary { background: rgba(18,165,220,0.15); color: var(--primary); }
 .stat-card .stat-icon.success { background: rgba(10,207,151,0.15); color: var(--success); }
 .stat-card .stat-icon.warning { background: rgba(255,188,0,0.15); color: var(--warning); }
 .stat-card .stat-icon.danger  { background: rgba(250,92,124,0.15); color: var(--danger); }
@@ -439,7 +440,7 @@ body {
 
 .badge-pending   { background: rgba(255,188,0,0.15); color: #b88400; }
 .badge-quoted    { background: rgba(57,175,209,0.15); color: #1f7a96; }
-.badge-approved  { background: rgba(154,128,83,0.15); color: #6f5836; }
+.badge-approved  { background: rgba(18,165,220,0.15); color: #0B76A3; }
 .badge-assigned  { background: rgba(108,117,125,0.15); color: #495057; }
 .badge-progress  { background: rgba(57,175,209,0.18); color: var(--info); }
 .badge-review    { background: rgba(255,188,0,0.18); color: #b88400; }
@@ -523,7 +524,7 @@ body {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(154,128,83,0.12);
+    background: rgba(18,165,220,0.12);
     color: var(--primary);
     display: flex;
     align-items: center;
@@ -627,8 +628,7 @@ body {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.4);
-   
-      z-index: 1040;          /* was 999 - same as .topbar, causes flicker */
+    z-index: 1040;          /* was 999 - same as .topbar, causes flicker */
     backdrop-filter: blur(2px);
 }
 
