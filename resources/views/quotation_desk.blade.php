@@ -129,6 +129,23 @@
 .qd-wrap .q-actions .btn-ghost{white-space:nowrap;justify-content:center;}
 @media(max-width:575.98px){.qd-wrap .q-totals{max-width:none;}.qd-wrap .q-actions .btn-ghost{flex:1 1 100%;}}
 
+/* PDF TEMPLATE PICKER */
+.qd-wrap .qt-box{border:1px solid var(--border-color);border-radius:9px;background:var(--surface-2);padding:14px;margin-bottom:16px;}
+.qd-wrap .qt-body{display:grid;grid-template-columns:minmax(0,1fr) 130px;gap:16px;align-items:start;}
+.qd-wrap .qt-main{min-width:0;}
+.qd-wrap .qt-side{min-width:0;}
+.qd-wrap .qt-page{position:relative;aspect-ratio:210/297;width:100%;background:#fff;border:1px solid var(--border-color);border-radius:3px;overflow:hidden;box-shadow:0 3px 10px rgba(0,0,0,.08);}
+.qd-wrap .qt-page img{display:none;}
+/* same placing as the quotation PDF: header in the text area, letterhead as the watermark, footer at the bottom */
+.qd-wrap .qt-pg-in{position:absolute;top:5.4%;left:7.1%;right:7.1%;bottom:10%;display:flex;flex-direction:column;gap:4px;z-index:2;}
+.qd-wrap .qt-pg-header{width:100%;height:auto;flex-shrink:0;margin-bottom:3px;}
+.qd-wrap .qt-pg-letterhead{position:absolute;top:20.2%;left:50%;width:57.1%;transform:translateX(-50%);z-index:1;}
+.qd-wrap .qt-pg-footer{position:absolute;left:50%;bottom:2%;max-width:85.8%;max-height:6.7%;transform:translateX(-50%);z-index:2;}
+.qd-wrap .qt-ln{height:3px;border-radius:2px;background:#e3e6ec;flex-shrink:0;}
+.qd-wrap .qt-cap{font-size:.68rem;color:var(--text-muted);text-align:center;margin-top:6px;}
+.qd-wrap .qt-empty{font-size:.78rem;color:var(--text-muted);}
+@media(max-width:575.98px){.qd-wrap .qt-body{grid-template-columns:1fr;}.qd-wrap .qt-side{max-width:170px;margin:0 auto;}}
+
 /* TABS */
 .qd-wrap .qd-tabs{display:flex;gap:6px;margin:22px 0 12px;border-bottom:1px solid var(--border-color);flex-wrap:wrap;}
 .qd-wrap .qd-tab{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;background:none;border:none;border-bottom:2px solid transparent;font-size:.8rem;font-weight:600;color:var(--text-muted);cursor:pointer;margin-bottom:-1px;transition:color .15s,border-color .15s;}
@@ -194,7 +211,7 @@
 .qd-wrap .s-icon{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:1.6rem;}
 
 /* MODAL */
-.qd-modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg,rgba(9,15,35,.62));z-index:900;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px;}
+.qd-modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay-bg,rgba(9,15,35,.62));z-index:2000;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px;}
 .qd-modal-overlay.show{display:flex;}
 .qd-modal-overlay .modal-box{background:var(--modal-bg,#fff);border-radius:12px;width:100%;max-width:440px;box-shadow:var(--modal-shadow,0 24px 64px rgba(0,0,0,.16));border:1px solid var(--card-border);overflow:hidden;animation:qdMIn .18s ease;}
 @keyframes qdMIn{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
@@ -221,6 +238,8 @@
 .qd-wrap .sq-to .fc{min-width:0;}
 .qd-wrap .sq-link{background:none;border:none;color:var(--gold);font-size:.75rem;font-weight:700;cursor:pointer;padding:4px 5px;border-radius:5px;}
 .qd-wrap .sq-link:hover{background:var(--surface-2);}
+.qd-wrap .sq-x{flex-shrink:0;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;background:none;border:none;border-radius:6px;color:var(--text-muted);font-size:.8rem;cursor:pointer;}
+.qd-wrap .sq-x:hover{background:rgba(239,68,68,.1);color:#ef4444;}
 .qd-wrap .sq-hint{font-size:.72rem;color:var(--text-muted);margin:-4px 0 10px 74px;}
 .qd-wrap .sq-card{border:1px solid var(--border-color);border-radius:9px;overflow:hidden;margin:14px 0;}
 .qd-wrap .sq-card-top{background:rgba(154,128,83,.08);text-align:center;padding:14px;}
@@ -373,6 +392,49 @@
               <div class="field-hint">Printed at the bottom of the quotation PDF.</div>
             </div>
 
+            {{-- PDF template: one row of the pdf_templates table (header_image, letterhead_image, footer_image).
+                 $pdfTemplates comes from quotationDesk() in the controller. --}}
+            @php $qtList = $pdfTemplates ?? collect(); @endphp
+            <div class="qt-box">
+              @if ($qtList->count())
+                <div class="qt-body">
+                  <div class="qt-main">
+                    <label class="form-label-sm" for="q-template">PDF Templates</label>
+                    <select class="fc" id="q-template" autocomplete="off" onchange="qtRender()">
+                      <option value="" data-header="" data-letterhead="" data-footer="" selected>Choose Template</option>
+                      @foreach ($qtList as $t)
+                        <option value="{{ $t->id }}"
+                                data-header="{{ $t->header_image ? asset('storage/' . $t->header_image) : '' }}"
+                                data-letterhead="{{ $t->letterhead_image ? asset('storage/' . $t->letterhead_image) : '' }}"
+                                data-footer="{{ $t->footer_image ? asset('storage/' . $t->footer_image) : '' }}">{{ $t->template_name ?: 'Template ' . $t->id }}</option>
+                      @endforeach
+                    </select>
+                    <div class="field-hint">Click <strong>Preview PDF</strong> to see the quotation on the chosen template. If none is chosen, the PDF is printed without a template.</div>
+                  </div>
+                  <div class="qt-side">
+                    <div class="qt-page" aria-hidden="true">
+                      <img class="qt-pg-letterhead" id="qt-pg-letterhead" alt="">
+                      <div class="qt-pg-in">
+                        <img class="qt-pg-header" id="qt-pg-header" alt="">
+                        <div class="qt-ln" style="width:34%;height:4px;background:#cfd4dd;align-self:flex-end;"></div>
+                        <div class="qt-ln" style="height:1px;background:#9a7b4f;margin:2px 0;"></div>
+                        <div class="qt-ln" style="width:58%;"></div>
+                        <div class="qt-ln"></div>
+                        <div class="qt-ln" style="width:92%;"></div>
+                        <div class="qt-ln"></div>
+                        <div class="qt-ln" style="width:32%;align-self:flex-end;height:4px;background:#cfd4dd;margin-top:3px;"></div>
+                      </div>
+                      <img class="qt-pg-footer" id="qt-pg-footer" alt="">
+                    </div>
+                    <div class="qt-cap">Layout only</div>
+                  </div>
+                </div>
+              @else
+                <label class="form-label-sm">PDF Templates</label>
+                <div class="qt-empty">No PDF templates are saved yet. Add one under Master Data &rsaquo; PDF Templates. Until then the quotation is printed as a plain PDF.</div>
+              @endif
+            </div>
+
             <div class="q-need" id="q-need"></div>
             <div id="q-val-msg" style="display:none;padding:8px 12px;border-radius:7px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);color:#ef4444;font-size:.78rem;margin-bottom:10px;"></div>
 
@@ -502,11 +564,17 @@
         <div class="sq-hint">Separate several addresses with commas.</div>
         <div class="sq-row" id="sq-cc-row" style="display:none;">
           <label class="sq-lbl" for="sq-cc">CC</label>
-          <input type="text" class="fc" id="sq-cc" autocomplete="off" oninput="sqValidate()"/>
+          <div class="sq-to">
+            <input type="text" class="fc" id="sq-cc" autocomplete="off" oninput="sqValidate()"/>
+            <button type="button" class="sq-x" onclick="sqHide('cc')" title="Remove CC" aria-label="Remove CC"><i class="bi bi-x-lg"></i></button>
+          </div>
         </div>
         <div class="sq-row" id="sq-bcc-row" style="display:none;">
           <label class="sq-lbl" for="sq-bcc">BCC</label>
-          <input type="text" class="fc" id="sq-bcc" autocomplete="off" oninput="sqValidate()"/>
+          <div class="sq-to">
+            <input type="text" class="fc" id="sq-bcc" autocomplete="off" oninput="sqValidate()"/>
+            <button type="button" class="sq-x" onclick="sqHide('bcc')" title="Remove BCC" aria-label="Remove BCC"><i class="bi bi-x-lg"></i></button>
+          </div>
         </div>
         <div class="sq-row">
           <label class="sq-lbl" for="sq-subject">Subject <span class="req">*</span></label>
@@ -664,8 +732,35 @@ function qfPayload(){
     discount_type:  document.getElementById('q-disc-type').value,
     discount_value: Math.max(0, qdNum(document.getElementById('q-disc').value)),
     adjustment:     qdNum(document.getElementById('q-adj').value),
-    amount:         qdR2(qdNum(document.getElementById('q-amount').value))
+    amount:         qdR2(qdNum(document.getElementById('q-amount').value)),
+    template_id:    qtId()
   };
+}
+
+/* ---------- PDF TEMPLATE PICKER ---------- */
+/* The "PDF Templates" dropdown lists rows of pdf_templates. The choice stays as you move between tickets. */
+var QT_PARTS = ['header','letterhead','footer'];
+
+/* id of the chosen pdf_templates row, or null while it is still on "Choose Template" */
+function qtId(){
+  var sel = document.getElementById('q-template');
+  return (sel && sel.value) ? parseInt(sel.value,10) : null;
+}
+
+/* draw the chosen row's header_image / letterhead_image / footer_image on the small page */
+function qtRender(){
+  var sel = document.getElementById('q-template');
+  if(!sel) return;
+  var opt = sel.options[sel.selectedIndex];
+  QT_PARTS.forEach(function(part){
+    var src = opt ? (opt.getAttribute('data-'+part) || '') : '';
+
+    var pg = document.getElementById('qt-pg-'+part);
+    if(pg){
+      if(src){ pg.src = src; pg.style.display = 'block'; }
+      else   { pg.removeAttribute('src'); pg.style.display = 'none'; }
+    }
+  });
 }
 
 /* ---------- QUEUE ---------- */
@@ -857,6 +952,14 @@ function sqShow(which){
   sqEl('sq-'+which).focus();
 }
 
+/* the x on the CC / BCC row: close the row and drop whatever was typed in it */
+function sqHide(which){
+  sqEl('sq-'+which).value = '';
+  sqEl('sq-'+which+'-row').style.display = 'none';
+  sqEl('sq-'+which+'-btn').style.display = '';
+  sqValidate();
+}
+
 function openSendModal(){
   var err = qfError();
   if(err){ showValMsg('q',err); return; }
@@ -1026,6 +1129,7 @@ document.addEventListener('DOMContentLoaded', function(){
   renderQQueue();
   renderPA();
   renderRJ();
+  qtRender();
   document.addEventListener('keydown', function(e){ if(e.key === 'Escape') closeSendModal(); });
 });
 

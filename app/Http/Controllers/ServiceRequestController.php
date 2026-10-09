@@ -1494,22 +1494,22 @@ private function rlsScope(string $module): ?array
      |  QUOTATION DESK
      * ============================================================ */
 
-    public function quotationDesk()
+   public function quotationDesk()
     {
-
-
+ 
+ 
         $user = auth()->user();
         $isSe = $this->isServiceEngineer($user);
-
+ 
         // one reusable base builder - call it fresh each time
         $scoped = fn() => ServiceRequest::with(['client', 'project'])
             ->when($isSe, fn($q) => $q->where('assigned_se', $user->id));
-
+ 
         $forwarded = $scoped()
             ->whereIn('status', ['Forwarded', 'Additional'])
             ->latest('updated_at')
             ->get();
-
+ 
         $qQueue = $forwarded->map(function ($sr) {
             return [
                 'id'        => $this->buildSrRef($sr),
@@ -1521,12 +1521,12 @@ private function rlsScope(string $module): ?array
                 'issue'     => $sr->issue_description ?? '-',
             ];
         })->values();
-
+ 
         $quoted = $scoped()
             ->where('status', 'Quoted')
             ->latest('updated_at')
             ->get();
-
+ 
         $pendingApproval = $quoted->map(function ($sr) {
             return [
                 'id'        => 'PA-' . $sr->id,
@@ -1540,12 +1540,12 @@ private function rlsScope(string $module): ?array
                 'createdAt' => $sr->created_at?->format('Y-m-d'),
             ];
         })->values();
-
+ 
         $rejected = $scoped()
             ->where('status', 'Quote Rejected')
             ->latest('updated_at')
             ->get();
-
+ 
         $rejectedQuotes = $rejected->map(function ($sr) {
             return [
                 'id'        => 'QR-' . $sr->id,
@@ -1559,23 +1559,29 @@ private function rlsScope(string $module): ?array
                 'createdAt' => $sr->created_at?->format('Y-m-d'),
             ];
         })->values();
-
+ 
         // stat counters must be scoped too, or an SE sees company-wide totals
         $clientApproved = $scoped()
             ->whereNotNull('client_approved_at')
             ->where('warranty_scope', 'oow')
             ->count();
-
+ 
         $quoteRejected = $scoped()
             ->where('status', 'Quote Rejected')
             ->count();
-
+ 
+        // NEW: templates offered in the "PDF Template" dropdown on the quotation form
+        $pdfTemplates = \App\Models\PdfTemplate::where('status', 1)
+            ->orderBy('template_name')
+            ->get(['id', 'template_name', 'header_image', 'letterhead_image', 'footer_image']);
+ 
         return view('quotation_desk', compact(
             'qQueue',
             'pendingApproval',
             'rejectedQuotes',
             'clientApproved',
-            'quoteRejected'
+            'quoteRejected',
+            'pdfTemplates'          // NEW
         ));
     }
 

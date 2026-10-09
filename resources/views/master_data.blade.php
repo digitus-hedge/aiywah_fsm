@@ -961,7 +961,7 @@ textarea.form-control{resize:vertical;min-height:72px;}
     </div>
     <div class="modal-body" style="flex:1;overflow-y:auto;">
       <div class="form-group">
-        <label class="form-label">Company <span class="req">*</span></label>
+        <!-- <label class="form-label">Company <span class="req">*</span></label> -->
         <div class="form-group">
           <label class="form-label">Template Name <span class="req">*</span></label>
           <input type="text" class="form-control" id="tpl-name" maxlength="150" placeholder="e.g. Main Letterhead"/>

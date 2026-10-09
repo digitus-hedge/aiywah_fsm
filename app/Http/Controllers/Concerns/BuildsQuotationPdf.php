@@ -101,19 +101,29 @@ trait BuildsQuotationPdf
 
     /** The PDF object - call ->output() for the bytes or ->stream() to show it. */
     
-    protected function quotePdf(array $quote)
+   protected function quotePdf(array $quote)
     {
-        // return Pdf::loadView('pdf.quotation', [
-        //     'quote' => $quote,
-       
-        // 'template' => \App\Models\PdfTemplate::forType('quotation'),
-        //     'money' => fn ($n) => '₹ ' . $this->inr((float) $n),
-        //     'pct'   => fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.'),
-        // ])->setPaper('a4');
-
-
-        $template = \App\Models\PdfTemplate::forClient($quote['client_id'] ?? null);
-
+        // Which pdf_templates row to print on.
+        // The form sends "template_id" with both Preview PDF and Send:
+        //   an id  -> that template
+        //   null   -> "No template (plain PDF)" was chosen
+        // If template_id was not sent at all, or that template has since been deleted or
+        // switched off, fall back to the old rule (template of the client).
+        if (array_key_exists('template_id', $quote)) {
+            $picked   = true;
+            $pickedId = $quote['template_id'];
+        } else {
+            $picked   = request()->has('template_id');
+            $pickedId = request()->input('template_id');
+        }
+ 
+        if ($picked && ! $pickedId) {
+            $template = null;
+        } else {
+            $template = ($pickedId ? \App\Models\PdfTemplate::where('status', 1)->find((int) $pickedId) : null)
+                ?? \App\Models\PdfTemplate::forClient($quote['client_id'] ?? null);
+        }
+ 
         return Pdf::loadView('pdf.quotation', [
         'quote' => $quote,
         'tpl'   => [
@@ -124,7 +134,7 @@ trait BuildsQuotationPdf
         'money' => fn ($n) => '₹ ' . $this->inr((float) $n),
         'pct'   => fn ($n) => rtrim(rtrim(number_format((float) $n, 2, '.', ''), '0'), '.'),
         ])->setPaper('a4');
-
+ 
     }
 
 
