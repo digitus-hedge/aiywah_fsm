@@ -24,7 +24,7 @@
 /* ═══════════════════════════════════════
    PAGE HEADER
 ═══════════════════════════════════════ */
-.pg-header{background:linear-gradient(135deg,#9a8053 0%,#B8976A 100%);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden;}
+.pg-header{background: linear-gradient(2deg, #13a3d8 0%, #b5b7b9 100%);border-radius:10px;padding:20px 24px;margin-bottom:20px;color:#fff;position:relative;overflow:hidden;}
 .pg-header::before{content:'';position:absolute;left:-40px;bottom:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.05);}
 .pg-header::after{content:'';position:absolute;right:-30px;top:-30px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.07);}
 .pg-header h4{font-size:1rem;font-weight:600;margin:0 0 3px;position:relative;z-index:1;color:#fff;}
@@ -66,7 +66,7 @@
 
 .view-switcher{display:flex;gap:6px;align-items:center;}
 .vs-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid var(--border-color);background:var(--surface-2);cursor:pointer;color:var(--text-muted);font-size:.9rem;transition:all .15s;}
-.vs-btn.active,.vs-btn:hover{background:rgba(154,128,83,.1);border-color:#9a8053;color:#9a8053;}
+.vs-btn.active,.vs-btn:hover{background:rgba(154,128,83,.1);border-color:#13a3d8;color:#13a3d8;}
 
 /* ═══════════════════════════════════════
    KANBAN BOARD
@@ -132,7 +132,7 @@
 .kc-cat-only{font-size:.62rem;color:var(--text-muted);margin-top:8px;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 .kc-tech{display:flex;align-items:center;gap:6px;margin-top:7px;}
-.tech-av{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#9a8053,#b8975e);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.6rem;font-weight:700;flex-shrink:0;}
+.tech-av{width:22px;height:22px;border-radius:50%;background:linear-gradient(2deg, #13a3d8 0%, #b5b7b9 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.6rem;font-weight:700;flex-shrink:0;}
 .tech-name{font-size:.7rem;color:var(--text-muted);}
 
 /* ═══════════════════════════════════════
@@ -168,6 +168,12 @@
 
 .scroll-hint{display:none;font-size:.72rem;color:var(--text-muted);text-align:center;padding:6px 0 10px;margin-top:-8px;}
 @media(max-width:767.98px){.scroll-hint{display:block;}}
+
+
+.sr-ref-trigger
+{
+  color:#13a3d8 !important;
+}
 
 /* ═══════════════════════════════════════
    PHOTO LIGHTBOX
@@ -352,7 +358,7 @@ function buildCard(t){
     ? `<div class="kc-staff">
          <div class="staff-label">Last moved by</div>
          <div class="staff-name">
-           <div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#9a8053,#b8975e);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.55rem;font-weight:700;">${esc(t.mover.initials)}</div>
+           <div style="width:18px;height:18px;border-radius:50%;background:linear-gradient(2deg, #13a3d8 0%, #b5b7b9 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.55rem;font-weight:700;">${esc(t.mover.initials)}</div>
            ${esc(t.mover.name)}
          </div>
          <div class="staff-meta"><i class="bi bi-calendar3 me-1"></i>${esc(t.mover.at)}</div>
