@@ -248,6 +248,20 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 {
   color:#13a3d8 !important;
 }
+
+.srtm-ref
+{
+  color:#13a3d8 !important;
+}
+.srtm-cell
+{
+  background: #b9d3dd !important;
+}
+
+.srtm-owner-banner
+{
+  background: #b9d3dd !important;
+}
   </style>
   @endpush
 
