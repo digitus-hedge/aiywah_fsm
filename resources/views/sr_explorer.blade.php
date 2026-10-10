@@ -105,7 +105,7 @@ table.listing td{padding:11px 16px;font-size:.8125rem;color:var(--text-primary);
 table.listing td.muted{color:var(--text-muted);font-size:.78rem;}
 table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 /* BUTTONS */
-.btn-gold{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:linear-gradient(135deg,#9A7B4F,#C4A882);color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:500;cursor:pointer;white-space:nowrap;}
+.btn-gold{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:linear-gradient(2deg, #13a3d8 0%, #b5b7b9 100%);color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:500;cursor:pointer;white-space:nowrap;}
 .btn-gold:hover{opacity:.87;}
 .btn-ghost{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border-color);border-radius:7px;font-size:.8rem;cursor:pointer;white-space:nowrap;}
 .btn-ghost:hover{background:var(--surface-3);}
@@ -151,7 +151,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .page-btns{display:flex;gap:4px;}
 .page-btn{width:30px;height:30px;border-radius:6px;border:1px solid var(--border-color);background:var(--card-bg);color:var(--text-muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.78rem;transition:all .12s;}
 .page-btn:hover{border-color:#9A7B4F;color:#9A7B4F;}
-.page-btn.active{background:#9A7B4F;color:#fff;border-color:#9A7B4F;}
+.page-btn.active{background:#13a3d8;color:#fff;border-color:#13a3d8;}
 /* KANBAN */
 .kanban-scroll{overflow-x:auto;padding-bottom:12px;}
 .kanban-scroll::-webkit-scrollbar{height:5px;}
@@ -206,7 +206,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sr-modal-box{background:var(--modal-bg,var(--card-bg));border-radius:12px;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--modal-shadow,0 24px 64px rgba(0,0,0,.16));border:1px solid var(--card-border);overflow:hidden;animation:srModalIn .2s ease;}
 @keyframes srModalIn{from{opacity:0;transform:scale(.96) translateY(6px);}to{opacity:1;transform:scale(1) translateY(0);}}
 .sr-modal-hdr{border-bottom:1px solid var(--border-color);flex-shrink:0;}
-.sr-modal-hdr-banner{background: linear-gradient(135deg, #E0C79A 0%, #B99261 100%);padding:16px 22px;position:relative;overflow:hidden;}
+.sr-modal-hdr-banner{background: linear-gradient(2deg, #13a3d8 0%, #b5b7b9 100%);padding:16px 22px;position:relative;overflow:hidden;}
 .sr-modal-hdr-banner::after{content:'';position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;background:rgba(255,255,255,.08);}
 .sr-modal-close{position:absolute;top:14px;right:16px;z-index:2;background:rgba(255,255,255,.18);border:none;color:#fff;width:30px;height:30px;border-radius:7px;cursor:pointer;font-size:1rem;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .15s;}
 .sr-modal-close:hover{background:rgba(255,255,255,.32);}
@@ -218,7 +218,7 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .sr-detail-item{display:flex;flex-direction:column;gap:4px;min-width:0;}
 .sr-detail-item.full{grid-column:1 / -1;}
 .sr-detail-label{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);display:flex;align-items:center;gap:5px;}
-.sr-detail-label i{font-size:.8rem;color:#9A7B4F;}
+.sr-detail-label i{font-size:.8rem;color:#13a3d8;}
 .sr-detail-value{font-size:.85rem;color:var(--text-heading);font-weight:500;word-break:break-word;}
 .sr-detail-value.muted{color:var(--text-muted);font-weight:400;}
 .sr-detail-divider{grid-column:1 / -1;height:1px;background:var(--border-color);margin:2px 0;}
@@ -243,12 +243,17 @@ table.listing td.mono{font-size:.78rem;font-weight:600;color:#9A7B4F;}
 .pdfv-box { background:#fff; width:90vw; max-width:900px; height:88vh; border-radius:8px; display:flex; flex-direction:column; overflow:hidden; }
 .pdfv-hdr { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 14px; border-bottom:1px solid #eee; font-size:.85rem; font-weight:600; }
 .pdfv-box iframe { flex:1; width:100%; border:0; }
+
+.sr-ref-trigger
+{
+  color:#13a3d8 !important;
+}
   </style>
   @endpush
 
 @section('content')
 
-<div class="pg-header" style="background:linear-gradient(135deg,#9A7B4F 0%,#7A6140 100%);">
+<div class="pg-header" style="background:linear-gradient(2deg, #13a3d8 0%, #b5b7b9 100%);">
   <h4><i class="bi bi-ticket-detailed me-2"></i>SR Explorer - Service Request Listing</h4>
   <p>Centralised grid for monitoring, filtering and drilling into service tickets across their full lifecycle.</p>
   <div class="meta-row">
