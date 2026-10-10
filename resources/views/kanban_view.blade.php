@@ -481,7 +481,7 @@ function renderBoard(){
     const lane = document.createElement('div');
     lane.className = 'lane';
     lane.innerHTML = `
-      <div class="lane-header" style="background:${tint(c.color,.10)};border:1px solid ${tint(c.color,.45)};border-bottom:none;">
+      <div class="lane-header" style="background:#dbdbdb;border:1px solid rgb(19 163 216);border-bottom:none;">
         <div class="lane-title" title="${esc(LABELS[s] || s)}">
           <div class="lane-dot" style="background:${c.color};"></div>${esc(LABELS[s] || s)}
         </div>
