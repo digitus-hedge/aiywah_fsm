@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Technician Login | Matter Mind</title>
+  <title>Technician Login | Aiywah FSM</title>
 
   {{-- Favicon --}}
   <link rel="icon" type="image/png" href="{{ asset('favicon-96x96.png') }}" sizes="96x96">
@@ -93,7 +93,7 @@
 
     <div class="wl-brand">
       <div class="wl-mark"><i class="bi bi-person-workspace"></i></div>
-      <div class="wl-title">MATTER MIND</div>
+      <div class="wl-title">Aiywah FSM</div>
       <div class="wl-sub">Service That Matters. Always.</div>
       <span class="wl-tag"><i class="bi bi-tools"></i>Technician Portal</span>
     </div>

@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Invoice Panel | Matter Mind')
+@section('title', 'Invoice Panel | Aiywah FSM')
 @section('page_title', 'Invoice Panel')
 @section('page_icon', 'database')
 @push('styles')

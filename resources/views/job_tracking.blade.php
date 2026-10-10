@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>Track Your Service Request | Matter Mind</title>
+<title>Track Your Service Request | Aiywah FSM</title>
 <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
 
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
@@ -363,7 +363,7 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
   <div class="brand">
     <div class="brand-icon">MM</div>
     <div>
-      <div class="brand-name">Matter Mind</div>
+      <div class="brand-name">Aiywah FSM</div>
       <div class="brand-sub">Service That Matters. Always.</div>
     </div>
   </div>
@@ -592,7 +592,7 @@ font-size:.78rem;color:var(--text-muted);margin-bottom:4px;}
 <div class="ms-tooltip" id="ms-tooltip"></div>
 
 <footer class="pub-footer">
-  <div class="footer-brand">Matter Mind · Service That Matters. Always.</div>
+  <div class="footer-brand">Aiywah FSM · Service That Matters. Always.</div>
   <div>This page updates automatically. For urgent assistance contact <a href="mailto:support@mattermind.com">support@mattermind.com</a></div>
 </footer>
 

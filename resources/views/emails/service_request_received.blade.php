@@ -3,7 +3,7 @@
 <body style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.6;">
     <p>Dear {{ $customerName }},</p>
 
-    <p>Thank you for contacting <strong>Matter Mind Decor &amp; General Maintenance LLC</strong>.</p>
+    <p>Thank you for contacting <strong>Aiywah FSM Decor &amp; General Maintenance LLC</strong>.</p>
 
     <p>We have received your maintenance request and our team has started reviewing it.</p>
 
@@ -36,7 +36,7 @@
 
     <p>
         Regards,<br>
-        On behalf of Matter Mind Decor &amp; General Maintenance LLC
+        On behalf of Aiywah FSM Decor &amp; General Maintenance LLC
     </p>
 </body>
 </html>

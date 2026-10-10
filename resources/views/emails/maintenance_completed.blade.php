@@ -47,12 +47,12 @@
     <p>If you have any questions or require any further assistance, please feel free
        to contact our Service Team.</p>
 
-    <p>Thank you for your continued trust in Matter Mind. It has been our pleasure
+    <p>Thank you for your continued trust in Aiywah FSM. It has been our pleasure
        to assist you.</p>
 
     <p>
         Kind Regards,<br>
-        <strong>Matter Mind</strong><br>
+        <strong>Aiywah FSM</strong><br>
         Post-Handover Maintenance Team
     </p>
 

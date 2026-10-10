@@ -999,7 +999,7 @@ function addProject(prefill, existing) {
         <input type="text" class="ps-input" name="projects[${idx}][site_name]" value="${sn}" placeholder="e.g. Main Building, Warehouse Block A" oninput="syncSummary()"/>
       </div>
       <div class="ps-full">
-        <span class="ps-label">Physical Site Address</span>
+        <span class="ps-label">Physical Site Address <span style="color:#ff3366;">*</span></span>
         <textarea class="ps-textarea" name="projects[${idx}][site_address]" rows="2" placeholder="Building name, floor, area, city…" oninput="syncSummary()">${sa}</textarea>
       </div>
     </div>`;

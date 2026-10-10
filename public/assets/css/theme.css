@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────
-   0. BRAND TOKENS  (Matter Mind brand kit)
+   0. BRAND TOKENS  (Aiywah FSM brand kit)
    These are theme-independent - same in light & dark.
    fonts.css must be linked BEFORE this file in the layout:
      <link rel="stylesheet" href="{{ asset('assets/fonts/fonts.css') }}">

@@ -330,7 +330,7 @@ public function sendTemplate($phone, $template, $lang = 'en_US', $components = [
                 ],
             ]],
             fn ($name) =>
-                "Hi {$name}, thank you for contacting Matter Mind Decor & General Maintenance LLC. "
+                "Hi {$name}, thank you for contacting Aiywah FSM Decor & General Maintenance LLC. "
                 . "We have successfully received your maintenance request. "
                 . "Service Request No: {$c['ref']} | Project: {$c['project']} | Location: {$c['location']}."
         );
@@ -877,7 +877,7 @@ public function notifyMaintenanceCompleted(
     ): void {
         $this->sendProjectMessage($client, $project, 'client_welcome', $event,
             fn ($name, $c) =>
-                "Hi {$name}, welcome to Matter Mind's Post-Handover Maintenance Portal. "
+                "Hi {$name}, welcome to Aiywah FSM's Post-Handover Maintenance Portal. "
                 . "Project: {$c['project']} | Location: {$c['location']} | "
                 . "Handover: {$c['handover']} | Warranty Expiry: {$c['expiry']}.",
             'WELCOME'
@@ -892,7 +892,7 @@ public function notifyMaintenanceCompleted(
     ): void {
         $this->sendProjectMessage($client, $project, 'project_added', $event,
             fn ($name, $c) =>
-                "Hi {$name}, your new project has been added to the Matter Mind Post-Handover Maintenance Portal. "
+                "Hi {$name}, your new project has been added to the Aiywah FSM Post-Handover Maintenance Portal. "
                 . "Project: {$c['project']} | Location: {$c['location']} | "
                 . "Handover: {$c['handover']} | Warranty Expiry: {$c['expiry']}.",
             'PROJECT'

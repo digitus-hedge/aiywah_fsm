@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'WhatsApp Notification Log | Matter Mind')
+@section('title', 'WhatsApp Notification Log | Aiywah FSM')
 @section('page_title', 'WhatsApp Notification Log')
 @section('page_icon', 'database')
 

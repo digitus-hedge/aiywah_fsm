@@ -1,7 +1,7 @@
 {{-- resources/views/expense_ledger.blade.php --}}
 @extends('layouts.layout')
 
-@section('title', 'Expense Ledger | Matter Mind')
+@section('title', 'Expense Ledger | Aiywah FSM')
 @section('page_title', 'Expense Ledger')
 @section('page_icon', 'database')
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>Forgot Password | Matter Mind</title>
+  <title>Forgot Password | Aiywah FSM</title>
 
   {{-- Favicon --}}
   <link rel="icon" type="image/png" href="{{ asset('favicon-96x96.png') }}" sizes="96x96">

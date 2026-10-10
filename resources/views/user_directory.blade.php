@@ -1,7 +1,7 @@
 {{-- resources/views/user_directory.blade.php --}}
 @extends('layouts.layout')
 
-@section('title', 'User Directory | MATTER MIND')
+@section('title', 'User Directory | Aiywah FSM')
 @section('page_title', 'User Directory')
 @section('page_icon', 'database')
 

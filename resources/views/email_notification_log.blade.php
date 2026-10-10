@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Email Notification Log | Matter Mind')
+@section('title', 'Email Notification Log | Aiywah FSM')
 @section('page_title', 'Email Notification Log')
 @section('page_icon', 'mail')
 

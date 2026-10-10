@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Analytics Dashboard | Matter Mind')
+@section('title', 'Analytics Dashboard | Aiywah FSM')
 @section('page_title', 'Analytics Dashboard')
 @section('page_icon', 'database')
 @push('styles')

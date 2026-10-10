@@ -2,7 +2,7 @@
     resources/views/emails/client_welcome.blade.php
 
     Standalone HTML - deliberately not @component('mail::message'), so the
-    layout carries Matter Mind branding rather than Laravel's default chrome.
+    layout carries Aiywah FSM branding rather than Laravel's default chrome.
     Table-based with inline styles: Outlook and Gmail strip <style> blocks.
 
     Expects: $client, $project (nullable), $portalUrl (nullable)
@@ -13,7 +13,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="x-apple-disable-message-reformatting"/>
-  <title>Welcome to the Matter Mind Post-Handover Maintenance Portal</title>
+  <title>Welcome to the Aiywah FSM Post-Handover Maintenance Portal</title>
   <!--[if mso]>
   <style>table,td,div,p,a{font-family:Arial,Helvetica,sans-serif !important;}</style>
   <![endif]-->
@@ -38,7 +38,7 @@
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="font-family:Georgia,'Times New Roman',serif;font-size:19px;font-weight:bold;color:#ffffff;letter-spacing:.3px;line-height:1.3;">
-              Matter Mind
+            Aiywah FSM
             </td>
             <td align="right" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#f0e7da;">
               Service That Matters. Always.
@@ -61,7 +61,7 @@
 
         <p style="margin:0 0 14px;">Dear {{ $client->contact_name ?: 'Customer' }},</p>
 
-        <p style="margin:0 0 14px;">Thank you for choosing Matter Mind.</p>
+        <p style="margin:0 0 14px;">Thank you for choosing Aiywah FSM.</p>
 
         <p style="margin:0 0 22px;">
           We are pleased to inform you that your organization has been successfully
@@ -196,7 +196,7 @@
 
         <p style="margin:0;color:#7d7466;">Kind regards,</p>
         <p style="margin:2px 0 0;font-weight:bold;color:#1f1d1a;">
-          Matter Mind Decor &amp; General Maintenance LLC
+        Aiywah FSM Decor &amp; General Maintenance LLC
         </p>
         <p style="margin:1px 0 0;color:#7d7466;font-size:13px;">Post-Handover Maintenance Team</p>
 
@@ -208,8 +208,8 @@
       <td style="background:#faf8f4;border-top:1px solid #ebe4d8;padding:18px 32px;
                  font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.6;color:#98907f;">
         You are receiving this because your organization was onboarded to the
-        Matter Mind service portal.<br/>
-        &copy; {{ date('Y') }} Matter Mind Decor &amp; General Maintenance LLC
+        Aiywah FSM service portal.<br/>
+        &copy; {{ date('Y') }}  Aiywah FSM Decor &amp; General Maintenance LLC
       </td>
     </tr>
 

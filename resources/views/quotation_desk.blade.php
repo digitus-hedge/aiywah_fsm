@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Quotation Desk | Matter Mind')
+@section('title', 'Quotation Desk | Aiywah FSM')
 @section('page_title', 'Quotation Desk')
 @section('page_icon', 'database')
 

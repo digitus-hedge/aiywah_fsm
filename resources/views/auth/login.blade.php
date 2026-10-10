@@ -339,7 +339,7 @@
         </div>
 
         <div class="bp-foot">
-            <span>&copy; {{ date('Y') }} Matter Mind</span>
+            <span>&copy; {{ date('Y') }} Aiywah FSM</span>
             <span>All rights reserved</span>
         </div>
     </aside>

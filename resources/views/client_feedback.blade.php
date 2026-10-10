@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-  <title>Service Feedback | Matter Mind</title>
+  <title>Service Feedback | Aiywah FSM</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet"/>
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"/>
@@ -285,7 +285,7 @@ h1,h2,h3,h4,h5,h6,.pg-hdr-title,.brand-name,.thanks-title{letter-spacing:-.01em;
   <div class="brand">
     <div class="brand-icon">MM</div>
     <div>
-      <div class="brand-name">Matter Mind</div>
+      <div class="brand-name">Aiywah FSM</div>
       <div class="brand-sub">Service Feedback</div>
     </div>
   </div>

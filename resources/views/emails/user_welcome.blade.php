@@ -4,7 +4,7 @@
 
     <p>Dear {{ $user->name }},</p>
 
-    <p>An account has been created for you on the Matter Mind Service Portal.</p>
+    <p>An account has been created for you on the Aiywah FSM Service Portal.</p>
 
     <p style="margin-bottom:4px;"><strong>Your Login Details</strong></p>
     <table cellpadding="5" cellspacing="0" style="border-collapse:collapse;margin-bottom:16px;">
@@ -32,7 +32,7 @@
 
     <p>
         Kind Regards,<br>
-        Matter Mind Service Portal
+        Aiywah FSM Service Portal
     </p>
 
 </body>

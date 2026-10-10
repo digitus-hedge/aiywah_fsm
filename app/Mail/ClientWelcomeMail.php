@@ -20,7 +20,7 @@ class ClientWelcomeMail extends Mailable
 
     public function build()
     {
-        return $this->subject('Welcome to Matter Mind - Post-Handover Maintenance Portal')
+        return $this->subject('Welcome to Aiywah FSM- Post-Handover Maintenance Portal')
             ->markdown('emails.client_welcome');
     }
 }

@@ -19,7 +19,7 @@
         <tr><td style="color:#666;">Completion Date</td><td>{{ $completionDate }}</td></tr>
     </table>
 
-    <p>At Matter Mind, we continuously strive to improve our quality of service,
+    <p>At Aiywah FSM, we continuously strive to improve our quality of service,
        and your feedback plays an important role in helping us achieve that.</p>
 
     <p>We would appreciate it if you could take a minute to complete our short
@@ -42,12 +42,12 @@
     <p>Your feedback helps us improve our service quality and better serve you
        in the future.</p>
 
-    <p>Thank you once again for choosing Matter Mind. We sincerely appreciate your
+    <p>Thank you once again for choosing Aiywah FSM. We sincerely appreciate your
        trust and look forward to serving you again.</p>
 
     <p>
         Kind Regards,<br>
-        <strong>Matter Mind</strong><br>
+        <strong>Aiywah FSM</strong><br>
         Post-Handover Maintenance Team
     </p>
 

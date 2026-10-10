@@ -16,7 +16,7 @@ class WorkerOtpMail extends Mailable
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: 'Your Matter Mind verification code');
+        return new Envelope(subject: 'Your Aiywah FSM verification code');
     }
 
     public function content(): Content

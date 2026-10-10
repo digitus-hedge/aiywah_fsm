@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
-<title>Admin · Previous Day Summary · Matter Mind SR Portal</title>
+<title>Admin · Previous Day Summary · Aiywah FSM Portal</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
 <style>
@@ -231,7 +231,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
 <div class="hdr">
   <div class="hdr-inner">
     <div class="hdr-left">
-      <div class="hdr-eyebrow">Matter Mind SR Portal</div>
+      <div class="hdr-eyebrow">Aiywah FSM Portal</div>
       <div class="hdr-title">Previous Day Summary</div>
       <div class="hdr-date">{{ $summaryDate->format('l, F j, Y') }}</div>
     </div>
@@ -466,7 +466,7 @@ body{font-family:'DM Sans',system-ui,sans-serif;background:#f2f4f2;color:#1a1614
 <div class="cta-wrap">
   <a class="cta-btn" href="{{ $loginUrl }}">Open Portal Dashboard →</a>
 </div>
-<div class="footer">Matter Mind SR Portal · Admin Summary · {{ $summaryDate->format('d M Y') }} · Link valid 48 hours</div>
+<div class="footer">Aiywah FSM Portal · Admin Summary · {{ $summaryDate->format('d M Y') }} · Link valid 48 hours</div>
 
 <!-- OVERLAY -->
 <div class="sheet-overlay" id="overlay" onclick="closeSheet()"></div>

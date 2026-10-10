@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'Activity Log | Matter Mind')
+@section('title', 'Activity Log | Aiywah FSM')
 @section('page_title', 'Activity Log')
 @section('page_icon', 'activity')
 

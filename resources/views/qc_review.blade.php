@@ -1,6 +1,6 @@
 @extends('layouts.layout')
 
-@section('title', 'QC Review | Matter Mind')
+@section('title', 'QC Review | Aiywah FSM')
 @section('page_title', 'QC Review')
 @section('page_icon', 'database')
 @push('styles')

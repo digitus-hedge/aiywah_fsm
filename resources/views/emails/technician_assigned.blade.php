@@ -44,7 +44,7 @@
            also contact the assigned technician directly using the phone number
            provided above if required.</p>
 
-        <p>Thank you for your continued trust in Matter Mind.</p>
+        <p>Thank you for your continued trust in Aiywah FSM.</p>
     @else
         <p>Please contact the service coordinator if you are unable to attend at the
            scheduled time.</p>

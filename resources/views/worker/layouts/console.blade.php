@@ -26,7 +26,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
-  <title>@yield('title', 'Field Console') | Matter Mind</title>
+  <title>@yield('title', 'Field Console') | Aiywah FSM</title>
   <link rel="icon" type="image/png" href="{{ asset('assets/images/favicon.png') }}">
   <meta name="csrf-token" content="{{ csrf_token() }}"/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet"/>

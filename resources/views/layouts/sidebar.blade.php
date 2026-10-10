@@ -34,7 +34,7 @@ $pendingCount = \App\Models\ServiceRequest::where('status', 'Pending')->count();
     <a href="{{ route('dashboard') }}" class="sidebar-brand">
         <div class="brand-mark">
             <img src="{{ asset('assets/images/logo-landscape.png') }}"
-                 alt="Matter Mind">
+                 alt="Aiywah FSM">
         </div>
         
     </a>

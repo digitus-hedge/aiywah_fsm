@@ -22,7 +22,7 @@ class UserWelcomeMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Matter Mind Account Has Been Created',
+            subject: 'Your Aiywah FSM Account Has Been Created',
         );
     }
 
