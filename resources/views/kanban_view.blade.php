@@ -208,6 +208,37 @@
 .ti-title{font-size:.8125rem;font-weight:600;margin:0 0 2px;color:var(--text-heading);}
 .ti-body{font-size:.72rem;margin:0;color:var(--text-muted);}
 @media(max-width:575.98px){.toast-wrap{left:12px;right:12px;max-width:none;}}
+
+
+.srtm-ref {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #13a3d8 !important;
+}
+.srtm-owner-banner
+{
+      background: #13a3d869 !important;
+}
+
+.srtm-cell
+{
+      background: #13a3d869 !important;
+}
+.srtm-tl-node.done
+{
+      background: #13a3d8 !important;
+    border-color: #13a3d8 !important;
+}
+.srtm-tl-time
+{
+   color: #13a3d8 !important;
+}
+
+.srtm-tl-node.active
+{
+  border-color: #13a3d8 !important;
+    color: #13a3d8 !important;
+}
 </style>
 @endpush
 
